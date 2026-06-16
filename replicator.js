@@ -10,63 +10,42 @@ const fetch = require('node-fetch');
 // 1. Core Configuration & State
 // ==========================================
 
-/**
- * Builds the configuration object from environment variables.
- * This is the primary method for configuration in a CI/CD environment.
- * @returns {object|null} The config object if env vars are set, otherwise null.
- */
-function buildConfigFromEnv() {
-    // A core variable to check if we should even attempt this
-    if (!process.env.REPLICATOR_SYMBOL) {
-        return null;
+// API Keys are hardcoded here for security in the CI/CD environment.
+const HARDCODED_CREDENTIALS = {
+    user1_maker: {
+        key: "b417fbd0627044f0e0066a7bd9de3fbe1e8b024ec8c70077",
+        secret: "02cb3e25d1e13f03ee8f4ffc784e2db86e2c45883f157575a9c913fee6aed5cf"
+    },
+    user2_taker: {
+        key: "249f18188c6020f36f79834b0f8cc83e7e749d43c519ce04",
+        secret: "1fce044918e10a8c93cc02645f0d68022a20322f200c44b208639c3ccba9f41e"
     }
+};
 
-    console.log('Building configuration from environment variables...');
+let marketConfigs = [];
 
-    return {
-        symbol: process.env.REPLICATOR_SYMBOL,
-        targetSymbol: process.env.REPLICATOR_TARGET_SYMBOL || process.env.REPLICATOR_SYMBOL,
-        scaling: {
-            minSize: parseFloat(process.env.REPLICATOR_MIN_SIZE || 50),
-            maxSize: parseFloat(process.env.REPLICATOR_MAX_SIZE || 100),
-            depthLevels: parseInt(process.env.REPLICATOR_DEPTH_LEVELS || 10),
-            syncIntervalMs: 0, // This is handled by the master loop timeout
-            qtyChangeTolerance: parseFloat(process.env.REPLICATOR_QTY_TOLERANCE || 0.25),
-            enableOrderbookSync: true,
-            enableTradeSync: (process.env.REPLICATOR_ENABLE_TRADE_SYNC === 'true'),
-            bufferPct: parseFloat(process.env.REPLICATOR_BUFFER_PCT || 0),
-            cancelOnStop: (process.env.REPLICATOR_CANCEL_ON_STOP === 'true'),
-            tradeDelayMs: parseInt(process.env.REPLICATOR_TRADE_DELAY_MS || 0)
-        },
-        testnet: {
-            hpoUrl: "https://testnet-futures-hpo.dcxstage.com",
-            mdsUrl: "https://testnet-futures-mds-read.dcxstage.com",
-            cookie: "",
-            user1_maker: {
-                key: process.env.USER1_MAKER_KEY,
-                secret: process.env.USER1_MAKER_SECRET
-            },
-            user2_taker: {
-                key: process.env.USER2_TAKER_KEY,
-                secret: process.env.USER2_TAKER_SECRET
-            }
-        }
-    };
-}
-
-
-let config;
 try {
-    // Prioritize environment variables, fall back to config.json for local dev
-    config = buildConfigFromEnv();
-    if (!config) {
-        console.log('No environment variables found, falling back to config.json');
-        const configPath = path.resolve(__dirname, 'config.json');
-        config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    // The primary configuration method is now a JSON string from an environment variable.
+    if (process.env.MARKET_CONFIGS) {
+        console.log('Building configuration from MARKET_CONFIGS environment variable...');
+        const parsedConfigs = JSON.parse(process.env.MARKET_CONFIGS);
+        if (Array.isArray(parsedConfigs)) {
+            marketConfigs = parsedConfigs;
+            console.log(`Loaded ${marketConfigs.length} market configurations.`);
+        } else {
+            throw new Error('MARKET_CONFIGS is not a JSON array.');
+        }
+    } else {
+        // Fallback for local development if the env var is not set.
+        console.log('MARKET_CONFIGS env var not found. Falling back to local multi-config.json.');
+        const configPath = path.resolve(__dirname, 'multi-config.json');
+        marketConfigs = JSON.parse(fs.readFileSync(configPath, 'utf8'));
     }
-    console.log('Successfully loaded configuration.');
+    if (marketConfigs.length === 0) {
+        throw new Error('No market configurations were loaded.');
+    }
 } catch (err) {
-    console.error('Failed to load configuration. Ensure environment variables are set or a valid config.json exists.');
+    console.error('FATAL: Failed to load market configurations.');
     console.error(err);
     process.exit(1);
 }
@@ -131,8 +110,9 @@ function signAndPrepare(url, method, payloadObj, userConfig) {
         'X-AUTH-APIKEY': userConfig.key,
         'X-AUTH-SIGNATURE': signature
     };
-
-    if (config.testnet.cookie) headers['Cookie'] = config.testnet.cookie;
+    
+    // Cookie is no longer in config, so this is effectively disabled but kept for structure.
+    // if (config.testnet.cookie) headers['Cookie'] = config.testnet.cookie;
 
     return { finalUrl: urlObj.toString(), payloadStr: isGetOrDelete ? null : payloadStr, headers };
 }
@@ -168,7 +148,7 @@ async function syncServerTime() {
     const urls = [
         `https://fapi.binance.com/fapi/v1/time`,
         `https://api.binance.com/api/v3/time`,
-        `${config.testnet.hpoUrl}/fapi/v1/time`
+        `https://testnet-futures-hpo.dcxstage.com/fapi/v1/time`
     ];
     for (const url of urls) {
         try {
@@ -190,7 +170,7 @@ async function syncServerTime() {
 async function loadInstruments() {
     try {
         log.info('SYSTEM', 'Fetching Instrument parameters...');
-        const res = await fetch(`${config.testnet.hpoUrl}/api/v1/derivatives/futures/data`, {
+        const res = await fetch(`https://testnet-futures-hpo.dcxstage.com/api/v1/derivatives/futures/data`, {
             headers: { 'X-app-version': '6.56.0002' }
         });
         const data = await res.json();
@@ -211,14 +191,6 @@ async function loadInstruments() {
                 };
             });
             log.success('SYSTEM', `Loaded ${Object.keys(instrumentsMap).length} instruments.`);
-
-            const initialSym = (config.targetSymbol || config.symbol).toUpperCase();
-            const instParams = instrumentsMap[initialSym];
-            if (instParams) {
-                log.success('SYSTEM', `Params for ${initialSym}: pricePrec=${instParams.pricePrecision}, qtyPrec=${instParams.qtyPrecision}, qtyStep=${instParams.qtyStep}, minQty=${instParams.minQty}`);
-            } else {
-                log.warn('SYSTEM', `No default params found for ${initialSym}. Using fallback values.`);
-            }
         }
     } catch (e) { log.error('SYSTEM', `Instrument fetch failed: ${e.message}`); }
 }
@@ -255,22 +227,21 @@ function applyBuffer(priceStr, side, bufferPct, symbol) {
 // 3. Replicator Engine Instance
 // ==========================================
 class ReplicatorInstance {
-    constructor(sourceSymbol, targetSymbol = null) {
-        this.sourceSymbol = sourceSymbol.toUpperCase();
-        this.targetSymbol = (targetSymbol || sourceSymbol).toUpperCase();
+    constructor(marketConfig) {
+        this.sourceSymbol = marketConfig.sourceSymbol.toUpperCase();
+        this.targetSymbol = (marketConfig.targetSymbol || marketConfig.sourceSymbol).toUpperCase();
         
-        // Let all Testnet API calls, openOrders, and Logs use the target symbol
         this.symbol = this.targetSymbol; 
         this.status = 'STOPPED';
 
-        this.minSize            = config.scaling.minSize            || 100;
-        this.maxSize            = config.scaling.maxSize            || 500;
-        this.depthLevels        = config.scaling.depthLevels        || 10;
-        this.qtyChangeTolerance = config.scaling.qtyChangeTolerance || 0.25;
-
-        this.bufferPct          = config.scaling.bufferPct          || 0;
-        this.cancelOnStop       = config.scaling.cancelOnStop !== undefined ? config.scaling.cancelOnStop : true;
-        this.tradeDelayMs       = config.scaling.tradeDelayMs       || 0;
+        this.minSize            = marketConfig.minSize            || 100;
+        this.maxSize            = marketConfig.maxSize            || 500;
+        this.depthLevels        = marketConfig.depthLevels        || 10;
+        this.qtyChangeTolerance = marketConfig.qtyChangeTolerance || 0.25;
+        this.enableTradeSync    = marketConfig.enableTradeSync === true;
+        this.bufferPct          = marketConfig.bufferPct          || 0;
+        this.cancelOnStop       = marketConfig.cancelOnStop !== false;
+        this.tradeDelayMs       = marketConfig.tradeDelayMs       || 0;
 
         this.binanceDepth  = { bids: [], asks: [] };
         this.testnetDepth  = { bids: [], asks: [] };
@@ -299,9 +270,9 @@ class ReplicatorInstance {
         this.hasLoggedAuthError = false;
     }
 
-    async placeOrder(side, qty, price = null, orderType = 'LIMIT', overrideConfig = null) {
-        const userLabel = overrideConfig ? 'USER2_TAKER' : 'USER1_MAKER';
-        const userCreds = overrideConfig || config.testnet.user1_maker;
+    async placeOrder(side, qty, price = null, orderType = 'LIMIT', isTaker = false) {
+        const userCreds = isTaker ? HARDCODED_CREDENTIALS.user2_taker : HARDCODED_CREDENTIALS.user1_maker;
+        const userLabel = isTaker ? 'USER2_TAKER' : 'USER1_MAKER';
         const bufferedPrice = price ? applyBuffer(String(price), side, this.bufferPct, this.symbol) : null;
 
         const payload = { symbol: this.symbol, side: side.toUpperCase(), type: 'LIMIT', quantity: String(qty) };
@@ -314,7 +285,7 @@ class ReplicatorInstance {
         }
 
         log.debug(this.symbol, `[ORDER-PRE] ${userLabel} placing ${orderType} ${side} ${qty} @ ${bufferedPrice || 'MKT'} (raw: ${price}, buf: ${this.bufferPct}%)`);
-        const res = await sendSignedRequest(`${config.testnet.hpoUrl}/fapi/v1/order`, 'POST', payload, userCreds);
+        const res = await sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/order`, 'POST', payload, userCreds);
 
         if (res.status === 401) { this.handleAuthFailure(userLabel); return { success: false }; }
 
@@ -339,19 +310,19 @@ class ReplicatorInstance {
         };
 
         log.debug(this.symbol, `[MODIFY-PRE] USER1_MAKER modifying ID: ${orderId} -> ${qty} @ ${bufferedPrice} (raw: ${rawPrice}, buf: ${this.bufferPct}%)`);
-        const res = await sendSignedRequest(`${config.testnet.hpoUrl}/fapi/v1/order`, 'PUT', payload, config.testnet.user1_maker);
+        const res = await sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/order`, 'PUT', payload, HARDCODED_CREDENTIALS.user1_maker);
 
         if (res.status === 401) this.handleAuthFailure('USER1_MAKER');
         if (res.ok) log.debug(this.symbol, `[MODIFY-POST] Modified OK. ID: ${orderId}`);
         return res.ok;
     }
 
-    async cancelOrder(orderId, userConfig = null) {
-        const userLabel = userConfig ? 'USER2_TAKER' : 'USER1_MAKER';
-        const userCreds = userConfig || config.testnet.user1_maker;
+    async cancelOrder(orderId, isTaker = false) {
+        const userCreds = isTaker ? HARDCODED_CREDENTIALS.user2_taker : HARDCODED_CREDENTIALS.user1_maker;
+        const userLabel = isTaker ? 'USER2_TAKER' : 'USER1_MAKER';
 
         log.debug(this.symbol, `[CANCEL-PRE] ${userLabel} cancelling ID: ${orderId}`);
-        const res = await sendSignedRequest(`${config.testnet.hpoUrl}/fapi/v1/order`, 'DELETE', { symbol: this.symbol, orderId }, userCreds);
+        const res = await sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/order`, 'DELETE', { symbol: this.symbol, orderId }, userCreds);
 
         if (res.status === 401) this.handleAuthFailure(userLabel);
         if (res.ok) log.debug(this.symbol, `[CANCEL-POST] Cancelled OK. ID: ${orderId}`);
@@ -384,7 +355,7 @@ class ReplicatorInstance {
     async syncGrid(side, sourceLevels) {
         const isBuy         = side === 'BUY';
         const restingOrders = isBuy ? this.restingBids : this.restingAsks;
-        const tradeSync     = config.scaling.enableTradeSync !== false;
+        const tradeSync     = this.enableTradeSync;
 
         const targets = sourceLevels.slice(0, this.depthLevels).map(lvl => {
             const rawPrice  = lvl[0];
@@ -487,13 +458,13 @@ class ReplicatorInstance {
     }
 
     async runDeltaSync() {
-        if (this.status !== 'RUNNING' || this.isSyncingDelta || !config.scaling.enableOrderbookSync) return;
+        if (this.status !== 'RUNNING' || this.isSyncingDelta) return;
         this.isSyncingDelta = true;
         this.totalSyncAttempts++;
         const startT = Date.now();
 
         try {
-            const openRes = await sendSignedRequest(`${config.testnet.hpoUrl}/fapi/v1/openOrders`, 'GET', { symbol: this.symbol }, config.testnet.user1_maker);
+            const openRes = await sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/openOrders`, 'GET', { symbol: this.symbol }, HARDCODED_CREDENTIALS.user1_maker);
             if (openRes.status === 401) { this.handleAuthFailure('USER1_MAKER'); return; }
 
             if (openRes.ok && Array.isArray(openRes.data)) {
@@ -521,7 +492,7 @@ class ReplicatorInstance {
     }
 
     async handleTrade(trade) {
-        if (this.status !== 'RUNNING' || !config.scaling.enableTradeSync) return;
+        if (this.status !== 'RUNNING' || !this.enableTradeSync) return;
         const pStr      = formatPrice(trade.p, this.symbol);
         const notional  = parseFloat(trade.q) * parseFloat(trade.p);
         const targetSz  = Math.max(this.minSize, Math.min(this.maxSize, notional));
@@ -538,7 +509,7 @@ class ReplicatorInstance {
 
             if (hasRestingMaker) {
                 if (this.tradeDelayMs > 0) await new Promise(r => setTimeout(r, this.tradeDelayMs));
-                matched = await this.placeOrder(takerSide, scaledQty, trade.p, 'LIMIT_IOC', config.testnet.user2_taker).then(r => r.success);
+                matched = await this.placeOrder(takerSide, scaledQty, trade.p, 'LIMIT_IOC', true).then(r => r.success);
                 if (matched) {
                     if (makerSide === 'BUY') this.restingBids = this.restingBids.filter(ro => ro.orderId !== hasRestingMaker.orderId);
                     else this.restingAsks = this.restingAsks.filter(ro => ro.orderId !== hasRestingMaker.orderId);
@@ -547,7 +518,7 @@ class ReplicatorInstance {
                 const makerRes = await this.placeOrder(makerSide, scaledQty, trade.p, 'LIMIT');
                 if (makerRes.success) {
                     if (this.tradeDelayMs > 0) await new Promise(r => setTimeout(r, this.tradeDelayMs));
-                    matched = await this.placeOrder(takerSide, scaledQty, trade.p, 'LIMIT_IOC', config.testnet.user2_taker).then(r => r.success);
+                    matched = await this.placeOrder(takerSide, scaledQty, trade.p, 'LIMIT_IOC', true).then(r => r.success);
                     await this.cancelOrder(makerRes.orderId);
                 }
             }
@@ -578,7 +549,6 @@ startBinanceDepthWS() {
             if (this.status === 'STOPPED') return;
             try {
                 const data = JSON.parse(raw.toString());
-                // FIX: Restore the fallback to 'b' and 'a'
                 const bids = data.bids || data.b;
                 const asks = data.asks || data.a;
                 
@@ -606,7 +576,7 @@ startBinanceDepthWS() {
                 const data = JSON.parse(raw.toString());
                 if (data.e === 'aggTrade') {
                     this.binanceLtp = data.p;
-                    if (config.scaling.enableTradeSync) {
+                    if (this.enableTradeSync) {
                         this.tradeQueue.push({ p: data.p, q: data.q, m: data.m });
                         this.processTradeQueue();
                     }
@@ -627,7 +597,6 @@ startTestnetWS() {
             if (this.status === 'STOPPED') return;
             try {
                 const data = JSON.parse(raw.toString());
-                // FIX: Restore the fallback to 'b' and 'a'
                 const bids = data.bids || data.b;
                 const asks = data.asks || data.a;
                 
@@ -646,16 +615,16 @@ startTestnetWS() {
     async wipeOrders() {
         log.info(this.symbol, 'Wiping orders (2.5s timeout)...');
         const [u1Res, u2Res] = await Promise.all([
-            sendSignedRequest(`${config.testnet.hpoUrl}/fapi/v1/openOrders`, 'GET', { symbol: this.symbol }, config.testnet.user1_maker, 2500),
-            sendSignedRequest(`${config.testnet.hpoUrl}/fapi/v1/openOrders`, 'GET', { symbol: this.symbol }, config.testnet.user2_taker, 2500)
+            sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/openOrders`, 'GET', { symbol: this.symbol }, HARDCODED_CREDENTIALS.user1_maker, 2500),
+            sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/openOrders`, 'GET', { symbol: this.symbol }, HARDCODED_CREDENTIALS.user2_taker, 2500)
         ]);
 
         let toCancel = [];
-        if (u1Res.ok && Array.isArray(u1Res.data)) toCancel.push(...u1Res.data.map(o => ({ id: o.orderId, u: config.testnet.user1_maker })));
-        if (u2Res.ok && Array.isArray(u2Res.data)) toCancel.push(...u2Res.data.map(o => ({ id: o.orderId, u: config.testnet.user2_taker })));
+        if (u1Res.ok && Array.isArray(u1Res.data)) toCancel.push(...u1Res.data.map(o => ({ id: o.orderId, isTaker: false })));
+        if (u2Res.ok && Array.isArray(u2Res.data)) toCancel.push(...u2Res.data.map(o => ({ id: o.orderId, isTaker: true })));
 
         if (toCancel.length > 0) {
-            await Promise.allSettled(toCancel.map(o => this.cancelOrder(o.id, o.u)));
+            await Promise.allSettled(toCancel.map(o => this.cancelOrder(o.id, o.isTaker)));
             log.success(this.symbol, 'Staging book cleansed.');
         }
         this.restingBids = []; this.restingAsks = [];
@@ -663,8 +632,8 @@ startTestnetWS() {
 
     async reloadDepth() {
         const depthEndpoints = [
-            `${config.testnet.hpoUrl}/fapi/v1/depth?symbol=${this.symbol}&limit=${this.depthLevels}`,
-            `${config.testnet.hpoUrl}/api/v1/derivatives/futures/depth?symbol=${this.symbol}&limit=${this.depthLevels}`
+            `https://testnet-futures-hpo.dcxstage.com/fapi/v1/depth?symbol=${this.symbol}&limit=${this.depthLevels}`,
+            `https://testnet-futures-hpo.dcxstage.com/api/v1/derivatives/futures/depth?symbol=${this.symbol}&limit=${this.depthLevels}`
         ];
         for (const endpoint of depthEndpoints) {
             try {
@@ -737,12 +706,12 @@ function autoParseAccount(data) {
 
 async function getUserPortfolio(userConfig) {
     let accountData = null, positionData = null, errorMsg = null;
-    let res = await sendSignedRequest(`${config.testnet.hpoUrl}/fapi/v2/account`, 'GET', null, userConfig);
+    let res = await sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v2/account`, 'GET', null, userConfig);
     if (res.ok) accountData = res.data;
     else if (res.status === 401) errorMsg = `API Failed (401 Unauthorized)`;
     else errorMsg = `API Failed (${res.status})`;
 
-    let posRes = await sendSignedRequest(`${config.testnet.hpoUrl}/fapi/v2/positionRisk`, 'GET', null, userConfig);
+    let posRes = await sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v2/positionRisk`, 'GET', null, userConfig);
     if (posRes.ok) positionData = posRes.data;
     else if (!errorMsg) errorMsg = `Positions API Failed (${posRes.status})`;
 
@@ -769,8 +738,8 @@ async function globalMasterLoop() {
         if (lastPortfolioSyncTime === 0 || now - lastPortfolioSyncTime >= PORTFOLIO_SYNC_INTERVAL_MS) {
             lastPortfolioSyncTime = now;
             const [p1, p2] = await Promise.all([
-                getUserPortfolio(config.testnet.user1_maker),
-                getUserPortfolio(config.testnet.user2_taker)
+                getUserPortfolio(HARDCODED_CREDENTIALS.user1_maker),
+                getUserPortfolio(HARDCODED_CREDENTIALS.user2_taker)
             ]);
             user1Portfolio = p1;
             user2Portfolio = p2;
@@ -778,7 +747,9 @@ async function globalMasterLoop() {
     } catch (e) {}
     finally {
         broadcastToUI();
-        setTimeout(globalMasterLoop, config.scaling.syncIntervalMs || 1000);
+        // The loop interval is now configured per-market, but we need a master loop.
+        // We'll just run it every 1 second as a fallback.
+        setTimeout(globalMasterLoop, 1000);
     }
 }
 
@@ -805,7 +776,7 @@ function buildPayload() {
                 bufferPct:       inst.bufferPct,
                 cancelOnStop:    inst.cancelOnStop,
                 tradeDelayMs:    inst.tradeDelayMs,
-                enableTradeSync: config.scaling.enableTradeSync !== false
+                enableTradeSync: inst.enableTradeSync
             }
         };
     }
@@ -844,17 +815,18 @@ const server = http.createServer(async (req, res) => {
                 if (!sym) throw new Error("Symbol is required");
 
                 if (req.url === '/api/config') {
-                    if (!instances.has(targetSym)) instances.set(targetSym, new ReplicatorInstance(sym, targetSym));
-                    const updatedInst = instances.get(targetSym);
-                    
-                    if (parsed.minSize     !== undefined) updatedInst.minSize     = parseFloat(parsed.minSize);
-                    if (parsed.maxSize     !== undefined) updatedInst.maxSize     = parseFloat(parsed.maxSize);
-                    if (parsed.depthLevels !== undefined) updatedInst.depthLevels = parseInt(parsed.depthLevels);
-                    if (parsed.bufferPct   !== undefined) updatedInst.bufferPct   = parseFloat(parsed.bufferPct);
-                    if (parsed.cancelOnStop !== undefined) updatedInst.cancelOnStop = Boolean(parsed.cancelOnStop);
-                    if (parsed.tradeDelayMs !== undefined) updatedInst.tradeDelayMs = parseInt(parsed.tradeDelayMs);
-                    
-                    log.info(targetSym, `Config updated: bufferPct=${updatedInst.bufferPct}%, cancelOnStop=${updatedInst.cancelOnStop}, tradeDelayMs=${updatedInst.tradeDelayMs}ms`);
+                    // This endpoint is now less relevant as config is passed at startup.
+                    // Kept for potential future use, but it won't create new instances.
+                    const inst = instances.get(targetSym);
+                    if (inst) {
+                        if (parsed.minSize     !== undefined) inst.minSize     = parseFloat(parsed.minSize);
+                        if (parsed.maxSize     !== undefined) inst.maxSize     = parseFloat(parsed.maxSize);
+                        if (parsed.depthLevels !== undefined) inst.depthLevels = parseInt(parsed.depthLevels);
+                        if (parsed.bufferPct   !== undefined) inst.bufferPct   = parseFloat(parsed.bufferPct);
+                        if (parsed.cancelOnStop !== undefined) inst.cancelOnStop = Boolean(parsed.cancelOnStop);
+                        if (parsed.tradeDelayMs !== undefined) inst.tradeDelayMs = parseInt(parsed.tradeDelayMs);
+                        log.info(targetSym, `Config updated for existing instance.`);
+                    }
                 } else {
                     const inst = instances.get(targetSym);
                     if (req.url === '/api/engine/start'  && inst) inst.start();
@@ -881,70 +853,68 @@ const server = http.createServer(async (req, res) => {
 // 6. Main Execution Control
 // ==========================================
 
-async function startHeadless() {
+async function startBots() {
     log.success('SYSTEM', '===========================================================');
-    log.success('SYSTEM', 'Institutional Multi-Market Replicator (Headless Mode)');
+    log.success('SYSTEM', `Starting ${marketConfigs.length} market replicator(s)...`);
     log.success('SYSTEM', '===========================================================');
 
     await Promise.allSettled([syncServerTime(), loadInstruments()]);
     
-    const sourceSym = config.symbol.toUpperCase();
-    const targetSym = (config.targetSymbol || config.symbol).toUpperCase();
-    const inst = new ReplicatorInstance(sourceSym, targetSym);
-    
-    instances.set(targetSym, inst);
-
-    try {
-        await inst.wipeOrders();
-    } catch (e) {
-        log.error('SYSTEM', `Initial wipeOrders failed: ${e.message}`);
+    for (const marketConf of marketConfigs) {
+        const targetSym = (marketConf.targetSymbol || marketConf.sourceSymbol).toUpperCase();
+        if (instances.has(targetSym)) {
+            log.warn(targetSym, 'Skipping duplicate market configuration.');
+            continue;
+        }
+        log.info(targetSym, `Initializing market: ${marketConf.sourceSymbol} -> ${targetSym}`);
+        const inst = new ReplicatorInstance(marketConf);
+        instances.set(targetSym, inst);
     }
-    
-    await inst.start();
+
+    const startPromises = [];
+    for (const inst of instances.values()) {
+        startPromises.push((async () => {
+            try {
+                await inst.wipeOrders();
+                await inst.start();
+            } catch (e) {
+                log.error(inst.targetSymbol, `Initial start sequence failed: ${e.message}`);
+            }
+        })());
+    }
+    await Promise.allSettled(startPromises);
 
     globalMasterLoop();
     setInterval(syncServerTime, 60 * 60 * 1000);
     setInterval(loadInstruments, 6 * 60 * 60 * 1000);
 }
 
-if (process.env.RUN_HEADLESS === 'true') {
-    startHeadless().catch(err => {
-        log.critical('SYSTEM', `A fatal error occurred in headless mode: ${err.message}`);
+// This script now runs in one of two modes: UI mode or Headless (CI/CD) mode.
+// The presence of the MARKET_CONFIGS env var implies headless mode.
+if (process.env.MARKET_CONFIGS) {
+    startBots().catch(err => {
+        log.critical('SYSTEM', `A fatal error occurred during bot startup: ${err.message}`);
         process.exit(1);
     });
 } else {
+    // UI Mode (for local development)
     setInterval(() => sseClients.forEach(c => c.write(`: keepalive\n\n`)), 15000);
 
     server.listen(3000, async () => {
         log.success('SYSTEM', '===========================================================');
-        log.success('SYSTEM', 'Institutional Multi-Market Replicator Active.');
+        log.success('SYSTEM', 'Replicator Active in UI Mode.');
         log.success('SYSTEM', 'Terminal Dashboard: \x1b[36mhttp://localhost:3000\x1b[0m');
         log.success('SYSTEM', '===========================================================');
-
-        Promise.allSettled([syncServerTime(), loadInstruments()]).then(() => {
-            const sourceSym = config.symbol.toUpperCase();
-            const targetSym = (config.targetSymbol || config.symbol).toUpperCase();
-            const inst = new ReplicatorInstance(sourceSym, targetSym);
-            
-            instances.set(targetSym, inst);
-            broadcastToUI();
-
-            (async () => {
-                try { await inst.wipeOrders(); } catch (e) {}
-                await inst.start();
-            })();
-
-            globalMasterLoop();
-            setInterval(syncServerTime,    60 * 60 * 1000);
-            setInterval(loadInstruments, 6 * 60 * 60 * 1000);
-        });
+        startBots();
     });
 }
 
 
 process.on('SIGINT', async () => {
-    log.warn('SYSTEM', 'Termination signal caught. Stopping engines...');
-    for (const inst of instances.values()) await inst.stop();
+    log.warn('SYSTEM', 'Termination signal caught. Stopping all engines...');
+    for (const inst of instances.values()) {
+        await inst.stop();
+    }
     process.exit(0);
 });
 
