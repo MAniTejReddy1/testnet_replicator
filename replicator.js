@@ -9,15 +9,68 @@ const fetch = require('node-fetch');
 // ==========================================
 // 1. Core Configuration & State
 // ==========================================
+
+/**
+ * Builds the configuration object from environment variables.
+ * This is the primary method for configuration in a CI/CD environment.
+ * @returns {object|null} The config object if env vars are set, otherwise null.
+ */
+function buildConfigFromEnv() {
+    // A core variable to check if we should even attempt this
+    if (!process.env.REPLICATOR_SYMBOL) {
+        return null;
+    }
+
+    console.log('Building configuration from environment variables...');
+
+    return {
+        symbol: process.env.REPLICATOR_SYMBOL,
+        targetSymbol: process.env.REPLICATOR_TARGET_SYMBOL || process.env.REPLICATOR_SYMBOL,
+        scaling: {
+            minSize: parseFloat(process.env.REPLICATOR_MIN_SIZE || 50),
+            maxSize: parseFloat(process.env.REPLICATOR_MAX_SIZE || 100),
+            depthLevels: parseInt(process.env.REPLICATOR_DEPTH_LEVELS || 10),
+            syncIntervalMs: 0, // This is handled by the master loop timeout
+            qtyChangeTolerance: parseFloat(process.env.REPLICATOR_QTY_TOLERANCE || 0.25),
+            enableOrderbookSync: true,
+            enableTradeSync: (process.env.REPLICATOR_ENABLE_TRADE_SYNC === 'true'),
+            bufferPct: parseFloat(process.env.REPLICATOR_BUFFER_PCT || 0),
+            cancelOnStop: (process.env.REPLICATOR_CANCEL_ON_STOP === 'true'),
+            tradeDelayMs: parseInt(process.env.REPLICATOR_TRADE_DELAY_MS || 0)
+        },
+        testnet: {
+            hpoUrl: "https://testnet-futures-hpo.dcxstage.com",
+            mdsUrl: "https://testnet-futures-mds-read.dcxstage.com",
+            cookie: "",
+            user1_maker: {
+                key: process.env.USER1_MAKER_KEY,
+                secret: process.env.USER1_MAKER_SECRET
+            },
+            user2_taker: {
+                key: process.env.USER2_TAKER_KEY,
+                secret: process.env.USER2_TAKER_SECRET
+            }
+        }
+    };
+}
+
+
 let config;
 try {
-    const configPath = path.resolve(__dirname, 'config.json');
-    config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    console.log('Successfully loaded config.json');
+    // Prioritize environment variables, fall back to config.json for local dev
+    config = buildConfigFromEnv();
+    if (!config) {
+        console.log('No environment variables found, falling back to config.json');
+        const configPath = path.resolve(__dirname, 'config.json');
+        config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    }
+    console.log('Successfully loaded configuration.');
 } catch (err) {
-    console.error('Failed to load config.json. Ensure it exists and has valid JSON syntax.');
+    console.error('Failed to load configuration. Ensure environment variables are set or a valid config.json exists.');
+    console.error(err);
     process.exit(1);
 }
+
 
 // Global Verbose Debug Flag
 const DEBUG = false;
