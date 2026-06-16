@@ -1,4 +1,5 @@
 const fs = require('fs');
+const path = require('path');
 const http = require('http');
 const crypto = require('crypto');
 const WebSocket = require('ws');
@@ -8,7 +9,8 @@ const WebSocket = require('ws');
 // ==========================================
 let config;
 try {
-    config = JSON.parse(fs.readFileSync('./config.json', 'utf8'));
+    const configPath = path.resolve(__dirname, 'config.json');
+    config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
     console.log('Successfully loaded config.json');
 } catch (err) {
     console.error('Failed to load config.json. Ensure it exists and has valid JSON syntax.');
@@ -756,6 +758,8 @@ function buildPayload() {
 }
 
 function broadcastToUI() {
+    // In headless mode, sseClients will always be empty.
+    if (sseClients.length === 0) return;
     const payload = buildPayload();
     sseClients.forEach(c => c.write(`data: ${payload}\n\n`));
 }
@@ -818,32 +822,70 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(404).end();
 });
 
-setInterval(() => sseClients.forEach(c => c.write(`: keepalive\n\n`)), 15000);
+// ==========================================
+// 6. Main Execution Control
+// ==========================================
 
-server.listen(3000, async () => {
+async function startHeadless() {
     log.success('SYSTEM', '===========================================================');
-    log.success('SYSTEM', 'Institutional Multi-Market Replicator Active.');
-    log.success('SYSTEM', 'Terminal Dashboard: \x1b[36mhttp://localhost:3000\x1b[0m');
+    log.success('SYSTEM', 'Institutional Multi-Market Replicator (Headless Mode)');
     log.success('SYSTEM', '===========================================================');
 
-    Promise.allSettled([syncServerTime(), loadInstruments()]).then(() => {
-        const sourceSym = config.symbol.toUpperCase();
-        const targetSym = (config.targetSymbol || config.symbol).toUpperCase();
-        const inst = new ReplicatorInstance(sourceSym, targetSym);
-        
-        instances.set(targetSym, inst);
-        broadcastToUI();
+    await Promise.allSettled([syncServerTime(), loadInstruments()]);
+    
+    const sourceSym = config.symbol.toUpperCase();
+    const targetSym = (config.targetSymbol || config.symbol).toUpperCase();
+    const inst = new ReplicatorInstance(sourceSym, targetSym);
+    
+    instances.set(targetSym, inst);
 
-        (async () => {
-            try { await inst.wipeOrders(); } catch (e) {}
-            await inst.start();
-        })();
+    try {
+        await inst.wipeOrders();
+    } catch (e) {
+        log.error('SYSTEM', `Initial wipeOrders failed: ${e.message}`);
+    }
+    
+    await inst.start();
 
-        globalMasterLoop();
-        setInterval(syncServerTime,    60 * 60 * 1000);
-        setInterval(loadInstruments, 6 * 60 * 60 * 1000);
+    globalMasterLoop();
+    setInterval(syncServerTime, 60 * 60 * 1000);
+    setInterval(loadInstruments, 6 * 60 * 60 * 1000);
+}
+
+if (process.env.RUN_HEADLESS === 'true') {
+    startHeadless().catch(err => {
+        log.critical('SYSTEM', `A fatal error occurred in headless mode: ${err.message}`);
+        process.exit(1);
     });
-});
+} else {
+    setInterval(() => sseClients.forEach(c => c.write(`: keepalive\n\n`)), 15000);
+
+    server.listen(3000, async () => {
+        log.success('SYSTEM', '===========================================================');
+        log.success('SYSTEM', 'Institutional Multi-Market Replicator Active.');
+        log.success('SYSTEM', 'Terminal Dashboard: \x1b[36mhttp://localhost:3000\x1b[0m');
+        log.success('SYSTEM', '===========================================================');
+
+        Promise.allSettled([syncServerTime(), loadInstruments()]).then(() => {
+            const sourceSym = config.symbol.toUpperCase();
+            const targetSym = (config.targetSymbol || config.symbol).toUpperCase();
+            const inst = new ReplicatorInstance(sourceSym, targetSym);
+            
+            instances.set(targetSym, inst);
+            broadcastToUI();
+
+            (async () => {
+                try { await inst.wipeOrders(); } catch (e) {}
+                await inst.start();
+            })();
+
+            globalMasterLoop();
+            setInterval(syncServerTime,    60 * 60 * 1000);
+            setInterval(loadInstruments, 6 * 60 * 60 * 1000);
+        });
+    });
+}
+
 
 process.on('SIGINT', async () => {
     log.warn('SYSTEM', 'Termination signal caught. Stopping engines...');
@@ -852,7 +894,7 @@ process.on('SIGINT', async () => {
 });
 
 // ==========================================
-// 6. UI Render
+// 7. UI Render
 // ==========================================
 function getHtmlUI() {
     return `<!DOCTYPE html>
