@@ -3,6 +3,7 @@ const path = require('path');
 const http = require('http');
 const crypto = require('crypto');
 const WebSocket = require('ws');
+const AbortController = require('abort-controller');
 
 // ==========================================
 // 1. Core Configuration & State
