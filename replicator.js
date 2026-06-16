@@ -4,6 +4,7 @@ const http = require('http');
 const crypto = require('crypto');
 const WebSocket = require('ws');
 const AbortController = require('abort-controller');
+const fetch = require('node-fetch');
 
 // ==========================================
 // 1. Core Configuration & State
