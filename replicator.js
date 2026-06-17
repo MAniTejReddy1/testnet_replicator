@@ -785,6 +785,7 @@ function buildPayload() {
 
 function broadcastToUI() {
     // In headless mode, sseClients will always be empty.
+    // However, if UI mode is active (or if we enable it in Jenkins), this will broadcast.
     if (sseClients.length === 0) return;
     const payload = buildPayload();
     sseClients.forEach(c => c.write(`data: ${payload}\n\n`));
@@ -889,25 +890,20 @@ async function startBots() {
     setInterval(loadInstruments, 6 * 60 * 60 * 1000);
 }
 
-// This script now runs in one of two modes: UI mode or Headless (CI/CD) mode.
-// The presence of the MARKET_CONFIGS env var implies headless mode.
-if (process.env.MARKET_CONFIGS) {
+// Start the server and the bots. We run the server even in Jenkins so we can access the UI via SSH Tunnel.
+setInterval(() => sseClients.forEach(c => c.write(`: keepalive\n\n`)), 15000);
+
+server.listen(3000, async () => {
+    log.success('SYSTEM', '===========================================================');
+    log.success('SYSTEM', 'Replicator Active.');
+    log.success('SYSTEM', 'UI is available on port 3000.');
+    log.success('SYSTEM', '===========================================================');
+    
     startBots().catch(err => {
         log.critical('SYSTEM', `A fatal error occurred during bot startup: ${err.message}`);
         process.exit(1);
     });
-} else {
-    // UI Mode (for local development)
-    setInterval(() => sseClients.forEach(c => c.write(`: keepalive\n\n`)), 15000);
-
-    server.listen(3000, async () => {
-        log.success('SYSTEM', '===========================================================');
-        log.success('SYSTEM', 'Replicator Active in UI Mode.');
-        log.success('SYSTEM', 'Terminal Dashboard: \x1b[36mhttp://localhost:3000\x1b[0m');
-        log.success('SYSTEM', '===========================================================');
-        startBots();
-    });
-}
+});
 
 
 process.on('SIGINT', async () => {
