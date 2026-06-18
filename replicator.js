@@ -355,6 +355,14 @@ class ReplicatorInstance {
         const userCreds = isTaker ? HARDCODED_CREDENTIALS.user2_taker : HARDCODED_CREDENTIALS.user1_maker;
         const userLabel = isTaker ? 'USER2_TAKER' : 'USER1_MAKER';
 
+        let price = null, side = null;
+        if (!isTaker) {
+            const b = this.restingBids.find(ro => ro && ro.orderId === orderId);
+            const a = this.restingAsks.find(ro => ro && ro.orderId === orderId);
+            if (b) { price = b.price; side = 'BUY'; }
+            if (a) { price = a.price; side = 'SELL'; }
+        }
+
         log.debug(this.symbol, `[CANCEL-PRE] ${userLabel} cancelling ID: ${orderId}`);
         const res = await sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/order`, 'DELETE', { symbol: this.symbol, orderId }, userCreds);
 
@@ -363,7 +371,10 @@ class ReplicatorInstance {
             log.debug(this.symbol, `[CANCEL-POST] Cancelled OK. ID: ${orderId}`);
             emitOrderEvent('order:cancelled', {
                 symbol: this.symbol,
-                orderId
+                orderId,
+                isTaker,
+                price,
+                side
             });
         }
         return { success: res.ok, isTerminal: res.ok || [400, 401, 404].includes(res.status) };
