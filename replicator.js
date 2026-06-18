@@ -7,6 +7,22 @@ const AbortController = require('abort-controller');
 const fetch = require('node-fetch');
 
 // ==========================================
+// Reporter / Event Bus Setup
+// ==========================================
+const REPORTER_URL = `http://localhost:${process.env.REPORTER_PORT || 3001}/event`;
+
+async function emitOrderEvent(type, payload) {
+    try {
+        await fetch(REPORTER_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type, ...payload }),
+        }).catch(() => {});
+    } catch {}
+}
+
+
+// ==========================================
 // 1. Core Configuration & State
 // ==========================================
 
@@ -291,6 +307,15 @@ class ReplicatorInstance {
 
         if (res.ok) {
             log.debug(this.symbol, `[ORDER-POST] ${userLabel} placed OK. ID: ${res.data.orderId || res.data.id}`);
+            emitOrderEvent('order:placed', {
+                symbol: this.symbol,
+                side,
+                qty,
+                price: bufferedPrice,
+                orderId: res.data.orderId || res.data.id,
+                isTaker,
+                orderType
+            });
             return { success: true, orderId: res.data.orderId || res.data.id, price: bufferedPrice };
         }
         log.error(this.symbol, `[ORDER-FAIL] ${userLabel} failed: ${JSON.stringify(res.data || res.error)}`);
@@ -313,7 +338,16 @@ class ReplicatorInstance {
         const res = await sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/order`, 'PUT', payload, HARDCODED_CREDENTIALS.user1_maker);
 
         if (res.status === 401) this.handleAuthFailure('USER1_MAKER');
-        if (res.ok) log.debug(this.symbol, `[MODIFY-POST] Modified OK. ID: ${orderId}`);
+        if (res.ok) {
+            log.debug(this.symbol, `[MODIFY-POST] Modified OK. ID: ${orderId}`);
+            emitOrderEvent('order:modified', {
+                symbol: this.symbol,
+                orderId,
+                side,
+                newPrice: bufferedPrice,
+                newQty: qty
+            });
+        }
         return res.ok;
     }
 
@@ -325,7 +359,13 @@ class ReplicatorInstance {
         const res = await sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/order`, 'DELETE', { symbol: this.symbol, orderId }, userCreds);
 
         if (res.status === 401) this.handleAuthFailure(userLabel);
-        if (res.ok) log.debug(this.symbol, `[CANCEL-POST] Cancelled OK. ID: ${orderId}`);
+        if (res.ok) {
+            log.debug(this.symbol, `[CANCEL-POST] Cancelled OK. ID: ${orderId}`);
+            emitOrderEvent('order:cancelled', {
+                symbol: this.symbol,
+                orderId
+            });
+        }
         return { success: res.ok, isTerminal: res.ok || [400, 401, 404].includes(res.status) };
     }
 
@@ -509,7 +549,17 @@ class ReplicatorInstance {
 
             if (hasRestingMaker) {
                 if (this.tradeDelayMs > 0) await new Promise(r => setTimeout(r, this.tradeDelayMs));
-                matched = await this.placeOrder(takerSide, scaledQty, trade.p, 'LIMIT_IOC', true).then(r => r.success);
+                const takerRes = await this.placeOrder(takerSide, scaledQty, trade.p, 'LIMIT_IOC', true);
+                matched = takerRes.success;
+                
+                emitOrderEvent('order:fill_attempt', {
+                    symbol: this.symbol,
+                    makerOrderId: hasRestingMaker.orderId,
+                    takerOrderId: takerRes.orderId,
+                    expectedQty: scaledQty,
+                    price: trade.p
+                });
+
                 if (matched) {
                     if (makerSide === 'BUY') this.restingBids = this.restingBids.filter(ro => ro.orderId !== hasRestingMaker.orderId);
                     else this.restingAsks = this.restingAsks.filter(ro => ro.orderId !== hasRestingMaker.orderId);
@@ -518,7 +568,17 @@ class ReplicatorInstance {
                 const makerRes = await this.placeOrder(makerSide, scaledQty, trade.p, 'LIMIT');
                 if (makerRes.success) {
                     if (this.tradeDelayMs > 0) await new Promise(r => setTimeout(r, this.tradeDelayMs));
-                    matched = await this.placeOrder(takerSide, scaledQty, trade.p, 'LIMIT_IOC', true).then(r => r.success);
+                    const takerRes = await this.placeOrder(takerSide, scaledQty, trade.p, 'LIMIT_IOC', true);
+                    matched = takerRes.success;
+                    
+                    emitOrderEvent('order:fill_attempt', {
+                        symbol: this.symbol,
+                        makerOrderId: makerRes.orderId,
+                        takerOrderId: takerRes.orderId,
+                        expectedQty: scaledQty,
+                        price: trade.p
+                    });
+
                     await this.cancelOrder(makerRes.orderId);
                 }
             }
