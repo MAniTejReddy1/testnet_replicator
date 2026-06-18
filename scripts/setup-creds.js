@@ -13,7 +13,10 @@ async function rawSend(label, req) {
   return new Promise((resolve, reject) => {
     fetch(req.url, {
       method: req.method,
-      headers: req.header,
+      headers: {
+        "User-Agent": "PostmanRuntime/7.32.3",
+        ...req.header
+      },
       body: req.body ? req.body.raw : undefined
     }).then(async res => {
       const bodyText = await res.text();
