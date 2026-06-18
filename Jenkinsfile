@@ -142,11 +142,20 @@ pipeline {
                 // Flush mode — writes environment.properties if not already written
                 sh 'node reporter.js --flush || true'
 
-                // Generate the HTML report from allure-results/
-                sh 'npx allure generate allure-results --clean -o allure-report || true'
+                echo "=== Verifying Allure prerequisites ==="
+                sh 'java -version || echo "Java not found, Allure report generation will fail."'
+                sh 'ls -la allure-results/ || echo "allure-results directory not found."'
 
-                // Verify the report was generated
-                sh 'ls -la allure-report/ || echo "allure-report directory empty or missing"'
+                // Only generate report if there are result files
+                def resultFiles = sh(script: 'find allure-results -name "*.json" | wc -l', returnStdout: true).trim()
+                if (resultFiles.toInteger() > 0) {
+                    echo "Found ${resultFiles} result files. Generating Allure report..."
+                    sh 'npx allure generate allure-results --clean -o allure-report' // Fail build if this fails
+                    echo "=== Verifying Allure report generation ==="
+                    sh 'ls -la allure-report/'
+                } else {
+                    echo "WARNING: No Allure result files found in allure-results/. Skipping report generation."
+                }
 
                 // Print reporter log for debugging
                 echo "=== Replicator log tail ==="
