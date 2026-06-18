@@ -13,12 +13,12 @@ const fetch = require('node-fetch');
 // API Keys are hardcoded here for security in the CI/CD environment.
 const HARDCODED_CREDENTIALS = {
     user1_maker: {
-        key: "4e8ffb1b4a9cbf3b2bc9d071cb7c1cf6642513e8aee4bdb9",
-        secret: "1fcf0c5ca8ee62fd149c999c1fb3d4b6b4c55704e1adced65dac0b8ded53b9b6"
+        key: "b417fbd0627044f0e0066a7bd9de3fbe1e8b024ec8c70077",
+        secret: "02cb3e25d1e13f03ee8f4ffc784e2db86e2c45883f157575a9c913fee6aed5cf"
     },
     user2_taker: {
-        key: "b374ec3405867a1eb3a7d4f6a4604d345e5a7843897d5f72",
-        secret: "efb670a14bfd82acdf42497561ccb1b571c45a034fd26def3c4024cf80640493"
+        key: "249f18188c6020f36f79834b0f8cc83e7e749d43c519ce04",
+        secret: "1fce044918e10a8c93cc02645f0d68022a20322f200c44b208639c3ccba9f41e"
     }
 };
 
