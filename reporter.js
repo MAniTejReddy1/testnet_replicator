@@ -404,7 +404,7 @@ async function validatePlace({ symbol, side, qty, price, orderId, isTaker, order
         result.broken(`Unhandled exception: ${e.message}`);
         log('ERROR', `validatePlace threw: ${e.stack}`);
     } finally {
-        result.flush();
+        trackMetric('Place', result);
     }
 }
 
@@ -454,7 +454,7 @@ async function validateCancel({ symbol, orderId, price, side, isTaker }) {
         result.broken(`Unhandled exception: ${e.message}`);
         log('ERROR', `validateCancel threw: ${e.stack}`);
     } finally {
-        result.flush();
+        trackMetric('Cancel', result);
     }
 }
 
@@ -539,7 +539,7 @@ async function validateFill({ symbol, makerOrderId, takerOrderId, expectedQty, p
         result.broken(`Unhandled exception: ${e.message}`);
         log('ERROR', `validateFill threw: ${e.stack}`);
     } finally {
-        result.flush();
+        trackMetric('Fill', result);
     }
 }
 
@@ -571,7 +571,7 @@ async function validateModify({ symbol, orderId, side, newPrice, newQty }) {
         result.broken(`Unhandled exception: ${e.message}`);
         log('ERROR', `validateModify threw: ${e.stack}`);
     } finally {
-        result.flush();
+        trackMetric('Modify', result);
     }
 }
 
@@ -734,6 +734,7 @@ async function main() {
 process.on('SIGINT', async () => {
     log('SHUTDOWN', 'SIGINT received — flushing results...');
     await wait(2000); // give any in-flight validations time to complete
+    flushSummaryTests();
     log('SHUTDOWN', `Results written to ${RESULTS_DIR}`);
     process.exit(0);
 });
@@ -741,6 +742,7 @@ process.on('SIGINT', async () => {
 process.on('SIGTERM', async () => {
     log('SHUTDOWN', 'SIGTERM received — flushing results...');
     await wait(2000);
+    flushSummaryTests();
     process.exit(0);
 });
 

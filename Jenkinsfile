@@ -89,6 +89,17 @@ pipeline {
         }
 
         // ─────────────────────────────────────────────────────────────────
+        stage('Generate Test Credentials') {
+        // ─────────────────────────────────────────────────────────────────
+            steps {
+                script {
+                    echo "Creating new users and API keys..."
+                    sh 'node scripts/setup-creds.js'
+                }
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────────
         stage('Run Replicator') {
         // ─────────────────────────────────────────────────────────────────
             steps {
@@ -105,7 +116,11 @@ pipeline {
   "cancelOnStop": true,
   "tradeDelayMs": 0
 }]"""
-                    withEnv(["MARKET_CONFIGS=${config}", "REPORTER_PORT=3001"]) {
+                    // Load the dynamically generated credentials
+                    def dynamicCreds = readFile('creds.env').trim().split('\n').toList()
+                    def envVars = ["MARKET_CONFIGS=${config}", "REPORTER_PORT=3001"] + dynamicCreds
+
+                    withEnv(envVars) {
                         // Start the reporter in the background
                         sh 'node reporter.js > reporter.log 2>&1 &'
                         // Give it a moment to bind to the port

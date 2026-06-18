@@ -29,12 +29,12 @@ async function emitOrderEvent(type, payload) {
 // API Keys are hardcoded here for security in the CI/CD environment.
 const HARDCODED_CREDENTIALS = {
     user1_maker: {
-        key: "b417fbd0627044f0e0066a7bd9de3fbe1e8b024ec8c70077",
-        secret: "02cb3e25d1e13f03ee8f4ffc784e2db86e2c45883f157575a9c913fee6aed5cf"
+        key: process.env.USER1_KEY || 'b417fbd0627044f0e0066a7bd9de3fbe1e8b024ec8c70077',
+        secret: process.env.USER1_SECRET || '02cb3e25d1e13f03ee8f4ffc784e2db86e2c45883f157575a9c913fee6aed5cf'
     },
     user2_taker: {
-        key: "249f18188c6020f36f79834b0f8cc83e7e749d43c519ce04",
-        secret: "1fce044918e10a8c93cc02645f0d68022a20322f200c44b208639c3ccba9f41e"
+        key: process.env.USER2_KEY || '249f18188c6020f36f79834b0f8cc83e7e749d43c519ce04',
+        secret: process.env.USER2_SECRET || '1fce044918e10a8c93cc02645f0d68022a20322f200c44b208639c3ccba9f41e'
     }
 };
 
