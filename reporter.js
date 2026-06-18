@@ -51,7 +51,19 @@ const fs           = require('fs');
 const path         = require('path');
 const crypto       = require('crypto');
 const http         = require('http');
-const { v4: uuidv4 } = require('uuid');
+
+let uuidv4;
+if (crypto.randomUUID) {
+    uuidv4 = crypto.randomUUID.bind(crypto);
+} else {
+    uuidv4 = () => {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = crypto.randomBytes(1)[0] % 16;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    };
+}
 
 // ─── Dynamic import shim for node-fetch v2 (commonjs) ───────────────────────
 let fetch, AbortController;

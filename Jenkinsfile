@@ -83,9 +83,8 @@ pipeline {
         stage('Install dependencies') {
         // ─────────────────────────────────────────────────────────────────
             steps {
-                // Install replicator deps + reporter deps (uuid for allure result IDs)
+                // Install replicator deps + reporter deps
                 sh 'npm install'
-                sh 'npm install uuid --save'
             }
         }
 
