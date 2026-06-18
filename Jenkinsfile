@@ -115,6 +115,9 @@ pipeline {
         // ─────────────────────────────────────────────────────────────────
             steps {
                 script {
+                    echo "Starting Replicator..."
+                    // Clean up old allure results to prevent merging with previous runs
+                    sh 'rm -rf allure-results allure-report reporter.log'
                     def config = """[{
   "sourceSymbol": "${env.SRC}",
   "targetSymbol": "${env.TGT}",
