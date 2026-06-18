@@ -51,7 +51,7 @@ async function createUserAndKey(labelPrefix) {
     url: `${apiBase}/api/v4/registration`, method: "POST", header: { "Content-Type": "application/json" },
     body: { raw: JSON.stringify({ user: { email, first_name, last_name, referral: "", password, pe: false, purpose: "email_verification" } }) }
   });
-  const authToken = step.bodyJson?.token || "";
+  const authToken = (step.bodyJson && step.bodyJson.token) ? step.bodyJson.token : "";
 
   // STEP 2
   await send(`${labelPrefix}_2_EmailOtpVerify`, {
@@ -76,7 +76,7 @@ async function createUserAndKey(labelPrefix) {
     url: `${apiBase}/api/v3/authenticate`, method: "POST", header: { "Content-Type": "application/json" },
     body: { raw: JSON.stringify({ email, password, pe: false, piie: false }) }
   });
-  const bearerToken = step.bodyJson?.auth_token || step.bodyJson?.token || "";
+  const bearerToken = (step.bodyJson && (step.bodyJson.auth_token || step.bodyJson.token)) ? (step.bodyJson.auth_token || step.bodyJson.token) : "";
 
   // STEP 6
   try {
@@ -112,8 +112,8 @@ async function createUserAndKey(labelPrefix) {
         body: { raw: JSON.stringify(payload) }
       });
       const resData = finalRes.bodyJson;
-      const key = resData?.key ?? resData?.api_key ?? resData?.data?.key ?? resData?.data?.api_key;
-      const secret = resData?.secret ?? resData?.api_secret ?? resData?.data?.secret ?? resData?.data?.api_secret;
+      const key = resData && (resData.key || resData.api_key || (resData.data && (resData.data.key || resData.data.api_key)));
+      const secret = resData && (resData.secret || resData.api_secret || (resData.data && (resData.data.secret || resData.data.api_secret)));
       
       if (key && secret) {
         return { key, secret };
