@@ -22,6 +22,11 @@ pipeline {
             defaultValue: '100',
             description: 'Max order size in USDT'
         )
+        booleanParam(
+            name: 'CREATE_NEW_USERS',
+            defaultValue: true,
+            description: 'Generate fresh API keys for Maker and Taker users on this run?'
+        )
         string(
             name: 'BUFFER_PCT',
             defaultValue: '0',
@@ -93,8 +98,14 @@ pipeline {
         // ─────────────────────────────────────────────────────────────────
             steps {
                 script {
-                    echo "Creating new users and API keys..."
-                    sh 'node scripts/setup-creds.js'
+                    if (params.CREATE_NEW_USERS) {
+                        echo "Creating new users and API keys..."
+                        sh 'node scripts/setup-creds.js'
+                    } else {
+                        echo "CREATE_NEW_USERS is false. Using repo hardcoded user credentials."
+                        // Create empty creds.env so readFile won't fail
+                        sh 'touch creds.env'
+                    }
                 }
             }
         }
@@ -117,7 +128,8 @@ pipeline {
   "tradeDelayMs": 0
 }]"""
                     // Load the dynamically generated credentials
-                    def dynamicCreds = readFile('creds.env').trim().split('\n').toList()
+                    def credsFile = readFile('creds.env').trim()
+                    def dynamicCreds = credsFile ? credsFile.split('\n').toList() : []
                     def envVars = ["MARKET_CONFIGS=${config}", "REPORTER_PORT=3001"] + dynamicCreds
 
                     withEnv(envVars) {
