@@ -29,12 +29,16 @@ async function emitOrderEvent(type, payload) {
 // API Keys are hardcoded here for security in the CI/CD environment.
 const HARDCODED_CREDENTIALS = {
     user1_maker: {
-        key: process.env.USER1_KEY || 'b417fbd0627044f0e0066a7bd9de3fbe1e8b024ec8c70077',
-        secret: process.env.USER1_SECRET || '02cb3e25d1e13f03ee8f4ffc784e2db86e2c45883f157575a9c913fee6aed5cf'
+        key: process.env.USER1_KEY || '5bfd642fe794989c1a2c632d5e20ac7c6e973fd52148fa91',
+        secret: process.env.USER1_SECRET || '3b09149b81e31136ed1d1bed2a3334786f4db44b02ca0496a61eb7bc844753ac',
+        email: 'mani.reddy+980ij73v@coindcx.com',
+        password: 'Test@123'
     },
     user2_taker: {
-        key: process.env.USER2_KEY || '249f18188c6020f36f79834b0f8cc83e7e749d43c519ce04',
-        secret: process.env.USER2_SECRET || '1fce044918e10a8c93cc02645f0d68022a20322f200c44b208639c3ccba9f41e'
+        key: process.env.USER2_KEY || '4d816e8914329fef934f10f3d70d64d757ca0bc427238ddc',
+        secret: process.env.USER2_SECRET || '9108a39a4a6c51a4741846f6f45f2bf23a1579ae6cf3c9a149fd0ab850265267',
+        email: 'mani.reddy+lk27zoje@coindcx.com',
+        password: 'Test@123'
     }
 };
 
@@ -160,17 +164,50 @@ async function sendSignedRequest(url, method, payload, userConfig, timeoutMs = 5
     }
 }
 
-// Seed balance helper — tops up testnet wallet when insufficient funds error occurs
+// Seed balance helper — logs in with email/password to get bearer token, then calls seed_balance
 async function seedBalance(userCreds) {
+    const AUTH_URL = 'https://testnet-api.dcxstage.com/api/v3/authenticate';
     const SEED_URL = 'https://testnet-futures-hpo.dcxstage.com/api/v1/derivatives/futures/wallets/seed_balance';
     try {
-        log.info('SYSTEM', '[SEED] Calling seed_balance to top up testnet wallet...');
-        const res = await sendSignedRequest(SEED_URL, 'POST', { currency_short_name: 'USDT' }, userCreds);
-        if (res.ok) {
+        if (!userCreds.email || !userCreds.password) {
+            log.warn('SYSTEM', '[SEED] No email/password configured for this user — cannot seed balance.');
+            return false;
+        }
+
+        // Step 1: Login to get bearer token
+        log.info('SYSTEM', '[SEED] Authenticating ' + userCreds.email + ' to get bearer token...');
+        const loginRes = await fetch(AUTH_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'User-Agent': 'PostmanRuntime/7.32.3' },
+            body: JSON.stringify({ email: userCreds.email, password: userCreds.password, pe: false, piie: false })
+        });
+        const loginData = await loginRes.json();
+        const bearerToken = loginData.auth_token || loginData.token;
+
+        if (!bearerToken) {
+            log.warn('SYSTEM', '[SEED] Login failed — no auth_token in response: ' + JSON.stringify(loginData));
+            return false;
+        }
+        log.success('SYSTEM', '[SEED] Login successful. Got bearer token.');
+
+        // Step 2: Call seed_balance with bearer token
+        log.info('SYSTEM', '[SEED] Calling seed_balance...');
+        const seedRes = await fetch(SEED_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': bearerToken,
+                'User-Agent': 'PostmanRuntime/7.32.3'
+            },
+            body: JSON.stringify({ currency_short_name: 'USDT' })
+        });
+        const seedData = await seedRes.json().catch(function() { return {}; });
+
+        if (seedRes.ok || seedRes.status < 400) {
             log.success('SYSTEM', '[SEED] seed_balance succeeded — wallet topped up.');
             return true;
         }
-        log.warn('SYSTEM', '[SEED] seed_balance returned non-OK: ' + JSON.stringify(res.data || res.error));
+        log.warn('SYSTEM', '[SEED] seed_balance returned non-OK [' + seedRes.status + ']: ' + JSON.stringify(seedData));
         return false;
     } catch (err) {
         log.error('SYSTEM', '[SEED] seed_balance threw: ' + err.message);
