@@ -160,6 +160,24 @@ async function sendSignedRequest(url, method, payload, userConfig, timeoutMs = 5
     }
 }
 
+// Seed balance helper — tops up testnet wallet when insufficient funds error occurs
+async function seedBalance(userCreds) {
+    const SEED_URL = 'https://testnet-futures-hpo.dcxstage.com/api/v1/derivatives/futures/wallets/seed_balance';
+    try {
+        log.info('SYSTEM', '[SEED] Calling seed_balance to top up testnet wallet...');
+        const res = await sendSignedRequest(SEED_URL, 'POST', { currency_short_name: 'USDT' }, userCreds);
+        if (res.ok) {
+            log.success('SYSTEM', '[SEED] seed_balance succeeded — wallet topped up.');
+            return true;
+        }
+        log.warn('SYSTEM', '[SEED] seed_balance returned non-OK: ' + JSON.stringify(res.data || res.error));
+        return false;
+    } catch (err) {
+        log.error('SYSTEM', '[SEED] seed_balance threw: ' + err.message);
+        return false;
+    }
+}
+
 async function syncServerTime() {
     const urls = [
         `https://fapi.binance.com/fapi/v1/time`,
@@ -286,7 +304,7 @@ class ReplicatorInstance {
         this.hasLoggedAuthError = false;
     }
 
-    async placeOrder(side, qty, price = null, orderType = 'LIMIT', isTaker = false) {
+    async placeOrder(side, qty, price = null, orderType = 'LIMIT', isTaker = false, _isRetry = false) {
         const userCreds = isTaker ? HARDCODED_CREDENTIALS.user2_taker : HARDCODED_CREDENTIALS.user1_maker;
         const userLabel = isTaker ? 'USER2_TAKER' : 'USER1_MAKER';
         const bufferedPrice = price ? applyBuffer(String(price), side, this.bufferPct, this.symbol) : null;
@@ -304,6 +322,18 @@ class ReplicatorInstance {
         const res = await sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/order`, 'POST', payload, userCreds);
 
         if (res.status === 401) { this.handleAuthFailure(userLabel); return { success: false }; }
+
+        // Auto-retry on insufficient funds: call seed_balance then retry once
+        if (!res.ok && !_isRetry && res.data && res.data.code === -2018) {
+            log.warn(this.symbol, `[SEED] ${userLabel} insufficient funds — calling seed_balance and retrying...`);
+            const seeded = await seedBalance(userCreds);
+            if (seeded) {
+                log.success(this.symbol, `[SEED] ${userLabel} balance topped up. Retrying order...`);
+                return this.placeOrder(side, qty, price, orderType, isTaker, true);
+            } else {
+                log.error(this.symbol, `[SEED] ${userLabel} seed_balance failed — cannot retry.`);
+            }
+        }
 
         if (res.ok) {
             log.debug(this.symbol, `[ORDER-POST] ${userLabel} placed OK. ID: ${res.data.orderId || res.data.id}`);
