@@ -142,25 +142,29 @@ async function sendSignedRequest(url, method, payload, userConfig, timeoutMs = 5
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
+    const startTime = Date.now();
+
     try {
         const options = { method: method.toUpperCase(), headers, body: payloadStr || undefined, signal: controller.signal };
         const res = await fetch(finalUrl, options);
         clearTimeout(timeoutId);
 
+        const latencyMs = Date.now() - startTime;
         const text = await res.text();
-        if (!res.ok || DEBUG) log.debug('REST-API', `[${method.toUpperCase()}] ${finalUrl} | Status: ${res.status} | Body: ${text}`);
+        if (!res.ok || DEBUG) log.debug('REST-API', `[${method.toUpperCase()}] ${finalUrl} | Status: ${res.status} | Body: ${text} | Latency: ${latencyMs}ms`);
 
         let data;
         try { data = JSON.parse(text); }
         catch (e) { data = { error: text || 'Invalid JSON response from server' }; }
 
-        return { ok: res.ok, status: res.status, data };
+        return { ok: res.ok, status: res.status, data, latencyMs };
     } catch (err) {
         clearTimeout(timeoutId);
+        const latencyMs = Date.now() - startTime;
         const isTimeout = err.name === 'AbortError' || err.message.includes('aborted');
-        if (isTimeout) log.error('REST-API', `[TIMEOUT] ${method.toUpperCase()} to ${finalUrl} timed out after ${timeoutMs}ms.`);
-        else log.error('REST-API', `[ERROR] ${method.toUpperCase()} to ${finalUrl} failed: ${err.message}`);
-        return { ok: false, status: isTimeout ? 408 : 500, error: isTimeout ? 'Request Timeout' : err.message };
+        if (isTimeout) log.error('REST-API', `[TIMEOUT] ${method.toUpperCase()} to ${finalUrl} timed out after ${latencyMs}ms.`);
+        else log.error('REST-API', `[ERROR] ${method.toUpperCase()} to ${finalUrl} failed after ${latencyMs}ms: ${err.message}`);
+        return { ok: false, status: isTimeout ? 408 : 500, error: isTimeout ? 'Request Timeout' : err.message, latencyMs };
     }
 }
 
@@ -438,7 +442,8 @@ class ReplicatorInstance {
                 price: bufferedPrice,
                 orderId: res.data.orderId || res.data.id,
                 isTaker,
-                orderType
+                orderType,
+                latencyMs: res.latencyMs
             });
             return { success: true, orderId: res.data.orderId || res.data.id, price: bufferedPrice };
         }
@@ -450,6 +455,7 @@ class ReplicatorInstance {
             price: bufferedPrice,
             isTaker,
             orderType,
+            latencyMs: res.latencyMs,
             error: res.data || { msg: res.error }
         });
         return { success: false, error: res.data || { msg: res.error } };
@@ -478,7 +484,8 @@ class ReplicatorInstance {
                 orderId,
                 side,
                 newPrice: bufferedPrice,
-                newQty: qty
+                newQty: qty,
+                latencyMs: res.latencyMs
             });
         } else {
             log.error(this.symbol, `[MODIFY-FAIL] ID: ${orderId} failed: ${JSON.stringify(res.data || res.error)}`);
@@ -488,6 +495,7 @@ class ReplicatorInstance {
                 side,
                 newPrice: bufferedPrice,
                 newQty: qty,
+                latencyMs: res.latencyMs,
                 error: res.data || { msg: res.error }
             });
         }
@@ -666,7 +674,8 @@ class ReplicatorInstance {
                 orderId,
                 isTaker,
                 price,
-                side
+                side,
+                latencyMs: res.latencyMs
             });
         } else {
             log.error(this.symbol, `[CANCEL-FAIL] ID: ${orderId} failed: ${JSON.stringify(res.data || res.error)}`);
@@ -676,6 +685,7 @@ class ReplicatorInstance {
                 isTaker,
                 price,
                 side,
+                latencyMs: res.latencyMs,
                 error: res.data || { msg: res.error }
             });
         }

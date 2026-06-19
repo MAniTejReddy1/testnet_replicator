@@ -61,7 +61,15 @@ var counters = {
     modify:       { attempted: 0, success: 0, fail: 0, failReasons: {} },
     fill:         { matched: 0, failed: 0, failReasons: {} },
     seedBalance:  { triggered: 0, success: 0, fail: 0 },
-    errors:       []  // recent error samples (capped at 50)
+    errors:       [],  // recent error samples (capped at 50)
+    symbols:      {},  // Per-symbol granular aggregations
+    latencies:    {
+        place:  { sum: 0, count: 0, max: 0, min: 999999 },
+        modify: { sum: 0, count: 0, max: 0, min: 999999 },
+        cancel: { sum: 0, count: 0, max: 0, min: 999999 }
+    },
+    volume:       { qty: 0 },
+    startTime:    Date.now()
 };
 
 function addFailReason(bucket, reason) {
@@ -73,6 +81,28 @@ function addError(msg) {
     if (counters.errors.length < 50) {
         counters.errors.push({ time: new Date().toISOString(), msg: msg });
     }
+}
+
+function trackLatency(bucket, ms) {
+    if (typeof ms !== 'number' || isNaN(ms)) return;
+    bucket.sum += ms;
+    bucket.count++;
+    if (ms > bucket.max) bucket.max = ms;
+    if (ms < bucket.min) bucket.min = ms;
+}
+
+function initSymbol(sym) {
+    if (!counters.symbols[sym]) {
+        counters.symbols[sym] = {
+            makerPlace: { success: 0, fail: 0, failReasons: {} },
+            takerPlace: { success: 0, fail: 0, failReasons: {} },
+            cancel:     { attempted: 0, success: 0, fail: 0, failReasons: {} },
+            modify:     { attempted: 0, success: 0, fail: 0, failReasons: {} },
+            fill:       { matched: 0, failed: 0, failReasons: {} },
+            volume:     { qty: 0 }
+        };
+    }
+    return counters.symbols[sym];
 }
 
 // Save counters to disk periodically so --flush can read them
@@ -99,65 +129,100 @@ function loadCounters() {
 // ─────────────────────────────────────────────────────────────────────────────
 function handleEvent(evt) {
     var type = evt.type;
+    var sym = evt.symbol || 'UNKNOWN';
+    var symBucket = initSymbol(sym);
+
+    if (evt.qty) {
+        var q = parseFloat(evt.qty);
+        if (!isNaN(q)) {
+            counters.volume.qty += q;
+            symBucket.volume.qty += q;
+        }
+    }
 
     switch (type) {
         case 'order:placed':
+            trackLatency(counters.latencies.place, evt.latencyMs);
             if (evt.isTaker) {
                 counters.takerPlace.success++;
+                symBucket.takerPlace.success++;
             } else {
                 counters.makerPlace.success++;
+                symBucket.makerPlace.success++;
             }
             break;
 
         case 'order:place_failed':
+            trackLatency(counters.latencies.place, evt.latencyMs);
             var reason = (evt.error && evt.error.msg) || (evt.error && evt.error.message) || evt.reason || 'Unknown';
             var code = (evt.error && evt.error.code) || '';
             var fullReason = code ? (code + ': ' + reason) : reason;
             if (evt.isTaker) {
                 counters.takerPlace.fail++;
+                symBucket.takerPlace.fail++;
                 addFailReason(counters.takerPlace.failReasons, fullReason);
+                addFailReason(symBucket.takerPlace.failReasons, fullReason);
             } else {
                 counters.makerPlace.fail++;
+                symBucket.makerPlace.fail++;
                 addFailReason(counters.makerPlace.failReasons, fullReason);
+                addFailReason(symBucket.makerPlace.failReasons, fullReason);
             }
-            addError('[PLACE_FAIL] ' + (evt.isTaker ? 'TAKER' : 'MAKER') + ' ' + fullReason);
+            addError('[PLACE_FAIL][' + sym + '] ' + (evt.isTaker ? 'TAKER' : 'MAKER') + ' ' + fullReason);
             break;
 
         case 'order:cancelled':
+            trackLatency(counters.latencies.cancel, evt.latencyMs);
             counters.cancel.attempted++;
             counters.cancel.success++;
+            symBucket.cancel.attempted++;
+            symBucket.cancel.success++;
             break;
 
         case 'order:cancel_failed':
+            trackLatency(counters.latencies.cancel, evt.latencyMs);
             counters.cancel.attempted++;
             counters.cancel.fail++;
+            symBucket.cancel.attempted++;
+            symBucket.cancel.fail++;
             var cancelReason = (evt.error && evt.error.msg) || evt.reason || 'Unknown';
             addFailReason(counters.cancel.failReasons, cancelReason);
-            addError('[CANCEL_FAIL] ' + cancelReason);
+            addFailReason(symBucket.cancel.failReasons, cancelReason);
+            addError('[CANCEL_FAIL][' + sym + '] ' + cancelReason);
             break;
 
         case 'order:modified':
+            trackLatency(counters.latencies.modify, evt.latencyMs);
             counters.modify.attempted++;
             counters.modify.success++;
+            symBucket.modify.attempted++;
+            symBucket.modify.success++;
             break;
 
         case 'order:modify_failed':
+            trackLatency(counters.latencies.modify, evt.latencyMs);
             counters.modify.attempted++;
             counters.modify.fail++;
+            symBucket.modify.attempted++;
+            symBucket.modify.fail++;
             var modReason = (evt.error && evt.error.msg) || evt.reason || 'Unknown';
             addFailReason(counters.modify.failReasons, modReason);
-            addError('[MODIFY_FAIL] ' + modReason);
+            addFailReason(symBucket.modify.failReasons, modReason);
+            addError('[MODIFY_FAIL][' + sym + '] ' + modReason);
             break;
 
         case 'order:fill_success':
             counters.fill.matched++;
+            symBucket.fill.matched++;
             break;
 
         case 'order:fill_failed':
             counters.fill.failed++;
+            symBucket.fill.failed++;
             var fillReason = (evt.error && evt.error.msg) || evt.reason || 'Unknown';
             addFailReason(counters.fill.failReasons, fillReason);
-            addError('[FILL_FAIL] ' + fillReason);
+            addFailReason(symBucket.fill.failReasons, fillReason);
+            addError('[FILL_FAIL][' + sym + '] ' + fillReason);
             break;
 
         case 'seed:triggered':
@@ -396,6 +461,12 @@ function flushSummaryTests() {
         'Run Totals',
         'blocker'
     );
+
+    var runDurationStr = ((Date.now() - counters.startTime) / 1000).toFixed(1) + 's';
+    addParam(summaryResult, 'Run Duration', runDurationStr);
+    addParam(summaryResult, 'Total Volume', counters.volume.qty.toFixed(4));
+    addParam(summaryResult, 'Symbols Processed', Object.keys(counters.symbols).length);
+
     addParam(summaryResult, 'Maker Orders OK', counters.makerPlace.success);
     addParam(summaryResult, 'Maker Orders FAIL', counters.makerPlace.fail);
     addParam(summaryResult, 'Taker Orders OK', counters.takerPlace.success);
@@ -406,6 +477,19 @@ function flushSummaryTests() {
     addParam(summaryResult, 'Modify FAIL', counters.modify.fail);
     addParam(summaryResult, 'Fills Matched', counters.fill.matched);
     addParam(summaryResult, 'Fills FAIL', counters.fill.failed);
+
+    if (counters.latencies.place.count > 0) {
+        var avgP = Math.round(counters.latencies.place.sum / counters.latencies.place.count);
+        addParam(summaryResult, 'Avg Place Latency', avgP + 'ms (Max: ' + counters.latencies.place.max + 'ms)');
+    }
+    if (counters.latencies.modify.count > 0) {
+        var avgM = Math.round(counters.latencies.modify.sum / counters.latencies.modify.count);
+        addParam(summaryResult, 'Avg Modify Latency', avgM + 'ms (Max: ' + counters.latencies.modify.max + 'ms)');
+    }
+    if (counters.latencies.cancel.count > 0) {
+        var avgC = Math.round(counters.latencies.cancel.sum / counters.latencies.cancel.count);
+        addParam(summaryResult, 'Avg Cancel Latency', avgC + 'ms (Max: ' + counters.latencies.cancel.max + 'ms)');
+    }
 
     addStep(summaryResult, 'Total orders placed successfully: ' + totalPlaced, totalPlaced > 0, 
         totalPlaced === 0 ? 'No orders were placed successfully during this run' : '');
@@ -434,6 +518,51 @@ function flushSummaryTests() {
     }
 
     writeResult(summaryResult);
+
+    // ── 8. Per-Symbol Suites ──
+    Object.keys(counters.symbols).forEach(function(sym) {
+        var sc = counters.symbols[sym];
+        var sRes = createAllureResult(
+            sym + ' Market Metrics',
+            'Market Analysis',
+            'Per-Symbol Metrics',
+            'normal'
+        );
+        
+        var sPlaced = sc.makerPlace.success + sc.takerPlace.success;
+        var sFailed = sc.makerPlace.fail + sc.takerPlace.fail;
+
+        addParam(sRes, 'Symbol', sym);
+        addParam(sRes, 'Volume Traded', sc.volume.qty.toFixed(4));
+        addParam(sRes, 'Placed OK', sPlaced);
+        addParam(sRes, 'Place FAIL', sFailed);
+        addParam(sRes, 'Cancel OK', sc.cancel.success);
+        addParam(sRes, 'Cancel FAIL', sc.cancel.fail);
+        addParam(sRes, 'Modify OK', sc.modify.success);
+        addParam(sRes, 'Modify FAIL', sc.modify.fail);
+        addParam(sRes, 'Fills Matched', sc.fill.matched);
+        addParam(sRes, 'Fills FAIL', sc.fill.failed);
+
+        addStep(sRes, 'Order Placements: ' + sPlaced + ' OK, ' + sFailed + ' Failed', sFailed === 0,
+            sFailed > 0 ? 'Failures: ' + formatReasons(sc.makerPlace.failReasons) + ' | ' + formatReasons(sc.takerPlace.failReasons) : '');
+            
+        if (sc.cancel.attempted > 0) {
+            addStep(sRes, 'Cancellations: ' + sc.cancel.success + '/' + sc.cancel.attempted + ' OK', sc.cancel.fail === 0,
+                sc.cancel.fail > 0 ? 'Failures: ' + formatReasons(sc.cancel.failReasons) : '');
+        }
+
+        if (sc.modify.attempted > 0) {
+            addStep(sRes, 'Modifications: ' + sc.modify.success + '/' + sc.modify.attempted + ' OK', sc.modify.fail === 0,
+                sc.modify.fail > 0 ? 'Failures: ' + formatReasons(sc.modify.failReasons) : '');
+        }
+
+        if (sc.fill.matched > 0 || sc.fill.failed > 0) {
+            addStep(sRes, 'Fills: ' + sc.fill.matched + ' Matched, ' + sc.fill.failed + ' Failed', sc.fill.failed === 0,
+                sc.fill.failed > 0 ? 'Failures: ' + formatReasons(sc.fill.failReasons) : '');
+        }
+
+        writeResult(sRes);
+    });
 
     log('FLUSH', '═══════════════════════════════════════════════');
     log('FLUSH', '  Summary: ' + totalPlaced + ' placed, ' + totalPlaceFail + ' failed, ' +
