@@ -412,7 +412,7 @@ class ReplicatorInstance {
                 log.warn(this.symbol, `[ALIGN] ${userLabel} hit price limit (${res.data.code}). Triggering LTP alignment...`);
                 if (!this.isAligningLtp) {
                     const currentBinanceLtp = this.binanceDepth.bids.length ? this.binanceDepth.bids[0][0] : null;
-                    if (currentBinanceLtp) this.alignLtpToTarget(parseFloat(currentBinanceLtp)).catch(e => log.error(this.symbol, `[ALIGN] Background alignment failed: ${e.message}`));
+                    if (currentBinanceLtp) this.alignLtpToTarget(parseFloat(currentBinanceLtp), side, res.data.msg).catch(e => log.error(this.symbol, `[ALIGN] Background alignment failed: ${e.message}`));
                 }
             }
         }
@@ -493,7 +493,7 @@ class ReplicatorInstance {
         }
         return res.ok;
     }
-    async alignLtpToTarget(targetPrice) {
+    async alignLtpToTarget(targetPrice, failedSide = null, errMsg = null) {
         if (this.isAligningLtp) return;
         this.isAligningLtp = true;
         try {
@@ -502,18 +502,39 @@ class ReplicatorInstance {
 
             log.info(this.symbol, `[ALIGN] Checking if Testnet LTP needs alignment to ${targetPrice}...`);
             
-            // 1. Determine current testnet LTP from local book depth
+            // 1. Determine exact testnet LTP from the error message limits
             let testnetLtp = null;
-            if (this.testnetDepth && this.testnetDepth.bids && this.testnetDepth.bids.length > 0) {
-                testnetLtp = parseFloat(this.testnetDepth.bids[0][0]);
-            } else if (this.testnetDepth && this.testnetDepth.asks && this.testnetDepth.asks.length > 0) {
-                testnetLtp = parseFloat(this.testnetDepth.asks[0][0]);
+            if (errMsg) {
+                const match = errMsg.toLowerCase().match(/higher than ([\d.]+)/) || errMsg.toLowerCase().match(/lower than ([\d.]+)/);
+                if (match) {
+                    const boundPrice = parseFloat(match[1]);
+                    // If SELL failed with "higher than", boundPrice = LTP * (1 - multiplierDown)
+                    if (errMsg.toLowerCase().includes('higher than')) {
+                        testnetLtp = boundPrice / (1 - inst.multiplierDown / 100);
+                    } 
+                    // If BUY failed with "lower than", boundPrice = LTP * (1 + multiplierUp)
+                    else if (errMsg.toLowerCase().includes('lower than')) {
+                        testnetLtp = boundPrice / (1 + inst.multiplierUp / 100);
+                    }
+                }
+            }
+            
+            // Fallback to local book depth if regex failed or no errMsg
+            if (!testnetLtp) {
+                if (this.testnetDepth && this.testnetDepth.bids && this.testnetDepth.bids.length > 0) {
+                    testnetLtp = parseFloat(this.testnetDepth.bids[0][0]);
+                } else if (this.testnetDepth && this.testnetDepth.asks && this.testnetDepth.asks.length > 0) {
+                    testnetLtp = parseFloat(this.testnetDepth.asks[0][0]);
+                }
             }
             
             if (!testnetLtp) {
-                log.warn(this.symbol, `[ALIGN] Testnet book is completely empty. Will assume targetPrice as LTP.`);
+                log.warn(this.symbol, `[ALIGN] Testnet book is completely empty and no strict bounds found. Will assume targetPrice as LTP.`);
                 testnetLtp = targetPrice;
             }
+
+            // Round the mathematically derived LTP to a sensible precision
+            testnetLtp = parseFloat(testnetLtp.toFixed(inst.pricePrecision + 1));
 
             // 2. Check if within safe bounds (using 90% of allowed multiplier to be safe)
             const safeUpPct = (inst.multiplierUp / 100) * 0.90;
@@ -535,15 +556,10 @@ class ReplicatorInstance {
             // Since syncGrid places one side of the book successfully before the other side fails,
             // the successful side is already resting on the book. We can instantly drag the LTP by placing a MARKET order against it.
             let marketRes = { success: false };
-            if (targetPrice > testnetLtp) {
-                // We need to move LTP UP. SELL limits succeed, BUY limits fail.
-                log.info(this.symbol, `[ALIGN] Firing TAKER MARKET BUY to hit resting limits and drag LTP UP...`);
-                marketRes = await this.placeOrder('BUY', minQtyStr, null, 'MARKET', true, true);
-            } else if (targetPrice < testnetLtp) {
-                // We need to move LTP DOWN. BUY limits succeed, SELL limits fail.
-                log.info(this.symbol, `[ALIGN] Firing TAKER MARKET SELL to hit resting limits and drag LTP DOWN...`);
-                marketRes = await this.placeOrder('SELL', minQtyStr, null, 'MARKET', true, true);
-            }
+            const dragSide = failedSide || (targetPrice > testnetLtp ? 'BUY' : 'SELL');
+            
+            log.info(this.symbol, `[ALIGN] Firing TAKER MARKET ${dragSide} to hit resting limits and drag LTP...`);
+            marketRes = await this.placeOrder(dragSide, minQtyStr, null, 'MARKET', true, true);
 
             if (marketRes.success) {
                 log.success(this.symbol, `[ALIGN] Successfully dragged LTP instantly via MARKET order.`);
