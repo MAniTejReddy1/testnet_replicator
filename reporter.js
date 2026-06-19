@@ -659,6 +659,15 @@ function writeCategoriesAndExecutor() {
 // 8.  MAIN
 // ─────────────────────────────────────────────────────────────────────────────
 function main() {
+    // In normal (daemon) mode, clean the results directory for a fresh run
+    if (!FLUSH_FLAG) {
+        if (fs.existsSync(RESULTS_DIR)) {
+            fs.readdirSync(RESULTS_DIR).forEach(function(file) {
+                try { fs.unlinkSync(path.join(RESULTS_DIR, file)); } catch(e) {}
+            });
+        }
+    }
+
     // Ensure results directory exists
     fs.mkdirSync(RESULTS_DIR, { recursive: true });
 
