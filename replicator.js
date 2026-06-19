@@ -397,9 +397,14 @@ class ReplicatorInstance {
         if (res.status === 401) { this.handleAuthFailure(userLabel); return { success: false }; }
 
         // Auto-retry on limit multiplier constraint: pause, align LTP, retry
-        if (!res.ok && !_isRetry && res.data && (res.data.code === -1013 || res.data.code === -2011 || res.data.code === -4003 || res.data.msg?.toLowerCase().includes('price') || res.data.msg?.toLowerCase().includes('limit'))) {
+        if (!res.ok && !_isRetry && res.data) {
             const msgStr = JSON.stringify(res.data).toLowerCase();
-            if (msgStr.includes('percent_price') || msgStr.includes('price less than') || msgStr.includes('price greater than') || msgStr.includes('limit')) {
+            const isLimitErr = res.data.code === -1013 || res.data.code === -2011 || res.data.code === -4003 || res.data.code === -4024 ||
+                               msgStr.includes('percent_price') || msgStr.includes('price less than') || 
+                               msgStr.includes('price greater than') || msgStr.includes('limit') ||
+                               msgStr.includes('higher than') || msgStr.includes('lower than');
+                               
+            if (isLimitErr) {
                 log.warn(this.symbol, `[ALIGN] ${userLabel} hit price limit (${res.data.code}). Triggering LTP alignment...`);
                 if (!this.isAligningLtp) {
                     const currentBinanceLtp = this.binanceDepth.bids.length ? this.binanceDepth.bids[0][0] : null;
@@ -443,7 +448,7 @@ class ReplicatorInstance {
             orderType,
             error: res.data || { msg: res.error }
         });
-        return { success: false };
+        return { success: false, error: res.data || { msg: res.error } };
     }
 
     async modifyMaker(orderId, side, rawPrice, qty) {
@@ -533,11 +538,37 @@ class ReplicatorInstance {
                     if (nextPrice <= targetPrice) nextPrice = targetPrice;
                 }
 
-                const priceStr = formatPrice(String(nextPrice), this.symbol);
+                let priceStr = formatPrice(String(nextPrice), this.symbol);
                 log.info(this.symbol, `[ALIGN] Step ${steps}: Moving LTP from ${testnetLtp} to ${priceStr}`);
 
                 // Place Maker
-                const makerRes = await this.placeOrder('SELL', minQtyStr, priceStr, 'LIMIT', false, true); // _isRetry=true to skip recursive hooks
+                let makerRes = await this.placeOrder('SELL', minQtyStr, priceStr, 'LIMIT', false, true); // _isRetry=true to skip recursive hooks
+                
+                // If it failed because of strict limit constraints, try to extract the exact bound from the error
+                if (!makerRes.success && makerRes.error && makerRes.error.msg) {
+                    const errMsg = makerRes.error.msg.toLowerCase();
+                    const match = errMsg.match(/higher than ([\d.]+)/) || errMsg.match(/lower than ([\d.]+)/);
+                    if (match) {
+                        const boundPrice = parseFloat(match[1]);
+                        log.warn(this.symbol, `[ALIGN] Extracted strict engine bound from error: ${boundPrice}. Adjusting nextPrice...`);
+                        
+                        // Give it a tiny safe margin into the valid side
+                        if (errMsg.includes('higher than')) {
+                            nextPrice = boundPrice * 1.0005; // 0.05% higher than the strict minimum bound
+                        } else {
+                            nextPrice = boundPrice * 0.9995; // 0.05% lower than the strict maximum bound
+                        }
+                        
+                        if ((targetPrice > testnetLtp && nextPrice >= targetPrice) || (targetPrice < testnetLtp && nextPrice <= targetPrice)) {
+                            nextPrice = targetPrice;
+                        }
+                        
+                        priceStr = formatPrice(String(nextPrice), this.symbol);
+                        log.info(this.symbol, `[ALIGN] Retrying Maker with adjusted safe price: ${priceStr}`);
+                        makerRes = await this.placeOrder('SELL', minQtyStr, priceStr, 'LIMIT', false, true);
+                    }
+                }
+
                 if (!makerRes.success) {
                     log.error(this.symbol, `[ALIGN] Failed to place Maker at ${priceStr}. Aborting alignment.`);
                     break;
