@@ -246,11 +246,13 @@ async function syncServerTime() {
 
 async function loadInstruments() {
     try {
-        log.info('SYSTEM', 'Fetching Instrument parameters...');
-        const res = await fetch(`https://testnet-futures-hpo.dcxstage.com/api/v1/derivatives/futures/data`, {
+        log.info('SYSTEM', 'Fetching Instrument parameters and Exchange Info...');
+        
+        // Fetch custom futures data
+        const resData = await fetch(`https://testnet-futures-hpo.dcxstage.com/api/v1/derivatives/futures/data`, {
             headers: { 'X-app-version': '6.56.0002' }
         });
-        const data = await res.json();
+        const data = await resData.json();
 
         if (data && data.instruments) {
             data.instruments.forEach(inst => {
@@ -264,11 +266,38 @@ async function loadInstruments() {
                     qtyStep:  step > 0 ? step : 1.0,
                     minQty:   parseFloat(inst.min_quantity || inst.min_trade_size || step || 1.0),
                     pricePrecision,
-                    qtyPrecision
+                    qtyPrecision,
+                    multiplierUp: 5,   // Default
+                    multiplierDown: 5  // Default
                 };
             });
-            log.success('SYSTEM', `Loaded ${Object.keys(instrumentsMap).length} instruments.`);
         }
+
+        // Fetch official FAPI exchangeInfo to get exact limits (PERCENT_PRICE and LOT_SIZE)
+        const resInfo = await fetch(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/exchangeInfo`);
+        const info = await resInfo.json();
+        
+        if (info && info.symbols) {
+            info.symbols.forEach(sym => {
+                const symbol = sym.symbol.toUpperCase();
+                if (instrumentsMap[symbol]) {
+                    // Extract LOT_SIZE minQty
+                    const lotSize = sym.filters.find(f => f.filterType === 'LOT_SIZE');
+                    if (lotSize && lotSize.minQty) {
+                        instrumentsMap[symbol].minQty = parseFloat(lotSize.minQty);
+                        instrumentsMap[symbol].qtyStep = parseFloat(lotSize.stepSize);
+                    }
+                    // Extract PERCENT_PRICE multipliers
+                    const pctPrice = sym.filters.find(f => f.filterType === 'PERCENT_PRICE');
+                    if (pctPrice) {
+                        instrumentsMap[symbol].multiplierUp = parseFloat(pctPrice.multiplierUp);
+                        instrumentsMap[symbol].multiplierDown = parseFloat(pctPrice.multiplierDown);
+                    }
+                }
+            });
+        }
+        
+        log.success('SYSTEM', `Loaded ${Object.keys(instrumentsMap).length} instruments with limit multipliers.`);
     } catch (e) { log.error('SYSTEM', `Instrument fetch failed: ${e.message}`); }
 }
 
@@ -333,6 +362,7 @@ class ReplicatorInstance {
         this.isCrossing         = false;
         this.isSyncingDelta     = false;
         this.isCancellingGhosts = false;
+        this.isAligningLtp      = false;
 
         this.wsBinanceDepth  = null;
         this.wsBinanceTrades = null;
@@ -365,6 +395,18 @@ class ReplicatorInstance {
         const res = await sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/order`, 'POST', payload, userCreds);
 
         if (res.status === 401) { this.handleAuthFailure(userLabel); return { success: false }; }
+
+        // Auto-retry on limit multiplier constraint: pause, align LTP, retry
+        if (!res.ok && !_isRetry && res.data && (res.data.code === -1013 || res.data.code === -2011 || res.data.code === -4003 || res.data.msg?.toLowerCase().includes('price') || res.data.msg?.toLowerCase().includes('limit'))) {
+            const msgStr = JSON.stringify(res.data).toLowerCase();
+            if (msgStr.includes('percent_price') || msgStr.includes('price less than') || msgStr.includes('price greater than') || msgStr.includes('limit')) {
+                log.warn(this.symbol, `[ALIGN] ${userLabel} hit price limit (${res.data.code}). Triggering LTP alignment...`);
+                if (!this.isAligningLtp) {
+                    const currentBinanceLtp = this.binanceDepth.bids.length ? this.binanceDepth.bids[0][0] : null;
+                    if (currentBinanceLtp) this.alignLtpToTarget(parseFloat(currentBinanceLtp)).catch(e => log.error(this.symbol, `[ALIGN] Background alignment failed: ${e.message}`));
+                }
+            }
+        }
 
         // Auto-retry on insufficient funds: call seed_balance then retry once
         if (!res.ok && !_isRetry && res.data && res.data.code === -2018) {
@@ -441,6 +483,85 @@ class ReplicatorInstance {
             });
         }
         return res.ok;
+    }
+    async alignLtpToTarget(targetPrice) {
+        if (this.isAligningLtp) return;
+        this.isAligningLtp = true;
+        try {
+            const inst = instrumentsMap[this.symbol];
+            if (!inst || !inst.multiplierUp || !inst.multiplierDown) return;
+
+            log.info(this.symbol, `[ALIGN] Checking if Testnet LTP needs alignment to ${targetPrice}...`);
+            
+            // 1. Fetch current testnet LTP
+            let testnetLtp = targetPrice;
+            const res = await fetch(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/ticker/price?symbol=${this.symbol}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.price) testnetLtp = parseFloat(data.price);
+            } else {
+                return; // Can't fetch LTP
+            }
+
+            // 2. Check if within safe bounds (using 90% of allowed multiplier to be safe)
+            const safeUpPct = (inst.multiplierUp / 100) * 0.90;
+            const safeDownPct = (inst.multiplierDown / 100) * 0.90;
+
+            const upperBound = testnetLtp * (1 + safeUpPct);
+            const lowerBound = testnetLtp * (1 - safeDownPct);
+
+            if (targetPrice <= upperBound && targetPrice >= lowerBound) {
+                log.info(this.symbol, `[ALIGN] LTP (${testnetLtp}) is within limits of target (${targetPrice}). No alignment needed.`);
+                return;
+            }
+
+            log.warn(this.symbol, `[ALIGN] LTP (${testnetLtp}) is too far from Target (${targetPrice}). Limits: [${lowerBound.toFixed(inst.pricePrecision)}, ${upperBound.toFixed(inst.pricePrecision)}]. Starting Price Ladder...`);
+
+            const minQtyStr = calculateQty(0, '1', this.symbol); // Gets minimum formatted qty
+
+            // 3. Price ladder loop
+            let steps = 0;
+            while (steps < 50) { // Max 50 steps to prevent infinite loop
+                steps++;
+                
+                let nextPrice = targetPrice;
+                if (targetPrice > testnetLtp) {
+                    nextPrice = testnetLtp * (1 + safeUpPct);
+                    if (nextPrice >= targetPrice) nextPrice = targetPrice;
+                } else if (targetPrice < testnetLtp) {
+                    nextPrice = testnetLtp * (1 - safeDownPct);
+                    if (nextPrice <= targetPrice) nextPrice = targetPrice;
+                }
+
+                const priceStr = formatPrice(String(nextPrice), this.symbol);
+                log.info(this.symbol, `[ALIGN] Step ${steps}: Moving LTP from ${testnetLtp} to ${priceStr}`);
+
+                // Place Maker
+                const makerRes = await this.placeOrder('SELL', minQtyStr, priceStr, 'LIMIT', false, true); // _isRetry=true to skip recursive hooks
+                if (!makerRes.success) {
+                    log.error(this.symbol, `[ALIGN] Failed to place Maker at ${priceStr}. Aborting alignment.`);
+                    break;
+                }
+
+                // Place Taker IOC to cross it
+                await this.placeOrder('BUY', minQtyStr, priceStr, 'LIMIT_IOC', true, true);
+                
+                // Cleanup maker just in case it didn't fill
+                await this.cancelOrder(makerRes.orderId);
+
+                testnetLtp = nextPrice;
+                if (Math.abs(testnetLtp - targetPrice) < 0.000001) {
+                    log.success(this.symbol, `[ALIGN] Successfully dragged LTP to target ${targetPrice}`);
+                    break;
+                }
+                
+                await new Promise(r => setTimeout(r, 200));
+            }
+        } catch (e) {
+            log.error(this.symbol, `[ALIGN] Exception during LTP alignment: ${e.message}`);
+        } finally {
+            this.isAligningLtp = false;
+        }
     }
 
     async cancelOrder(orderId, isTaker = false) {
@@ -850,6 +971,20 @@ startTestnetWS() {
         if (this.status === 'RUNNING') return;
         this.status = 'RUNNING'; this.hasLoggedAuthError = false;
         log.success(this.symbol, 'Engine Started.');
+        
+        try {
+            log.info(this.symbol, 'Fetching initial Binance price for LTP alignment check...');
+            const res = await fetch(`https://fapi.binance.com/fapi/v1/ticker/price?symbol=${this.sourceSymbol}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.price) {
+                    await this.alignLtpToTarget(parseFloat(data.price));
+                }
+            }
+        } catch (e) {
+            log.error(this.symbol, `Initial alignment fetch failed: ${e.message}`);
+        }
+
         await this.reloadDepth();
         this.startBinanceDepthWS();
         this.startBinanceTradesWS();
