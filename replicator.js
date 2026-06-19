@@ -502,14 +502,17 @@ class ReplicatorInstance {
 
             log.info(this.symbol, `[ALIGN] Checking if Testnet LTP needs alignment to ${targetPrice}...`);
             
-            // 1. Fetch current testnet LTP
-            let testnetLtp = targetPrice;
-            const res = await fetch(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/ticker/price?symbol=${this.symbol}`);
-            if (res.ok) {
-                const data = await res.json();
-                if (data.price) testnetLtp = parseFloat(data.price);
-            } else {
-                return; // Can't fetch LTP
+            // 1. Determine current testnet LTP from local book depth
+            let testnetLtp = null;
+            if (this.testnetDepth && this.testnetDepth.bids && this.testnetDepth.bids.length > 0) {
+                testnetLtp = parseFloat(this.testnetDepth.bids[0][0]);
+            } else if (this.testnetDepth && this.testnetDepth.asks && this.testnetDepth.asks.length > 0) {
+                testnetLtp = parseFloat(this.testnetDepth.asks[0][0]);
+            }
+            
+            if (!testnetLtp) {
+                log.warn(this.symbol, `[ALIGN] Testnet book is completely empty. Will assume targetPrice as LTP.`);
+                testnetLtp = targetPrice;
             }
 
             // 2. Check if within safe bounds (using 90% of allowed multiplier to be safe)
