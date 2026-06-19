@@ -118,9 +118,15 @@ pipeline {
                     echo "Starting Replicator..."
                     // Clean up old allure results to prevent merging with previous runs
                     sh 'rm -rf allure-results allure-report reporter.log'
-                    def config = """[{
-  "sourceSymbol": "${env.SRC}",
-  "targetSymbol": "${env.TGT}",
+                    def sources = env.SRC.split(',')
+                    def targets = env.TGT.split(',')
+                    def configObjs = []
+                    for (int i = 0; i < sources.size(); i++) {
+                        def src = sources[i].trim()
+                        def tgt = targets.size() > i ? targets[i].trim() : src
+                        configObjs.add("""{
+  "sourceSymbol": "${src}",
+  "targetSymbol": "${tgt}",
   "minSize": ${params.MIN_SIZE},
   "maxSize": ${params.MAX_SIZE},
   "depthLevels": 10,
@@ -129,7 +135,9 @@ pipeline {
   "bufferPct": ${params.BUFFER_PCT},
   "cancelOnStop": true,
   "tradeDelayMs": 0
-}]"""
+}""")
+                    }
+                    def config = "[" + configObjs.join(",") + "]"
                     // Load the dynamically generated credentials
                     def credsFile = readFile('creds.env').trim()
                     def dynamicCreds = credsFile ? credsFile.split('\n').toList() : []
