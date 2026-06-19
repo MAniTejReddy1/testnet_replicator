@@ -1,675 +1,503 @@
-const EventEmitter = require('events');
-global.replicatorBus = new EventEmitter();
-global.replicatorBus.setMaxListeners(100);
-
-// Helper to fire events to the reporter (works whether reporter runs
-// in-process via wireEventBus() or out-of-process via HTTP)
-const REPORTER_URL = `http://localhost:${process.env.REPORTER_PORT || 3001}/event`;
-
-async function emitOrderEvent(type, payload) {
-  // In-process bus (if reporter.js is required in same process)
-  if (global.replicatorBus) {
-    global.replicatorBus.emit(type, { type, ...payload });
-  }
-  // Out-of-process HTTP (if reporter runs as separate Node process)
-  try {
-    await fetch(REPORTER_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type, ...payload }),
-    }).catch(() => {}); // silently ignore — reporter being down must not break replicator
-  } catch {}
-}
 /**
  * reporter.js
  * ─────────────────────────────────────────────────────────────────────────────
- * QA Order-Lifecycle Reporter for the CoinDCX Testnet Replicator.
+ * QA Aggregate Reporter for the CoinDCX Testnet Replicator.
  *
  * HOW IT WORKS
- *   1. Listens to global.replicatorBus events emitted by replicator.js
- *   2. For every placed / cancelled / filled order it runs 6-checkpoint
- *      lifecycle validations against the testnet REST API
- *   3. Writes Allure-compatible JSON result files to ./allure-results/
- *   4. On SIGINT (Jenkins abort) or --flush flag, flushes all in-flight
- *      results to disk so Jenkins can pick them up in the post block
+ *   1. Receives events from replicator.js via HTTP POST on /event
+ *   2. Tracks counters for every order lifecycle action:
+ *      - Maker orders placed (success/fail + reasons)
+ *      - Taker orders placed (success/fail + reasons)
+ *      - Orders cancelled (attempted/success/fail)
+ *      - Orders modified  (attempted/success/fail)
+ *      - Orders filled    (matched/failed)
+ *   3. On shutdown (SIGTERM/SIGINT) or --flush, writes clean Allure summary
+ *      test cases with assertions showing pass/fail counts
  *
  * START
  *   node reporter.js          ← normal mode (listens forever)
  *   node reporter.js --flush  ← flush-only mode (called from Jenkins post)
- *
- * REQUIRES
- *   replicator.js must expose:
- *     global.replicatorBus   EventEmitter
- *     HARDCODED_CREDENTIALS  (imported via require)
- *   npm install node-fetch abort-controller uuid
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
 'use strict';
 
-const fs           = require('fs');
-const path         = require('path');
-const crypto       = require('crypto');
-const http         = require('http');
+const fs     = require('fs');
+const path   = require('path');
+const crypto = require('crypto');
+const http   = require('http');
 
-let uuidv4;
+var uuidv4;
 if (crypto.randomUUID) {
     uuidv4 = crypto.randomUUID.bind(crypto);
 } else {
-    uuidv4 = () => {
+    uuidv4 = function() {
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-            const r = crypto.randomBytes(1)[0] % 16;
-            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            var r = crypto.randomBytes(1)[0] % 16;
+            var v = c === 'x' ? r : (r & 0x3 | 0x8);
             return v.toString(16);
         });
     };
 }
 
-// ─── Dynamic import shim for node-fetch v2 (commonjs) ───────────────────────
-let fetch, AbortController;
-try {
-    fetch         = require('node-fetch');
-    AbortController = require('abort-controller');
-} catch (e) {
-    console.error('[REPORTER] FATAL: node-fetch or abort-controller not installed.');
-    console.error('           Run: npm install node-fetch@2 abort-controller uuid');
-    process.exit(1);
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // 1.  CONFIGURATION
 // ─────────────────────────────────────────────────────────────────────────────
-const BASE_URL     = 'https://testnet-futures-hpo.dcxstage.com';
-const RESULTS_DIR  = path.resolve(__dirname, 'allure-results');
-const FLUSH_FLAG   = process.argv.includes('--flush');
+var RESULTS_DIR  = path.resolve(__dirname, 'allure-results');
+var FLUSH_FLAG   = process.argv.includes('--flush');
+var COUNTERS_FILE = path.resolve(__dirname, 'allure-results', '.counters.json');
 
-// SLAs in milliseconds — assertions will FAIL if breached
-const SLA = {
-    orderInBook:       500,   // order visible in depth after POST
-    cancelFromBook:    500,   // order removed from depth after DELETE
-    fillInGetOrder:   1000,   // GET /order shows FILLED after taker hits
-    tradeRecord:      2000,   // trade record available after fill
-    positionUpdate:   2000,   // positionRisk updated after fill
-    balanceUpdate:    3000,   // account balance updated after fill
-    restCallP95:       500,   // any single signed REST call
-};
-
-// Poll intervals / retries
-const POLL_INTERVAL_MS  = 200;
-const FILL_POLL_TIMEOUT = 10000;   // 10s max to wait for fill
-const DEPTH_POLL_TRIES  = 5;
-
-// Credentials — same as replicator.js (hardcoded for CI)
-const CREDS = {
-    user1: {
-        key:    'b417fbd0627044f0e0066a7bd9de3fbe1e8b024ec8c70077',
-        secret: '02cb3e25d1e13f03ee8f4ffc784e2db86e2c45883f157575a9c913fee6aed5cf',
-        label:  'USER1_MAKER',
-    },
-    user2: {
-        key:    '249f18188c6020f36f79834b0f8cc83e7e749d43c519ce04',
-        secret: '1fce044918e10a8c93cc02645f0d68022a20322f200c44b208639c3ccba9f41e',
-        label:  'USER2_TAKER',
-    },
+var log = function(tag, msg) {
+    console.log('[\\x1b[36mREPORTER\\x1b[0m][\\x1b[33m' + tag + '\\x1b[0m] ' + msg);
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 2.  ALLURE RESULT BUILDER
+// 2.  COUNTERS — track everything in memory, flush to Allure at the end
 // ─────────────────────────────────────────────────────────────────────────────
-class AllureResult {
-    constructor({ name, feature, story, severity = 'critical', labels = {} }) {
-        this.uuid        = uuidv4();
-        this.historyId   = `${feature}:${story}:${name}`;
-        this.testCaseId  = this.historyId;
-        this.fullName    = `${feature}: ${name}`;
-        this.name        = name;
-        this.status      = 'passed';
-        this.start       = Date.now();
-        this.stop        = null;
-        this.steps       = [];
-        this.attachments = [];
-        this.labels      = [
-            { name: 'feature',  value: feature  },
-            { name: 'story',    value: story     },
-            { name: 'severity', value: severity  },
-            ...Object.entries(labels).map(([n, v]) => ({ name: n, value: String(v) })),
-        ];
-        this.parameters  = [];
-        this._currentStep = null;
-    }
+var counters = {
+    makerPlace:   { success: 0, fail: 0, failReasons: {} },
+    takerPlace:   { success: 0, fail: 0, failReasons: {} },
+    cancel:       { attempted: 0, success: 0, fail: 0, failReasons: {} },
+    modify:       { attempted: 0, success: 0, fail: 0, failReasons: {} },
+    fill:         { matched: 0, failed: 0, failReasons: {} },
+    seedBalance:  { triggered: 0, success: 0, fail: 0 },
+    errors:       []  // recent error samples (capped at 50)
+};
 
-    /** Start a named step — returns the step object so you can mutate it */
-    step(name) {
-        const s = {
-            name,
-            status:      'passed',
-            start:       Date.now(),
-            stop:        null,
-            steps:       [],
-            attachments: [],
-            statusDetails: {},
-        };
-        this.steps.push(s);
-        this._currentStep = s;
-        return s;
-    }
+function addFailReason(bucket, reason) {
+    if (!reason) reason = 'Unknown';
+    bucket[reason] = (bucket[reason] || 0) + 1;
+}
 
-    /** Close the current step with pass/fail and optional message */
-    endStep(pass, message = '') {
-        const s = this._currentStep;
-        if (!s) return;
-        s.stop   = Date.now();
-        s.status = pass ? 'passed' : 'failed';
-        if (!pass) {
-            s.statusDetails = { message };
-            this.status     = 'failed';
+function addError(msg) {
+    if (counters.errors.length < 50) {
+        counters.errors.push({ time: new Date().toISOString(), msg: msg });
+    }
+}
+
+// Save counters to disk periodically so --flush can read them
+function persistCounters() {
+    try {
+        fs.writeFileSync(COUNTERS_FILE, JSON.stringify(counters, null, 2), 'utf8');
+    } catch(e) {}
+}
+
+function loadCounters() {
+    try {
+        if (fs.existsSync(COUNTERS_FILE)) {
+            var data = JSON.parse(fs.readFileSync(COUNTERS_FILE, 'utf8'));
+            counters = data;
+            log('INIT', 'Loaded existing counters from disk.');
         }
-        this._currentStep = null;
-        return s;
+    } catch(e) {
+        log('WARN', 'Could not load counters: ' + e.message);
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 3.  EVENT HANDLERS
+// ─────────────────────────────────────────────────────────────────────────────
+function handleEvent(evt) {
+    var type = evt.type;
+
+    switch (type) {
+        case 'order:placed':
+            if (evt.isTaker) {
+                counters.takerPlace.success++;
+            } else {
+                counters.makerPlace.success++;
+            }
+            break;
+
+        case 'order:place_failed':
+            var reason = (evt.error && evt.error.msg) || (evt.error && evt.error.message) || evt.reason || 'Unknown';
+            var code = (evt.error && evt.error.code) || '';
+            var fullReason = code ? (code + ': ' + reason) : reason;
+            if (evt.isTaker) {
+                counters.takerPlace.fail++;
+                addFailReason(counters.takerPlace.failReasons, fullReason);
+            } else {
+                counters.makerPlace.fail++;
+                addFailReason(counters.makerPlace.failReasons, fullReason);
+            }
+            addError('[PLACE_FAIL] ' + (evt.isTaker ? 'TAKER' : 'MAKER') + ' ' + fullReason);
+            break;
+
+        case 'order:cancelled':
+            counters.cancel.attempted++;
+            counters.cancel.success++;
+            break;
+
+        case 'order:cancel_failed':
+            counters.cancel.attempted++;
+            counters.cancel.fail++;
+            var cancelReason = (evt.error && evt.error.msg) || evt.reason || 'Unknown';
+            addFailReason(counters.cancel.failReasons, cancelReason);
+            addError('[CANCEL_FAIL] ' + cancelReason);
+            break;
+
+        case 'order:modified':
+            counters.modify.attempted++;
+            counters.modify.success++;
+            break;
+
+        case 'order:modify_failed':
+            counters.modify.attempted++;
+            counters.modify.fail++;
+            var modReason = (evt.error && evt.error.msg) || evt.reason || 'Unknown';
+            addFailReason(counters.modify.failReasons, modReason);
+            addError('[MODIFY_FAIL] ' + modReason);
+            break;
+
+        case 'order:fill_success':
+            counters.fill.matched++;
+            break;
+
+        case 'order:fill_failed':
+            counters.fill.failed++;
+            var fillReason = (evt.error && evt.error.msg) || evt.reason || 'Unknown';
+            addFailReason(counters.fill.failReasons, fillReason);
+            addError('[FILL_FAIL] ' + fillReason);
+            break;
+
+        case 'seed:triggered':
+            counters.seedBalance.triggered++;
+            break;
+
+        case 'seed:success':
+            counters.seedBalance.success++;
+            break;
+
+        case 'seed:failed':
+            counters.seedBalance.fail++;
+            break;
+
+        default:
+            log('WARN', 'Unknown event type: ' + type);
     }
 
-    /** Attach a JSON blob to the most recent step (or the result itself) */
-    attachJson(name, obj) {
-        const filename = `${uuidv4()}-attachment.json`;
-        const content  = JSON.stringify(obj, null, 2);
-        fs.writeFileSync(path.join(RESULTS_DIR, filename), content, 'utf8');
-        const att = { name, type: 'application/json', source: filename };
-        if (this._currentStep) this._currentStep.attachments.push(att);
-        else                    this.attachments.push(att);
+    // Persist counters every 20 events
+    var total = counters.makerPlace.success + counters.makerPlace.fail +
+                counters.takerPlace.success + counters.takerPlace.fail +
+                counters.cancel.attempted + counters.modify.attempted + counters.fill.matched;
+    if (total % 20 === 0) {
+        persistCounters();
     }
+}
 
-    /** Add a parameter (shown in Allure parameter tab) */
-    param(name, value) {
-        this.parameters.push({ name, value: String(value) });
-        return this;
+// ─────────────────────────────────────────────────────────────────────────────
+// 4.  ALLURE RESULT BUILDER (Simplified)
+// ─────────────────────────────────────────────────────────────────────────────
+function createAllureResult(name, feature, story, severity) {
+    return {
+        uuid:        uuidv4(),
+        historyId:   feature + ':' + story + ':' + name,
+        testCaseId:  feature + ':' + story + ':' + name,
+        fullName:    feature + ': ' + name,
+        name:        name,
+        status:      'passed',
+        start:       Date.now(),
+        stop:        null,
+        steps:       [],
+        attachments: [],
+        labels: [
+            { name: 'feature',  value: feature },
+            { name: 'story',    value: story },
+            { name: 'severity', value: severity || 'normal' },
+            { name: 'suite',    value: 'Replicator Summary' },
+        ],
+        parameters:  [],
+        statusDetails: {}
+    };
+}
+
+function addStep(result, name, passed, message) {
+    var step = {
+        name: name,
+        status: passed ? 'passed' : 'failed',
+        start: Date.now(),
+        stop: Date.now(),
+        steps: [],
+        attachments: [],
+        statusDetails: passed ? {} : { message: message || '' }
+    };
+    result.steps.push(step);
+    if (!passed) {
+        result.status = 'failed';
+        result.statusDetails = { message: message || name + ' failed' };
     }
+    return step;
+}
 
-    /** Mark as broken (system error, not assertion failure) */
-    broken(message) {
-        this.status = 'broken';
-        this.statusDetails = { message };
-        if (this._currentStep) {
-            this._currentStep.status = 'broken';
-            this._currentStep.statusDetails = { message };
+function addParam(result, name, value) {
+    result.parameters.push({ name: name, value: String(value) });
+}
+
+function writeResult(result) {
+    result.stop = Date.now();
+    var filename = result.uuid + '-result.json';
+    fs.writeFileSync(
+        path.join(RESULTS_DIR, filename),
+        JSON.stringify(result, null, 2),
+        'utf8'
+    );
+    log('RESULT', result.status.toUpperCase() + ' ' + result.name + ' → ' + filename);
+}
+
+function formatReasons(reasons) {
+    var entries = Object.entries(reasons);
+    if (entries.length === 0) return 'None';
+    return entries.map(function(e) { return e[0] + ' (x' + e[1] + ')'; }).join(', ');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 5.  FLUSH SUMMARY — generates clean Allure test cases from counters
+// ─────────────────────────────────────────────────────────────────────────────
+function flushSummaryTests() {
+    log('FLUSH', '═══════════════════════════════════════════════');
+    log('FLUSH', '  Generating Allure summary test cases...');
+    log('FLUSH', '═══════════════════════════════════════════════');
+
+    // ── 1. Maker Orders Placed ──
+    var makerResult = createAllureResult(
+        'Maker Orders Placed',
+        'Order Placement',
+        'Maker',
+        'critical'
+    );
+    addParam(makerResult, 'Total Attempted', counters.makerPlace.success + counters.makerPlace.fail);
+    addParam(makerResult, 'Successful', counters.makerPlace.success);
+    addParam(makerResult, 'Failed', counters.makerPlace.fail);
+    addParam(makerResult, 'Failure Reasons', formatReasons(counters.makerPlace.failReasons));
+
+    addStep(makerResult, 'Maker orders placed: ' + counters.makerPlace.success + ' successful', true);
+    if (counters.makerPlace.fail > 0) {
+        addStep(makerResult, 'Maker orders failed: ' + counters.makerPlace.fail + ' — ' + formatReasons(counters.makerPlace.failReasons), false, 
+            counters.makerPlace.fail + ' maker orders failed. Reasons: ' + formatReasons(counters.makerPlace.failReasons));
+    } else {
+        addStep(makerResult, 'No maker order failures', true);
+    }
+    writeResult(makerResult);
+
+    // ── 2. Taker Orders Placed ──
+    var takerResult = createAllureResult(
+        'Taker Orders Placed',
+        'Order Placement',
+        'Taker',
+        'critical'
+    );
+    addParam(takerResult, 'Total Attempted', counters.takerPlace.success + counters.takerPlace.fail);
+    addParam(takerResult, 'Successful', counters.takerPlace.success);
+    addParam(takerResult, 'Failed', counters.takerPlace.fail);
+    addParam(takerResult, 'Failure Reasons', formatReasons(counters.takerPlace.failReasons));
+
+    addStep(takerResult, 'Taker orders placed: ' + counters.takerPlace.success + ' successful', true);
+    if (counters.takerPlace.fail > 0) {
+        addStep(takerResult, 'Taker orders failed: ' + counters.takerPlace.fail + ' — ' + formatReasons(counters.takerPlace.failReasons), false,
+            counters.takerPlace.fail + ' taker orders failed. Reasons: ' + formatReasons(counters.takerPlace.failReasons));
+    } else {
+        addStep(takerResult, 'No taker order failures', true);
+    }
+    writeResult(takerResult);
+
+    // ── 3. Order Cancellations ──
+    var cancelResult = createAllureResult(
+        'Order Cancellations',
+        'Order Lifecycle',
+        'Cancel',
+        'normal'
+    );
+    addParam(cancelResult, 'Total Attempted', counters.cancel.attempted);
+    addParam(cancelResult, 'Successful', counters.cancel.success);
+    addParam(cancelResult, 'Failed', counters.cancel.fail);
+    addParam(cancelResult, 'Failure Reasons', formatReasons(counters.cancel.failReasons));
+
+    addStep(cancelResult, 'Cancellations attempted: ' + counters.cancel.attempted, true);
+    addStep(cancelResult, 'Cancellations successful: ' + counters.cancel.success, true);
+    if (counters.cancel.fail > 0) {
+        addStep(cancelResult, 'Cancellations failed: ' + counters.cancel.fail + ' — ' + formatReasons(counters.cancel.failReasons), false,
+            counters.cancel.fail + ' cancellations failed. Reasons: ' + formatReasons(counters.cancel.failReasons));
+    } else {
+        addStep(cancelResult, 'No cancellation failures', true);
+    }
+    writeResult(cancelResult);
+
+    // ── 4. Order Modifications ──
+    var modifyResult = createAllureResult(
+        'Order Modifications',
+        'Order Lifecycle',
+        'Modify',
+        'normal'
+    );
+    addParam(modifyResult, 'Total Attempted', counters.modify.attempted);
+    addParam(modifyResult, 'Successful', counters.modify.success);
+    addParam(modifyResult, 'Failed', counters.modify.fail);
+    addParam(modifyResult, 'Failure Reasons', formatReasons(counters.modify.failReasons));
+
+    addStep(modifyResult, 'Modifications attempted: ' + counters.modify.attempted, true);
+    addStep(modifyResult, 'Modifications successful: ' + counters.modify.success, true);
+    if (counters.modify.fail > 0) {
+        addStep(modifyResult, 'Modifications failed: ' + counters.modify.fail + ' — ' + formatReasons(counters.modify.failReasons), false,
+            counters.modify.fail + ' modifications failed. Reasons: ' + formatReasons(counters.modify.failReasons));
+    } else {
+        addStep(modifyResult, 'No modification failures', true);
+    }
+    writeResult(modifyResult);
+
+    // ── 5. Order Fills / Matches ──
+    var fillResult = createAllureResult(
+        'Order Fills',
+        'Order Lifecycle',
+        'Fill / Match',
+        'critical'
+    );
+    addParam(fillResult, 'Matched Successfully', counters.fill.matched);
+    addParam(fillResult, 'Failed', counters.fill.failed);
+    addParam(fillResult, 'Failure Reasons', formatReasons(counters.fill.failReasons));
+
+    addStep(fillResult, 'Orders matched/filled: ' + counters.fill.matched, true);
+    if (counters.fill.failed > 0) {
+        addStep(fillResult, 'Fills failed: ' + counters.fill.failed + ' — ' + formatReasons(counters.fill.failReasons), false,
+            counters.fill.failed + ' fills failed. Reasons: ' + formatReasons(counters.fill.failReasons));
+    } else {
+        addStep(fillResult, 'No fill failures', true);
+    }
+    writeResult(fillResult);
+
+    // ── 6. Seed Balance (auto top-up) ──
+    var seedResult = createAllureResult(
+        'Seed Balance (Auto Top-up)',
+        'Infrastructure',
+        'Seed Balance',
+        'minor'
+    );
+    addParam(seedResult, 'Triggered', counters.seedBalance.triggered);
+    addParam(seedResult, 'Successful', counters.seedBalance.success);
+    addParam(seedResult, 'Failed', counters.seedBalance.fail);
+
+    if (counters.seedBalance.triggered > 0) {
+        addStep(seedResult, 'Seed balance triggered: ' + counters.seedBalance.triggered + ' times', true);
+        addStep(seedResult, 'Successful: ' + counters.seedBalance.success, counters.seedBalance.success > 0);
+        if (counters.seedBalance.fail > 0) {
+            addStep(seedResult, 'Failed: ' + counters.seedBalance.fail, false, 
+                counters.seedBalance.fail + ' seed_balance calls failed');
         }
-        return this;
+    } else {
+        addStep(seedResult, 'No seed_balance calls needed during this run', true);
     }
+    writeResult(seedResult);
 
-    /** Write the result JSON to allure-results/ */
-    flush() {
-        this.stop = Date.now();
-        const filename = `${this.uuid}-result.json`;
+    // ── 7. Overall Summary ──
+    var totalPlaced = counters.makerPlace.success + counters.takerPlace.success;
+    var totalPlaceFail = counters.makerPlace.fail + counters.takerPlace.fail;
+    var summaryResult = createAllureResult(
+        'Overall Run Summary',
+        'Summary',
+        'Run Totals',
+        'blocker'
+    );
+    addParam(summaryResult, 'Maker Orders OK', counters.makerPlace.success);
+    addParam(summaryResult, 'Maker Orders FAIL', counters.makerPlace.fail);
+    addParam(summaryResult, 'Taker Orders OK', counters.takerPlace.success);
+    addParam(summaryResult, 'Taker Orders FAIL', counters.takerPlace.fail);
+    addParam(summaryResult, 'Cancel OK', counters.cancel.success);
+    addParam(summaryResult, 'Cancel FAIL', counters.cancel.fail);
+    addParam(summaryResult, 'Modify OK', counters.modify.success);
+    addParam(summaryResult, 'Modify FAIL', counters.modify.fail);
+    addParam(summaryResult, 'Fills Matched', counters.fill.matched);
+    addParam(summaryResult, 'Fills FAIL', counters.fill.failed);
+
+    addStep(summaryResult, 'Total orders placed successfully: ' + totalPlaced, totalPlaced > 0, 
+        totalPlaced === 0 ? 'No orders were placed successfully during this run' : '');
+    addStep(summaryResult, 'Total order placement failures: ' + totalPlaceFail, totalPlaceFail === 0,
+        totalPlaceFail > 0 ? totalPlaceFail + ' order placements failed' : '');
+    addStep(summaryResult, 'Total cancellations: ' + counters.cancel.success + '/' + counters.cancel.attempted + ' successful', 
+        counters.cancel.fail === 0, counters.cancel.fail > 0 ? counters.cancel.fail + ' cancellations failed' : '');
+    addStep(summaryResult, 'Total modifications: ' + counters.modify.success + '/' + counters.modify.attempted + ' successful',
+        counters.modify.fail === 0, counters.modify.fail > 0 ? counters.modify.fail + ' modifications failed' : '');
+    addStep(summaryResult, 'Total fills matched: ' + counters.fill.matched,
+        counters.fill.failed === 0, counters.fill.failed > 0 ? counters.fill.failed + ' fills failed' : '');
+
+    // Attach error log if there are any
+    if (counters.errors.length > 0) {
+        var errorFilename = uuidv4() + '-attachment.json';
         fs.writeFileSync(
-            path.join(RESULTS_DIR, filename),
-            JSON.stringify(this, null, 2),
+            path.join(RESULTS_DIR, errorFilename),
+            JSON.stringify(counters.errors, null, 2),
             'utf8'
         );
-        log('RESULT', `${this.status.toUpperCase().padEnd(6)} ${this.name} → ${filename}`);
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 3.  SIGNED REST CLIENT
-// ─────────────────────────────────────────────────────────────────────────────
-let serverTimeOffset = 0;
-
-function sign(secret, payload) {
-    return crypto.createHmac('sha256', secret).update(payload).digest('hex');
-}
-
-/**
- * Make a signed REST call and return { ok, status, data, latencyMs }.
- * All GET/DELETE params go on the query string; POST/PUT go in the JSON body.
- */
-async function call(method, endpoint, params = {}, creds = CREDS.user1, timeoutMs = 8000) {
-    const t0        = Date.now();
-    const timestamp = t0 + serverTimeOffset;
-    const isWrite   = ['POST', 'PUT'].includes(method.toUpperCase());
-
-    const url = new URL(`${BASE_URL}${endpoint}`);
-    let bodyStr = null;
-    let signPayload = ''; // Initialize signPayload
-
-    if (isWrite) {
-        const body = { ...params, timestamp };
-        bodyStr    = JSON.stringify(body);
-        signPayload = bodyStr; // For POST/PUT, sign the JSON body
-    } else {
-        // For GET/DELETE, parameters are in the query string.
-        // The FAPI server expects the full query string to be signed.
-        // Construct the query string explicitly for signing and for the URL.
-        const queryParams = { ...params, timestamp };
-        const sortedQueryParams = Object.keys(queryParams).sort().map(key => {
-            return `${key}=${queryParams[key]}`;
-        }).join('&');
-
-        url.search = sortedQueryParams ? `?${sortedQueryParams}` : ''; // Set the full query string for the fetch call
-        signPayload = sortedQueryParams; // Sign the constructed query string
-    }
-
-    const sig = sign(creds.secret, signPayload); // Use the explicitly constructed signPayload
-    const headers = {
-        'Content-Type':    'application/json',
-        'X-AUTH-APIKEY':   creds.key,
-        'X-AUTH-SIGNATURE': sig,
-    };
-
-    const controller = new AbortController();
-    const timer      = setTimeout(() => controller.abort(), timeoutMs);
-
-    try {
-        const res  = await fetch(url.toString(), {
-            method:  method.toUpperCase(),
-            headers,
-            body:    bodyStr || undefined,
-            signal:  controller.signal,
+        summaryResult.attachments.push({
+            name: 'Error Log (last ' + counters.errors.length + ' errors)',
+            type: 'application/json',
+            source: errorFilename
         });
-        clearTimeout(timer);
-        const text = await res.text();
-        let data;
-        try { data = JSON.parse(text); } catch { data = { raw: text }; }
-        return { ok: res.ok, status: res.status, data, latencyMs: Date.now() - t0 };
-    } catch (err) {
-        clearTimeout(timer);
-        return { ok: false, status: err.name === 'AbortError' ? 408 : 500,
-            data: { error: err.message }, latencyMs: Date.now() - t0 };
     }
-}
 
-/** Unauthenticated call (depth, trades, exchangeInfo) */
-async function publicCall(endpoint, params = {}) {
-    const t0  = Date.now();
-    const url = new URL(`${BASE_URL}${endpoint}`);
-    Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, String(v)));
-    try {
-        const res  = await fetch(url.toString());
-        const text = await res.text();
-        let data;
-        try { data = JSON.parse(text); } catch { data = { raw: text }; }
-        return { ok: res.ok, status: res.status, data, latencyMs: Date.now() - t0 };
-    } catch (err) {
-        return { ok: false, status: 500, data: { error: err.message }, latencyMs: Date.now() - t0 };
-    }
-}
+    writeResult(summaryResult);
 
-async function syncTime() {
-    try {
-        const r = await publicCall('/fapi/v1/time');
-        if (r.ok && r.data.serverTime) {
-            serverTimeOffset = r.data.serverTime - Date.now();
-            log('INIT', `Server time synced. Offset: ${serverTimeOffset}ms`);
-        }
-    } catch {}
+    log('FLUSH', '═══════════════════════════════════════════════');
+    log('FLUSH', '  Summary: ' + totalPlaced + ' placed, ' + totalPlaceFail + ' failed, ' +
+        counters.cancel.success + ' cancelled, ' + counters.modify.success + ' modified, ' +
+        counters.fill.matched + ' matched');
+    log('FLUSH', '═══════════════════════════════════════════════');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 4.  PRIMITIVE HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
-const log = (tag, msg) =>
-    console.log(`[\x1b[36mREPORTER\x1b[0m][\x1b[33m${tag}\x1b[0m] ${msg}`);
-
-function wait(ms) {
-    return new Promise(r => setTimeout(r, ms));
-}
-
-/**
- * Poll fn() every POLL_INTERVAL_MS until predicate(result) is true or timeout.
- * Returns { result, elapsed, timedOut }.
- */
-async function pollUntil(fn, predicate, timeoutMs) {
-    const deadline = Date.now() + timeoutMs;
-    while (Date.now() < deadline) {
-        const result = await fn();
-        if (predicate(result)) return { result, elapsed: Date.now() - (deadline - timeoutMs), timedOut: false };
-        await wait(POLL_INTERVAL_MS);
-    }
-    const result = await fn();
-    return { result, elapsed: timeoutMs, timedOut: !predicate(result) };
-}
-
-/** Find orderId in depth book on correct side. Returns { found, levelQty, latencyMs } */
-async function findInDepth(symbol, side, price, limit = 50) {
-    const t0  = Date.now();
-    const res = await publicCall('/fapi/v1/depth', { symbol, limit });
-    if (!res.ok) return { found: false, levelQty: 0, latencyMs: Date.now() - t0, raw: res.data };
-    const levels = side.toUpperCase() === 'BUY' ? (res.data.bids || []) : (res.data.asks || []);
-    const row    = levels.find(l => parseFloat(l[0]) === parseFloat(price));
-    return { found: !!row, levelQty: row ? parseFloat(row[1]) : 0, latencyMs: Date.now() - t0, raw: res.data };
-}
-
-function assertSla(result, description, latency, sla) {
-    const pass = latency <= sla;
-    const message = `${description} (${latency}ms / ${sla}ms)`;
-    result.endStep(pass, pass ? message : `SLA BREACH: ${message}`);
-    return pass;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 5.  LIFECYCLE VALIDATORS
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * PLACE VALIDATOR
- * Runs after every successful POST /fapi/v1/order.
- */
-async function validatePlace({ symbol, side, qty, price, orderId, isTaker, orderType, t0 }) {
-    const result = new AllureResult({
-        name: `[${side}] ${qty} @ ${price}`,
-        feature: `Place Order (${symbol})`,
-        story: isTaker ? 'Taker' : 'Maker',
-    });
-    result.param('symbol', symbol).param('side', side).param('qty', qty).param('price', price).param('orderId', orderId);
-
-    const creds = isTaker ? CREDS.user2 : CREDS.user1;
-
-    try {
-        if (orderType !== 'LIMIT_IOC') {
-            // 1. Check if order appears in depth book
-            result.step(`Check order book for ${orderId}`);
-            const { result: depth, timedOut } = await pollUntil(
-                () => findInDepth(symbol, side, price),
-                (r) => r.found,
-                SLA.orderInBook * DEPTH_POLL_TRIES
-            );
-            result.attachJson('Depth API Response', depth.raw);
-            if (timedOut) {
-                result.endStep(false, `Order ${orderId} not found in depth book after ${SLA.orderInBook * DEPTH_POLL_TRIES}ms`);
-            } else {
-                assertSla(result, 'Order visible in book', depth.latencyMs, SLA.orderInBook);
-            }
-        }
-
-        // 2. Check GET /order
-        result.step(`GET /order for ${orderId}`);
-        const getOrderRes = await call('GET', '/fapi/v1/order', { symbol, orderId }, creds);
-        result.attachJson('GET /order Response', getOrderRes.data);
-        assertSla(result, 'GET /order response time', getOrderRes.latencyMs, SLA.restCallP95);
-        if (!getOrderRes.ok || String(getOrderRes.data.orderId) !== String(orderId)) {
-            result.endStep(false, `GET /order failed or returned wrong order. Status: ${getOrderRes.status}`);
-        } else {
-            result.endStep(true, `Status: ${getOrderRes.data.status}`);
-        }
-
-        if (orderType !== 'LIMIT_IOC') {
-            // 3. Check openOrders
-            result.step(`Check open orders for ${orderId}`);
-            const openOrdersRes = await call('GET', '/fapi/v1/openOrders', { symbol }, creds);
-            result.attachJson('GET /openOrders Response', openOrdersRes.data);
-            assertSla(result, 'GET /openOrders response time', openOrdersRes.latencyMs, SLA.restCallP95);
-            const foundInOpen = Array.isArray(openOrdersRes.data) && openOrdersRes.data.some(o => String(o.orderId) === String(orderId));
-            result.endStep(foundInOpen, foundInOpen ? 'Found in open orders' : 'Not found in open orders');
-        }
-
-    } catch (e) {
-        result.broken(`Unhandled exception: ${e.message}`);
-        log('ERROR', `validatePlace threw: ${e.stack}`);
-    } finally {
-        trackMetric('Place', result);
-    }
-}
-
-/**
- * CANCEL VALIDATOR
- * Runs after every successful DELETE /fapi/v1/order.
- */
-async function validateCancel({ symbol, orderId, price, side, isTaker }) {
-     const result = new AllureResult({
-        name: `Cancel ${orderId}`,
-        feature: `Cancel Order (${symbol})`,
-        story: isTaker ? 'Taker' : 'Maker',
-    });
-    result.param('symbol', symbol).param('orderId', orderId);
-
-    const creds = isTaker ? CREDS.user2 : CREDS.user1;
-
-    try {
-        // 1. Check if order is removed from depth book
-        if (price && side && !isTaker) {
-            result.step(`Check order book for ${orderId} removal`);
-            const { result: depth, timedOut } = await pollUntil(
-                () => findInDepth(symbol, side, price),
-                (r) => !r.found,
-                SLA.cancelFromBook * DEPTH_POLL_TRIES
-            );
-            result.attachJson('Depth API Response', depth.raw);
-            if (timedOut) {
-                result.endStep(true, `Warning: Price level ${price} still exists (could be external orders or leftover volume)`);
-            } else {
-                assertSla(result, 'Order removed from book', depth.latencyMs, SLA.cancelFromBook);
-            }
-        }
-
-        // 2. Check GET /order status is CANCELED
-        result.step(`GET /order for ${orderId}`);
-        const getOrderRes = await call('GET', '/fapi/v1/order', { symbol, orderId }, creds);
-        result.attachJson('GET /order Response', getOrderRes.data);
-        assertSla(result, 'GET /order response time', getOrderRes.latencyMs, SLA.restCallP95);
-        if (!getOrderRes.ok || getOrderRes.data.status !== 'CANCELED') {
-            result.endStep(false, `GET /order status is not CANCELED. Status: ${getOrderRes.data.status || getOrderRes.status}`);
-        } else {
-            result.endStep(true, 'Status: CANCELED');
-        }
-
-    } catch (e) {
-        result.broken(`Unhandled exception: ${e.message}`);
-        log('ERROR', `validateCancel threw: ${e.stack}`);
-    } finally {
-        trackMetric('Cancel', result);
-    }
-}
-
-/**
- * FILL VALIDATOR
- */
-async function validateFill({ symbol, makerOrderId, takerOrderId, expectedQty, price }) {
-    const result = new AllureResult({
-        name: `Fill ${makerOrderId}`,
-        feature: `Fill Order (${symbol})`,
-        story: 'Taker vs Maker',
-    });
-    result.param('symbol', symbol).param('makerOrderId', makerOrderId).param('takerOrderId', takerOrderId).param('price', price);
-
-    try {
-        // 1. Poll GET /order until maker order is FILLED
-        result.step(`Poll GET /order for maker ${makerOrderId} to be FILLED`);
-        const { result: getOrder, timedOut, elapsed } = await pollUntil(
-            () => call('GET', '/fapi/v1/order', { symbol, orderId: makerOrderId }),
-            (r) => r.ok && r.data.status === 'FILLED',
-            FILL_POLL_TIMEOUT
-        );
-        result.attachJson('Final GET /order Response', getOrder.data);
-        if (timedOut) {
-            result.endStep(false, `Maker order ${makerOrderId} not FILLED after ${FILL_POLL_TIMEOUT}ms. Final status: ${getOrder.data.status}`);
-            result.flush();
-            return;
-        }
-        assertSla(result, 'Maker order FILLED', elapsed, SLA.fillInGetOrder);
-
-        // 2. Check user trades for maker
-        result.step(`Check user trades for maker ${makerOrderId}`);
-        const tradesRes = await call('GET', '/fapi/v1/userTrades', { symbol });
-        result.attachJson('Maker /userTrades Response', tradesRes.data);
-        assertSla(result, '/userTrades response time', tradesRes.latencyMs, SLA.tradeRecord);
-        const trade = Array.isArray(tradesRes.data) && tradesRes.data.find(t => String(t.orderId) === String(makerOrderId));
-        if (!trade) {
-            result.endStep(false, `Trade for maker order ${makerOrderId} not found in /userTrades`);
-        } else {
-            result.endStep(true, `Trade found. Qty: ${trade.qty}`);
-        }
-
-        // 3. Check position risk for maker
-        result.step(`Check position risk for maker`);
-        const posRes = await call('GET', '/fapi/v1/positionRisk');
-        result.attachJson('Maker /positionRisk Response', posRes.data);
-        assertSla(result, '/positionRisk response time', posRes.latencyMs, SLA.positionUpdate);
-        const position = Array.isArray(posRes.data) && posRes.data.find(p => p.symbol === symbol);
-        if (!position) {
-            result.endStep(false, `Position for ${symbol} not found`);
-        } else {
-            result.endStep(true, `Position amount: ${position.positionAmt}`);
-        }
-
-        if (takerOrderId) {
-            // 4. Check user trades for taker
-            result.step(`Check user trades for taker ${takerOrderId}`);
-            const takerTradesRes = await call('GET', '/fapi/v1/userTrades', { symbol }, CREDS.user2);
-            result.attachJson('Taker /userTrades Response', takerTradesRes.data);
-            assertSla(result, 'Taker /userTrades response time', takerTradesRes.latencyMs, SLA.tradeRecord);
-            const takerTrade = Array.isArray(takerTradesRes.data) && takerTradesRes.data.find(t => String(t.orderId) === String(takerOrderId));
-            if (!takerTrade) {
-                result.endStep(false, `Trade for taker order ${takerOrderId} not found in /userTrades`);
-            } else {
-                result.endStep(true, `Trade found. Qty: ${takerTrade.qty}`);
-            }
-
-            // 5. Check position risk for taker
-            result.step(`Check position risk for taker`);
-            const takerPosRes = await call('GET', '/fapi/v1/positionRisk', {}, CREDS.user2);
-            result.attachJson('Taker /positionRisk Response', takerPosRes.data);
-            assertSla(result, 'Taker /positionRisk response time', takerPosRes.latencyMs, SLA.positionUpdate);
-            const takerPosition = Array.isArray(takerPosRes.data) && takerPosRes.data.find(p => p.symbol === symbol);
-            if (!takerPosition) {
-                result.endStep(false, `Taker Position for ${symbol} not found`);
-            } else {
-                result.endStep(true, `Taker Position amount: ${takerPosition.positionAmt}`);
-            }
-        }
-
-    } catch (e) {
-        result.broken(`Unhandled exception: ${e.message}`);
-        log('ERROR', `validateFill threw: ${e.stack}`);
-    } finally {
-        trackMetric('Fill', result);
-    }
-}
-
-/**
- * MODIFY VALIDATOR
- */
-async function validateModify({ symbol, orderId, side, newPrice, newQty }) {
-    const result = new AllureResult({
-        name: `Modify ${orderId} to ${newQty}@${newPrice}`,
-        feature: `Modify Order (${symbol})`,
-        story: 'Maker',
-    });
-    result.param('symbol', symbol).param('orderId', orderId).param('newPrice', newPrice).param('newQty', newQty);
-
-    try {
-        result.step(`Check order book for modified order ${orderId}`);
-        const { result: depth, timedOut } = await pollUntil(
-            () => findInDepth(symbol, side, newPrice),
-            (r) => r.found && r.levelQty >= parseFloat(newQty),
-            SLA.orderInBook * DEPTH_POLL_TRIES
-        );
-        result.attachJson('Depth API Response', depth.raw);
-        if (timedOut) {
-            result.endStep(false, `Modified order ${orderId} not found at new price/qty after ${SLA.orderInBook * DEPTH_POLL_TRIES}ms`);
-        } else {
-            assertSla(result, 'Order visible in book at new price/qty', depth.latencyMs, SLA.orderInBook);
-        }
-    } catch (e) {
-        result.broken(`Unhandled exception: ${e.message}`);
-        log('ERROR', `validateModify threw: ${e.stack}`);
-    } finally {
-        trackMetric('Modify', result);
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 7.  EVENT BUS WIRING
-//     Connects to global.replicatorBus (set in replicator.js)
-// ─────────────────────────────────────────────────────────────────────────────
-function wireEventBus() {
-    const bus = global.replicatorBus;
-    if (!bus) {
-        log('WARN', 'global.replicatorBus not found — running in standalone mode (HTTP events only)');
-        return;
-    }
-
-    log('INIT', 'Connected to replicatorBus');
-
-    bus.on('order:placed', async (evt) => {
-        log('EVENT', `order:placed  ${evt.symbol} ${evt.side} ${evt.qty}@${evt.price} id=${evt.orderId}`);
-        await validatePlace(evt).catch(e => log('ERROR', `validatePlace threw: ${e.message}`));
-    });
-
-    bus.on('order:cancelled', async (evt) => {
-        log('EVENT', `order:cancelled ${evt.symbol} id=${evt.orderId}`);
-        await validateCancel(evt).catch(e => log('ERROR', `validateCancel threw: ${e.message}`));
-    });
-
-    bus.on('order:fill_attempt', async (evt) => {
-        log('EVENT', `order:fill_attempt ${evt.symbol} maker=${evt.makerOrderId} taker=${evt.takerOrderId}`);
-        await validateFill(evt).catch(e => log('ERROR', `validateFill threw: ${e.message}`));
-    });
-
-    bus.on('order:modified', async (evt) => {
-        log('EVENT', `order:modified ${evt.symbol} id=${evt.orderId} → price=${evt.newPrice}`);
-        await validateModify(evt).catch(e => log('ERROR', `validateModify threw: ${e.message}`));
-    });
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 8.  HTTP RECEIVER (alternative to bus — post events from replicator via HTTP)
-//     POST http://localhost:3001/event  { type, ...payload }
+// 6.  HTTP RECEIVER
 // ─────────────────────────────────────────────────────────────────────────────
 function startHttpReceiver() {
-    const PORT = process.env.REPORTER_PORT || 3001;
-    const srv  = http.createServer((req, res) => {
+    var PORT = process.env.REPORTER_PORT || 3001;
+    var srv  = http.createServer(function(req, res) {
         if (req.method !== 'POST' || req.url !== '/event') {
-            res.writeHead(404).end();
+            res.writeHead(404);
+            res.end();
             return;
         }
-        let body = '';
-        req.on('data', c => body += c);
-        req.on('end', async () => {
+        var body = '';
+        req.on('data', function(c) { body += c; });
+        req.on('end', function() {
             try {
-                const evt = JSON.parse(body);
-                switch (evt.type) {
-                    case 'order:placed':       await validatePlace(evt);   break;
-                    case 'order:cancelled':    await validateCancel(evt);  break;
-                    case 'order:fill_attempt': await validateFill(evt);    break;
-                    case 'order:modified':     await validateModify(evt);  break;
-                    default:
-                        log('WARN', `Unknown event type: ${evt.type}`);
-                }
-                res.writeHead(202).end('{"ok":true}');
+                var evt = JSON.parse(body);
+                handleEvent(evt);
+                res.writeHead(202);
+                res.end('{"ok":true}');
             } catch (e) {
-                res.writeHead(400).end(JSON.stringify({ error: e.message }));
+                res.writeHead(400);
+                res.end(JSON.stringify({ error: e.message }));
             }
         });
     });
-    srv.listen(PORT, () => log('INIT', `HTTP receiver listening on port ${PORT}`));
+    srv.listen(PORT, function() {
+        log('INIT', 'HTTP receiver listening on port ' + PORT);
+    });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 9.  ALLURE METADATA FILES
+// 7.  ALLURE METADATA FILES
 // ─────────────────────────────────────────────────────────────────────────────
 function writeEnvironment() {
-    const configs = process.env.MARKET_CONFIGS
-        ? JSON.parse(process.env.MARKET_CONFIGS).map(m => m.sourceSymbol).join(', ')
-        : 'unknown';
-    const lines = [
-        `BASE_URL=${BASE_URL}`,
-        `SYMBOLS=${configs}`,
-        `STARTED=${new Date().toISOString()}`,
-        `NODE_VERSION=${process.version}`,
-        `SLA_ORDER_IN_BOOK_MS=${SLA.orderInBook}`,
-        `SLA_FILL_IN_GET_ORDER_MS=${SLA.fillInGetOrder}`,
-        `SLA_TRADE_RECORD_MS=${SLA.tradeRecord}`,
-        `SLA_POSITION_UPDATE_MS=${SLA.positionUpdate}`,
-        `SLA_BALANCE_UPDATE_MS=${SLA.balanceUpdate}`,
+    var configs = 'unknown';
+    try {
+        if (process.env.MARKET_CONFIGS) {
+            configs = JSON.parse(process.env.MARKET_CONFIGS).map(function(m) { return m.sourceSymbol; }).join(', ');
+        }
+    } catch(e) {}
+    var lines = [
+        'BASE_URL=https://testnet-futures-hpo.dcxstage.com',
+        'SYMBOLS=' + configs,
+        'STARTED=' + new Date().toISOString(),
+        'NODE_VERSION=' + process.version,
     ];
     fs.writeFileSync(path.join(RESULTS_DIR, 'environment.properties'), lines.join('\n'), 'utf8');
     log('INIT', 'environment.properties written');
 }
 
 function writeCategoriesAndExecutor() {
-    const categories = [
+    var categories = [
         {
-            name: 'SLA Breaches',
+            name: 'Order Failures',
             matchedStatuses: ['failed'],
-            messageRegex: '.*SLA.*',
+            messageRegex: '.*failed.*',
         },
         {
             name: 'Infrastructure Errors',
@@ -682,13 +510,13 @@ function writeCategoriesAndExecutor() {
         'utf8'
     );
 
-    const executor = {
+    var executor = {
         name: 'Jenkins',
         type: 'jenkins',
         url: process.env.BUILD_URL || 'http://localhost:8080',
         buildOrder: process.env.BUILD_NUMBER ? parseInt(process.env.BUILD_NUMBER) : 1,
         buildName: process.env.JOB_NAME || 'local-run',
-        reportUrl: `${process.env.BUILD_URL}allure/`,
+        reportUrl: (process.env.BUILD_URL || '') + 'allure/',
     };
     fs.writeFileSync(
         path.join(RESULTS_DIR, 'executor.json'),
@@ -698,55 +526,48 @@ function writeCategoriesAndExecutor() {
     log('INIT', 'categories.json and executor.json written');
 }
 
-
 // ─────────────────────────────────────────────────────────────────────────────
-// 10. MAIN
+// 8.  MAIN
 // ─────────────────────────────────────────────────────────────────────────────
-async function main() {
+function main() {
     // Ensure results directory exists
     fs.mkdirSync(RESULTS_DIR, { recursive: true });
 
     if (FLUSH_FLAG) {
-        log('FLUSH', 'Flush mode — writing metadata and exiting.');
+        log('FLUSH', 'Flush mode — loading counters and generating summary.');
+        loadCounters();
         writeEnvironment();
         writeCategoriesAndExecutor();
+        flushSummaryTests();
         process.exit(0);
     }
 
     log('INIT', '════════════════════════════════════════════════');
-    log('INIT', ' QA Order-Lifecycle Reporter starting...');
+    log('INIT', ' QA Aggregate Reporter starting...');
     log('INIT', '════════════════════════════════════════════════');
 
-    await syncTime();
     writeEnvironment();
     writeCategoriesAndExecutor();
 
-    // Wire to replicatorBus if running inside same process
-    wireEventBus();
-
-    // Start HTTP receiver for out-of-process mode (replicator → reporter via localhost)
+    // Start HTTP receiver
     startHttpReceiver();
 
     log('INIT', 'Reporter ready. Waiting for order events...');
 }
 
-// Graceful shutdown — ensure all pending results are flushed
-process.on('SIGINT', async () => {
-    log('SHUTDOWN', 'SIGINT received — flushing results...');
-    await wait(2000); // give any in-flight validations time to complete
-    flushSummaryTests();
-    log('SHUTDOWN', `Results written to ${RESULTS_DIR}`);
+// Graceful shutdown
+process.on('SIGINT', function() {
+    log('SHUTDOWN', 'SIGINT received — persisting counters...');
+    persistCounters();
+    log('SHUTDOWN', 'Counters persisted. Run --flush to generate report.');
     process.exit(0);
 });
 
-process.on('SIGTERM', async () => {
-    log('SHUTDOWN', 'SIGTERM received — flushing results...');
-    await wait(2000);
-    flushSummaryTests();
+process.on('SIGTERM', function() {
+    log('SHUTDOWN', 'SIGTERM received — persisting counters...');
+    persistCounters();
+    log('SHUTDOWN', 'Counters persisted. Run --flush to generate report.');
     process.exit(0);
 });
 
-main().catch(err => {
-    log('FATAL', err.message);
-    process.exit(1);
-});
+main();

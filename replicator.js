@@ -169,8 +169,10 @@ async function seedBalance(userCreds) {
     const AUTH_URL = 'https://testnet-api.dcxstage.com/api/v3/authenticate';
     const SEED_URL = 'https://testnet-futures-hpo.dcxstage.com/api/v1/derivatives/futures/wallets/seed_balance';
     try {
+        emitOrderEvent('seed:triggered', { user: userCreds.email });
         if (!userCreds.email || !userCreds.password) {
             log.warn('SYSTEM', '[SEED] No email/password configured for this user — cannot seed balance.');
+            emitOrderEvent('seed:failed', { user: userCreds.email, error: 'No email/password configured' });
             return false;
         }
 
@@ -186,6 +188,7 @@ async function seedBalance(userCreds) {
 
         if (!bearerToken) {
             log.warn('SYSTEM', '[SEED] Login failed — no auth_token in response: ' + JSON.stringify(loginData));
+            emitOrderEvent('seed:failed', { user: userCreds.email, error: 'Login failed: ' + JSON.stringify(loginData) });
             return false;
         }
         log.success('SYSTEM', '[SEED] Login successful. Got bearer token.');
@@ -205,12 +208,15 @@ async function seedBalance(userCreds) {
 
         if (seedRes.ok || seedRes.status < 400) {
             log.success('SYSTEM', '[SEED] seed_balance succeeded — wallet topped up.');
+            emitOrderEvent('seed:success', { user: userCreds.email });
             return true;
         }
         log.warn('SYSTEM', '[SEED] seed_balance returned non-OK [' + seedRes.status + ']: ' + JSON.stringify(seedData));
+        emitOrderEvent('seed:failed', { user: userCreds.email, error: JSON.stringify(seedData) });
         return false;
     } catch (err) {
         log.error('SYSTEM', '[SEED] seed_balance threw: ' + err.message);
+        emitOrderEvent('seed:failed', { user: userCreds.email, error: err.message });
         return false;
     }
 }
@@ -386,6 +392,15 @@ class ReplicatorInstance {
             return { success: true, orderId: res.data.orderId || res.data.id, price: bufferedPrice };
         }
         log.error(this.symbol, `[ORDER-FAIL] ${userLabel} failed: ${JSON.stringify(res.data || res.error)}`);
+        emitOrderEvent('order:place_failed', {
+            symbol: this.symbol,
+            side,
+            qty,
+            price: bufferedPrice,
+            isTaker,
+            orderType,
+            error: res.data || { msg: res.error }
+        });
         return { success: false };
     }
 
@@ -413,6 +428,16 @@ class ReplicatorInstance {
                 side,
                 newPrice: bufferedPrice,
                 newQty: qty
+            });
+        } else {
+            log.error(this.symbol, `[MODIFY-FAIL] ID: ${orderId} failed: ${JSON.stringify(res.data || res.error)}`);
+            emitOrderEvent('order:modify_failed', {
+                symbol: this.symbol,
+                orderId,
+                side,
+                newPrice: bufferedPrice,
+                newQty: qty,
+                error: res.data || { msg: res.error }
             });
         }
         return res.ok;
@@ -442,6 +467,16 @@ class ReplicatorInstance {
                 isTaker,
                 price,
                 side
+            });
+        } else {
+            log.error(this.symbol, `[CANCEL-FAIL] ID: ${orderId} failed: ${JSON.stringify(res.data || res.error)}`);
+            emitOrderEvent('order:cancel_failed', {
+                symbol: this.symbol,
+                orderId,
+                isTaker,
+                price,
+                side,
+                error: res.data || { msg: res.error }
             });
         }
         return { success: res.ok, isTerminal: res.ok || [400, 401, 404].includes(res.status) };
@@ -633,14 +668,25 @@ class ReplicatorInstance {
                 emitOrderEvent('order:fill_attempt', {
                     symbol: this.symbol,
                     makerOrderId: hasRestingMaker.orderId,
-                    takerOrderId: takerRes.orderId,
+                    takerOrderId: takerRes.orderId || 'failed_taker',
                     expectedQty: scaledQty,
                     price: trade.p
                 });
-
+                
                 if (matched) {
+                    emitOrderEvent('order:fill_success', {
+                        symbol: this.symbol,
+                        makerOrderId: hasRestingMaker.orderId,
+                        takerOrderId: takerRes.orderId
+                    });
                     if (makerSide === 'BUY') this.restingBids = this.restingBids.filter(ro => ro.orderId !== hasRestingMaker.orderId);
                     else this.restingAsks = this.restingAsks.filter(ro => ro.orderId !== hasRestingMaker.orderId);
+                } else {
+                    emitOrderEvent('order:fill_failed', {
+                        symbol: this.symbol,
+                        makerOrderId: hasRestingMaker.orderId,
+                        error: { msg: 'Taker limit IOC placement failed' }
+                    });
                 }
             } else {
                 const makerRes = await this.placeOrder(makerSide, scaledQty, trade.p, 'LIMIT');
@@ -652,10 +698,24 @@ class ReplicatorInstance {
                     emitOrderEvent('order:fill_attempt', {
                         symbol: this.symbol,
                         makerOrderId: makerRes.orderId,
-                        takerOrderId: takerRes.orderId,
+                        takerOrderId: takerRes.orderId || 'failed_taker',
                         expectedQty: scaledQty,
                         price: trade.p
                     });
+                    
+                    if (matched) {
+                        emitOrderEvent('order:fill_success', {
+                            symbol: this.symbol,
+                            makerOrderId: makerRes.orderId,
+                            takerOrderId: takerRes.orderId
+                        });
+                    } else {
+                        emitOrderEvent('order:fill_failed', {
+                            symbol: this.symbol,
+                            makerOrderId: makerRes.orderId,
+                            error: { msg: 'Taker limit IOC placement failed' }
+                        });
+                    }
 
                     await this.cancelOrder(makerRes.orderId);
                 }
