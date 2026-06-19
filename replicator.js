@@ -382,13 +382,17 @@ class ReplicatorInstance {
         const userLabel = isTaker ? 'USER2_TAKER' : 'USER1_MAKER';
         const bufferedPrice = price ? applyBuffer(String(price), side, this.bufferPct, this.symbol) : null;
 
-        const payload = { symbol: this.symbol, side: side.toUpperCase(), type: 'LIMIT', quantity: String(qty) };
+        const payload = { symbol: this.symbol, side: side.toUpperCase(), quantity: String(qty) };
         if (orderType === 'LIMIT') {
+            payload.type = 'LIMIT';
             payload.price = String(bufferedPrice);
             payload.timeInForce = 'GTC';
         } else if (orderType === 'LIMIT_IOC') {
+            payload.type = 'LIMIT';
             payload.price = String(bufferedPrice);
             payload.timeInForce = 'IOC';
+        } else if (orderType === 'MARKET') {
+            payload.type = 'MARKET';
         }
 
         log.debug(this.symbol, `[ORDER-PRE] ${userLabel} placing ${orderType} ${side} ${qty} @ ${bufferedPrice || 'MKT'} (raw: ${price}, buf: ${this.bufferPct}%)`);
@@ -520,11 +524,32 @@ class ReplicatorInstance {
                 return;
             }
 
-            log.warn(this.symbol, `[ALIGN] LTP (${testnetLtp}) is too far from Target (${targetPrice}). Limits: [${lowerBound.toFixed(inst.pricePrecision)}, ${upperBound.toFixed(inst.pricePrecision)}]. Starting Price Ladder...`);
+            log.warn(this.symbol, `[ALIGN] LTP (${testnetLtp}) is too far from Target (${targetPrice}). Limits: [${lowerBound.toFixed(inst.pricePrecision)}, ${upperBound.toFixed(inst.pricePrecision)}].`);
 
             const minQtyStr = calculateQty(0, '1', this.symbol); // Gets minimum formatted qty
 
-            // 3. Price ladder loop
+            // 3. Attempt Instant Market Alignment
+            // Since syncGrid places one side of the book successfully before the other side fails,
+            // the successful side is already resting on the book. We can instantly drag the LTP by placing a MARKET order against it.
+            let marketRes = { success: false };
+            if (targetPrice > testnetLtp) {
+                // We need to move LTP UP. SELL limits succeed, BUY limits fail.
+                log.info(this.symbol, `[ALIGN] Firing TAKER MARKET BUY to hit resting limits and drag LTP UP...`);
+                marketRes = await this.placeOrder('BUY', minQtyStr, null, 'MARKET', true, true);
+            } else if (targetPrice < testnetLtp) {
+                // We need to move LTP DOWN. BUY limits succeed, SELL limits fail.
+                log.info(this.symbol, `[ALIGN] Firing TAKER MARKET SELL to hit resting limits and drag LTP DOWN...`);
+                marketRes = await this.placeOrder('SELL', minQtyStr, null, 'MARKET', true, true);
+            }
+
+            if (marketRes.success) {
+                log.success(this.symbol, `[ALIGN] Successfully dragged LTP instantly via MARKET order.`);
+                return;
+            }
+
+            log.warn(this.symbol, `[ALIGN] Instant MARKET drag failed or not fully aligned. Falling back to slow Price Ladder...`);
+
+            // 4. Price ladder fallback loop (if book was empty)
             let steps = 0;
             while (steps < 50) { // Max 50 steps to prevent infinite loop
                 steps++;
@@ -541,8 +566,12 @@ class ReplicatorInstance {
                 let priceStr = formatPrice(String(nextPrice), this.symbol);
                 log.info(this.symbol, `[ALIGN] Step ${steps}: Moving LTP from ${testnetLtp} to ${priceStr}`);
 
-                // Place Maker
-                let makerRes = await this.placeOrder('SELL', minQtyStr, priceStr, 'LIMIT', false, true); // _isRetry=true to skip recursive hooks
+                // Place Maker - if targetPrice > testnetLtp, place BUY maker and hit with SELL taker.
+                // If targetPrice < testnetLtp, place SELL maker and hit with BUY taker.
+                const makerSide = targetPrice > testnetLtp ? 'BUY' : 'SELL';
+                const takerSide = targetPrice > testnetLtp ? 'SELL' : 'BUY';
+
+                let makerRes = await this.placeOrder(makerSide, minQtyStr, priceStr, 'LIMIT', false, true); // _isRetry=true
                 
                 // If it failed because of strict limit constraints, try to extract the exact bound from the error
                 if (!makerRes.success && makerRes.error && makerRes.error.msg) {
@@ -565,7 +594,7 @@ class ReplicatorInstance {
                         
                         priceStr = formatPrice(String(nextPrice), this.symbol);
                         log.info(this.symbol, `[ALIGN] Retrying Maker with adjusted safe price: ${priceStr}`);
-                        makerRes = await this.placeOrder('SELL', minQtyStr, priceStr, 'LIMIT', false, true);
+                        makerRes = await this.placeOrder(makerSide, minQtyStr, priceStr, 'LIMIT', false, true);
                     }
                 }
 
@@ -575,7 +604,7 @@ class ReplicatorInstance {
                 }
 
                 // Place Taker IOC to cross it
-                await this.placeOrder('BUY', minQtyStr, priceStr, 'LIMIT_IOC', true, true);
+                await this.placeOrder(takerSide, minQtyStr, priceStr, 'LIMIT_IOC', true, true);
                 
                 // Cleanup maker just in case it didn't fill
                 await this.cancelOrder(makerRes.orderId);
