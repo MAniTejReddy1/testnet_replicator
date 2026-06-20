@@ -126,6 +126,9 @@ async function createUserAndKey(labelPrefix) {
     }
   }
 
+  throw new Error("Failed to create API key for " + labelPrefix);
+}
+
 (async () => {
   try {
     console.log("=== Creating User 1 (Maker) ===");
