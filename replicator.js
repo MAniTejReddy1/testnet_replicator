@@ -319,6 +319,13 @@ function calculateQty(sizeUsdt, priceStr, symbol) {
     return qty.toFixed(inst.qtyPrecision);
 }
 
+function formatRawQty(rawQty, symbol) {
+    const inst = instrumentsMap[symbol] || { qtyStep: 1.0, minQty: 1.0, qtyPrecision: 0 };
+    const factor = 1 / inst.qtyStep;
+    let qty = Math.floor(rawQty * factor) / factor;
+    return qty.toFixed(inst.qtyPrecision);
+}
+
 function formatPrice(priceStr, symbol) {
     const inst = instrumentsMap[symbol] || { pricePrecision: 4 };
     return parseFloat(priceStr).toFixed(inst.pricePrecision);
@@ -418,6 +425,14 @@ class ReplicatorInstance {
                     const currentBinanceLtp = this.binanceDepth.bids.length ? this.binanceDepth.bids[0][0] : null;
                     if (currentBinanceLtp) this.alignLtpToTarget(parseFloat(currentBinanceLtp), side, res.data.msg).catch(e => log.error(this.symbol, `[ALIGN] Background alignment failed: ${e.message}`));
                 }
+            }
+            
+            // Handle Max Position Limit Error (-2010)
+            if (res.data.code === -2010) {
+                log.warn(this.symbol, `[POSITION-LIMIT] ${userLabel} hit max position (-2010). Invoking 50% reduction...`);
+                await this.reducePositions();
+                log.success(this.symbol, `[POSITION-LIMIT] Reduction process finished. Retrying original order...`);
+                return this.placeOrder(side, qty, price, orderType, isTaker, true);
             }
         }
 
@@ -648,6 +663,59 @@ class ReplicatorInstance {
             log.error(this.symbol, `[ALIGN] Exception during LTP alignment: ${e.message}`);
         } finally {
             this.isAligningLtp = false;
+        }
+    }
+
+    async reducePositions() {
+        if (this.isReducingPositions) return;
+        this.isReducingPositions = true;
+        log.warn(this.symbol, `[POSITION-LIMIT] Initiating 50% position reduction for both Maker and Taker...`);
+
+        try {
+            const reduceUser = async (userCreds, userLabel) => {
+                const posRes = await sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v2/positionRisk?symbol=${this.symbol}`, 'GET', null, userCreds);
+                if (!posRes.ok || !posRes.data) return false;
+
+                const positions = Array.isArray(posRes.data) ? posRes.data : [posRes.data];
+                const targetPos = positions.find(p => p.symbol === this.symbol);
+                if (!targetPos) return false;
+
+                const amt = parseFloat(targetPos.positionAmt);
+                if (amt === 0) return true;
+
+                const reduceQtyStr = formatRawQty(Math.abs(amt) * 0.5, this.symbol);
+                if (parseFloat(reduceQtyStr) === 0) return true;
+
+                const side = amt > 0 ? 'SELL' : 'BUY';
+                
+                log.info(this.symbol, `[REDUCE-POS] ${userLabel} has ${amt} open position. Placing ${side} MARKET for ${reduceQtyStr} to reduce by 50%...`);
+                
+                const payload = {
+                    symbol: this.symbol,
+                    side: side,
+                    type: 'MARKET',
+                    quantity: reduceQtyStr,
+                    reduceOnly: 'true'
+                };
+
+                const closeRes = await sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/order`, 'POST', payload, userCreds);
+                if (closeRes.ok) {
+                    log.success(this.symbol, `[REDUCE-POS] ${userLabel} successfully reduced position by 50%.`);
+                    return true;
+                } else {
+                    log.error(this.symbol, `[REDUCE-POS] Failed to reduce ${userLabel} position: ${JSON.stringify(closeRes.data || closeRes.error)}`);
+                    return false;
+                }
+            };
+
+            await Promise.all([
+                reduceUser(HARDCODED_CREDENTIALS.user1_maker, 'USER1_MAKER'),
+                reduceUser(HARDCODED_CREDENTIALS.user2_taker, 'USER2_TAKER')
+            ]);
+        } catch (err) {
+            log.error(this.symbol, `[REDUCE-POS] Exception during position reduction: ${err.message}`);
+        } finally {
+            this.isReducingPositions = false;
         }
     }
 
