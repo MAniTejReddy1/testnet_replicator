@@ -129,12 +129,23 @@ async function createUserAndKey(labelPrefix) {
   throw new Error("Failed to create API key for " + labelPrefix);
 }
 
+async function createUserWithRetry(label, maxRetries = 3) {
+  for (let i = 1; i <= maxRetries; i++) {
+    try {
+      console.log(`=== Creating User ${label} (Attempt ${i}/${maxRetries}) ===`);
+      return await createUserAndKey(label);
+    } catch (err) {
+      console.warn(`⚠️ Attempt ${i} failed for ${label}: ${err.message}`);
+      if (i === maxRetries) throw err;
+      await wait(2000); // Wait 2s before trying a completely new user flow
+    }
+  }
+}
+
 (async () => {
   try {
-    console.log("=== Creating User 1 (Maker) ===");
-    const maker = await createUserAndKey("USER1_MAKER");
-    console.log("=== Creating User 2 (Taker) ===");
-    const taker = await createUserAndKey("USER2_TAKER");
+    const maker = await createUserWithRetry("USER1_MAKER");
+    const taker = await createUserWithRetry("USER2_TAKER");
     
     const envVars = `USER1_KEY=${maker.key}\nUSER1_SECRET=${maker.secret}\nUSER2_KEY=${taker.key}\nUSER2_SECRET=${taker.secret}\n`;
     fs.writeFileSync("creds.env", envVars);
