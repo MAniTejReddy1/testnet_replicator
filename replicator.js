@@ -1103,10 +1103,10 @@ startTestnetWS() {
     }
 
     async wipeOrders() {
-        log.info(this.symbol, 'Wiping orders (2.5s timeout)...');
+        log.info(this.symbol, 'Wiping orders (15s timeout)...');
         const [u1Res, u2Res] = await Promise.all([
-            sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/openOrders`, 'GET', { symbol: this.symbol }, HARDCODED_CREDENTIALS.user1_maker, 2500),
-            sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/openOrders`, 'GET', { symbol: this.symbol }, HARDCODED_CREDENTIALS.user2_taker, 2500)
+            sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/openOrders`, 'GET', { symbol: this.symbol }, HARDCODED_CREDENTIALS.user1_maker, 15000),
+            sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/openOrders`, 'GET', { symbol: this.symbol }, HARDCODED_CREDENTIALS.user2_taker, 15000)
         ]);
 
         let toCancel = [];
