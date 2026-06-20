@@ -672,6 +672,10 @@ class ReplicatorInstance {
         log.warn(this.symbol, `[POSITION-LIMIT] Initiating 50% position reduction for both Maker and Taker...`);
 
         try {
+            // Cancel all open orders first to free up max position quota
+            log.info(this.symbol, `[REDUCE-POS] Wiping existing open orders before reducing...`);
+            await this.wipeOrders();
+
             // Pick a cross price (current testnet LTP or binance LTP)
             const fallbackPrice = this.testnetDepth.bids.length ? this.testnetDepth.bids[0][0] : (this.binanceDepth.bids.length ? this.binanceDepth.bids[0][0] : null);
             if (!fallbackPrice) {
@@ -705,7 +709,7 @@ class ReplicatorInstance {
                     price: crossPriceStr,
                     quantity: reduceQtyStr,
                     timeInForce: 'GTC',
-                    reduceOnly: 'true'
+                    reduceOnly: true
                 };
 
                 const closeRes = await sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/order`, 'POST', payload, userCreds);
