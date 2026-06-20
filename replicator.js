@@ -672,6 +672,14 @@ class ReplicatorInstance {
         log.warn(this.symbol, `[POSITION-LIMIT] Initiating 50% position reduction for both Maker and Taker...`);
 
         try {
+            // Pick a cross price (current testnet LTP or binance LTP)
+            const fallbackPrice = this.testnetDepth.bids.length ? this.testnetDepth.bids[0][0] : (this.binanceDepth.bids.length ? this.binanceDepth.bids[0][0] : null);
+            if (!fallbackPrice) {
+                log.error(this.symbol, `[REDUCE-POS] Cannot determine cross price. Aborting.`);
+                return;
+            }
+            const crossPriceStr = formatPrice(String(fallbackPrice), this.symbol);
+
             const reduceUser = async (userCreds, userLabel) => {
                 const posRes = await sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v2/positionRisk?symbol=${this.symbol}`, 'GET', null, userCreds);
                 if (!posRes.ok || !posRes.data) return false;
@@ -688,19 +696,21 @@ class ReplicatorInstance {
 
                 const side = amt > 0 ? 'SELL' : 'BUY';
                 
-                log.info(this.symbol, `[REDUCE-POS] ${userLabel} has ${amt} open position. Placing ${side} MARKET for ${reduceQtyStr} to reduce by 50%...`);
+                log.info(this.symbol, `[REDUCE-POS] ${userLabel} has ${amt} open position. Placing ${side} LIMIT @ ${crossPriceStr} for ${reduceQtyStr} to reduce by 50%...`);
                 
                 const payload = {
                     symbol: this.symbol,
                     side: side,
-                    type: 'MARKET',
+                    type: 'LIMIT',
+                    price: crossPriceStr,
                     quantity: reduceQtyStr,
+                    timeInForce: 'GTC',
                     reduceOnly: 'true'
                 };
 
                 const closeRes = await sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/order`, 'POST', payload, userCreds);
                 if (closeRes.ok) {
-                    log.success(this.symbol, `[REDUCE-POS] ${userLabel} successfully reduced position by 50%.`);
+                    log.success(this.symbol, `[REDUCE-POS] ${userLabel} successfully placed reduction LIMIT order.`);
                     return true;
                 } else {
                     log.error(this.symbol, `[REDUCE-POS] Failed to reduce ${userLabel} position: ${JSON.stringify(closeRes.data || closeRes.error)}`);
