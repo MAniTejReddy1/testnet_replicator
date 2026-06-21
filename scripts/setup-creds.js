@@ -3,7 +3,7 @@ const fetch = require('node-fetch');
 
 const apiBase = "https://testnet-api.dcxstage.com";
 const railsBase = "https://testnet-rails-api.dcxstage.com";
-const futuresUrl = "https://api-futures.dcxstage.com";
+const futuresUrl = "https://testnet-futures-hpo.dcxstage.com";
 
 const wait = (ms = 200) => new Promise((r) => setTimeout(r, ms));
 const randSuffix = (len = 8) => Math.random().toString(36).substring(2, 2+len);
