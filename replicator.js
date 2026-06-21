@@ -29,15 +29,15 @@ async function emitOrderEvent(type, payload) {
 // API Keys are hardcoded here for security in the CI/CD environment.
 const HARDCODED_CREDENTIALS = {
     user1_maker: {
-        key: process.env.USER1_KEY || '5bfd642fe794989c1a2c632d5e20ac7c6e973fd52148fa91',
-        secret: process.env.USER1_SECRET || '3b09149b81e31136ed1d1bed2a3334786f4db44b02ca0496a61eb7bc844753ac',
-        email: 'mani.reddy+980ij73v@coindcx.com',
+        key: process.env.USER1_KEY || '45cda3aac77c85a66212c1eb1ed70df06defc46e8840aa6d',
+        secret: process.env.USER1_SECRET || 'b3ebd30860c13a1bd1f44c358d746874ae52ca5396879de71366c5b2832596fd',
+        email: 'mani.reddy+k0g0zvg8@coindcx.com',
         password: 'Test@123'
     },
     user2_taker: {
-        key: process.env.USER2_KEY || '4d816e8914329fef934f10f3d70d64d757ca0bc427238ddc',
-        secret: process.env.USER2_SECRET || '9108a39a4a6c51a4741846f6f45f2bf23a1579ae6cf3c9a149fd0ab850265267',
-        email: 'mani.reddy+lk27zoje@coindcx.com',
+        key: process.env.USER2_KEY || '6e3ef60d1fcfc8fb6c527eb8218bcdfaf56c02f422846367',
+        secret: process.env.USER2_SECRET || 'ce547e76586bfe7d1fff793cb9373d04171b648f89de4706e7b9b2783715e72f',
+        email: 'mani.reddy+n1d5l3gq@coindcx.com',
         password: 'Test@123'
     }
 };
