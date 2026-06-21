@@ -1347,6 +1347,19 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
+    if (req.url === '/api/snapshot' && req.method === 'GET') {
+        try {
+            const payload = buildPayload();
+            res.writeHead(200, {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            }).end(payload);
+        } catch (e) {
+            res.writeHead(500).end(JSON.stringify({ error: e.message }));
+        }
+        return;
+    }
+
     if (req.url === '/' || req.url === '/index.html') {
         res.writeHead(200, { 'Content-Type': 'text/html' }).end(getHtmlUI());
         return;
