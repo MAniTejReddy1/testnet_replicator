@@ -1428,7 +1428,6 @@ function getHtmlUI() {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Replication Terminal — CoinDCX HPO</title>
-<script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root { --bg: #03040a; --panel: #080c14; --border: rgba(255,255,255,0.055); --bid: #10b981; --ask: #f43f5e; --cyan: #06b6d4; --yellow: #eab308; --purple: #a855f7; }
@@ -1499,9 +1498,28 @@ function getHtmlUI() {
   .flag-on  { background:rgba(16,185,129,.1);  border:1px solid rgba(16,185,129,.25); color:#34d399; }
   .flag-off { background:rgba(244,63,94,.1);   border:1px solid rgba(244,63,94,.25);  color:#fb7185; }
   .flag-buf { background:rgba(234,179,8,.1);   border:1px solid rgba(234,179,8,.25);  color:#fde047; }
+  /* Utility replacements for removed Tailwind CDN */
+  .c-emerald { color: #10b981; }
+  .c-rose    { color: #f43f5e; }
+  .c-yellow  { color: #eab308; }
+  .c-yellow4 { color: #facc15; }
+  .fw-bold   { font-weight: 700; }
+  #splash { position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .4s; }
+  #splash.hidden { opacity:0;pointer-events:none; }
+  .splash-dot { width:10px;height:10px;border-radius:50%;background:var(--cyan);animation:pulse-g 1.2s ease-out infinite; }
+  #err-splash { position:fixed;inset:0;z-index:998;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#f43f5e;font-size:12px;padding:40px; }
 </style>
 </head>
 <body>
+
+<!-- Loading splash shown until JS initialises -->
+<div id="splash">
+  <div class="hdr-bar" style="position:fixed;top:0;left:0;right:0;"></div>
+  <div class="splash-dot"></div>
+  <div style="color:#06b6d4;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;">REPLICATOR UI — CONNECTING</div>
+  <div style="color:#374151;font-size:10px;">Establishing SSE stream to server…</div>
+</div>
+<div id="err-splash"></div>
 
 <div class="hdr-bar"></div>
 
@@ -1857,9 +1875,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
             const dot = document.getElementById('dot');
             const statusTxt = document.getElementById('c-eng');
-            if (instance.status === 'RUNNING') { dot.className = 'dot-live'; statusTxt.innerHTML = "<span class='text-emerald-500 font-bold'>RUNNING</span>"; }
-            else if (instance.status === 'PAUSED') { dot.className = 'dot-paused'; statusTxt.innerHTML = "<span class='text-yellow-500 font-bold'>PAUSED</span>"; }
-            else { dot.className = 'dot-dead'; statusTxt.innerHTML = "<span class='text-rose-500 font-bold'>STOPPED</span>"; }
+            if (instance.status === 'RUNNING') { dot.className = 'dot-live'; statusTxt.innerHTML = "<span class='c-emerald fw-bold'>RUNNING</span>"; }
+            else if (instance.status === 'PAUSED') { dot.className = 'dot-paused'; statusTxt.innerHTML = "<span class='c-yellow fw-bold'>PAUSED</span>"; }
+            else { dot.className = 'dot-dead'; statusTxt.innerHTML = "<span class='c-rose fw-bold'>STOPPED</span>"; }
 
             document.getElementById('c-bping').textContent = (diag.binanceLatency||0) + 'ms';
             document.getElementById('c-sping').textContent = (diag.testnetLatency||0) + 'ms';
@@ -1938,13 +1956,16 @@ window.addEventListener('DOMContentLoaded', () => {
             es.onopen = () => {
                 knownTradeIds.clear();
                 prevBinLtp = null;
+                // Hide splash once connected
+                const sp = document.getElementById('splash');
+                if (sp) { sp.classList.add('hidden'); setTimeout(()=>sp.remove(),500); }
                 document.getElementById('dot').className = 'dot-live';
-                document.getElementById('c-eng').innerHTML = "<span class='text-yellow-400 font-bold'>CONNECTING...</span>";
+                document.getElementById('c-eng').innerHTML = "<span class='c-yellow4 fw-bold'>CONNECTING...</span>";
             };
 
             es.onerror = () => {
                 document.getElementById('dot').className = 'dot-dead';
-                document.getElementById('c-eng').innerHTML = "<span class='text-rose-500 font-bold'>DISCONNECTED</span>";
+                document.getElementById('c-eng').innerHTML = "<span class='c-rose fw-bold'>DISCONNECTED</span>";
                 es.close();
                 setTimeout(connectSSE, 2500); // auto-reconnect
             };
@@ -1961,7 +1982,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
                 if (symbols.length === 0) {
                     tabContainer.innerHTML = '<span style="color:#374151;font-size:10px;letter-spacing:.06em;">Waiting for engine...</span>';
-                    document.getElementById('c-eng').innerHTML = "<span class='text-yellow-400 font-bold'>BOOTING...</span>";
+                    document.getElementById('c-eng').innerHTML = "<span class='c-yellow4 fw-bold'>BOOTING...</span>";
                     return;
                 }
 
@@ -1983,6 +2004,13 @@ window.addEventListener('DOMContentLoaded', () => {
 
     } catch (e) {
         console.error("FATAL UI INITIALIZATION ERROR: ", e);
+        const errDiv = document.getElementById('err-splash');
+        if (errDiv) {
+            errDiv.style.display = 'flex';
+            errDiv.innerHTML = '<div style="font-size:16px;font-weight:700;">⚠ UI Initialization Error</div><div style="color:#9ca3af;text-align:center;max-width:600px;word-break:break-all;">' + (e && e.message ? e.message : String(e)) + '</div><div style="color:#374151;font-size:10px;">Check browser console (F12) for details.</div>';
+        }
+        const sp = document.getElementById('splash');
+        if (sp) sp.classList.add('hidden');
     }
 });
 </script>
