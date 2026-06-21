@@ -143,6 +143,15 @@ pipeline {
                     def dynamicCreds = credsFile ? credsFile.split('\n').toList() : []
                     def envVars = ["MARKET_CONFIGS=${config}", "REPORTER_PORT=3001"] + dynamicCreds
 
+                    def jenkinsUrl = env.JENKINS_URL ?: "http://localhost:8080/"
+                    def host = jenkinsUrl.replace("http://", "").replace("https://", "").split(":")[0].split("/")[0]
+                    def localWebUrl = "http://${host}:3000/"
+                    echo "========================================================="
+                    echo "  REPLICATOR WEB UI IS ACCESSIBLE AT:"
+                    echo "  ${localWebUrl}"
+                    echo "========================================================="
+                    currentBuild.description = "Replicator UI: <a href='${localWebUrl}' target='_blank'>${localWebUrl}</a>"
+
                     withEnv(envVars) {
                         // Start the reporter in the background
                         sh 'node reporter.js > reporter.log 2>&1 &'
