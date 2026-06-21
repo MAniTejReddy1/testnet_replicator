@@ -47,12 +47,13 @@ async function run() {
     await send(`${railsBase}/api/v2/users/request_create_api_key_otp`, { user: { label: "test", purpose: "create_api_key" } }, bearerToken);
 
     console.log("8. Create API Key");
-    r = await send(`${railsBase}/api/v2/users/create_api_key`, { user: { label: "test", otp: "123456" } }, bearerToken);
-    
-    // Also try GET if POST fails
-    if (r.status >= 400) {
-        console.log("Trying POST without user wrapper...");
-        r = await send(`${railsBase}/api/v2/users/create_api_key`, { label: "test", otp: "123456" }, bearerToken);
-    }
+    r = await send(`${railsBase}/api/v2/users/create_api_key`, {
+        user: {
+            label: "test",
+            otp: "123456",
+            email_otp: "123456",
+            purpose: "create_api_key"
+        }
+    }, bearerToken);
 }
 run().catch(console.error);
