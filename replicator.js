@@ -85,6 +85,17 @@ const instrumentsMap = {};
 let sseClients = [];
 let serverTimeOffset = 0;
 
+// State file path for Jenkins userContent polling (set via env var)
+const STATE_FILE_PATH = process.env.STATE_FILE_PATH || null;
+function writeStateFile(payload) {
+    if (!STATE_FILE_PATH) return;
+    try {
+        const tmp = STATE_FILE_PATH + '.tmp';
+        fs.writeFileSync(tmp, payload, 'utf8');
+        fs.renameSync(tmp, STATE_FILE_PATH);
+    } catch (e) { /* ignore write errors — path may not exist yet */ }
+}
+
 const log = {
     info:     (sym, msg) => console.log(`[\x1b[34mINFO\x1b[0m][${sym}] ${msg}`),
     success:  (sym, msg) => console.log(`[\x1b[32mSUCCESS\x1b[0m][${sym}] ${msg}`),
@@ -1288,11 +1299,13 @@ function buildPayload() {
 }
 
 function broadcastToUI() {
-    // In headless mode, sseClients will always be empty.
-    // However, if UI mode is active (or if we enable it in Jenkins), this will broadcast.
-    if (sseClients.length === 0) return;
     const payload = buildPayload();
-    sseClients.forEach(c => c.write(`data: ${payload}\n\n`));
+    // Push to any connected SSE browser clients
+    if (sseClients.length > 0) {
+        sseClients.forEach(c => c.write(`data: ${payload}\n\n`));
+    }
+    // Always write to state file so Jenkins userContent UI can poll it
+    writeStateFile(payload);
 }
 
 const server = http.createServer(async (req, res) => {

@@ -479,8 +479,8 @@ cat > ${uiDir}/index.html << 'HTMLEOF'
 </body>
 </html>
 HTMLEOF
-echo "Replicator UI written to ${uiDir}/index.html"
-"""
+                    echo "Replicator UI written to ${uiDir}/index.html"
+                    """
 
                     echo "========================================================="
                     echo "  REPLICATOR WEB UI IS ACCESSIBLE AT:"
@@ -488,58 +488,25 @@ echo "Replicator UI written to ${uiDir}/index.html"
                     echo "========================================================="
                     currentBuild.description = "Replicator UI: <a href='${uiUrl}' target='_blank'>${uiUrl}</a>"
 
-                    withEnv(envVars) {
-                        // Single coordinated script:
-                        // 1. Start reporter in background
-                        // 2. Start replicator in background
-                        // 3. Wait for localhost:3000 to be ready
-                        // 4. Start state poller (writes state.json to userContent every 2s)
-                        // 5. wait on replicator PID (keeps pipeline alive until aborted)
+                    withEnv(envVars + ["STATE_FILE_PATH=${uiDir}/state.json"]) {
+                        // replicator.js reads STATE_FILE_PATH and writes state.json
+                        // directly on every broadcastToUI() call — no curl poller needed.
                         sh """
-set -e
 
 # 1. Start reporter
 node reporter.js > reporter.log 2>&1 &
 echo "Reporter started"
 
-# 2. Start replicator in background (stdout visible in Jenkins console)
+# 2. Start replicator — reads STATE_FILE_PATH env var and writes state.json directly
 node replicator.js &
 REPLICATOR_PID=\$!
-echo "Replicator started (PID \$REPLICATOR_PID)"
+echo "Replicator started (PID \$REPLICATOR_PID) — state.json written to ${uiDir}/state.json"
 
-# 3. Wait up to 90s for localhost:3000 to be ready
-echo "Waiting for replicator API on localhost:3000..."
-READY=0
-for i in \$(seq 1 45); do
-  if curl -sf --max-time 2 http://localhost:3000/api/snapshot > /dev/null 2>&1; then
-    echo "Replicator API is ready (attempt \$i)"
-    READY=1
-    break
-  fi
-  echo "  Attempt \$i/45 — not ready yet, waiting 2s..."
-  sleep 2
-done
-
-if [ \$READY -eq 0 ]; then
-  echo "WARNING: Replicator did not become ready in 90s — poller will keep retrying"
-fi
-
-# 4. Start state poller — write snapshot every 2s while replicator is alive
-(
-  while kill -0 \$REPLICATOR_PID 2>/dev/null; do
-    if curl -sf --max-time 3 http://localhost:3000/api/snapshot > ${uiDir}/state.json.tmp 2>/dev/null; then
-      mv ${uiDir}/state.json.tmp ${uiDir}/state.json
-    fi
-    sleep 2
-  done
-  echo "State poller exiting (replicator stopped)"
-) &
-echo "State poller started"
-
-# 5. Wait for replicator (keeps pipeline alive — aborted by Jenkins when build is cancelled)
+# 3. Keep pipeline alive until Jenkins aborts the build
 wait \$REPLICATOR_PID
 """
                     }
+
                 }
             }
         }
