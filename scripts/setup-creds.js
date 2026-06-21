@@ -98,32 +98,23 @@ async function createUserAndKey(labelPrefix) {
   });
 
   // STEP 8
-  // Try several payloads since the exact one is unknown, first one to return a key wins
-  const payloadsToTry = [
-    { user: { label: labelPrefix, otp: "123456" } },
-    { user: { label: labelPrefix, api_key_otp: "123456" } },
-    { user: { label: labelPrefix, two_factor_otp: "123456" } },
-    { label: labelPrefix, otp: "123456" },
-    { otp: "123456" }
-  ];
-
-  for (const payload of payloadsToTry) {
-    try {
-      const finalRes = await send(`${labelPrefix}_8_CreateApiKey`, {
-        url: `${railsBase}/api/v2/users/create_api_key`, method: "POST",
-        header: { "Authorization": bearerToken, "Content-Type": "application/json" },
-        body: { raw: JSON.stringify(payload) }
-      });
-      const resData = finalRes.bodyJson;
-      const key = resData && (resData.key || resData.api_key || (resData.data && (resData.data.key || resData.data.api_key)));
-      const secret = resData && (resData.secret || resData.api_secret || (resData.data && (resData.data.secret || resData.data.api_secret)));
-      
-      if (key && secret) {
-        return { key, secret };
-      }
-    } catch(e) {
-      console.log(`Payload failed: ${JSON.stringify(payload)}`);
+  try {
+    const finalRes = await send(`${labelPrefix}_8_CreateApiKey`, {
+      url: `${railsBase}/api/v2/users/create_api_key?user[otp]=123456&user[label]=${labelPrefix}`, method: "POST",
+      header: { "Authorization": bearerToken, "Content-Type": "application/json" }
+    });
+    const resData = finalRes.bodyJson;
+    const key = resData && (resData.key || resData.api_key || (resData.data && (resData.data.key || resData.data.api_key)));
+    const secret = resData && (resData.secret || resData.api_secret || (resData.data && (resData.data.secret || resData.data.api_secret)));
+    
+    if (key && secret) {
+      return { key, secret };
     }
+  } catch(e) {
+    console.error(`❌ Failed to create API key for ${labelPrefix}: ${e.message}`);
+    console.error(`\n💡 NOTE: The staging Rails API does not bypass the API key OTP check with '123456' (unlike registration).`);
+    console.error(`💡 Since a real dynamic OTP is sent to your email inbox, automated creation in CI/CD is not supported.`);
+    console.error(`💡 SOLUTION: Please run the Jenkins job with 'CREATE_NEW_USERS = false' so it uses the repo's hardcoded credentials.\n`);
   }
 
   throw new Error("Failed to create API key for " + labelPrefix);
