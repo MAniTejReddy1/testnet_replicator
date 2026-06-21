@@ -410,8 +410,22 @@ cat > ${uiDir}/index.html << 'HTMLEOF'
   var pollErrors=0;
   function poll(){
     fetch('state.json?_='+Date.now())
-      .then(function(r){return r.json();})
+      .then(function(r){
+        // 404 = state.json not written yet (replicator still starting)
+        if(r.status===404||r.status===0){
+          var ps=document.getElementById('poll-status');
+          if(ps){ps.textContent='⏳ STARTING...';ps.style.color='#eab308';}
+          var dot=document.getElementById('dot'),st=document.getElementById('c-eng');
+          if(dot)dot.className='dot-paused';
+          if(st)st.innerHTML="<span class='c-yellow fw-bold'>STARTING...</span>";
+          var tc=document.getElementById('symbol-tabs');
+          if(tc)tc.innerHTML='<span style="color:#eab308;font-size:10px;letter-spacing:.06em;">⏳ Waiting for replicator to start...</span>';
+          return null;
+        }
+        return r.json();
+      })
       .then(function(data){
+        if(!data)return; // 404 handled above
         pollErrors=0;
         var ps=document.getElementById('poll-status');
         if(ps){ps.textContent='🟢 LIVE';ps.style.color='#10b981';}
@@ -454,26 +468,56 @@ echo "Replicator UI written to ${uiDir}/index.html"
                     currentBuild.description = "Replicator UI: <a href='${uiUrl}' target='_blank'>${uiUrl}</a>"
 
                     withEnv(envVars) {
-                        // Start the reporter in the background
-                        sh 'node reporter.js > reporter.log 2>&1 &'
-                        // Give it a moment to bind to the port
-                        sleep(time: 3, unit: 'SECONDS')
-
-                        // Start a background loop that polls localhost:3000/api/snapshot every 2s
-                        // and writes state.json to userContent so the UI can read it via Jenkins port 80
+                        // Single coordinated script:
+                        // 1. Start reporter in background
+                        // 2. Start replicator in background
+                        // 3. Wait for localhost:3000 to be ready
+                        // 4. Start state poller (writes state.json to userContent every 2s)
+                        // 5. wait on replicator PID (keeps pipeline alive until aborted)
                         sh """
-nohup bash -c '
-  while true; do
-    curl -sf http://localhost:3000/api/snapshot > ${uiDir}/state.json.tmp 2>/dev/null && mv ${uiDir}/state.json.tmp ${uiDir}/state.json || true
+set -e
+
+# 1. Start reporter
+node reporter.js > reporter.log 2>&1 &
+echo "Reporter started"
+
+# 2. Start replicator in background (stdout visible in Jenkins console)
+node replicator.js &
+REPLICATOR_PID=\$!
+echo "Replicator started (PID \$REPLICATOR_PID)"
+
+# 3. Wait up to 90s for localhost:3000 to be ready
+echo "Waiting for replicator API on localhost:3000..."
+READY=0
+for i in \$(seq 1 45); do
+  if curl -sf --max-time 2 http://localhost:3000/api/snapshot > /dev/null 2>&1; then
+    echo "Replicator API is ready (attempt \$i)"
+    READY=1
+    break
+  fi
+  echo "  Attempt \$i/45 — not ready yet, waiting 2s..."
+  sleep 2
+done
+
+if [ \$READY -eq 0 ]; then
+  echo "WARNING: Replicator did not become ready in 90s — poller will keep retrying"
+fi
+
+# 4. Start state poller — write snapshot every 2s while replicator is alive
+(
+  while kill -0 \$REPLICATOR_PID 2>/dev/null; do
+    if curl -sf --max-time 3 http://localhost:3000/api/snapshot > ${uiDir}/state.json.tmp 2>/dev/null; then
+      mv ${uiDir}/state.json.tmp ${uiDir}/state.json
+    fi
     sleep 2
   done
-' > /tmp/replicator-poller.log 2>&1 &
-echo "State poller started (PID \$!)"
-"""
+  echo "State poller exiting (replicator stopped)"
+) &
+echo "State poller started"
 
-                        // The replicator runs in the foreground until aborted.
-                        echo "Starting replicator for ${env.SRC} — runs until aborted."
-                        sh 'node replicator.js'
+# 5. Wait for replicator (keeps pipeline alive — aborted by Jenkins when build is cancelled)
+wait \$REPLICATOR_PID
+"""
                     }
                 }
             }
