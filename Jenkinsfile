@@ -116,7 +116,28 @@ pipeline {
             steps {
                 script {
                     echo "Starting Replicator..."
+
+                    // ── Relax Jenkins CSP so JS in userContent can fetch state.json ──
+                    // Jenkins default CSP blocks all scripts in /userContent/ files.
+                    // This must be done here (in the pipeline script) each build.
+                    try {
+                        System.setProperty(
+                            "hudson.model.DirectoryBrowserSupport.CSP",
+                            "default-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+                            "img-src 'self' data:; " +
+                            "font-src * data:; " +
+                            "connect-src 'self' https:; " +
+                            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+                            "script-src 'self' 'unsafe-inline' 'unsafe-eval';"
+                        )
+                        echo "Jenkins CSP relaxed — userContent JS is now permitted"
+                    } catch(err) {
+                        echo "WARNING: Could not relax Jenkins CSP: ${err.message}"
+                        echo "If the UI shows OFFLINE, approve this script in: Manage Jenkins → In-process Script Approval"
+                    }
+
                     // Clean up old allure results to prevent merging with previous runs
+
                     sh 'rm -rf allure-results allure-report reporter.log'
                     def sources = env.SRC.split(',')
                     def targets = env.TGT.split(',')
