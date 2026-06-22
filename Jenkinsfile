@@ -68,12 +68,15 @@ pipeline {
             steps {
                 script {
                     // Kill any previous replicator runs
-                    // Kill any node processes running our scripts
-                    sh "pkill -f 'node replicator.js' || true"
-                    sh "pkill -f 'node reporter.js' || true"
-                    // Also forcefully free the ports if they are still bound
-                    sh "fuser -k 3000/tcp || true"
-                    sh "fuser -k 3001/tcp || true"
+                    // Kill any node processes running for THIS specific symbol
+                    sh "pkill -f 'node replicator.js --symbol=${env.SRC}' || true"
+                    sh "pkill -f 'node reporter.js --symbol=${env.SRC}' || true"
+                    // Forcefully free this executor's dedicated ports just in case
+                    def executorNum = env.EXECUTOR_NUMBER ?: '0'
+                    def repPort = 30000 + executorNum.toInteger()
+                    def uiPort = 40000 + executorNum.toInteger()
+                    sh "fuser -k ${repPort}/tcp || true"
+                    sh "fuser -k ${uiPort}/tcp || true"
                     sleep(time: 3, unit: 'SECONDS')
                     echo "Previous instances stopped."
                 }
@@ -105,6 +108,8 @@ pipeline {
                     if (params.CREATE_NEW_USERS) {
                         echo "Creating new users and API keys..."
                         sh 'node scripts/setup-creds.js'
+                        echo "New users created! Sleeping for 120 seconds to allow testnet funds and API keys to fully propagate..."
+                        sleep(time: 120, unit: 'SECONDS')
                     } else {
                         echo "CREATE_NEW_USERS is false. Using repo hardcoded user credentials."
                         // Create empty creds.env so readFile won't fail
@@ -146,16 +151,21 @@ pipeline {
                     // Load the dynamically generated credentials
                     def credsFile = readFile('creds.env').trim()
                     def dynamicCreds = credsFile ? credsFile.split('\n').toList() : []
-                    def envVars = ["MARKET_CONFIGS=${config}", "REPORTER_PORT=3001"] + dynamicCreds
+                    
+                    // Assign dedicated ports based on the Jenkins executor to prevent collisions during concurrent builds
+                    def executorNum = env.EXECUTOR_NUMBER ?: '0'
+                    def repPort = 30000 + executorNum.toInteger()
+                    def uiPort = 40000 + executorNum.toInteger()
+                    def envVars = ["MARKET_CONFIGS=${config}", "REPORTER_PORT=${repPort}", "UI_PORT=${uiPort}"] + dynamicCreds
 
                     withEnv(envVars) {
                         sh """
 # 1. Start reporter
-node reporter.js > reporter.log 2>&1 &
+node reporter.js --symbol=${env.SRC} > reporter.log 2>&1 &
 echo "Reporter started"
 
 # 2. Start replicator in background
-node replicator.js &
+node replicator.js --symbol=${env.SRC} &
 REPLICATOR_PID=\$!
 echo "Replicator started (PID \$REPLICATOR_PID) — running headless"
 
@@ -177,11 +187,11 @@ wait \$REPLICATOR_PID
         always {
             script {
                 echo "=== POST: Stopping all processes ==="
-                // Gracefully stop the reporter first to allow it to flush results
-                sh "pkill -f 'node reporter.js' || true"
-                sh "pkill -f 'node replicator.js' || true"
+                // Gracefully stop only the reporter/replicator for THIS symbol
+                sh "pkill -f 'node reporter.js --symbol=${env.SRC}' || true"
+                sh "pkill -f 'node replicator.js --symbol=${env.SRC}' || true"
                 // Stop the state poller background loop
-                sh "pkill -f 'replicator-poller' || pkill -f 'localhost:3000/api/snapshot' || true"
+                sh "pkill -f 'replicator-poller' || true"
                 sleep(time: 3, unit: 'SECONDS') // Wait for files to be written
 
                 echo "=== POST: Preparing Allure results ==="
