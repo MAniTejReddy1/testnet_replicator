@@ -68,8 +68,12 @@ pipeline {
             steps {
                 script {
                     // Kill any previous replicator runs
+                    // Kill any node processes running our scripts
                     sh "pkill -f 'node replicator.js' || true"
                     sh "pkill -f 'node reporter.js' || true"
+                    // Also forcefully free the ports if they are still bound
+                    sh "fuser -k 3000/tcp || true"
+                    sh "fuser -k 3001/tcp || true"
                     sleep(time: 3, unit: 'SECONDS')
                     echo "Previous instances stopped."
                 }
