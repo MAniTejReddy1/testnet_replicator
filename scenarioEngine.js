@@ -67,6 +67,25 @@ class ScenarioEngine {
     }
 
     /**
+     * Used by the Taker bot to strict-cap its execution size during a condition-seeking scenario.
+     * Prevents over-shooting the target quantity on a massive single tick.
+     */
+    static getRemainingQty(symbol) {
+        const state = activeScenarios.get(symbol);
+        // If not condition seeking, or we've already hit the target (phase > RAMPING), return null (no cap)
+        // Wait, if we are recovering, we should probably return 0 to halt Taker until recovered!
+        if (!state || state.mode !== 'CONDITION_SEEKING') return null;
+        
+        if (state.phase === 'RAMPING') {
+            return Math.max(0, state.config.targetQty - state.accumulatedQty);
+        }
+        
+        // If we are Holding or Recovering in a qty-capped scenario, we return 0 to completely freeze 
+        // the Taker bot at the crashed price, letting the Maker book recover safely.
+        return 0;
+    }
+
+    /**
      * Tick loop called by the Replicator before fetching the transformer.
      * Updates the state machine based on elapsed time.
      */

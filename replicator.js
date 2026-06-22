@@ -965,7 +965,15 @@ class ReplicatorInstance {
         const pStr      = formatPrice(transformedTradePrice, this.symbol);
         const notional  = parseFloat(trade.q) * parseFloat(transformedTradePrice);
         const targetSz  = Math.max(this.minSize, Math.min(this.maxSize, notional));
-        const scaledQty = calculateQty(targetSz, transformedTradePrice, this.symbol);
+        let scaledQty = calculateQty(targetSz, transformedTradePrice, this.symbol);
+
+        const remainingScenarioQty = ScenarioEngine.getRemainingQty(this.symbol);
+        if (remainingScenarioQty !== null) {
+            if (remainingScenarioQty <= 0) return; // Freeze Taker if scenario condition is met
+            scaledQty = Math.min(scaledQty, remainingScenarioQty);
+            // Re-round slightly to avoid floating point precision rejection by the exchange
+            scaledQty = Math.round(scaledQty * 1000) / 1000;
+        }
 
         const makerSide = trade.m ? 'BUY' : 'SELL';
         const takerSide = trade.m ? 'SELL' : 'BUY';
