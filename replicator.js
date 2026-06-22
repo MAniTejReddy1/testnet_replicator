@@ -1379,10 +1379,22 @@ const server = http.createServer(async (req, res) => {
                 }
 
                 if (req.url === '/api/config') {
-                    // This endpoint is now less relevant as config is passed at startup.
-                    // Kept for potential future use, but it won't create new instances.
-                    const inst = instances.get(targetSym);
-                    if (inst) {
+                    let inst = instances.get(targetSym);
+                    if (!inst) {
+                        inst = new ReplicatorInstance({
+                            sourceSymbol: sym,
+                            targetSymbol: targetSym,
+                            minSize: parseFloat(parsed.minSize || 100),
+                            maxSize: parseFloat(parsed.maxSize || 500),
+                            depthLevels: parseInt(parsed.depthLevels || 10),
+                            bufferPct: parseFloat(parsed.bufferPct || 0),
+                            tradeDelayMs: parseInt(parsed.tradeDelayMs || 0),
+                            cancelOnStop: Boolean(parsed.cancelOnStop)
+                        });
+                        instances.set(targetSym, inst);
+                        inst.start().catch(e => log.error(targetSym, `Start failed: ${e.message}`));
+                        log.info(targetSym, `New market mounted from UI.`);
+                    } else {
                         if (parsed.minSize     !== undefined) inst.minSize     = parseFloat(parsed.minSize);
                         if (parsed.maxSize     !== undefined) inst.maxSize     = parseFloat(parsed.maxSize);
                         if (parsed.depthLevels !== undefined) inst.depthLevels = parseInt(parsed.depthLevels);
@@ -1696,15 +1708,63 @@ function getHtmlUI() {
   </div>
   <button id="btn-apply" style="width:100%;background:rgba(6,182,212,.12);border:1px solid rgba(6,182,212,.25);color:var(--cyan);border-radius:6px;padding:8px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;margin-bottom:16px;">MOUNT / UPDATE MARKET</button>
   
-  <div class="panel" style="padding:12px;margin-bottom:12px; border-color: rgba(244,63,94,0.3);">
-    <div style="font-size:10px;color:#fb7185;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;font-weight:700;">QA Scenario Control</div>
-    <label style="display:block;color:#6b7280;font-size:10px;margin-bottom:3px;">Preset</label>
-    <select id="cfg-scenario-preset" style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:5px;padding:5px 8px;color:#e2e8f0;font-family:inherit;font-size:11px;margin-bottom:8px;">
-        <option value="partial-liquidation">Partial Liquidation (-5%, cap 5 Qty)</option>
-        <option value="flash-crash">Flash Crash 10%</option>
-    </select>
-    <button id="btn-scenario-run" style="width:100%;background:rgba(244,63,94,.12);border:1px solid rgba(244,63,94,.25);color:#fb7185;border-radius:6px;padding:6px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;margin-bottom:6px;">TRIGGER SCENARIO</button>
-    <button id="btn-scenario-abort" style="width:100%;background:transparent;border:1px solid var(--border);color:#e2e8f0;border-radius:6px;padding:6px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;">ABORT / RECOVER</button>
+  <div class="panel" style="padding:12px;margin-bottom:12px; border-color: rgba(168,85,247,0.3);">
+    <div style="font-size:10px;color:#c084fc;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;font-weight:700;">Advanced Scenario Engine</div>
+    <div style="display:flex;gap:4px;margin-bottom:12px;">
+        <button id="tab-preset" class="tab-btn tab on" style="flex:1;padding:4px;font-size:9px;" onclick="document.getElementById('pnl-preset').style.display='block';document.getElementById('pnl-custom').style.display='none';this.classList.add('on');document.getElementById('tab-custom').classList.remove('on');">Presets</button>
+        <button id="tab-custom" class="tab-btn tab" style="flex:1;padding:4px;font-size:9px;" onclick="document.getElementById('pnl-custom').style.display='block';document.getElementById('pnl-preset').style.display='none';this.classList.add('on');document.getElementById('tab-preset').classList.remove('on');">Custom Pro</button>
+    </div>
+
+    <div id="pnl-preset">
+        <label style="display:block;color:#6b7280;font-size:10px;margin-bottom:3px;">Select Preset</label>
+        <select id="cfg-scenario-preset" style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:5px;padding:5px 8px;color:#e2e8f0;font-family:inherit;font-size:11px;margin-bottom:12px;">
+            <option value="partial-liquidation">Partial Liquidation (-5%, cap 5 Qty)</option>
+            <option value="flash-crash">Flash Crash 10%</option>
+        </select>
+        <button id="btn-scenario-run" style="width:100%;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.25);color:#34d399;border-radius:6px;padding:8px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;margin-bottom:6px;">⚡ EXECUTE PRESET</button>
+    </div>
+
+    <div id="pnl-custom" style="display:none;">
+        <div style="font-size:9px;color:#9ca3af;margin-bottom:4px;font-weight:600;text-transform:uppercase;">1. Price Mechanics</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">
+            <div>
+                <label style="display:block;color:#6b7280;font-size:9px;margin-bottom:2px;">Shift % (e.g. -0.05)</label>
+                <input id="cfg-scen-pct" type="number" step="0.01" placeholder="-0.05" style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:5px;padding:4px 6px;color:#e2e8f0;font-family:inherit;font-size:10px;">
+            </div>
+            <div>
+                <label style="display:block;color:#6b7280;font-size:9px;margin-bottom:2px;">Target Qty Cap</label>
+                <input id="cfg-scen-qty" type="number" step="0.1" placeholder="Infinite" style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:5px;padding:4px 6px;color:#e2e8f0;font-family:inherit;font-size:10px;">
+            </div>
+            <div>
+                <label style="display:block;color:#6b7280;font-size:9px;margin-bottom:2px;">Spread Bias</label>
+                <input id="cfg-scen-bias" type="number" step="0.1" placeholder="1.0" style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:5px;padding:4px 6px;color:#e2e8f0;font-family:inherit;font-size:10px;">
+            </div>
+            <div>
+                <label style="display:block;color:#6b7280;font-size:9px;margin-bottom:2px;">Jitter Noise %</label>
+                <input id="cfg-scen-jitter" type="number" step="0.01" placeholder="0.0" style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:5px;padding:4px 6px;color:#e2e8f0;font-family:inherit;font-size:10px;">
+            </div>
+        </div>
+        
+        <div style="font-size:9px;color:#9ca3af;margin-bottom:4px;font-weight:600;text-transform:uppercase;">2. Time Envelope (ms)</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px;">
+            <div>
+                <label style="display:block;color:#6b7280;font-size:9px;margin-bottom:2px;">Ramp</label>
+                <input id="cfg-scen-ramp" type="number" placeholder="1000" style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:5px;padding:4px 6px;color:#e2e8f0;font-family:inherit;font-size:10px;">
+            </div>
+            <div>
+                <label style="display:block;color:#6b7280;font-size:9px;margin-bottom:2px;">Hold</label>
+                <input id="cfg-scen-hold" type="number" placeholder="3000" style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:5px;padding:4px 6px;color:#e2e8f0;font-family:inherit;font-size:10px;">
+            </div>
+            <div>
+                <label style="display:block;color:#6b7280;font-size:9px;margin-bottom:2px;">Recover</label>
+                <input id="cfg-scen-rec" type="number" placeholder="2000" style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:5px;padding:4px 6px;color:#e2e8f0;font-family:inherit;font-size:10px;">
+            </div>
+        </div>
+        
+        <button id="btn-scenario-custom" style="width:100%;background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.25);color:#c084fc;border-radius:6px;padding:8px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;margin-bottom:6px;">⚡ LAUNCH PRO SCENARIO</button>
+    </div>
+
+    <button id="btn-scenario-abort" style="width:100%;background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.3);color:#fb7185;border-radius:6px;padding:8px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;margin-top:4px;">🚨 PANIC ABORT & RECOVER</button>
   </div>
 
   <div id="cfg-msg" style="font-size:10px;text-align:center;min-height:14px;"></div>
@@ -1814,6 +1874,33 @@ window.addEventListener('DOMContentLoaded', () => {
                 const j = await r.json();
                 if (j.error) showToast('✗ ' + j.error, true);
                 else { showToast('✓ Triggered ' + preset); document.getElementById('drawer').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); }
+            } catch(e) { showToast('✗ ' + e.message, true); }
+        };
+
+        document.getElementById('btn-scenario-custom').onclick = async () => {
+            const sym = activeTabSymbol;
+            if (!sym) return showToast('✗ Select a market first', true);
+            const pct = parseFloat(document.getElementById('cfg-scen-pct').value || 0);
+            const qty = document.getElementById('cfg-scen-qty').value;
+            const bias = document.getElementById('cfg-scen-bias').value;
+            const jitter = document.getElementById('cfg-scen-jitter').value;
+            const ramp = parseInt(document.getElementById('cfg-scen-ramp').value || 0);
+            const hold = parseInt(document.getElementById('cfg-scen-hold').value || 0);
+            const rec = parseInt(document.getElementById('cfg-scen-rec').value || 2000);
+            
+            const payload = { symbol: sym, pct, rampMs: ramp, holdMs: hold, recoverMs: rec, recovery: 'linear' };
+            if (qty) payload.targetQty = parseFloat(qty);
+            if (bias) payload.spreadBias = parseFloat(bias);
+            if (jitter) payload.jitterPct = parseFloat(jitter);
+
+            try {
+                const r = await fetch('/api/scenario/custom', {
+                    method: 'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                const j = await r.json();
+                if (j.error) showToast('✗ ' + j.error, true);
+                else { showToast('✓ Custom Pro Triggered'); document.getElementById('drawer').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); }
             } catch(e) { showToast('✗ ' + e.message, true); }
         };
 
