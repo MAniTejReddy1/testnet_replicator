@@ -132,8 +132,7 @@ pipeline {
                         )
                         echo "Jenkins CSP relaxed — userContent JS is now permitted"
                     } catch(err) {
-                        echo "WARNING: Could not relax Jenkins CSP: ${err.message}"
-                        echo "If the UI shows OFFLINE, approve this script in: Manage Jenkins → In-process Script Approval"
+                        error("FATAL: Could not relax Jenkins CSP. You MUST go to 'Manage Jenkins' -> 'In-process Script Approval' and approve the System.setProperty script. Error: ${err.message}")
                     }
 
                     // Clean up old allure results to prevent merging with previous runs
@@ -168,7 +167,7 @@ pipeline {
                     def jenkinsHome = env.JENKINS_HOME ?: '/var/lib/jenkins'
                     def uiDir = "${jenkinsHome}/userContent/replicator-ui"
                     def jenkinsUrl = (env.JENKINS_URL ?: "http://localhost:8080/").replaceAll('/+$', '')
-                    def uiUrl = "${jenkinsUrl}/userContent/replicator-ui/index.html"
+                    def uiUrl = "${jenkinsUrl}/userContent/replicator-ui/index.html?v=${env.BUILD_NUMBER}"
 
                     // Write the polling UI to userContent so it's served on Jenkins' own port
                     sh """
@@ -233,6 +232,9 @@ cat > ${uiDir}/index.html << 'HTMLEOF'
 </style>
 </head>
 <body>
+<div id="csp-warning" style="background:#f43f5e;color:white;padding:12px;text-align:center;font-weight:bold;z-index:9999;position:relative;font-size:12px;">
+  ⚠️ WARNING: JavaScript is disabled or blocked by Jenkins CSP. The UI will not update. Please go to Manage Jenkins → In-process Script Approval and approve the script.
+</div>
 <div class="hdr-bar"></div>
 <header style="background:var(--panel);border-bottom:1px solid var(--border);padding:8px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:30;">
   <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
@@ -295,6 +297,7 @@ cat > ${uiDir}/index.html << 'HTMLEOF'
 </div>
 <script>
 (function(){
+  document.getElementById('csp-warning').style.display='none';
   var POLL_INTERVAL = 2000;
   var activeTab = null, cache = {}, globalData = null, tradeFilter = 'all', showBars = true;
   var pPrec = 4, qPrec = 1, knownTrades = new Set(), prevBinLtp = null;
@@ -493,6 +496,12 @@ HTMLEOF
                         // directly on every broadcastToUI() call — no curl poller needed.
                         sh """
 
+# Diagnostics — confirm env vars are visible
+echo "[DIAG] STATE_FILE_PATH=$STATE_FILE_PATH"
+echo "[DIAG] JENKINS_HOME=$JENKINS_HOME"
+echo "[DIAG] UI dir contents:"
+ls -la $(dirname $STATE_FILE_PATH) 2>/dev/null || echo "[DIAG] UI dir does not exist yet"
+
 # 1. Start reporter
 node reporter.js > reporter.log 2>&1 &
 echo "Reporter started"
@@ -500,7 +509,14 @@ echo "Reporter started"
 # 2. Start replicator — reads STATE_FILE_PATH env var and writes state.json directly
 node replicator.js &
 REPLICATOR_PID=\$!
-echo "Replicator started (PID \$REPLICATOR_PID) — state.json written to ${uiDir}/state.json"
+echo "Replicator started (PID \$REPLICATOR_PID)"
+echo "[DIAG] Waiting 15s then checking if state.json was written..."
+sleep 15
+if [ -f "\$STATE_FILE_PATH" ]; then
+  echo "[DIAG] ✅ state.json EXISTS (\$(wc -c < \$STATE_FILE_PATH) bytes)"
+else
+  echo "[DIAG] ❌ state.json NOT found — STATE_FILE_PATH=\$STATE_FILE_PATH"
+fi
 
 # 3. Keep pipeline alive until Jenkins aborts the build
 wait \$REPLICATOR_PID
