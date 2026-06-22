@@ -497,10 +497,10 @@ HTMLEOF
                         sh """
 
 # Diagnostics — confirm env vars are visible
-echo "[DIAG] STATE_FILE_PATH=$STATE_FILE_PATH"
-echo "[DIAG] JENKINS_HOME=$JENKINS_HOME"
+echo "[DIAG] STATE_FILE_PATH=\$STATE_FILE_PATH"
+echo "[DIAG] JENKINS_HOME=\$JENKINS_HOME"
 echo "[DIAG] UI dir contents:"
-ls -la $(dirname $STATE_FILE_PATH) 2>/dev/null || echo "[DIAG] UI dir does not exist yet"
+ls -la \$(dirname \$STATE_FILE_PATH) 2>/dev/null || echo "[DIAG] UI dir does not exist yet"
 
 # 1. Start reporter
 node reporter.js > reporter.log 2>&1 &
