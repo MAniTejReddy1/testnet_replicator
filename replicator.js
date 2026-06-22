@@ -5,6 +5,8 @@ const crypto = require('crypto');
 const WebSocket = require('ws');
 const AbortController = require('abort-controller');
 const fetch = require('node-fetch');
+const ScenarioEngine = require('./scenarioEngine');
+const PriceTransformer = require('./priceTransformer');
 
 // ==========================================
 // Reporter / Event Bus Setup
@@ -809,12 +811,18 @@ class ReplicatorInstance {
     }
 
     async syncGrid(side, sourceLevels) {
+        ScenarioEngine.tick(this.symbol);
+        const transformer = ScenarioEngine.getTransformer(this.symbol);
+
         const isBuy         = side === 'BUY';
         const restingOrders = isBuy ? this.restingBids : this.restingAsks;
         const tradeSync     = this.enableTradeSync;
 
-        const targets = sourceLevels.slice(0, this.depthLevels).map(lvl => {
-            const rawPrice  = lvl[0];
+        let skewedLevels = PriceTransformer.applyDepthSkew(sourceLevels, side, transformer);
+
+        const targets = skewedLevels.slice(0, this.depthLevels).map((lvl, index) => {
+            let rawPrice  = lvl[0];
+            rawPrice = PriceTransformer.applyPriceAxes(rawPrice, side, transformer, index);
             const notional  = parseFloat(lvl[0]) * parseFloat(lvl[1]);
             const targetSz  = Math.max(this.minSize, Math.min(this.maxSize, notional));
             const qty       = calculateQty(targetSz, rawPrice, this.symbol);
@@ -949,10 +957,15 @@ class ReplicatorInstance {
 
     async handleTrade(trade) {
         if (this.status !== 'RUNNING' || !this.enableTradeSync) return;
-        const pStr      = formatPrice(trade.p, this.symbol);
-        const notional  = parseFloat(trade.q) * parseFloat(trade.p);
+        
+        ScenarioEngine.tick(this.symbol);
+        const transformer = ScenarioEngine.getTransformer(this.symbol);
+        const transformedTradePrice = PriceTransformer.applyPriceAxes(trade.p, trade.m ? 'SELL' : 'BUY', transformer, 0);
+
+        const pStr      = formatPrice(transformedTradePrice, this.symbol);
+        const notional  = parseFloat(trade.q) * parseFloat(transformedTradePrice);
         const targetSz  = Math.max(this.minSize, Math.min(this.maxSize, notional));
-        const scaledQty = calculateQty(targetSz, trade.p, this.symbol);
+        const scaledQty = calculateQty(targetSz, transformedTradePrice, this.symbol);
 
         const makerSide = trade.m ? 'BUY' : 'SELL';
         const takerSide = trade.m ? 'SELL' : 'BUY';
@@ -965,7 +978,7 @@ class ReplicatorInstance {
 
             if (hasRestingMaker) {
                 if (this.tradeDelayMs > 0) await new Promise(r => setTimeout(r, this.tradeDelayMs));
-                const takerRes = await this.placeOrder(takerSide, scaledQty, trade.p, 'LIMIT_IOC', true);
+                const takerRes = await this.placeOrder(takerSide, scaledQty, transformedTradePrice, 'LIMIT_IOC', true);
                 matched = takerRes.success;
                 
                 emitOrderEvent('order:fill_attempt', {
@@ -973,7 +986,7 @@ class ReplicatorInstance {
                     makerOrderId: hasRestingMaker.orderId,
                     takerOrderId: takerRes.orderId || 'failed_taker',
                     expectedQty: scaledQty,
-                    price: trade.p
+                    price: transformedTradePrice
                 });
                 
                 if (matched) {
@@ -992,10 +1005,10 @@ class ReplicatorInstance {
                     });
                 }
             } else {
-                const makerRes = await this.placeOrder(makerSide, scaledQty, trade.p, 'LIMIT');
+                const makerRes = await this.placeOrder(makerSide, scaledQty, transformedTradePrice, 'LIMIT');
                 if (makerRes.success) {
                     if (this.tradeDelayMs > 0) await new Promise(r => setTimeout(r, this.tradeDelayMs));
-                    const takerRes = await this.placeOrder(takerSide, scaledQty, trade.p, 'LIMIT_IOC', true);
+                    const takerRes = await this.placeOrder(takerSide, scaledQty, transformedTradePrice, 'LIMIT_IOC', true);
                     matched = takerRes.success;
                     
                     emitOrderEvent('order:fill_attempt', {
@@ -1003,7 +1016,7 @@ class ReplicatorInstance {
                         makerOrderId: makerRes.orderId,
                         takerOrderId: takerRes.orderId || 'failed_taker',
                         expectedQty: scaledQty,
-                        price: trade.p
+                        price: transformedTradePrice
                     });
                     
                     if (matched) {
@@ -1024,6 +1037,7 @@ class ReplicatorInstance {
                 }
             }
 
+            ScenarioEngine.reportExecution(this.symbol, scaledQty);
             this.syncedTrades.unshift({ id: Date.now() + Math.random().toString(), time: getISTTimeString(), price: pStr, binanceQty: trade.q, stageQty: scaledQty, success: matched });
             if (this.syncedTrades.length > 50) this.syncedTrades.pop();
 
@@ -1332,6 +1346,29 @@ const server = http.createServer(async (req, res) => {
                 const targetSym = parsed.targetSymbol ? parsed.targetSymbol.toUpperCase() : sym;
                 if (!sym) throw new Error("Symbol is required");
 
+                if (req.url.startsWith('/api/scenario/preset/')) {
+                    const presetName = req.url.split('/').pop().split('?')[0];
+                    const presetPath = path.join(__dirname, 'scenarios', `${presetName}.json`);
+                    if (!fs.existsSync(presetPath)) { res.writeHead(404); return res.end(JSON.stringify({ error: `Preset ${presetName} not found` })); }
+                    const presetCfg = JSON.parse(fs.readFileSync(presetPath, 'utf8'));
+                    Object.assign(presetCfg, parsed);
+                    try {
+                        const state = ScenarioEngine.startScenario(sym, presetCfg);
+                        res.writeHead(200); return res.end(JSON.stringify({ success: true, state }));
+                    } catch (e) {
+                        res.writeHead(400); return res.end(JSON.stringify({ error: e.message }));
+                    }
+                }
+
+                if (req.url === '/api/scenario/custom') {
+                    try {
+                        const state = ScenarioEngine.startScenario(sym, parsed);
+                        res.writeHead(200); return res.end(JSON.stringify({ success: true, state }));
+                    } catch (e) {
+                        res.writeHead(400); return res.end(JSON.stringify({ error: e.message }));
+                    }
+                }
+
                 if (req.url === '/api/config') {
                     // This endpoint is now less relevant as config is passed at startup.
                     // Kept for potential future use, but it won't create new instances.
@@ -1353,8 +1390,29 @@ const server = http.createServer(async (req, res) => {
                     else if (req.url === '/api/engine/reload' && inst) inst.reloadDepth();
                 }
                 res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ success: true }));
+            } catch (err) {
+                res.writeHead(400);
+                res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+        });
+        return;
+    }
+
+    if (req.method === 'DELETE') {
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', () => {
+            try {
+                const parsed = JSON.parse(body);
+                const sym = parsed.symbol ? parsed.symbol.toUpperCase() : null;
+                if (!sym) throw new Error("Symbol is required");
+                
+                if (req.url === '/api/scenario/active') {
+                    const aborted = ScenarioEngine.abortScenario(sym);
+                    res.writeHead(200); return res.end(JSON.stringify({ success: true, aborted }));
+                }
             } catch (e) {
-                res.writeHead(400, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: e.message }));
+                res.writeHead(400); return res.end(JSON.stringify({ error: e.message }));
             }
         });
         return;
@@ -1423,11 +1481,13 @@ async function startBots() {
 // Start the server and the bots. We run the server even in Jenkins so we can access the UI via SSH Tunnel.
 setInterval(() => sseClients.forEach(c => c.write(`: keepalive\n\n`)), 15000);
 
-server.listen(3000, async () => {
+const UI_PORT = process.env.UI_PORT || 3000;
+server.listen(UI_PORT, async () => {
     log.success('SYSTEM', '===========================================================');
     log.success('SYSTEM', 'Replicator Active.');
-    log.success('SYSTEM', 'UI is available on port 3000.');
+    log.success('SYSTEM', `UI is available on port ${UI_PORT}.`);
     log.success('SYSTEM', '===========================================================');
+
     
     startBots().catch(err => {
         log.critical('SYSTEM', `A fatal error occurred during bot startup: ${err.message}`);

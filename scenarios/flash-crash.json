@@ -1,0 +1,9 @@
+{
+  "name": "Flash Crash 10%",
+  "description": "Instantly drops market 10%, holds for 3s, instantly recovers.",
+  "pct": -0.10,
+  "rampMs": 0,
+  "holdMs": 3000,
+  "recoverMs": 0,
+  "recovery": "instant"
+}
