@@ -1423,10 +1423,11 @@ async function startBots() {
 // Start the server and the bots. We run the server even in Jenkins so we can access the UI via SSH Tunnel.
 setInterval(() => sseClients.forEach(c => c.write(`: keepalive\n\n`)), 15000);
 
-server.listen(3000, async () => {
+const UI_PORT = process.env.UI_PORT || 3000;
+server.listen(UI_PORT, async () => {
     log.success('SYSTEM', '===========================================================');
     log.success('SYSTEM', 'Replicator Active.');
-    log.success('SYSTEM', 'UI is available on port 3000.');
+    log.success('SYSTEM', `UI is available on port ${UI_PORT}.`);
     log.success('SYSTEM', '===========================================================');
     
     startBots().catch(err => {
