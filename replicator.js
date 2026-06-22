@@ -1314,7 +1314,8 @@ function buildPayload() {
                 cancelOnStop:    inst.cancelOnStop,
                 tradeDelayMs:    inst.tradeDelayMs,
                 enableTradeSync: inst.enableTradeSync
-            }
+            },
+            scenarioStatus: ScenarioEngine.getStatus(sym)
         };
     }
     return JSON.stringify({ instances: activeInstancesMap, user1Portfolio, user2Portfolio });
@@ -1647,6 +1648,7 @@ function getHtmlUI() {
         <div id="flag-cancelStop" class="flag-pill flag-off">CANCEL ON STOP</div>
         <div id="flag-buffer" class="flag-pill flag-buf">BUF 0%</div>
         <div id="flag-delay" class="flag-pill" style="background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.25);color:#c084fc;">DELAY 0ms</div>
+        <div id="flag-scenario" class="flag-pill" style="display:none;background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.25);color:#fb7185;">SCENARIO IDLE</div>
     </div>
 </div>
 
@@ -1692,7 +1694,19 @@ function getHtmlUI() {
       <label style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;"><span style="color:#9ca3af;font-size:10px;">Flash on Price Change</span><div class="tog on" id="tog-flash"></div></label>
     </div>
   </div>
-  <button id="btn-apply" style="width:100%;background:rgba(6,182,212,.12);border:1px solid rgba(6,182,212,.25);color:var(--cyan);border-radius:6px;padding:8px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;margin-bottom:6px;">MOUNT / UPDATE MARKET</button>
+  <button id="btn-apply" style="width:100%;background:rgba(6,182,212,.12);border:1px solid rgba(6,182,212,.25);color:var(--cyan);border-radius:6px;padding:8px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;margin-bottom:16px;">MOUNT / UPDATE MARKET</button>
+  
+  <div class="panel" style="padding:12px;margin-bottom:12px; border-color: rgba(244,63,94,0.3);">
+    <div style="font-size:10px;color:#fb7185;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;font-weight:700;">QA Scenario Control</div>
+    <label style="display:block;color:#6b7280;font-size:10px;margin-bottom:3px;">Preset</label>
+    <select id="cfg-scenario-preset" style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:5px;padding:5px 8px;color:#e2e8f0;font-family:inherit;font-size:11px;margin-bottom:8px;">
+        <option value="partial-liquidation">Partial Liquidation (-5%, cap 5 Qty)</option>
+        <option value="flash-crash">Flash Crash 10%</option>
+    </select>
+    <button id="btn-scenario-run" style="width:100%;background:rgba(244,63,94,.12);border:1px solid rgba(244,63,94,.25);color:#fb7185;border-radius:6px;padding:6px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;margin-bottom:6px;">TRIGGER SCENARIO</button>
+    <button id="btn-scenario-abort" style="width:100%;background:transparent;border:1px solid var(--border);color:#e2e8f0;border-radius:6px;padding:6px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;">ABORT / RECOVER</button>
+  </div>
+
   <div id="cfg-msg" style="font-size:10px;text-align:center;min-height:14px;"></div>
 </div>
 
@@ -1787,6 +1801,35 @@ window.addEventListener('DOMContentLoaded', () => {
             t.textContent = msgStr;
             setTimeout(() => { t.style.display = 'none'; }, 3000);
         }
+
+        document.getElementById('btn-scenario-run').onclick = async () => {
+            const sym = activeTabSymbol;
+            if (!sym) return showToast('✗ Select a market first', true);
+            const preset = document.getElementById('cfg-scenario-preset').value;
+            try {
+                const r = await fetch('/api/scenario/preset/' + preset, {
+                    method: 'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ symbol: sym })
+                });
+                const j = await r.json();
+                if (j.error) showToast('✗ ' + j.error, true);
+                else { showToast('✓ Triggered ' + preset); document.getElementById('drawer').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); }
+            } catch(e) { showToast('✗ ' + e.message, true); }
+        };
+
+        document.getElementById('btn-scenario-abort').onclick = async () => {
+            const sym = activeTabSymbol;
+            if (!sym) return showToast('✗ Select a market first', true);
+            try {
+                const r = await fetch('/api/scenario/active', {
+                    method: 'DELETE', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ symbol: sym })
+                });
+                const j = await r.json();
+                if (j.error) showToast('✗ ' + j.error, true);
+                else { showToast('✓ Scenario Aborted'); document.getElementById('drawer').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); }
+            } catch(e) { showToast('✗ ' + e.message, true); }
+        };
 
         document.getElementById('btn-apply').onclick = async () => {
             const sym = document.getElementById('cfg-symbol').value.trim().toUpperCase();
@@ -1996,6 +2039,14 @@ window.addEventListener('DOMContentLoaded', () => {
 
             const delay = parseInt(diag.tradeDelayMs||0);
             delEl.textContent = delay > 0 ? 'DELAY '+delay+'ms' : 'DELAY OFF';
+
+            const scEl = document.getElementById('flag-scenario');
+            if (instance.scenarioStatus && instance.scenarioStatus.phase !== 'IDLE') {
+                scEl.style.display = 'block';
+                scEl.textContent = 'SCENARIO: ' + instance.scenarioStatus.phase;
+            } else {
+                scEl.style.display = 'none';
+            }
 
             const binLtp = diag.binanceLtp || '0.0000';
             const ltpEl = document.getElementById('t-bltp');
