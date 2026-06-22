@@ -14,10 +14,7 @@ const lastTriggerTime = new Map();
 function validateScenarioRequest(symbol, payload) {
     if (!symbol) throw new Error("Symbol is required");
 
-    // Validate symbol whitelist
-    if (!ALLOWED_SYMBOLS.includes(symbol)) {
-        throw new Error(`Symbol ${symbol} is not in the allowed QA testing whitelist (${ALLOWED_SYMBOLS.join(', ')})`);
-    }
+    // Whitelist removed to allow dynamic market testing
 
     // Cooldown check
     const now = Date.now();

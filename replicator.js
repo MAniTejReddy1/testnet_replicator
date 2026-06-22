@@ -368,7 +368,8 @@ class ReplicatorInstance {
         this.maxSize            = marketConfig.maxSize            || 500;
         this.depthLevels        = marketConfig.depthLevels        || 10;
         this.qtyChangeTolerance = marketConfig.qtyChangeTolerance || 0.25;
-        this.enableTradeSync    = marketConfig.enableTradeSync === true;
+        this.enableTradeSync    = marketConfig.enableTradeSync !== false;
+        this.newUserFlow        = marketConfig.newUserFlow === true;
         this.bufferPct          = marketConfig.bufferPct          || 0;
         this.cancelOnStop       = marketConfig.cancelOnStop !== false;
         this.tradeDelayMs       = marketConfig.tradeDelayMs       || 0;
@@ -863,10 +864,7 @@ class ReplicatorInstance {
                             const success = await this.modifyMaker(matched.orderId, side, target.rawPrice, target.qty);
                             if (success) { matched.qty = target.qty; activePool.push(matched); } 
                             else {
-                                if (tradeSync) {
-                                    cancelBatch.push(this.cancelOrder(matched.orderId));
-                                    placeBatch.push(this.placeOrder(side, target.qty, target.rawPrice, 'LIMIT').then(r => r.success && activePool.push({ orderId: r.orderId, price: target.price, qty: target.qty, status: 'NEW' })));
-                                } else { activePool.push(matched); }
+                                activePool.push(matched); 
                             }
                         })());
                     } else { activePool.push(matched); }
@@ -887,10 +885,7 @@ class ReplicatorInstance {
                         const success = await this.modifyMaker(recycled.orderId, side, target.rawPrice, target.qty);
                         if (success) { recycled.price = target.price; recycled.qty = target.qty; recycled.status = 'NEW'; activePool.push(recycled); } 
                         else {
-                            if (tradeSync) {
-                                cancelBatch.push(this.cancelOrder(recycled.orderId));
-                                placeBatch.push(this.placeOrder(side, target.qty, target.rawPrice, 'LIMIT').then(r => r.success && activePool.push({ orderId: r.orderId, price: target.price, qty: target.qty, status: 'NEW' })));
-                            } else { activePool.push(recycled); }
+                            activePool.push(recycled); 
                         }
                     })());
                     unmappedTargets.splice(i, 1);
@@ -1173,6 +1168,13 @@ startTestnetWS() {
 
     async start() {
         if (this.status === 'RUNNING') return;
+        
+        if (this.newUserFlow && !this.hasStartedBefore) {
+            log.info(this.symbol, `New User Flow active. Sleeping for 120 seconds before starting...`);
+            await new Promise(r => setTimeout(r, 120000));
+            this.hasStartedBefore = true;
+        }
+
         this.status = 'RUNNING'; this.hasLoggedAuthError = false;
         log.success(this.symbol, 'Engine Started.');
         
@@ -1312,6 +1314,7 @@ function buildPayload() {
                 qtyPrecision:    pData.qtyPrecision !== undefined ? pData.qtyPrecision : 1,
                 bufferPct:       inst.bufferPct,
                 cancelOnStop:    inst.cancelOnStop,
+                newUserFlow:     inst.newUserFlow,
                 tradeDelayMs:    inst.tradeDelayMs,
                 enableTradeSync: inst.enableTradeSync
             },
@@ -1698,6 +1701,10 @@ function getHtmlUI() {
       <span style="color:#9ca3af;font-size:10px;">Cancel Orders on Stop</span>
       <div class="tog on" id="tog-cancel-stop"></div>
     </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;cursor:pointer;" id="tog-new-user-wrap">
+      <span style="color:#9ca3af;font-size:10px;">Simulate New User (120s Delay)</span>
+      <div class="tog off" id="tog-new-user"></div>
+    </div>
   </div>
   <div class="panel" style="padding:12px;margin-bottom:12px;">
     <div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Display</div>
@@ -1828,6 +1835,7 @@ window.addEventListener('DOMContentLoaded', () => {
         let prevBinLtp = null;
         let knownTradeIds = new Set();
         let cancelOnStopState = true;
+        let newUserState = false;
 
         setInterval(() => {
             const now = new Date();
@@ -1843,6 +1851,12 @@ window.addEventListener('DOMContentLoaded', () => {
             cancelOnStopState = !cancelOnStopState;
             const el = document.getElementById('tog-cancel-stop');
             if (cancelOnStopState) el.classList.add('on'); else el.classList.remove('on');
+        };
+
+        document.getElementById('tog-new-user-wrap').onclick = () => {
+            newUserState = !newUserState;
+            const el = document.getElementById('tog-new-user');
+            if (newUserState) el.classList.add('on'); else el.classList.remove('on');
         };
 
         function bindTog(id, cb) {
@@ -1919,25 +1933,26 @@ window.addEventListener('DOMContentLoaded', () => {
         };
 
         document.getElementById('btn-apply').onclick = async () => {
-            const sym = document.getElementById('cfg-symbol').value.trim().toUpperCase();
+            const sym = document.getElementById('cfg-source').value.trim().toUpperCase() || 'BTCUSDT';
             const tgt = document.getElementById('cfg-target').value.trim().toUpperCase() || sym;
             const minV = document.getElementById('cfg-min').value;
             const maxV = document.getElementById('cfg-max').value;
             const depV = document.getElementById('cfg-depth').value;
             const bufV = document.getElementById('cfg-buffer').value;
             const delayV = document.getElementById('cfg-delay').value;
+            
             const msg = document.getElementById('cfg-msg');
             msg.textContent = '';
 
             if (!sym) { msg.style.color='#f43f5e'; msg.textContent='✗ Symbol required'; return; }
             if (minV && maxV && parseFloat(minV) >= parseFloat(maxV)) { msg.style.color='#f43f5e'; msg.textContent='✗ Min must be < Max'; return; }
 
-            const body = { symbol: sym, targetSymbol: tgt, cancelOnStop: cancelOnStopState };
-            if (minV) body.minSize = minV;
-            if (maxV) body.maxSize = maxV;
-            if (depV) body.depthLevels = depV;
-            if (bufV) body.bufferPct = bufV;
-            if (delayV) body.tradeDelayMs = delayV;
+            const body = { sourceSymbol: sym, targetSymbol: tgt, cancelOnStop: cancelOnStopState, newUserFlow: newUserState, enableTradeSync: true };
+            if (minV) body.minSize = parseFloat(minV);
+            if (maxV) body.maxSize = parseFloat(maxV);
+            if (depV) body.depthLevels = parseInt(depV);
+            if (bufV) body.bufferPct = parseFloat(bufV);
+            if (delayV) body.tradeDelayMs = parseInt(delayV);
 
             msg.style.color = '#06b6d4'; msg.textContent = 'Sending...';
             try {
