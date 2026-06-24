@@ -404,12 +404,14 @@ class PrivateWsClient {
     connect() {
         if (this.reconnectTimer) { clearTimeout(this.reconnectTimer); this.reconnectTimer = null; }
         if (this.ws) this.ws.close();
-        const url = `wss://testnet-futures-socket-gateway.dcxstage.com/private/ws?listenKey=${this.listenKey}&events=ORDER_TRADE_UPDATE`;
-        log.info('SYSTEM', `Connecting ${this.label} User Data Stream...`);
+        // Subscribe to ALL user data events (no events= filter)
+        const url = `wss://testnet-futures-socket-gateway.dcxstage.com/private/ws?listenKey=${this.listenKey}`;
+        log.info('SYSTEM', `Connecting ${this.label} User Data Stream (all events)...`);
         this.ws = new WebSocket(url);
         
         this.ws.on('open', () => {
-            log.success('SYSTEM', `${this.label} User Data Stream connected.`);
+            log.success('SYSTEM', `${this.label} User Data Stream connected (all events).`);
+            pushEvent('SUCCESS', this.label, `User Data Stream connected`, { status: 'connected', events: 'ALL' });
             this.pingInterval = setInterval(() => {
                 if (this.ws.readyState === WebSocket.OPEN) this.ws.ping();
             }, 30000);
@@ -418,10 +420,29 @@ class PrivateWsClient {
         this.ws.on('message', (data) => {
             try {
                 const msg = JSON.parse(data);
-                pushEvent('EVENT', this.label, `WS Update: ${msg.e || 'Unknown'}`, msg);
-                if (msg.e === 'ORDER_TRADE_UPDATE') {
+                const eventType = msg.e || 'Unknown';
+
+                // Push descriptive events based on type
+                if (eventType === 'ORDER_TRADE_UPDATE') {
+                    const o = msg.o || {};
+                    const summary = `${o.S || ''} ${o.o || ''} ${o.s || ''} | Qty: ${o.q || '-'} | Price: ${o.p || '-'} | Status: ${o.X || '-'}`;
+                    pushEvent('EVENT', this.label, `Order Update: ${summary}`, msg);
                     globalOrderUpdateCounter++;
-                    this.onMessageCb(msg.o);
+                    this.onMessageCb(o);
+                } else if (eventType === 'ACCOUNT_UPDATE') {
+                    const a = msg.a || {};
+                    const reason = a.m || 'unknown';
+                    const balances = (a.B || []).map(b => `${b.a}: ${b.wb}`).join(', ') || 'N/A';
+                    const positions = (a.P || []).length;
+                    pushEvent('EVENT', this.label, `Account Update [${reason}] | Balances: ${balances} | Positions changed: ${positions}`, msg);
+                } else if (eventType === 'BALANCE_UPDATE') {
+                    const delta = msg.d || '0';
+                    pushEvent('EVENT', this.label, `Balance Update | Delta: ${delta}`, msg);
+                } else if (eventType === 'listenKeyExpired') {
+                    pushEvent('WARN', this.label, `Listen key expired — reconnecting...`, msg);
+                    this.ws.close();
+                } else {
+                    pushEvent('EVENT', this.label, `WS Event: ${eventType}`, msg);
                 }
             } catch (e) {
                 log.error('SYSTEM', `Error parsing ${this.label} WS: ${e.message}`);
@@ -430,12 +451,14 @@ class PrivateWsClient {
         
         this.ws.on('close', () => {
             log.warn('SYSTEM', `${this.label} User Data Stream disconnected. Reconnecting in 3s...`);
+            pushEvent('WARN', this.label, `User Data Stream disconnected`, { status: 'disconnected' });
             clearInterval(this.pingInterval);
             this.reconnectTimer = setTimeout(() => this.connect(), 3000);
         });
         
         this.ws.on('error', (err) => {
             log.error('SYSTEM', `${this.label} User Data Stream error: ${err.message}`);
+            pushEvent('ERROR', this.label, `User Data Stream error: ${err.message}`, { error: err.message });
         });
     }
 }
