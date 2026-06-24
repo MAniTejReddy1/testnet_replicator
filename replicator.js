@@ -1474,6 +1474,8 @@ startBinanceDepthWS() {
                 const data = JSON.parse(raw.toString());
                 if (data.e === 'aggTrade') {
                     this.binanceLtp = data.p;
+                    const side = data.m ? 'SELL' : 'BUY';
+                    pushEvent('EVENT', this.symbol, `Trade | ${side} | Price: $${data.p} | Qty: ${data.q}`, data, 'trade');
                     if (this.enableTradeSync) {
                         this.tradeQueue.push({ p: data.p, q: data.q, m: data.m });
                         this.processTradeQueue();

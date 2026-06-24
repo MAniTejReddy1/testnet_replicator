@@ -1151,6 +1151,8 @@
       <button class="evt-filter active" data-cat="all" onclick="window.setEventFilter('all')">All</button>
       <button class="evt-filter" data-cat="depth" onclick="window.setEventFilter('depth')">📊 Depth</button>
       <button class="evt-filter" data-cat="ticker" onclick="window.setEventFilter('ticker')">📈 Ticker</button>
+      <button class="evt-filter" data-cat="trade" onclick="window.setEventFilter('trade')">💹 Trades</button>
+      <button class="evt-filter" data-cat="kline" onclick="window.setEventFilter('kline')">🕯️ Kline</button>
       <button class="evt-filter" data-cat="order" onclick="window.setEventFilter('order')">📋 Orders</button>
       <button class="evt-filter" data-cat="account" onclick="window.setEventFilter('account')">👤 Account</button>
       <button class="evt-filter" data-cat="balance" onclick="window.setEventFilter('balance')">💰 Balance</button>
@@ -2492,16 +2494,16 @@ window.addEventListener('DOMContentLoaded', () => {
             if (window.activeTermTab !== 'events') window.renderTerminalLogs(window.cachedTerminalLogs);
         };
         
-        window.injectTerminalEvent = function(level, sym, msg, meta = null) {
+        window.injectTerminalEvent = function(level, sym, msg, meta = null, cat = 'general') {
             const now = new Date();
             const time = now.toISOString().split('T')[1].substring(0,12);
-            const logObj = { time, level, sym, msg, meta, ts: Date.now() };
+            const logObj = { time, level, sym, msg, meta, ts: Date.now(), cat };
             if (!window.clientTerminalEvents) window.clientTerminalEvents = [];
             window.clientTerminalEvents.push(logObj);
-            if (window.clientTerminalEvents.length > 500) window.clientTerminalEvents.shift();
+            if (window.clientTerminalEvents.length > 3000) window.clientTerminalEvents.shift();
             
             window.cachedTerminalEvents = [...(window.clientTerminalEvents || []), ...(window.backendTerminalEvents || [])].sort((a,b) => a.ts - b.ts);
-            if (window.cachedTerminalEvents.length > 500) window.cachedTerminalEvents = window.cachedTerminalEvents.slice(-500);
+            if (window.cachedTerminalEvents.length > 3000) window.cachedTerminalEvents = window.cachedTerminalEvents.slice(-3000);
             
             if (window.activeTermTab === 'events') window.renderTerminalLogs(window.cachedTerminalEvents);
         };
@@ -2648,7 +2650,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (window.activeTermTab === 'info' && l.level !== 'INFO') continue;
                 if (window.activeTermTab === 'success' && l.level !== 'SUCCESS') continue;
                 // Event category filter
-                if (window.activeTermTab === 'events' && window.activeEventFilter !== 'all' && l.cat && l.cat !== window.activeEventFilter) continue;
+                if (window.activeTermTab === 'events' && window.activeEventFilter !== 'all' && (l.cat || 'general') !== window.activeEventFilter) continue;
                 
                 if (searchVal) {
                     const match = (l.msg && l.msg.toLowerCase().includes(searchVal)) || 
@@ -2897,9 +2899,9 @@ window.addEventListener('DOMContentLoaded', () => {
             try {
                 const wsUrl = `wss://testnet-futures-socket-gateway.dcxstage.com/market/ws/${sourceSym.toLowerCase()}@kline_${interval}`;
                 window.tvWs = new WebSocket(wsUrl);
-                window.tvWs.onopen = () => window.injectTerminalEvent('SUCCESS', pair, `[WS] Connected to Kline stream: ${interval}`);
-                window.tvWs.onerror = () => window.injectTerminalEvent('ERROR', pair, `[WS] Kline stream error: ${interval}`);
-                window.tvWs.onclose = () => window.injectTerminalEvent('WARN', pair, `[WS] Kline stream closed: ${interval}`);
+                window.tvWs.onopen = () => window.injectTerminalEvent('SUCCESS', pair, `[WS] Connected to Kline stream: ${interval}`, null, 'ws');
+                window.tvWs.onerror = () => window.injectTerminalEvent('ERROR', pair, `[WS] Kline stream error: ${interval}`, null, 'ws');
+                window.tvWs.onclose = () => window.injectTerminalEvent('WARN', pair, `[WS] Kline stream closed: ${interval}`, null, 'ws');
                 window.tvWs.onmessage = (msg) => {
                     if (!window.tvSeries || !window.tvVolumeSeries || !window.tvIsVisible) return;
                     try {
@@ -2916,12 +2918,12 @@ window.addEventListener('DOMContentLoaded', () => {
                             
                             window.tvSeries.update({ time, open, high, low, close });
                             window.tvVolumeSeries.update({ time, value: volume, color });
-                            window.injectTerminalEvent('EVENT', pair, `WS Kline Update: ${k.i} C:${k.c}`, evt);
+                            window.injectTerminalEvent('EVENT', pair, `WS Kline Update: ${k.i} C:${k.c}`, evt, 'kline');
                         }
                     } catch(e) {}
                 };
             } catch(e) {
-                window.injectTerminalEvent('ERROR', pair, `[WS] Failed to start Kline stream: ${e.message}`);
+                window.injectTerminalEvent('ERROR', pair, `[WS] Failed to start Kline stream: ${e.message}`, null, 'ws');
             }
             
             // ResizeObserver is already created above in the chart init block — no duplicate needed
