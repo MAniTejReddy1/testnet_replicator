@@ -391,19 +391,21 @@
   .term-details-close:hover { color:var(--text-main); background:var(--hover-bg); }
 
   /* LTP Cross Stream styles */
-  .trade-row { cursor:pointer; }
+  .trade-row { cursor:pointer; transition:background 0.15s; }
   .trade-row:hover td { background:var(--row-hover); }
   .trade-row.expanded td { background:var(--row-hover); }
-  .trade-side { font-weight:800; font-size:10px; padding:3px 8px; border-radius:4px; display:inline-block; margin-top:2px; letter-spacing:0.5px; }
+  .trade-side { font-weight:800; font-size:10px; padding:3px 8px; border-radius:4px; display:inline-block; letter-spacing:0.5px; }
   .trade-side.buy { color:var(--emerald); background:rgba(16,185,129,0.1); }
   .trade-side.sell { color:var(--rose); background:rgba(244,63,94,0.1); }
-  .trade-details-wrap { padding:0; }
-  .trade-details-wrap td { padding:0 !important; border-bottom:1px solid var(--border); }
-  .trade-details-inner { padding:10px 18px 14px; background:var(--input-bg); border-top:1px solid var(--border); }
-  .trade-detail-row { display:flex; justify-content:space-between; align-items:center; padding:6px 0; }
-  .trade-detail-row + .trade-detail-row { border-top:1px solid var(--border); }
-  .trade-detail-label { color:var(--text-muted); text-transform:uppercase; font-size:10px; letter-spacing:0.5px; font-weight:600; }
+  .trade-details-wrap td { padding:0 !important; }
+  .trade-details-inner { padding:12px 18px 14px; background:var(--input-bg); border-top:1px solid var(--border); display:grid; grid-template-columns:1fr 1fr; gap:8px 24px; }
+  .trade-detail-item { display:flex; flex-direction:column; gap:2px; }
+  .trade-detail-label { color:var(--text-muted); text-transform:uppercase; font-size:9px; letter-spacing:0.5px; font-weight:700; }
   .trade-detail-value { color:var(--text-main); font-family:'JetBrains Mono',monospace; font-weight:500; font-size:11px; }
+  .trade-detail-value.mono { user-select:all; cursor:text; }
+  .ltp-stat { display:flex; align-items:center; gap:6px; padding:4px 10px; background:var(--input-bg); border:1px solid var(--border); border-radius:6px; font-size:10px; font-weight:700; font-family:'JetBrains Mono',monospace; }
+  .ltp-stat .ltp-stat-label { color:var(--text-muted); font-family:'Inter',sans-serif; font-weight:600; letter-spacing:0.3px; }
+  .ltp-stat .ltp-stat-val { color:var(--text-main); }
 
   /* Terminal tabs (replaces 5× inline tab styles) */
   .term-tab { padding:6px 14px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600; letter-spacing:0.5px; color:var(--text-muted); background:var(--row-bg); border:1px solid transparent; border-radius:6px; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:6px; }
@@ -1080,21 +1082,23 @@
     </div>
   </div>
 
-   <div class="panel" style="display:flex;flex-direction:column;height:500px;overflow:hidden;">
-    <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);flex-shrink:0;">
-      <div style="display:flex;align-items:center;gap:10px;">
-        <div style="width:4px;height:22px;background:linear-gradient(180deg,#a855f7,#7e22ce);border-radius:2px;box-shadow:0 0 10px rgba(168,85,247,0.4);"></div>
+   <div class="panel" style="display:flex;flex-direction:column;height:550px;overflow:hidden;" id="ltp-panel">
+    <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:10px;height:10px;border-radius:50%;background:#a855f7;box-shadow:0 0 10px rgba(168,85,247,0.5);"></div>
         <div>
           <div class="sec-label">Execution Sync</div>
-          <div class="sec-title" style="color:#c084fc;">LTP Cross Stream</div>
+          <div class="sec-title" style="display:flex;align-items:center;gap:8px;">LTP Cross Stream</div>
         </div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center;">
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;" id="ltp-chips">
+        <div class="ltp-stat"><span class="ltp-stat-label">Total</span><span class="ltp-stat-val" id="ltp-total">0</span></div>
         <span id="t-trok" class="badge badge-ok" style="font-size:10px;">0 OK</span>
         <span id="t-trfail" class="badge badge-fail" style="font-size:10px;">0 FAIL</span>
+        <div class="ltp-stat"><span class="ltp-stat-label">Fill Rate</span><span class="ltp-stat-val" id="ltp-fill-rate" style="color:var(--emerald);">-</span></div>
       </div>
     </div>
-    <div style="display:flex;border-bottom:1px solid var(--border);background:transparent;flex-shrink:0;padding:0 4px;">
+    <div style="display:flex;border-bottom:1px solid var(--border);background:transparent;flex-shrink:0;">
       <button class="tab on" style="flex:1" data-f="all">All</button>
       <button class="tab" style="flex:1" data-f="ok">Filled</button>
       <button class="tab" style="flex:1" data-f="fail">Failed</button>
@@ -1957,6 +1961,19 @@ window.addEventListener('DOMContentLoaded', () => {
             const pgEl = document.getElementById('trades-pagination');
             const pgInfo = document.getElementById('trades-page-info');
 
+            // Update header stats
+            const totalCount = newTrades ? newTrades.length : 0;
+            const okCount = newTrades ? newTrades.filter(t => t.success).length : 0;
+            const failCount = totalCount - okCount;
+            const fillRate = totalCount > 0 ? ((okCount / totalCount) * 100).toFixed(1) : '-';
+            const ltpTotalEl = document.getElementById('ltp-total');
+            const ltpFillEl = document.getElementById('ltp-fill-rate');
+            if (ltpTotalEl) ltpTotalEl.textContent = totalCount;
+            if (ltpFillEl) {
+                ltpFillEl.textContent = fillRate === '-' ? '-' : fillRate + '%';
+                ltpFillEl.style.color = fillRate === '-' ? 'var(--text-muted)' : parseFloat(fillRate) >= 90 ? 'var(--emerald)' : parseFloat(fillRate) >= 50 ? '#eab308' : 'var(--rose)';
+            }
+
             if (!newTrades || !newTrades.length) {
                 el.innerHTML = '<div class="term-empty">Awaiting trades...</div>';
                 pgEl.style.display = 'none';
@@ -1987,7 +2004,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
             if (pageData.length > 0) {
                 let html = `<table><thead><tr>
-                    <th>Time</th><th>Side</th><th style="text-align:right;">Price</th><th style="text-align:right;">Avg Price</th><th style="text-align:right;">Quantity</th><th style="text-align:right;">Status</th>
+                    <th>Time</th><th>Side</th><th>Type</th><th style="text-align:right;">Price</th><th style="text-align:right;">Avg</th><th style="text-align:right;">Qty</th><th style="text-align:right;">Status</th>
                 </tr></thead><tbody>`;
                 pageData.forEach((t, i) => {
                     const rawStatus = t.status || (t.success ? 'FILLED' : 'FAILED');
@@ -1995,7 +2012,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     const statusClass = isFilled ? 'badge-ok' : 'badge-fail';
                     
                     const sideClass = t.side === 'BUY' ? 'buy' : 'sell';
-                    const sideText = t.side ? `<span class="trade-side ${sideClass}">${t.side}</span>` : '';
+                    const sideText = t.side ? `<span class="trade-side ${sideClass}">${t.side}</span>` : '-';
+                    const orderType = t.type || t.orderType || 'LIMIT';
                     
                     const limitPriceStr = t.price ? parseFloat(t.price).toFixed(pPrec) : '-';
                     const avgPriceStr = t.avgPrice && t.avgPrice !== '0' && t.avgPrice !== '0.0000' 
@@ -2006,17 +2024,25 @@ window.addEventListener('DOMContentLoaded', () => {
                     const expClass = isExp ? ' expanded' : '';
                     
                     html += `<tr class="trade-row${expClass}" data-key="${uniqueKey}">
-                        <td>${t.time}</td>
+                        <td style="font-size:11px;color:var(--text-dim);">${t.time}</td>
                         <td>${sideText}</td>
+                        <td style="font-size:11px;color:var(--text-muted);">${orderType}</td>
                         <td style="text-align:right;font-weight:700;">$${limitPriceStr}</td>
-                        <td style="text-align:right;color:var(--text-muted);">${avgPriceStr}</td>
+                        <td style="text-align:right;color:var(--text-muted);">${avgPriceStr !== '-' ? '$' + avgPriceStr : '-'}</td>
                         <td style="text-align:right;color:var(--cyan);font-weight:700;">${parseFloat(t.stageQty).toFixed(qPrec)}</td>
                         <td style="text-align:right;"><span class="badge ${statusClass}" style="font-size:9px;">${rawStatus}</span></td>
                     </tr>`;
                     if (isExp) {
-                        html += `<tr class="trade-details-wrap"><td colspan="6"><div class="trade-details-inner">
-                            <div class="trade-detail-row"><span class="trade-detail-label">Maker ID</span><span class="trade-detail-value">${t.makerOrderId || 'N/A'}</span></div>
-                            <div class="trade-detail-row"><span class="trade-detail-label">Taker ID</span><span class="trade-detail-value">${t.takerOrderId || 'N/A'}</span></div>
+                        const symbol = t.symbol || activeTabSymbol || '-';
+                        const origQty = t.origQty ? parseFloat(t.origQty).toFixed(qPrec) : '-';
+                        const execQty = t.executedQty ? parseFloat(t.executedQty).toFixed(qPrec) : '-';
+                        html += `<tr class="trade-details-wrap"><td colspan="7"><div class="trade-details-inner">
+                            <div class="trade-detail-item"><span class="trade-detail-label">Symbol</span><span class="trade-detail-value">${symbol}</span></div>
+                            <div class="trade-detail-item"><span class="trade-detail-label">Order Type</span><span class="trade-detail-value">${orderType}</span></div>
+                            <div class="trade-detail-item"><span class="trade-detail-label">Orig Qty</span><span class="trade-detail-value">${origQty}</span></div>
+                            <div class="trade-detail-item"><span class="trade-detail-label">Exec Qty</span><span class="trade-detail-value">${execQty}</span></div>
+                            <div class="trade-detail-item"><span class="trade-detail-label">Maker Order ID</span><span class="trade-detail-value mono">${t.makerOrderId || 'N/A'}</span></div>
+                            <div class="trade-detail-item"><span class="trade-detail-label">Taker Order ID</span><span class="trade-detail-value mono">${t.takerOrderId || 'N/A'}</span></div>
                         </div></td></tr>`;
                     }
                 });
@@ -2024,7 +2050,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 
                 if (el.innerHTML !== html) {
                     el.innerHTML = html;
-                    // Attach click handlers via event delegation
                     el.querySelectorAll('.trade-row').forEach(row => {
                         row.onclick = function() {
                             const key = this.dataset.key;
