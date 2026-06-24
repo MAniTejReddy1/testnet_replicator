@@ -387,13 +387,60 @@ function applyBuffer(priceStr, side, bufferPct, symbol) {
     return formatPrice(String(raw * multiplier), symbol);
 }
 
+// ==========================================
+// Private WebSocket: Auth + Dual-Socket Architecture
+// ==========================================
+// DCX private WS requires:
+//   1. Authenticate via POST /api/v3/authenticate → get JWT bearer token
+//   2. Decode JWT payload → extract user_id = listenKey
+//   3. Open TWO separate WS connections per user (gateway enforces 1 event/connection):
+//      - wss://...?listenKey=<user_id>&events=ORDER_TRADE_UPDATE
+//      - wss://...?listenKey=<user_id>&events=ACCOUNT_UPDATE
+
+async function authenticateAndGetListenKey(email, password) {
+    try {
+        const body = JSON.stringify({ email, password, pe: false, piie: false });
+        const res = await fetch('https://testnet-api.dcxstage.com/api/v3/authenticate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json, text/plain, */*',
+                'User-Agent': 'Dalvik/2.1.0 (Linux; U; Android 10; GM1901 Build/QKQ1.190716.003)',
+                'X-Adjust-Device-Id': '1911c181-d0bf-493f-8117-476017edffa0',
+                'X-Source': 'trader_mode_android'
+            },
+            body
+        });
+        const data = await res.json();
+        const token = data.token || data.access_token || data.auth_token;
+        if (!token) {
+            log.error('SYSTEM', `Auth failed for ${email}: No token in response. Keys: ${Object.keys(data).join(',')}`);
+            return null;
+        }
+        // Decode JWT payload (Base64URL → JSON)
+        const payloadB64 = token.split('.')[1];
+        const payloadStr = Buffer.from(payloadB64.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8');
+        const payload = JSON.parse(payloadStr);
+        const userId = payload.user_id;
+        if (!userId) {
+            log.error('SYSTEM', `Auth succeeded for ${email} but JWT has no user_id. Payload keys: ${Object.keys(payload).join(',')}`);
+            return null;
+        }
+        log.success('SYSTEM', `Auth succeeded for ${email} — listenKey (user_id): ${userId}`);
+        return userId;
+    } catch (e) {
+        log.error('SYSTEM', `Auth error for ${email}: ${e.message}`);
+        return null;
+    }
+}
+
 // Global user data stream WebSocket clients (persists across instance restarts)
 const globalUserWsClients = {};
 
 async function fetchListenKeys() {
-    log.info('SYSTEM', 'Checking listen keys for user data streams...');
+    log.info('SYSTEM', 'Authenticating users for private WebSocket streams...');
     for (const [userId, userConfig] of Object.entries(globalUsers)) {
-        // If listen key already set (from env or config), connect directly
+        // If listen key already set (from env), use it directly
         if (userConfig.listenKey) {
             log.success('SYSTEM', `Listen key pre-configured for ${userConfig.label || userId} — connecting...`);
             if (!globalUserWsClients[userId]) {
@@ -405,43 +452,47 @@ async function fetchListenKeys() {
             }
             continue;
         }
-        
-        if (!userConfig.key || !userConfig.secret) continue;
 
-        // Try to fetch listen key from API (may not exist on all platforms)
-        try {
-            const res = await sendSignedRequest(
-                `https://testnet-futures-hpo.dcxstage.com/fapi/v1/listenKey`,
-                'POST', null, userConfig
+        // Authenticate via email/password to get JWT → extract user_id as listenKey
+        if (!userConfig.email || !userConfig.password) {
+            log.warn('SYSTEM', `No email/password for ${userConfig.label || userId} — skipping private WS.`);
+            continue;
+        }
+
+        const listenKey = await authenticateAndGetListenKey(userConfig.email, userConfig.password);
+        if (listenKey) {
+            userConfig.listenKey = listenKey;
+            globalUserWsClients[userId] = new PrivateWsClient(
+                listenKey,
+                () => {},
+                userConfig.label || userId
             );
-            if (res.ok && res.data && res.data.listenKey) {
-                userConfig.listenKey = res.data.listenKey;
-                log.success('SYSTEM', `Listen key obtained for ${userConfig.label || userId}`);
-                globalUserWsClients[userId] = new PrivateWsClient(
-                    userConfig.listenKey,
-                    () => {},
-                    userConfig.label || userId
-                );
-            } else {
-                log.info('SYSTEM', `Listen key API not available for ${userConfig.label || userId} — private WS events will use instance connections.`);
-            }
-        } catch (e) {
-            log.info('SYSTEM', `Listen key not available for ${userConfig.label || userId} — skipping.`);
+        } else {
+            log.warn('SYSTEM', `Could not obtain listenKey for ${userConfig.label || userId} — private WS disabled.`);
         }
     }
 }
 
-// Keepalive: PUT to refresh listen keys every 30 minutes
+// Re-authenticate every 30 minutes to keep listen keys fresh
 function startListenKeyKeepalive() {
     setInterval(async () => {
         for (const [userId, userConfig] of Object.entries(globalUsers)) {
-            if (!userConfig.listenKey) continue;
+            if (!userConfig.email || !userConfig.password) continue;
             try {
-                await sendSignedRequest(
-                    `https://testnet-futures-hpo.dcxstage.com/fapi/v1/listenKey`,
-                    'PUT', { listenKey: userConfig.listenKey }, userConfig
-                );
-            } catch (e) { /* silently ignore if not supported */ }
+                const newKey = await authenticateAndGetListenKey(userConfig.email, userConfig.password);
+                if (newKey && newKey !== userConfig.listenKey) {
+                    log.info('SYSTEM', `Listen key refreshed for ${userConfig.label || userId}. Reconnecting...`);
+                    userConfig.listenKey = newKey;
+                    if (globalUserWsClients[userId]) {
+                        globalUserWsClients[userId].close();
+                    }
+                    globalUserWsClients[userId] = new PrivateWsClient(
+                        newKey,
+                        () => {},
+                        userConfig.label || userId
+                    );
+                }
+            } catch (e) { /* silently ignore refresh errors */ }
         }
     }, 30 * 60 * 1000);
 }
@@ -449,75 +500,97 @@ function startListenKeyKeepalive() {
 // ==========================================
 // 3. Replicator Engine Instance
 // ==========================================
+
+// DCX gateway enforces ONE event type per connection.
+// We open TWO WebSocket connections per user:
+//   1. ORDER_TRADE_UPDATE — order fills, status changes
+//   2. ACCOUNT_UPDATE     — balance/position changes
+const PRIVATE_WS_BASE = 'wss://testnet-futures-socket-gateway.dcxstage.com/private/ws';
+const PRIVATE_WS_EVENTS = ['ORDER_TRADE_UPDATE', 'ACCOUNT_UPDATE'];
+
 class PrivateWsClient {
     constructor(listenKey, onMessageCb, label) {
         this.listenKey = listenKey;
         this.onMessageCb = onMessageCb;
         this.label = label;
-        this.ws = null;
-        this.pingInterval = null;
-        this.reconnectTimer = null;
-        if (this.listenKey) this.connect();
+        this.sockets = {};       // keyed by event type
+        this.pingIntervals = {};
+        this.reconnectTimers = {};
+        if (this.listenKey) {
+            PRIVATE_WS_EVENTS.forEach(evt => this.connectStream(evt));
+        }
     }
-    
-    connect() {
-        if (this.reconnectTimer) { clearTimeout(this.reconnectTimer); this.reconnectTimer = null; }
-        if (this.ws) this.ws.close();
-        // Subscribe to ALL user data events (no events= filter)
-        const url = `wss://testnet-futures-socket-gateway.dcxstage.com/private/ws?listenKey=${this.listenKey}`;
-        log.info('SYSTEM', `Connecting ${this.label} User Data Stream (all events)...`);
-        this.ws = new WebSocket(url);
-        
-        this.ws.on('open', () => {
-            log.success('SYSTEM', `${this.label} User Data Stream connected (all events).`);
-            pushEvent('SUCCESS', this.label, `User Data Stream connected`, { status: 'connected', events: 'ALL' }, 'ws');
-            this.pingInterval = setInterval(() => {
-                if (this.ws.readyState === WebSocket.OPEN) this.ws.ping();
+
+    connectStream(eventType) {
+        if (this.reconnectTimers[eventType]) {
+            clearTimeout(this.reconnectTimers[eventType]);
+            this.reconnectTimers[eventType] = null;
+        }
+        if (this.sockets[eventType]) {
+            try { this.sockets[eventType].close(); } catch (e) {}
+        }
+
+        const url = `${PRIVATE_WS_BASE}?listenKey=${this.listenKey}&events=${eventType}`;
+        log.info('SYSTEM', `Connecting ${this.label} [${eventType}] → ${url.replace(this.listenKey, this.listenKey.substring(0, 8) + '...')}`);
+        const ws = new WebSocket(url);
+        this.sockets[eventType] = ws;
+
+        ws.on('open', () => {
+            log.success('SYSTEM', `${this.label} [${eventType}] connected.`);
+            pushEvent('SUCCESS', this.label, `Private WS connected: ${eventType}`, { status: 'connected', event: eventType }, 'ws');
+            this.pingIntervals[eventType] = setInterval(() => {
+                if (ws.readyState === WebSocket.OPEN) ws.ping();
             }, 30000);
         });
-        
-        this.ws.on('message', (data) => {
+
+        ws.on('message', (data) => {
             try {
                 const msg = JSON.parse(data);
-                const eventType = msg.e || 'Unknown';
+                const evtType = msg.e || eventType;
 
-                // Push descriptive events based on type
-                if (eventType === 'ORDER_TRADE_UPDATE') {
+                if (evtType === 'ORDER_TRADE_UPDATE') {
                     const o = msg.o || {};
                     const summary = `${o.S || ''} ${o.o || ''} ${o.s || ''} | Qty: ${o.q || '-'} | Price: ${o.p || '-'} | Status: ${o.X || '-'}`;
                     pushEvent('EVENT', this.label, `Order Update: ${summary}`, msg, 'order');
                     globalOrderUpdateCounter++;
                     this.onMessageCb(o);
-                } else if (eventType === 'ACCOUNT_UPDATE') {
+                } else if (evtType === 'ACCOUNT_UPDATE') {
                     const a = msg.a || {};
                     const reason = a.m || 'unknown';
                     const balances = (a.B || []).map(b => `${b.a}: ${b.wb}`).join(', ') || 'N/A';
                     const positions = (a.P || []).length;
                     pushEvent('EVENT', this.label, `Account Update [${reason}] | Balances: ${balances} | Positions changed: ${positions}`, msg, 'account');
-                } else if (eventType === 'BALANCE_UPDATE') {
-                    const delta = msg.d || '0';
-                    pushEvent('EVENT', this.label, `Balance Update | Delta: ${delta}`, msg, 'balance');
-                } else if (eventType === 'listenKeyExpired') {
-                    pushEvent('WARN', this.label, `Listen key expired — reconnecting...`, msg, 'ws');
-                    this.ws.close();
+                } else if (evtType === 'listenKeyExpired') {
+                    pushEvent('WARN', this.label, `Listen key expired on ${eventType} — reconnecting...`, msg, 'ws');
+                    ws.close();
                 } else {
-                    pushEvent('EVENT', this.label, `WS Event: ${eventType}`, msg, 'general');
+                    pushEvent('EVENT', this.label, `[${eventType}] ${evtType}`, msg, 'general');
                 }
             } catch (e) {
-                log.error('SYSTEM', `Error parsing ${this.label} WS: ${e.message}`);
+                log.error('SYSTEM', `Error parsing ${this.label} [${eventType}] WS: ${e.message}`);
             }
         });
-        
-        this.ws.on('close', () => {
-            log.warn('SYSTEM', `${this.label} User Data Stream disconnected. Reconnecting in 3s...`);
-            pushEvent('WARN', this.label, `User Data Stream disconnected`, { status: 'disconnected' }, 'ws');
-            clearInterval(this.pingInterval);
-            this.reconnectTimer = setTimeout(() => this.connect(), 3000);
+
+        ws.on('close', () => {
+            log.warn('SYSTEM', `${this.label} [${eventType}] disconnected. Reconnecting in 5s...`);
+            pushEvent('WARN', this.label, `Private WS disconnected: ${eventType}`, { status: 'disconnected', event: eventType }, 'ws');
+            clearInterval(this.pingIntervals[eventType]);
+            this.reconnectTimers[eventType] = setTimeout(() => this.connectStream(eventType), 5000);
         });
-        
-        this.ws.on('error', (err) => {
-            log.error('SYSTEM', `${this.label} User Data Stream error: ${err.message}`);
-            pushEvent('ERROR', this.label, `User Data Stream error: ${err.message}`, { error: err.message }, 'ws');
+
+        ws.on('error', (err) => {
+            log.error('SYSTEM', `${this.label} [${eventType}] WS error: ${err.message}`);
+            pushEvent('ERROR', this.label, `Private WS error [${eventType}]: ${err.message}`, { error: err.message, event: eventType }, 'ws');
+        });
+    }
+
+    close() {
+        PRIVATE_WS_EVENTS.forEach(evt => {
+            clearInterval(this.pingIntervals[evt]);
+            clearTimeout(this.reconnectTimers[evt]);
+            if (this.sockets[evt]) {
+                try { this.sockets[evt].close(); } catch (e) {}
+            }
         });
     }
 }
