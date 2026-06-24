@@ -14,30 +14,30 @@
     --border: rgba(255, 255, 255, 0.04); 
     --bid: #10b981; 
     --ask: #f43f5e; 
-    --cyan: #06b6d4; 
-    --yellow: #eab308; 
-    --purple: #a855f7;
-    --text-main: #f8fafc;
-    --text-muted: #94a3b8;
     --cyan: #22d3ee;
     --yellow: #facc15;
     --purple: #a855f7;
-    --ask: #f43f5e;
-    --bid: #10b981;
+    --rose: #f43f5e;
+    --emerald: #10b981;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --text-dim: #94a3b8;
     --btn-theme: #334155;
     --hdr-bg: rgba(15, 23, 42, 0.85);
     --drawer-bg: rgba(15, 23, 42, 0.95);
     --shadow: 0 8px 32px rgba(0,0,0,0.4);
+    --shadow-heavy: 0 4px 20px rgba(0, 0, 0, 0.6);
     --glass-border: rgba(255, 255, 255, 0.12);
     --glass-hover: rgba(255, 255, 255, 0.05);
     --glass-active: rgba(255, 255, 255, 0.1);
     --glass-blur: blur(12px);
+    --hover-bg: rgba(255, 255, 255, 0.05);
     --row-bg: rgba(255, 255, 255, 0.02);
-    --shadow-heavy: 0 4px 20px rgba(0, 0, 0, 0.6);
+    --row-hover: rgba(255, 255, 255, 0.06);
     --input-bg: rgba(15, 23, 42, 0.5);
     --title-grad: linear-gradient(90deg, #fff, #94a3b8);
-    --text-shadow: var(--text-shadow);
-    --text-dim: #94a3b8;
+    --text-shadow: 0 0 10px rgba(6,182,212,0.15);
+    --ease: cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   :root[data-theme="light"] {
@@ -50,23 +50,26 @@
     --cyan: #0284c7; 
     --yellow: #ca8a04; 
     --purple: #7e22ce;
+    --rose: #e11d48;
+    --emerald: #059669;
     --text-main: #0f172a;
     --text-muted: #64748b;
+    --text-dim: #64748b;
     --glass-blur: blur(24px);
     --title-grad: linear-gradient(90deg, #0f172a, #64748b);
     --btn-theme: rgba(0,0,0,0.05);
     --input-bg: rgba(255,255,255,0.6);
     --hover-bg: rgba(0,0,0,0.05);
     --row-bg: rgba(0,0,0,0.03);
+    --row-hover: rgba(0,0,0,0.06);
     --hdr-bg: rgba(255,255,255,0.85);
     --drawer-bg: rgba(248,250,252,0.95);
     --shadow: 0 8px 24px rgba(0,0,0,0.06);
+    --shadow-heavy: 0 4px 20px rgba(0, 0, 0, 0.1);
     --glass-border: rgba(0, 0, 0, 0.15);
     --glass-hover: rgba(0, 0, 0, 0.04);
     --glass-active: rgba(0, 0, 0, 0.08);
-    --text-dim: #64748b;
     --text-shadow: none;
-    --shadow-heavy: 0 4px 20px rgba(0, 0, 0, 0.1);
   }
 
   ::view-transition-old(root),
@@ -195,7 +198,7 @@
   .ticker-card:hover { transform: translateY(-2px); border-color: var(--glass-border); }
   .ticker-label { font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; font-weight:600; }
   .ticker-val   { font-size:24px; font-weight:700; font-variant-numeric:tabular-nums; margin-top:6px; font-family: 'JetBrains Mono', monospace; text-shadow: var(--text-shadow); }
-  .ticker-sub   { font-size:10px; color:#52525b; margin-top:4px; }
+  .ticker-sub   { font-size:10px; color:var(--text-muted); margin-top:4px; }
   
   /* Progress Bars */
   .hbar { height:3px; border-radius:99px; background:var(--glass-hover); overflow:hidden; margin-top:10px; }
@@ -349,6 +352,42 @@
     #term-body-wrap.show-details #live-terminal { display: none !important; }
     #term-body-wrap.show-details #term-details-pane { display: flex !important; flex: 1; }
   }
+
+  /* --- Utility Classes (deduplicates inline styles) --- */
+  
+  /* Status badge (replaces 4× inline status pill pattern in control bar) */
+  .status-badge { display:inline-flex; align-items:center; gap:6px; background:var(--row-bg); border:1px solid var(--border); border-radius:8px; padding:6px 12px; font-size:11px; font-weight:600; }
+  .status-badge .badge-label { color:var(--text-muted); font-size:10px; text-transform:uppercase; letter-spacing:0.5px; }
+  .status-badge .badge-value { color:var(--text-main); font-family:'JetBrains Mono',monospace; }
+
+  /* Drawer section header (replaces 6× inline accent bar pattern) */
+  .drawer-section { margin-bottom:16px; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px; position:relative; overflow:hidden; }
+  .drawer-section::before { content:''; position:absolute; top:0; left:0; bottom:0; width:4px; border-radius:4px 0 0 4px; }
+  .drawer-section.accent-green::before { background:linear-gradient(180deg, #10b981, #059669); }
+  .drawer-section.accent-blue::before { background:linear-gradient(180deg, #3b82f6, #2563eb); }
+  .drawer-section.accent-cyan::before { background:linear-gradient(180deg, #06b6d4, #0891b2); }
+  .drawer-section.accent-yellow::before { background:linear-gradient(180deg, #eab308, #ca8a04); }
+  .drawer-section.accent-purple::before { background:linear-gradient(180deg, #a855f7, #7e22ce); }
+  .drawer-section .section-title { font-size:11px; font-weight:700; color:var(--text-main); text-transform:uppercase; letter-spacing:1px; margin-bottom:12px; }
+
+  /* Trade input field (replaces 4× inline input pattern in order entry) */
+  .trade-input { width:100%; background:var(--input-bg); border:1px solid var(--glass-border); border-radius:8px; padding:10px 12px; color:var(--text-main); font-family:'JetBrains Mono',monospace; font-size:12px; outline:none; transition:all 0.2s; }
+  .trade-input:focus { border-color:var(--cyan); box-shadow:0 0 0 2px rgba(6,182,212,0.15), 0 0 12px rgba(6,182,212,0.08); }
+  .trade-input::placeholder { color:var(--text-muted); opacity:0.6; }
+
+  /* Spread badge (replaces 2× inline spread badge in orderbooks) */
+  .spread-badge { font-size:10px; padding:3px 10px; border-radius:99px; font-weight:700; letter-spacing:0.5px; font-family:'JetBrains Mono',monospace; }
+  .spread-badge.bid-spread { background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.2); color:var(--bid); }
+  .spread-badge.ask-spread { background:rgba(6,182,212,0.1); border:1px solid rgba(6,182,212,0.2); color:var(--cyan); }
+
+  /* Row entrance animation */
+  .row-enter { animation: slideIn 0.25s var(--ease) both; }
+  
+  /* Sell button hover via CSS (replaces inline onmouseover/onmouseout) */
+  .btn-sell-custom { background:var(--ask); color:white; border:none; transition:all 0.2s var(--ease); box-shadow:0 0 15px rgba(244,63,94,0.2); }
+  .btn-sell-custom:hover { background:#e11d48; box-shadow:0 0 20px rgba(244,63,94,0.3); transform:translateY(-1px); }
+  .btn-sell-custom:active { transform:translateY(1px); }
+
 </style>
 </head>
 <body>
@@ -493,20 +532,21 @@
 </header>
 <script>
     document.getElementById('btn-theme-toggle').addEventListener('click', (e) => {
+        const btn = e.currentTarget;
         const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
         const toggleTheme = () => {
             if (isDark) {
                 document.documentElement.setAttribute('data-theme', 'light');
-                e.currentTarget.innerHTML = '🌙';
+                btn.innerHTML = '🌙';
             } else {
                 document.documentElement.removeAttribute('data-theme');
-                e.currentTarget.innerHTML = '☀';
+                btn.innerHTML = '☀';
             }
             if (window.tvChart) {
                 const newIsLight = isDark; // isDark was before the switch
                 const text = newIsLight ? '#64748b' : '#94a3b8';
                 const grid = newIsLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.04)';
-                window.window.tvChart.applyOptions({
+                window.tvChart.applyOptions({
                     layout: { textColor: text },
                     grid: { vertLines: { color: grid }, horzLines: { color: grid } },
                     rightPriceScale: { borderColor: grid },
@@ -890,9 +930,9 @@
       <div style="flex:1;"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
         <button id="btn-buy" class="btn-success" style="padding:14px;font-size:13px;font-weight:700;letter-spacing:1px;box-shadow:0 0 15px rgba(16,185,129,0.2);" onclick="window.submitManualTrade('BUY')">BUY / LONG</button>
-        <button id="btn-sell" class="btn-primary" style="padding:14px;font-size:13px;font-weight:700;letter-spacing:1px;background:#f43f5e;color:white;border:none;box-shadow:0 0 15px rgba(244,63,94,0.2);" onclick="window.submitManualTrade('SELL')" onmouseover="this.style.background='#e11d48'" onmouseout="this.style.background='#f43f5e'">SELL / SHORT</button>
+        <button id="btn-sell" class="btn-primary btn-sell-custom" style="padding:14px;font-size:13px;font-weight:700;letter-spacing:1px;" onclick="window.submitManualTrade('SELL')">SELL / SHORT</button>
       </div>
-      <button id="btn-close" class="btn-purple" style="width:100%;padding:10px;font-size:11px;font-weight:700;letter-spacing:1px;box-shadow:0 0 15px rgba(168,85,247,0.2);margin-top:auto;" onclick="window.submitClosePosition()">⚡ CLOSE / EXIT POSITION</button>
+      <button id="btn-close-position" class="btn-purple" style="width:100%;padding:10px;font-size:11px;font-weight:700;letter-spacing:1px;box-shadow:0 0 15px rgba(168,85,247,0.2);margin-top:auto;" onclick="window.submitClosePosition()">⚡ CLOSE / EXIT POSITION</button>
     </div>
   </div>
 </div>
@@ -1486,7 +1526,7 @@ window.addEventListener('DOMContentLoaded', () => {
         let flashOn = true;
         let pPrec = 4, qPrec = 1;
         let prevBinLtp = null;
-        let knownTradeIds = new Set();
+        // knownTradeIds removed — was dead code (populated but never read)
         let cancelOnStopState = true;
         let newUserState = false;
 
@@ -1780,7 +1820,7 @@ window.addEventListener('DOMContentLoaded', () => {
             const defaultTab = document.querySelector('.tab[data-f="all"]');
             if (defaultTab) defaultTab.classList.add('on');
             document.getElementById('trade-stream').innerHTML = '<div style="text-align:center;padding:60px 0;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Loading...</div>';
-            knownTradeIds.clear();
+
 
             if (cachedInstances && cachedInstances[sym] && cachedGlobalData) {
                 renderSymbolData(cachedInstances[sym], cachedGlobalData);
@@ -1801,7 +1841,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     tradeFilter = btn.getAttribute('data-f');
                     window.pagination.trades = 1; // Reset to page 1
                     document.getElementById('trade-stream').innerHTML = '';
-                    knownTradeIds.clear();
+
                     if (cachedInstances[activeTabSymbol]) updateTradeStream(cachedInstances[activeTabSymbol].syncedTrades);
                 };
             }
@@ -2152,13 +2192,16 @@ window.addEventListener('DOMContentLoaded', () => {
         window.lastProcessedEventTs = Date.now();
         
         window.processSocketOrderUpdate = function(o, roleLabel) {
-            if (o.s !== activeTabSymbol) return; // Only process active tab symbols
+            if (o.s !== activeTabSymbol) return;
+            
+            // Map role to portfolio panel by matching against the currently selected users
+            const p1UserId = document.getElementById('sel-port-u1')?.value;
+            const p2UserId = document.getElementById('sel-port-u2')?.value;
+            const roleUserId = roleLabel === 'Maker' ? window.payload.roles.makerId : window.payload.roles.takerId;
             
             let u = null;
-            if (roleLabel === 'Maker' && window.payload.roles.makerId === 'user1') u = 'u1';
-            else if (roleLabel === 'Maker' && window.payload.roles.makerId === 'user2') u = 'u2';
-            else if (roleLabel === 'Taker' && window.payload.roles.takerId === 'user1') u = 'u1';
-            else if (roleLabel === 'Taker' && window.payload.roles.takerId === 'user2') u = 'u2';
+            if (roleUserId === p1UserId) u = 'u1';
+            else if (roleUserId === p2UserId) u = 'u2';
             
             if (!u) return;
 
@@ -2201,12 +2244,14 @@ window.addEventListener('DOMContentLoaded', () => {
         };
 
         let es;
+        let sseReconnectDelay = 2500;
+        const SSE_MAX_DELAY = 30000;
         function connectSSE() {
             if (es) es.close();
             es = new EventSource('/events');
 
             es.onopen = () => {
-                knownTradeIds.clear();
+                sseReconnectDelay = 2500; // Reset backoff on success
                 prevBinLtp = null;
                 const sp = document.getElementById('splash');
                 if (sp) { sp.classList.add('hidden'); setTimeout(()=>sp.remove(),500); }
@@ -2218,8 +2263,14 @@ window.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('dot').className = 'dot-dead';
                 document.getElementById('c-eng').innerHTML = "<span class='c-rose fw-bold'>DISCONNECTED</span>";
                 es.close();
-                setTimeout(connectSSE, 2500);
+                setTimeout(connectSSE, sseReconnectDelay);
+                sseReconnectDelay = Math.min(sseReconnectDelay * 2, SSE_MAX_DELAY); // Exponential backoff
             };
+
+            window.addEventListener('beforeunload', () => {
+                if (es) es.close();
+                if (window.tvWs) window.tvWs.close();
+            }, { once: true });
 
             es.onmessage = (ev) => {
                 let data;
@@ -2342,23 +2393,7 @@ window.addEventListener('DOMContentLoaded', () => {
             if (window.activeTermTab === 'events') window.renderTerminalLogs(window.cachedTerminalEvents);
         };
 
-        window.setTermTab = function(tab) {
-            window.activeTermTab = tab;
-            document.querySelectorAll('.term-tab').forEach(el => {
-                if (el.id === 'term-tab-' + tab) {
-                    el.classList.add('on');
-                    el.style.background = 'rgba(6,182,212,0.15)';
-                    el.style.borderColor = 'rgba(6,182,212,0.3)';
-                    el.style.color = 'var(--text-main)';
-                } else {
-                    el.classList.remove('on');
-                    el.style.background = 'rgba(255,255,255,0.03)';
-                    el.style.borderColor = 'transparent';
-                    el.style.color = 'var(--text-muted)';
-                }
-            });
-            window.renderTerminalLogs(tab === 'events' ? window.cachedTerminalEvents : window.cachedTerminalLogs);
-        };
+        // setTermTab is defined once at L1463 with per-tab color coding — do not redefine here
 
         window.toggleAutoScroll = function() {
             terminalAutoScroll = !terminalAutoScroll;
@@ -2738,17 +2773,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 window.injectTerminalEvent('ERROR', pair, `[WS] Failed to start Kline stream: ${e.message}`);
             }
             
-            if (window.tvResizeObserver) {
-                window.tvResizeObserver.disconnect();
-            }
-            window.tvResizeObserver = new ResizeObserver(entries => {
-                if (!window.tvChart || entries.length === 0 || entries[0].target !== container) return;
-                const newRect = entries[0].contentRect;
-                if (newRect.width > 0 && newRect.height > 0) {
-                    window.tvChart.applyOptions({ width: newRect.width, height: newRect.height });
-                }
-            });
-            window.tvResizeObserver.observe(container);
+            // ResizeObserver is already created above in the chart init block — no duplicate needed
         };
 
         window.initCustomSelects();

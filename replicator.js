@@ -20,7 +20,7 @@ async function emitOrderEvent(type, payload) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ type, ...payload }),
         }).catch(() => {});
-    } catch {}
+    } catch(e) { /* intentional: fire-and-forget event emission */ }
 }
 
 
@@ -290,7 +290,7 @@ async function syncServerTime() {
                     return;
                 }
             }
-        } catch (e) {}
+        } catch (e) { log.debug && log.debug('SYSTEM', e.message); }
     }
     log.warn('SYSTEM', `Time sync failed across all endpoints. Using local system clock.`);
 }
@@ -402,6 +402,7 @@ class PrivateWsClient {
     }
     
     connect() {
+        if (this.reconnectTimer) { clearTimeout(this.reconnectTimer); this.reconnectTimer = null; }
         if (this.ws) this.ws.close();
         const url = `wss://testnet-futures-socket-gateway.dcxstage.com/private/ws?listenKey=${this.listenKey}&events=ORDER_TRADE_UPDATE`;
         log.info('SYSTEM', `Connecting ${this.label} User Data Stream...`);
@@ -481,6 +482,7 @@ class ReplicatorInstance {
         this.wsBinanceDepth  = null;
         this.wsBinanceTrades = null;
         this.wsTestnet       = null;
+        this.wsTestnetTicker = null;
         this.testnetPingInterval = null;
 
         this.testnetLatency    = 0;
@@ -489,6 +491,14 @@ class ReplicatorInstance {
         this.totalSyncAttempts = 0;
         this.successfulSyncs   = 0;
         this.hasLoggedAuthError = false;
+
+        // H6: TTL cleanup for stale inFlightTakerOrders entries (30s expiry, checked every 15s)
+        setInterval(() => {
+            const now = Date.now();
+            for (const [id, entry] of this.inFlightTakerOrders.entries()) {
+                if (now - entry.ts > 30000) this.inFlightTakerOrders.delete(id);
+            }
+        }, 15000);
 
         this.makerWs = new PrivateWsClient(globalUsers[globalRoles.makerId].listenKey, this.onMakerWsEvent.bind(this), 'Maker');
         this.takerWs = new PrivateWsClient(globalUsers[globalRoles.takerId].listenKey, this.onTakerWsEvent.bind(this), 'Taker');
@@ -542,7 +552,7 @@ class ReplicatorInstance {
             }
             
             this.syncedTrades.unshift({
-                id: Date.now() + Math.random().toString(),
+                id: crypto.randomUUID(),
                 time: getISTTimeString(),
                 price: context.limitPrice,
                 avgPrice: o.ap && parseFloat(o.ap) > 0 ? String(o.ap) : null,
@@ -1023,8 +1033,9 @@ class ReplicatorInstance {
     }
 
     async syncGrid(side, sourceLevels) {
-        if (this.isSyncingGrid) return;
-        this.isSyncingGrid = true;
+        const guardKey = 'isSyncing' + side;
+        if (this[guardKey]) return;
+        this[guardKey] = true;
         try {
             ScenarioEngine.tick(this.symbol);
         const transformer = ScenarioEngine.getTransformer(this.symbol);
@@ -1134,7 +1145,7 @@ class ReplicatorInstance {
 
             await Promise.allSettled([...modifyBatch, ...placeBatch, ...cancelBatch]);
             if (isBuy) this.restingBids = activePool; else this.restingAsks = activePool;
-        } finally { this.isSyncingGrid = false; }
+        } finally { this[guardKey] = false; }
     }
 
     async refreshRestingStatuses(openOrdersData) {
@@ -1233,7 +1244,8 @@ class ReplicatorInstance {
                 makerOrderId: finalMakerId,
                 limitPrice: pStr,
                 expectedQty: String(scaledQty),
-                binanceQty: trade.q
+                binanceQty: trade.q,
+                ts: Date.now()
             });
 
             emitOrderEvent('order:fill_attempt', {
@@ -1250,7 +1262,7 @@ class ReplicatorInstance {
                 // HTTP rejection (e.g. margin limit). Push failure immediately to UI
                 this.inFlightTakerOrders.delete(clientOrderId);
                 this.syncedTrades.unshift({
-                    id: Date.now() + Math.random().toString(),
+                    id: crypto.randomUUID(),
                     time: getISTTimeString(),
                     price: pStr,
                     avgPrice: null,
@@ -1287,13 +1299,13 @@ class ReplicatorInstance {
                                     avgPrice: checkRes.data.avgPrice
                                 };
                             }
-                        } catch(e) {}
+                        } catch(e) { log.debug && log.debug('SYSTEM', e.message); }
                     }
 
                     const executedQty = finalTakerRes.executedQty || String(scaledQty);
                     this.inFlightTakerOrders.delete(clientOrderId);
                     this.syncedTrades.unshift({
-                        id: Date.now() + Math.random().toString(),
+                        id: crypto.randomUUID(),
                         time: getISTTimeString(),
                         price: pStr,
                         avgPrice: finalTakerRes.avgPrice || null,
@@ -1327,8 +1339,13 @@ class ReplicatorInstance {
         if (this.tradeQueue.length > 50) this.tradeQueue.splice(0, this.tradeQueue.length - 20);
         if (this.isCrossing) return;
         this.isCrossing = true;
-        while (this.tradeQueue.length > 0) await this.handleTrade(this.tradeQueue.shift());
-        this.isCrossing = false;
+        try {
+            while (this.tradeQueue.length > 0) await this.handleTrade(this.tradeQueue.shift());
+        } catch(e) {
+            log.error(this.sourceSymbol, `Trade queue error: ${e.message}`);
+        } finally {
+            this.isCrossing = false;
+        }
     }
 
 startBinanceDepthWS() {
@@ -1349,14 +1366,12 @@ startBinanceDepthWS() {
                 if (bids && asks) {
                     this.binanceDepth.bids = bids.slice(0, this.depthLevels);
                     this.binanceDepth.asks = asks.slice(0, this.depthLevels);
-                    if (!this.isSyncingGrid) {
-                        this.syncGrid('BUY', this.binanceDepth.bids);
-                        this.syncGrid('SELL', this.binanceDepth.asks);
-                    }
+                    this.syncGrid('BUY', this.binanceDepth.bids);
+                    this.syncGrid('SELL', this.binanceDepth.asks);
                 }
-            } catch (e) {}
+            } catch (e) { log.debug && log.debug('SYSTEM', e.message); }
         });
-        this.wsBinanceDepth.on('error', () => {});
+        this.wsBinanceDepth.on('error', (err) => { log.debug && log.debug(this.symbol, `Binance Depth WS error: ${err.message}`); });
         this.wsBinanceDepth.on('close', () => { this.wsBinanceDepth = null; if (this.status !== 'STOPPED') setTimeout(() => this.startBinanceDepthWS(), 3000); });
     }
 
@@ -1378,9 +1393,9 @@ startBinanceDepthWS() {
                         this.processTradeQueue();
                     }
                 }
-            } catch (e) {}
+            } catch (e) { log.debug && log.debug('SYSTEM', e.message); }
         });
-        this.wsBinanceTrades.on('error', () => {});
+        this.wsBinanceTrades.on('error', (err) => { log.debug && log.debug(this.symbol, `Binance Trades WS error: ${err.message}`); });
         this.wsBinanceTrades.on('close', () => { this.wsBinanceTrades = null; if (this.status !== 'STOPPED') setTimeout(() => this.startBinanceTradesWS(), 3000); });
     }
 
@@ -1399,15 +1414,16 @@ startBinanceDepthWS() {
                     this.testnetLtp = parseFloat(data.c);
                     broadcastToUI();
                 }
-            } catch(e) {}
+            } catch(e) { log.debug && log.debug('SYSTEM', e.message); }
         });
         this.wsTestnetTicker.on('close', () => { this.wsTestnetTicker = null; if (this.status !== 'STOPPED') setTimeout(() => this.startTestnetTickerWS(), 3000); });
-        this.wsTestnetTicker.on('error', () => {});
+        this.wsTestnetTicker.on('error', (err) => { log.debug && log.debug(this.symbol, `Testnet Ticker WS error: ${err.message}`); });
     }
 
 
 
     startTestnetWS() {
+        clearInterval(this.testnetPingInterval);
         if (this.wsTestnet) return;
         const sym = this.symbol.toLowerCase(); // Target Symbol
         const streamUrl = `wss://testnet-futures-socket-gateway.dcxstage.com/public/ws/${sym}@depth20`;
@@ -1426,10 +1442,10 @@ startBinanceDepthWS() {
                     this.testnetDepth.asks = asks.slice(0, this.depthLevels);
                     broadcastToUI();
                 }
-            } catch (e) {}
+            } catch (e) { log.debug && log.debug('SYSTEM', e.message); }
         });
-        this.wsTestnet.on('error', () => {});
-        this.wsTestnet.on('close', () => { this.wsTestnet = null; if (this.status !== 'STOPPED') setTimeout(() => this.startTestnetWS(), 3000); });
+        this.wsTestnet.on('error', (err) => { log.debug && log.debug(this.symbol, `Testnet Depth WS error: ${err.message}`); });
+        this.wsTestnet.on('close', () => { clearInterval(this.testnetPingInterval); this.wsTestnet = null; if (this.status !== 'STOPPED') setTimeout(() => this.startTestnetWS(), 3000); });
         this.wsTestnet.on('open', () => { this.testnetPingInterval = setInterval(() => { if (this.wsTestnet && this.wsTestnet.readyState === WebSocket.OPEN) this.wsTestnet.ping(); }, 30000); });
     }
 
@@ -1463,7 +1479,7 @@ startBinanceDepthWS() {
                     const data = await res.json();
                     if (data.bids && data.asks) { this.testnetDepth = { bids: data.bids, asks: data.asks }; broadcastToUI(); break; }
                 }
-            } catch (e) {}
+            } catch (e) { log.debug && log.debug('SYSTEM', e.message); }
         }
         if (this.wsTestnet) { clearInterval(this.testnetPingInterval); this.wsTestnet.removeAllListeners('close'); this.wsTestnet.close(); this.wsTestnet = null; }
         this.startTestnetWS();
@@ -1508,6 +1524,7 @@ startBinanceDepthWS() {
         if (this.wsBinanceDepth)  { this.wsBinanceDepth.removeAllListeners('close');  this.wsBinanceDepth.close();  this.wsBinanceDepth = null; }
         if (this.wsBinanceTrades) { this.wsBinanceTrades.removeAllListeners('close'); this.wsBinanceTrades.close(); this.wsBinanceTrades = null; }
         if (this.wsTestnet) { clearInterval(this.testnetPingInterval); this.wsTestnet.removeAllListeners('close'); this.wsTestnet.close(); this.wsTestnet = null; }
+        if (this.wsTestnetTicker) { try { this.wsTestnetTicker.removeAllListeners('close'); this.wsTestnetTicker.close(); } catch(e) { /* intentional: WS may already be closed */ } this.wsTestnetTicker = null; }
         if (this.cancelOnStop) await this.wipeOrders(); else { this.restingBids = []; this.restingAsks = []; }
     }
 }
@@ -1595,7 +1612,7 @@ async function globalMasterLoop() {
                 }
             });
         }
-    } catch (e) {}
+    } catch (e) { log.debug && log.debug('SYSTEM', e.message); }
     finally {
         broadcastToUI();
         // The loop interval is now configured per-market, but we need a master loop.
@@ -1653,17 +1670,30 @@ function buildPayload() {
     });
 }
 
+let lastBroadcastTime = 0;
 function broadcastToUI() {
+    const now = Date.now();
+    if (now - lastBroadcastTime < 1000) return;
+    lastBroadcastTime = now;
     const payload = buildPayload();
-    // Push to any connected SSE browser clients
+    // Push to any connected SSE browser clients — filter out dead connections
     if (sseClients.length > 0) {
-        sseClients.forEach(c => c.write(`data: ${payload}\n\n`));
+        sseClients = sseClients.filter(c => {
+            try { c.write(`data: ${payload}\n\n`); return true; }
+            catch(e) { try { c.end(); } catch(x) {} return false; }
+        });
     }
     // Always write to state file so Jenkins userContent UI can poll it
     writeStateFile(payload);
 }
 
 const server = http.createServer(async (req, res) => {
+    // M7: CORS headers for all requests
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-replicator-user');
+    if (req.method === 'OPTIONS') { res.writeHead(204).end(); return; }
+
     if (req.url === '/events') {
         res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
         res.flushHeaders();
@@ -1674,13 +1704,13 @@ const server = http.createServer(async (req, res) => {
         try {
             const snapshot = buildPayload();
             res.write(`data: ${snapshot}\n\n`);
-        } catch (e) {}
+        } catch (e) { log.debug && log.debug('SYSTEM', e.message); }
         return;
     }
 
     if (req.method === 'POST') {
         let body = '';
-        req.on('data', chunk => body += chunk);
+        req.on('data', chunk => { body += chunk; if (body.length > 1e6) { req.destroy(); return; } });
         req.on('end', async () => {
             try {
                 const parsed = JSON.parse(body);
@@ -1713,6 +1743,7 @@ const server = http.createServer(async (req, res) => {
 
                 if (req.url.startsWith('/api/scenario/preset/')) {
                     const presetName = req.url.split('/').pop().split('?')[0];
+                    if (!/^[a-zA-Z0-9_-]+$/.test(presetName)) { res.writeHead(400).end(JSON.stringify({ error: 'Invalid preset name' })); return; }
                     const presetPath = path.join(__dirname, 'scenarios', `${presetName}.json`);
                     if (!fs.existsSync(presetPath)) { res.writeHead(404); return res.end(JSON.stringify({ error: `Preset ${presetName} not found` })); }
                     const presetCfg = JSON.parse(fs.readFileSync(presetPath, 'utf8'));
@@ -1784,9 +1815,11 @@ const server = http.createServer(async (req, res) => {
                     } else if (parsed.action === 'generate') {
                         const id = parsed.id;
                         if (!id) throw new Error("User ID is required for generation");
+                        if (!/^[a-zA-Z0-9_-]+$/.test(id)) throw new Error('Invalid user ID format');
                         log.info('SYSTEM', `Generating new user credentials for ${id}...`);
-                        const execAsync = require('util').promisify(require('child_process').exec);
-                        const { stdout } = await execAsync(`node scripts/generate-single.js ${id}`);
+                        const { execFile } = require('child_process');
+                        const execFileAsync = require('util').promisify(execFile);
+                        const { stdout } = await execFileAsync('node', ['scripts/generate-single.js', id]);
                         const result = JSON.parse(stdout.trim());
                         globalUsers[id] = { label: id, key: result.key, secret: result.secret, email: result.email, listenKey: '' };
                         lastPortfolioSyncTime = 0;
@@ -1818,7 +1851,7 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === 'DELETE') {
         let body = '';
-        req.on('data', chunk => body += chunk);
+        req.on('data', chunk => { body += chunk; if (body.length > 1e6) { req.destroy(); return; } });
         req.on('end', () => {
             try {
                 const parsed = JSON.parse(body);

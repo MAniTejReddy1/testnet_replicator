@@ -123,12 +123,17 @@ class ScenarioEngine {
                 return; // Never recover, lock the premium
             } else if (state.config.recovery === 'ping-pong') {
                 if (holdMs > 0 && elapsed >= holdMs) {
-                    state.phase = 'RAMPING';
-                    state.pingPongCycle++;
-                    state.phaseStartTime = now;
-                    // Flip the target multiplier
-                    const diff = state.targetMultiplier - 1.0;
-                    state.targetMultiplier = 1.0 - diff;
+                    if (state.pingPongCycle >= (state.config.maxCycles || 10)) {
+                        state.phase = 'RECOVERING';
+                        state.phaseStartTime = now;
+                    } else {
+                        state.phase = 'RAMPING';
+                        state.pingPongCycle++;
+                        state.phaseStartTime = now;
+                        // Flip the target multiplier
+                        const diff = state.targetMultiplier - 1.0;
+                        state.targetMultiplier = 1.0 - diff;
+                    }
                 }
             } else if (holdMs > 0 && Math.abs(elapsed) >= holdMs) { // use absolute just in case
                 state.phase = 'RECOVERING';
