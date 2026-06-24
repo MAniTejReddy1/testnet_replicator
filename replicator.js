@@ -387,6 +387,65 @@ function applyBuffer(priceStr, side, bufferPct, symbol) {
     return formatPrice(String(raw * multiplier), symbol);
 }
 
+// Global user data stream WebSocket clients (persists across instance restarts)
+const globalUserWsClients = {};
+
+async function fetchListenKeys() {
+    log.info('SYSTEM', 'Checking listen keys for user data streams...');
+    for (const [userId, userConfig] of Object.entries(globalUsers)) {
+        // If listen key already set (from env or config), connect directly
+        if (userConfig.listenKey) {
+            log.success('SYSTEM', `Listen key pre-configured for ${userConfig.label || userId} — connecting...`);
+            if (!globalUserWsClients[userId]) {
+                globalUserWsClients[userId] = new PrivateWsClient(
+                    userConfig.listenKey,
+                    () => {},
+                    userConfig.label || userId
+                );
+            }
+            continue;
+        }
+        
+        if (!userConfig.key || !userConfig.secret) continue;
+
+        // Try to fetch listen key from API (may not exist on all platforms)
+        try {
+            const res = await sendSignedRequest(
+                `https://testnet-futures-hpo.dcxstage.com/fapi/v1/listenKey`,
+                'POST', null, userConfig
+            );
+            if (res.ok && res.data && res.data.listenKey) {
+                userConfig.listenKey = res.data.listenKey;
+                log.success('SYSTEM', `Listen key obtained for ${userConfig.label || userId}`);
+                globalUserWsClients[userId] = new PrivateWsClient(
+                    userConfig.listenKey,
+                    () => {},
+                    userConfig.label || userId
+                );
+            } else {
+                log.info('SYSTEM', `Listen key API not available for ${userConfig.label || userId} — private WS events will use instance connections.`);
+            }
+        } catch (e) {
+            log.info('SYSTEM', `Listen key not available for ${userConfig.label || userId} — skipping.`);
+        }
+    }
+}
+
+// Keepalive: PUT to refresh listen keys every 30 minutes
+function startListenKeyKeepalive() {
+    setInterval(async () => {
+        for (const [userId, userConfig] of Object.entries(globalUsers)) {
+            if (!userConfig.listenKey) continue;
+            try {
+                await sendSignedRequest(
+                    `https://testnet-futures-hpo.dcxstage.com/fapi/v1/listenKey`,
+                    'PUT', { listenKey: userConfig.listenKey }, userConfig
+                );
+            } catch (e) { /* silently ignore if not supported */ }
+        }
+    }, 30 * 60 * 1000);
+}
+
 // ==========================================
 // 3. Replicator Engine Instance
 // ==========================================
@@ -1378,7 +1437,7 @@ startBinanceDepthWS() {
         const url = `wss://fstream.binance.com/public/ws/${sym}@depth20@100ms`;
 
         this.wsBinanceDepth = new WebSocket(url);
-        this.wsBinanceDepth.on('open', () => { log.success(this.symbol, 'Binance Depth WS connected.'); this.binanceLatency = Date.now() - startTime; });
+        this.wsBinanceDepth.on('open', () => { pushEvent('SUCCESS', this.symbol, `Binance Depth WS connected`, { stream: 'depth' }); this.binanceLatency = Date.now() - startTime; });
         this.wsBinanceDepth.on('message', (raw) => {
             if (this.status === 'STOPPED') return;
             try {
@@ -1394,8 +1453,8 @@ startBinanceDepthWS() {
                 }
             } catch (e) { log.debug && log.debug('SYSTEM', e.message); }
         });
-        this.wsBinanceDepth.on('error', (err) => { log.debug && log.debug(this.symbol, `Binance Depth WS error: ${err.message}`); });
-        this.wsBinanceDepth.on('close', () => { this.wsBinanceDepth = null; if (this.status !== 'STOPPED') setTimeout(() => this.startBinanceDepthWS(), 3000); });
+        this.wsBinanceDepth.on('error', (err) => { pushEvent('ERROR', this.symbol, `Binance Depth WS error: ${err.message}`); });
+        this.wsBinanceDepth.on('close', () => { pushEvent('WARN', this.symbol, `Binance Depth WS disconnected — reconnecting...`); this.wsBinanceDepth = null; if (this.status !== 'STOPPED') setTimeout(() => this.startBinanceDepthWS(), 3000); });
     }
 
     startBinanceTradesWS() {
@@ -1404,7 +1463,7 @@ startBinanceDepthWS() {
         const url = `wss://fstream.binance.com/market/ws/${sym}@aggTrade`;
 
         this.wsBinanceTrades = new WebSocket(url);
-        this.wsBinanceTrades.on('open', () => log.success(this.symbol, 'Binance Trades WS connected.'));
+        this.wsBinanceTrades.on('open', () => { pushEvent('SUCCESS', this.symbol, `Binance Trades WS connected`, { stream: 'aggTrade' }); });
         this.wsBinanceTrades.on('message', (raw) => {
             if (this.status === 'STOPPED') return;
             try {
@@ -1418,8 +1477,8 @@ startBinanceDepthWS() {
                 }
             } catch (e) { log.debug && log.debug('SYSTEM', e.message); }
         });
-        this.wsBinanceTrades.on('error', (err) => { log.debug && log.debug(this.symbol, `Binance Trades WS error: ${err.message}`); });
-        this.wsBinanceTrades.on('close', () => { this.wsBinanceTrades = null; if (this.status !== 'STOPPED') setTimeout(() => this.startBinanceTradesWS(), 3000); });
+        this.wsBinanceTrades.on('error', (err) => { pushEvent('ERROR', this.symbol, `Binance Trades WS error: ${err.message}`); });
+        this.wsBinanceTrades.on('close', () => { pushEvent('WARN', this.symbol, `Binance Trades WS disconnected — reconnecting...`); this.wsBinanceTrades = null; if (this.status !== 'STOPPED') setTimeout(() => this.startBinanceTradesWS(), 3000); });
     }
 
 
@@ -1429,18 +1488,26 @@ startBinanceDepthWS() {
         const streamUrl = `wss://testnet-futures-socket-gateway.dcxstage.com/market/ws/${sym}@ticker`;
         log.info(this.symbol, `[WS] Connecting to 24h Ticker...`);
         this.wsTestnetTicker = new WebSocket(streamUrl);
+        this.wsTestnetTicker.on('open', () => { pushEvent('SUCCESS', this.symbol, `Testnet Ticker WS connected`, { stream: '24hrTicker' }); });
+        this._lastTickerEventTs = 0;
         this.wsTestnetTicker.on('message', (raw) => {
             if (this.status === 'STOPPED') return;
             try {
                 const data = JSON.parse(raw.toString());
                 if (data.e === '24hrTicker') {
                     this.testnetLtp = parseFloat(data.c);
+                    // Push ticker event every 10 seconds (throttled to avoid flood)
+                    const now = Date.now();
+                    if (now - this._lastTickerEventTs > 10000) {
+                        this._lastTickerEventTs = now;
+                        pushEvent('EVENT', this.symbol, `Ticker: LTP $${parseFloat(data.c).toFixed(2)} | 24h Vol: ${parseFloat(data.v || 0).toFixed(0)} | Change: ${parseFloat(data.P || 0).toFixed(2)}%`, data);
+                    }
                     broadcastToUI();
                 }
             } catch(e) { log.debug && log.debug('SYSTEM', e.message); }
         });
-        this.wsTestnetTicker.on('close', () => { this.wsTestnetTicker = null; if (this.status !== 'STOPPED') setTimeout(() => this.startTestnetTickerWS(), 3000); });
-        this.wsTestnetTicker.on('error', (err) => { log.debug && log.debug(this.symbol, `Testnet Ticker WS error: ${err.message}`); });
+        this.wsTestnetTicker.on('close', () => { pushEvent('WARN', this.symbol, `Testnet Ticker WS disconnected — reconnecting...`); this.wsTestnetTicker = null; if (this.status !== 'STOPPED') setTimeout(() => this.startTestnetTickerWS(), 3000); });
+        this.wsTestnetTicker.on('error', (err) => { pushEvent('ERROR', this.symbol, `Testnet Ticker WS error: ${err.message}`); });
     }
 
 
@@ -1451,12 +1518,15 @@ startBinanceDepthWS() {
         const sym = this.symbol.toLowerCase(); // Target Symbol
         const streamUrl = `wss://testnet-futures-socket-gateway.dcxstage.com/public/ws/${sym}@depth20`;
         this.wsTestnet = new WebSocket(streamUrl);
+        this.wsTestnet.on('open', () => {
+            pushEvent('SUCCESS', this.symbol, `Testnet Depth WS connected`, { stream: 'depth20' });
+            this.testnetPingInterval = setInterval(() => { if (this.wsTestnet && this.wsTestnet.readyState === WebSocket.OPEN) this.wsTestnet.ping(); }, 30000);
+        });
 
         this.wsTestnet.on('message', (raw) => {
             if (this.status === 'STOPPED') return;
             try {
                 const data = JSON.parse(raw.toString());
-                pushEvent('EVENT', this.symbol, `WS Public Update: ${data.e || 'depthUpdate'}`, data);
                 const bids = data.bids || data.b;
                 const asks = data.asks || data.a;
                 
@@ -1467,9 +1537,8 @@ startBinanceDepthWS() {
                 }
             } catch (e) { log.debug && log.debug('SYSTEM', e.message); }
         });
-        this.wsTestnet.on('error', (err) => { log.debug && log.debug(this.symbol, `Testnet Depth WS error: ${err.message}`); });
-        this.wsTestnet.on('close', () => { clearInterval(this.testnetPingInterval); this.wsTestnet = null; if (this.status !== 'STOPPED') setTimeout(() => this.startTestnetWS(), 3000); });
-        this.wsTestnet.on('open', () => { this.testnetPingInterval = setInterval(() => { if (this.wsTestnet && this.wsTestnet.readyState === WebSocket.OPEN) this.wsTestnet.ping(); }, 30000); });
+        this.wsTestnet.on('error', (err) => { pushEvent('ERROR', this.symbol, `Testnet Depth WS error: ${err.message}`); });
+        this.wsTestnet.on('close', () => { clearInterval(this.testnetPingInterval); pushEvent('WARN', this.symbol, `Testnet Depth WS disconnected — reconnecting...`); this.wsTestnet = null; if (this.status !== 'STOPPED') setTimeout(() => this.startTestnetWS(), 3000); });
     }
 
     async wipeOrders() {
@@ -1922,6 +1991,10 @@ async function startBots() {
     log.success('SYSTEM', '===========================================================');
 
     await Promise.allSettled([syncServerTime(), loadInstruments()]);
+    
+    // Fetch listen keys and connect user data streams for real-time events
+    await fetchListenKeys();
+    startListenKeyKeepalive();
     
     for (const marketConf of marketConfigs) {
         const targetSym = (marketConf.targetSymbol || marketConf.sourceSymbol).toUpperCase();
