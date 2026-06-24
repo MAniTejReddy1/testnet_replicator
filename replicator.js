@@ -659,6 +659,7 @@ class ReplicatorInstance {
                 });
             } else {
                 log.success(this.symbol, `[EXECUTION] Trade synced! Filled ${executedQty} @ ${o.ap || context.limitPrice}`);
+                pushEvent('SUCCESS', this.symbol, `Trade Executed | Filled: ${executedQty} @ ${o.ap || context.limitPrice} | Status: ${finalStatus}`, { makerOrderId: context.makerOrderId, takerOrderId: o.i, executedQty, avgPrice: o.ap || context.limitPrice, status: finalStatus }, 'order');
                 emitOrderEvent('order:fill_success', {
                     symbol: this.symbol,
                     makerOrderId: context.makerOrderId,
@@ -732,6 +733,13 @@ class ReplicatorInstance {
 
         if (res.ok) {
             log.debug(this.symbol, `[ORDER-POST] ${userLabel} placed OK. ID: ${res.data.orderId || res.data.id}`);
+            const oid = res.data.orderId || res.data.id;
+            const execQty = res.data.executedQty || '0';
+            const status = res.data.status || 'NEW';
+            pushEvent('SUCCESS', this.symbol, `Order Placed | ${side} ${orderType} | Qty: ${qty} @ ${bufferedPrice || 'MKT'} | ID: ${oid} | Status: ${status}`, { orderId: oid, side, qty, price: bufferedPrice, type: orderType, status, executedQty: execQty, user: userLabel, raw: res.data }, 'order');
+            if (parseFloat(execQty) > 0) {
+                pushEvent('EVENT', this.symbol, `Order Filled | ${side} | Filled: ${execQty} @ ${res.data.avgPrice || bufferedPrice}`, { orderId: oid, executedQty: execQty, avgPrice: res.data.avgPrice, raw: res.data }, 'order');
+            }
             emitOrderEvent('order:placed', {
                 symbol: this.symbol,
                 side,
@@ -753,6 +761,7 @@ class ReplicatorInstance {
             };
         }
         log.error(this.symbol, `[ORDER-FAIL] ${userLabel} failed: ${JSON.stringify(res.data || res.error)}`);
+        pushEvent('ERROR', this.symbol, `Order Failed | ${side} ${orderType} | Qty: ${qty} @ ${bufferedPrice || 'MKT'} | ${res.data?.msg || res.error || 'Unknown'}`, { side, qty, price: bufferedPrice, type: orderType, user: userLabel, error: res.data || res.error }, 'order');
         emitOrderEvent('order:place_failed', {
             symbol: this.symbol,
             side,
@@ -786,6 +795,7 @@ class ReplicatorInstance {
         
         if (res.ok) {
             log.debug(this.symbol, `[MODIFY-POST] Modified OK. ID: ${orderId}`);
+            pushEvent('EVENT', this.symbol, `Order Modified | ${side} | Qty: ${qty} @ ${bufferedPrice} | ID: ${orderId}`, { orderId, side, newPrice: bufferedPrice, newQty: qty, latencyMs: res.latencyMs }, 'order');
             emitOrderEvent('order:modified', {
                 symbol: this.symbol,
                 orderId,
@@ -799,6 +809,7 @@ class ReplicatorInstance {
                 log.debug(this.symbol, `[MODIFY-TERMINAL] ID: ${orderId} terminal (${res.data?.code}). Handled automatically.`);
             } else {
                 log.error(this.symbol, `[MODIFY-FAIL] ID: ${orderId} failed: ${JSON.stringify(res.data || res.error)}`);
+                pushEvent('ERROR', this.symbol, `Modify Failed | ${side} | ID: ${orderId} | ${res.data?.msg || 'Unknown'}`, { orderId, side, newPrice: bufferedPrice, newQty: qty, error: res.data || res.error }, 'order');
             }
             emitOrderEvent('order:modify_failed', {
                 symbol: this.symbol,
@@ -1047,6 +1058,7 @@ class ReplicatorInstance {
         if (res.status === 401) this.handleAuthFailure(userLabel);
         if (res.ok) {
             log.debug(this.symbol, `[CANCEL-POST] Cancelled OK. ID: ${orderId}`);
+            pushEvent('EVENT', this.symbol, `Order Cancelled | ${side || '?'} | Price: ${price || '-'} | ID: ${orderId}`, { orderId, side, price, isTaker, latencyMs: res.latencyMs }, 'order');
             emitOrderEvent('order:cancelled', {
                 symbol: this.symbol,
                 orderId,
@@ -1061,6 +1073,7 @@ class ReplicatorInstance {
                 log.warn(this.symbol, `[CANCEL-IGNORE] ID: ${orderId} message: ${res.data.msg}`);
             } else {
                 log.error(this.symbol, `[CANCEL-FAIL] ID: ${orderId} failed: ${JSON.stringify(res.data || res.error)}`);
+                pushEvent('ERROR', this.symbol, `Cancel Failed | ID: ${orderId} | ${res.data?.msg || 'Unknown'}`, { orderId, isTaker, error: res.data || res.error }, 'order');
             }
             emitOrderEvent('order:cancel_failed', {
                 symbol: this.symbol,
