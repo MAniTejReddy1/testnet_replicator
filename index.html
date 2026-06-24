@@ -2464,29 +2464,46 @@ window.addEventListener('DOMContentLoaded', () => {
 
         window.toggleAutoScroll = function() {
             terminalAutoScroll = !terminalAutoScroll;
+            _userScrolledUp = !terminalAutoScroll;
             document.getElementById('term-scroll-tog').className = terminalAutoScroll ? 'tog on' : 'tog off';
             if (terminalAutoScroll) {
+                _userScrolledUp = false;
                 const term = document.getElementById('live-terminal');
-                if (term) term.scrollTop = term.scrollHeight;
+                if (term) {
+                    _programmaticScroll = true;
+                    term.scrollTop = term.scrollHeight;
+                    _programmaticScroll = false;
+                }
             }
         };
 
         const termEl = document.getElementById('live-terminal');
-        let _isRendering = false; // Guard flag to prevent scroll handler from interfering during DOM updates
+        // Track whether the user has manually scrolled up.
+        // This is set by a REAL user scroll (mousewheel/touch), not by programmatic scrollTop.
+        let _userScrolledUp = false;
+        let _programmaticScroll = false;
         if (termEl) {
+            // Detect real user scrolls UP — disable auto-scroll
+            termEl.addEventListener('wheel', (e) => {
+                if (e.deltaY < 0) { // Scrolling UP
+                    _userScrolledUp = true;
+                    terminalAutoScroll = false;
+                    document.getElementById('term-scroll-tog').className = 'tog off';
+                }
+            }, { passive: true });
+            termEl.addEventListener('touchmove', () => {
+                _userScrolledUp = true;
+                terminalAutoScroll = false;
+                document.getElementById('term-scroll-tog').className = 'tog off';
+            }, { passive: true });
             termEl.addEventListener('scroll', () => {
-                if (_isRendering) return; // Skip during DOM updates
+                if (_programmaticScroll) return;
+                // If user scrolled back to the bottom, re-enable auto-scroll
                 const distFromBottom = termEl.scrollHeight - termEl.scrollTop - termEl.clientHeight;
                 if (distFromBottom < 20) {
-                    if (!terminalAutoScroll) {
-                        terminalAutoScroll = true;
-                        document.getElementById('term-scroll-tog').className = 'tog on';
-                    }
-                } else {
-                    if (terminalAutoScroll) {
-                        terminalAutoScroll = false;
-                        document.getElementById('term-scroll-tog').className = 'tog off';
-                    }
+                    _userScrolledUp = false;
+                    terminalAutoScroll = true;
+                    document.getElementById('term-scroll-tog').className = 'tog on';
                 }
             });
         }
@@ -2619,11 +2636,10 @@ window.addEventListener('DOMContentLoaded', () => {
             
             // Store scroll position before DOM update
             const prevScrollTop = term.scrollTop;
-            const wasAtBottom = (term.scrollHeight - term.scrollTop - term.clientHeight) < 20;
             
             // Only update DOM if HTML changed
             if (term.innerHTML !== html) {
-                _isRendering = true; // Prevent scroll handler from firing during innerHTML update
+                _programmaticScroll = true;
                 term.innerHTML = html;
                 
                 // Attach click handlers via event delegation (avoids encoding issues in inline onclick)
@@ -2637,14 +2653,15 @@ window.addEventListener('DOMContentLoaded', () => {
                     };
                 });
                 
-                // Only auto-scroll if user was already at the bottom
-                if (wasAtBottom && terminalAutoScroll) {
+                // Only auto-scroll if user has NOT scrolled up
+                if (!_userScrolledUp && terminalAutoScroll) {
                     term.scrollTop = term.scrollHeight;
                 } else {
-                    // Preserve previous scroll position
+                    // Preserve the user's scroll position
                     term.scrollTop = prevScrollTop;
                 }
-                _isRendering = false; // Re-enable scroll handler
+                // Delay releasing the guard to let async scroll events settle
+                setTimeout(() => { _programmaticScroll = false; }, 50);
             }
         };
         const renderTerminalLogs = window.renderTerminalLogs;
