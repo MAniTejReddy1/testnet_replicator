@@ -418,6 +418,19 @@
   .evt-filter:hover { color:var(--text-main); background:var(--hover-bg); border-color:var(--text-muted); }
   .evt-filter.active { color:#fff; background:rgba(168,85,247,0.3); border-color:rgba(168,85,247,0.6); }
 
+  /* Category badge inline with event rows */
+  .log-cat-badge { font-size:8px; font-weight:700; padding:1px 5px; border-radius:3px; text-transform:uppercase; letter-spacing:0.5px; margin-right:4px; display:inline-block; vertical-align:middle; }
+  .cat-depth { background:rgba(59,130,246,0.2); color:#60a5fa; }
+  .cat-ticker { background:rgba(16,185,129,0.2); color:#34d399; }
+  .cat-trade { background:rgba(245,158,11,0.2); color:#fbbf24; }
+  .cat-kline { background:rgba(168,85,247,0.2); color:#a78bfa; }
+  .cat-order { background:rgba(244,63,94,0.2); color:#fb7185; }
+  .cat-account { background:rgba(6,182,212,0.2); color:#22d3ee; }
+  .cat-balance { background:rgba(34,197,94,0.2); color:#4ade80; }
+  .cat-position { background:rgba(251,146,60,0.2); color:#fb923c; }
+  .cat-ws { background:rgba(148,163,184,0.2); color:#94a3b8; }
+  .cat-general { background:rgba(107,114,128,0.2); color:#9ca3af; }
+
   /* Terminal CLEAR button */
   .term-clear-btn { background:transparent; border:1px solid var(--border); color:var(--text-muted); border-radius:6px; padding:4px 8px; font-size:9px; cursor:pointer; font-weight:700; font-family:'Inter',sans-serif; transition:all 0.2s; }
   .term-clear-btn:hover { color:var(--text-main); background:var(--hover-bg); }
@@ -1621,6 +1634,25 @@ window.addEventListener('DOMContentLoaded', () => {
             });
             if (window.renderTerminalLogs) window.renderTerminalLogs(window.cachedTerminalEvents);
         };
+        window.updateEventFilterCounts = function() {
+            const events = window.cachedTerminalEvents || [];
+            const counts = {};
+            let total = 0;
+            for (let i = 0; i < events.length; i++) {
+                const e = events[i];
+                if (e.ts && e.ts < window.terminalClearTs) continue;
+                total++;
+                const c = e.cat || 'general';
+                counts[c] = (counts[c] || 0) + 1;
+            }
+            document.querySelectorAll('.evt-filter').forEach(btn => {
+                const cat = btn.getAttribute('data-cat');
+                const label = btn.getAttribute('data-label') || btn.textContent.replace(/\s*\d+$/, '');
+                if (!btn.getAttribute('data-label')) btn.setAttribute('data-label', label);
+                const count = cat === 'all' ? total : (counts[cat] || 0);
+                btn.textContent = count > 0 ? `${label} ${count}` : label;
+            });
+        };
 
         let activeTabSymbol = null;
         let cachedInstances = {};
@@ -2450,7 +2482,18 @@ window.addEventListener('DOMContentLoaded', () => {
                     window.backendTerminalLogs = data.terminalLogs;
                 }
                 if (data.terminalEvents) {
-                    window.backendTerminalEvents = data.terminalEvents;
+                    // Append delta events (backend sends only new events since last broadcast)
+                    if (!window.backendTerminalEvents) window.backendTerminalEvents = [];
+                    if (data.terminalEvents.length > 0) {
+                        // Deduplicate by timestamp — avoid re-adding events we already have
+                        const existingTs = new Set(window.backendTerminalEvents.map(e => e.ts));
+                        const newEvents = data.terminalEvents.filter(e => !existingTs.has(e.ts));
+                        window.backendTerminalEvents.push(...newEvents);
+                        // Trim to max buffer
+                        if (window.backendTerminalEvents.length > 3000) {
+                            window.backendTerminalEvents = window.backendTerminalEvents.slice(-3000);
+                        }
+                    }
                 }
                 
                 if (data.terminalLogs || data.terminalEvents) {
@@ -2459,6 +2502,9 @@ window.addEventListener('DOMContentLoaded', () => {
                     
                     if (window.cachedTerminalLogs.length > 500) window.cachedTerminalLogs = window.cachedTerminalLogs.slice(-500);
                     if (window.cachedTerminalEvents.length > 3000) window.cachedTerminalEvents = window.cachedTerminalEvents.slice(-3000);
+                    
+                    // Update filter chip counts
+                    window.updateEventFilterCounts();
                     
                     renderTerminalLogs(window.activeTermTab === 'events' ? window.cachedTerminalEvents : window.cachedTerminalLogs);
                 }
@@ -2669,16 +2715,18 @@ window.addEventListener('DOMContentLoaded', () => {
 
                 const hasMeta = !!l.meta;
                 const isApiCall = hasMeta && (l.meta.req || l.meta.res || l.meta.request || l.meta.response);
+                const showDetails = window.activeTermTab === 'events' ? hasMeta : isApiCall;
                 const isSelected = window.selectedLogIdx === i;
-                const rowClass = 'term-log-row' + (isApiCall ? ' has-meta' : '') + (isSelected ? ' selected' : '');
+                const rowClass = 'term-log-row' + (showDetails ? ' has-meta' : '') + (isSelected ? ' selected' : '');
                 const escapedMsg = (l.msg || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 
                 let metaBadge = '';
-                if (isApiCall) {
+                if (showDetails) {
                     metaBadge = '<span class="log-meta-badge">▶ DETAILS</span>';
                 }
 
-                html += `<div id="tl-${i}" class="${rowClass}"${hasMeta ? ` data-meta-idx="${i}"` : ''}><span class="log-ts">[${l.time}]</span> <span class="log-tag ${levelClass}">[${l.level}]</span> <span class="log-sym">[${l.sym}]</span> <span class="log-msg${msgClass}">${escapedMsg}</span>${metaBadge}</div>`;
+                const catBadge = (window.activeTermTab === 'events' && l.cat) ? `<span class="log-cat-badge cat-${l.cat}">${l.cat}</span>` : '';
+                html += `<div id="tl-${i}" class="${rowClass}"${hasMeta ? ` data-meta-idx="${i}"` : ''}><span class="log-ts">[${l.time}]</span> <span class="log-tag ${levelClass}">[${l.level}]</span> <span class="log-sym">[${l.sym}]</span> ${catBadge}<span class="log-msg${msgClass}">${escapedMsg}</span>${metaBadge}</div>`;
             }
 
             if (count === 0) {

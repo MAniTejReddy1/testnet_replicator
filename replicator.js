@@ -1772,7 +1772,7 @@ async function globalMasterLoop() {
 // ==========================================
 // 5. Server & UI Handling
 // ==========================================
-function buildPayload() {
+function buildPayload(isSnapshot = true, sinceTs = 0) {
     const activeInstancesMap = {};
     for (const [sym, inst] of instances.entries()) {
         const pData = instrumentsMap[sym] || { pricePrecision: 4, qtyPrecision: 1 };
@@ -1813,17 +1813,19 @@ function buildPayload() {
         users: usersMetadata,
         roles: globalRoles,
         terminalLogs,
-        terminalEvents,
+        terminalEvents: isSnapshot ? terminalEvents : terminalEvents.filter(e => e.ts > sinceTs),
         orderUpdateCounter: globalOrderUpdateCounter
     });
 }
 
 let lastBroadcastTime = 0;
+let lastBroadcastEventsTs = 0;
 function broadcastToUI() {
     const now = Date.now();
     if (now - lastBroadcastTime < 1000) return;
+    const sinceTs = lastBroadcastTime;
     lastBroadcastTime = now;
-    const payload = buildPayload();
+    const payload = buildPayload(false, sinceTs);
     // Push to any connected SSE browser clients — filter out dead connections
     if (sseClients.length > 0) {
         sseClients = sseClients.filter(c => {
