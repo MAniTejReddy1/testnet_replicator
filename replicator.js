@@ -447,7 +447,8 @@ async function fetchListenKeys() {
                 globalUserWsClients[userId] = new PrivateWsClient(
                     userConfig.listenKey,
                     () => {},
-                    userConfig.label || userId
+                    userConfig.label || userId,
+                    userId
                 );
             }
             continue;
@@ -465,7 +466,8 @@ async function fetchListenKeys() {
             globalUserWsClients[userId] = new PrivateWsClient(
                 listenKey,
                 () => {},
-                userConfig.label || userId
+                userConfig.label || userId,
+                userId
             );
         } else {
             log.warn('SYSTEM', `Could not obtain listenKey for ${userConfig.label || userId} — private WS disabled.`);
@@ -489,7 +491,8 @@ function startListenKeyKeepalive() {
                     globalUserWsClients[userId] = new PrivateWsClient(
                         newKey,
                         () => {},
-                        userConfig.label || userId
+                        userConfig.label || userId,
+                        userId
                     );
                 }
             } catch (e) { /* silently ignore refresh errors */ }
@@ -509,10 +512,11 @@ const PRIVATE_WS_BASE = 'wss://testnet-futures-socket-gateway.dcxstage.com/priva
 const PRIVATE_WS_EVENTS = ['ORDER_TRADE_UPDATE', 'ACCOUNT_UPDATE'];
 
 class PrivateWsClient {
-    constructor(listenKey, onMessageCb, label) {
+    constructor(listenKey, onMessageCb, label, userId) {
         this.listenKey = listenKey;
         this.onMessageCb = onMessageCb;
         this.label = label;
+        this.userId = userId;    // key into globalUsers/globalPortfolios
         this.sockets = {};       // keyed by event type
         this.pingIntervals = {};
         this.reconnectTimers = {};
@@ -554,6 +558,16 @@ class PrivateWsClient {
                     pushEvent('EVENT', this.label, `Order Update: ${summary}`, msg, 'order');
                     globalOrderUpdateCounter++;
                     this.onMessageCb(o);
+
+                    // Real-time portfolio update: push order data for frontend processing
+                    if (this.userId && globalPortfolios[this.userId]) {
+                        if (!globalPortfolios[this.userId]._realtimeOrders) globalPortfolios[this.userId]._realtimeOrders = [];
+                        globalPortfolios[this.userId]._realtimeOrders.push(o);
+                        if (globalPortfolios[this.userId]._realtimeOrders.length > 100) {
+                            globalPortfolios[this.userId]._realtimeOrders = globalPortfolios[this.userId]._realtimeOrders.slice(-100);
+                        }
+                    }
+                    broadcastToUI();
                 } else if (evtType === 'ACCOUNT_UPDATE') {
                     const a = msg.a || {};
                     const reason = a.m || 'unknown';
@@ -561,16 +575,22 @@ class PrivateWsClient {
                     // Summary event
                     pushEvent('EVENT', this.label, `Account Update [${reason}] | Balances: ${(a.B || []).length} | Positions: ${(a.P || []).length}`, msg, 'account');
 
-                    // Individual balance events
+                    // Individual balance events + real-time portfolio update
                     (a.B || []).forEach(b => {
                         const wallet = b.wb || '0';
                         const crossWallet = b.cw || '0';
                         const locked = b.lb || '0';
                         const balChange = b.bc || '0';
                         pushEvent('EVENT', this.label, `Balance | ${b.a || 'USDT'} | Wallet: ${wallet} | CrossWallet: ${crossWallet} | Locked: ${locked} | Change: ${balChange}`, b, 'balance');
+
+                        // Update globalPortfolios balance in real-time
+                        if (this.userId && globalPortfolios[this.userId] && (b.a === 'USDT' || !b.a)) {
+                            globalPortfolios[this.userId].walletBalance = parseFloat(wallet).toFixed(2);
+                            globalPortfolios[this.userId].availableBalance = (parseFloat(wallet) - parseFloat(locked)).toFixed(2);
+                        }
                     });
 
-                    // Individual position events
+                    // Individual position events + real-time portfolio update
                     (a.P || []).forEach(p => {
                         const amt = p.pa || '0';
                         const entry = p.ep || '0';
@@ -578,7 +598,41 @@ class PrivateWsClient {
                         const margin = p.mt || 'cross';
                         const side = parseFloat(amt) > 0 ? 'LONG' : parseFloat(amt) < 0 ? 'SHORT' : 'FLAT';
                         pushEvent('EVENT', this.label, `Position | ${p.s || '?'} | ${side} ${amt} @ ${entry} | uPnL: ${upnl} | ${margin} | IsolatedWallet: ${p.iw || '0'}`, p, 'position');
+
+                        // Update globalPortfolios positions in real-time
+                        if (this.userId && globalPortfolios[this.userId]) {
+                            const positions = globalPortfolios[this.userId].positions || [];
+                            const posSymbol = p.s || '';
+                            const posAmt = parseFloat(amt);
+                            const idx = positions.findIndex(pos => pos.symbol === posSymbol);
+                            
+                            if (posAmt === 0) {
+                                // Position closed — remove it
+                                if (idx !== -1) positions.splice(idx, 1);
+                            } else {
+                                const inst = instrumentsMap[posSymbol] || { pricePrecision: 4, qtyPrecision: 3 };
+                                const updatedPos = {
+                                    symbol: posSymbol,
+                                    side: posAmt > 0 ? 'LONG' : 'SHORT',
+                                    size: Math.abs(posAmt).toFixed(inst.qtyPrecision),
+                                    entryPrice: parseFloat(entry).toFixed(inst.pricePrecision),
+                                    markPrice: idx !== -1 ? positions[idx].markPrice : parseFloat(entry).toFixed(inst.pricePrecision),
+                                    unrealizedPnL: parseFloat(upnl).toFixed(2),
+                                    leverage: idx !== -1 ? positions[idx].leverage : '20',
+                                    liqPrice: idx !== -1 ? positions[idx].liqPrice : '0.00',
+                                    margin: parseFloat(p.iw || 0).toFixed(2)
+                                };
+                                if (idx !== -1) positions[idx] = { ...positions[idx], ...updatedPos };
+                                else positions.push(updatedPos);
+                            }
+                            globalPortfolios[this.userId].positions = positions;
+
+                            // Update unrealizedProfit total
+                            const totalPnl = positions.reduce((sum, pos) => sum + parseFloat(pos.unrealizedPnL || 0), 0);
+                            globalPortfolios[this.userId].unrealizedProfit = totalPnl.toFixed(2);
+                        }
                     });
+                    broadcastToUI();
                 } else if (evtType === 'listenKeyExpired') {
                     pushEvent('WARN', this.label, `Listen key expired on ${eventType} — reconnecting...`, msg, 'ws');
                     ws.close();
@@ -674,8 +728,8 @@ class ReplicatorInstance {
             }
         }, 15000);
 
-        this.makerWs = new PrivateWsClient(globalUsers[globalRoles.makerId].listenKey, this.onMakerWsEvent.bind(this), 'Maker');
-        this.takerWs = new PrivateWsClient(globalUsers[globalRoles.takerId].listenKey, this.onTakerWsEvent.bind(this), 'Taker');
+        this.makerWs = new PrivateWsClient(globalUsers[globalRoles.makerId].listenKey, this.onMakerWsEvent.bind(this), 'Maker', globalRoles.makerId);
+        this.takerWs = new PrivateWsClient(globalUsers[globalRoles.takerId].listenKey, this.onTakerWsEvent.bind(this), 'Taker', globalRoles.takerId);
     }
 
     onMakerWsEvent(o) {

@@ -2338,17 +2338,21 @@ window.addEventListener('DOMContentLoaded', () => {
         window.lastOrderUpdateCounter = 0;
         window.lastProcessedEventTs = Date.now();
         
-        window.processSocketOrderUpdate = function(o, roleLabel) {
+        window.processSocketOrderUpdate = function(o, userOrRole) {
             if (o.s !== activeTabSymbol) return;
             
-            // Map role to portfolio panel by matching against the currently selected users
+            // Map user/role to portfolio panel
             const p1UserId = document.getElementById('sel-port-u1')?.value;
             const p2UserId = document.getElementById('sel-port-u2')?.value;
-            const roleUserId = roleLabel === 'Maker' ? window.payload.roles.makerId : window.payload.roles.takerId;
+            
+            // userOrRole can be: "Maker", "Taker", "user1", "user2", "User 1", etc.
+            let resolvedUserId = userOrRole;
+            if (userOrRole === 'Maker') resolvedUserId = window.payload?.roles?.makerId;
+            else if (userOrRole === 'Taker') resolvedUserId = window.payload?.roles?.takerId;
             
             let u = null;
-            if (roleUserId === p1UserId) u = 'u1';
-            else if (roleUserId === p2UserId) u = 'u2';
+            if (resolvedUserId === p1UserId) u = 'u1';
+            else if (resolvedUserId === p2UserId) u = 'u2';
             
             if (!u) return;
 
@@ -2508,6 +2512,35 @@ window.addEventListener('DOMContentLoaded', () => {
                     
                     renderTerminalLogs(window.activeTermTab === 'events' ? window.cachedTerminalEvents : window.cachedTerminalLogs);
                 }
+                
+                // Process real-time order updates from socket data
+                if (data.portfolios && typeof window.processSocketOrderUpdate === 'function') {
+                    const p1UserId = document.getElementById('sel-port-u1')?.value;
+                    const p2UserId = document.getElementById('sel-port-u2')?.value;
+                    
+                    Object.entries(data.portfolios).forEach(([userId, port]) => {
+                        if (port._realtimeOrders && port._realtimeOrders.length > 0) {
+                            const u = userId === p1UserId ? 'u1' : (userId === p2UserId ? 'u2' : null);
+                            if (u) {
+                                port._realtimeOrders.forEach(o => {
+                                    // Deduplicate — only process orders we haven't seen
+                                    const key = `${o.i}_${o.X}_${o.T}`;
+                                    if (!window._processedOrderKeys) window._processedOrderKeys = new Set();
+                                    if (!window._processedOrderKeys.has(key)) {
+                                        window._processedOrderKeys.add(key);
+                                        window.processSocketOrderUpdate(o, userId);
+                                        // Keep set from growing unbounded
+                                        if (window._processedOrderKeys.size > 500) {
+                                            const arr = [...window._processedOrderKeys];
+                                            window._processedOrderKeys = new Set(arr.slice(-250));
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    });
+                }
+                
                 window.renderPortfolios();
             };
         }
