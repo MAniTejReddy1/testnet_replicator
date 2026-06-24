@@ -890,7 +890,7 @@
   <div class="panel" style="display:flex; flex-direction:column; overflow:hidden;">
     <div style="padding:14px 16px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:var(--input-bg); cursor:pointer;" onclick="window.toggleTVChart()">
       <div style="display:flex;align-items:center;gap:12px;">
-        <div id="tv-chevron" style="color:var(--text-muted);font-size:14px;transition:transform 0.2s;transform:rotate(-90deg);">▼</div>
+        <div id="tv-chevron" style="color:var(--text-muted);font-size:14px;transition:transform 0.2s;transform:rotate(0deg);">▼</div>
         <div>
           <div class="sec-label">Testnet Klines</div>
           <div class="sec-title" id="tv-chart-title" style="color:var(--cyan);display:flex;align-items:center;gap:8px;">TradingView Chart</div>
@@ -908,7 +908,7 @@
         <button class="tv-tf-btn" data-tf="1d">1D</button>
       </div>
     </div>
-    <div id="tv-chart-container" style="display:none; height:400px; flex-direction:column; width:100%; border-top:1px solid var(--border); position: relative;">
+    <div id="tv-chart-container" style="display:flex; height:400px; flex-direction:column; width:100%; border-top:1px solid var(--border); position: relative;">
       <div id="tv-tooltip" style="position:absolute; top:8px; left:12px; z-index:50; background:transparent; border:none; padding:0; font-family:'JetBrains Mono',monospace; font-size:12px; display:none; pointer-events:none; color:var(--text-main);"></div>
       <div id="tv-chart" style="flex:1; width:100%;"></div>
     </div>
@@ -2670,7 +2670,7 @@ window.addEventListener('DOMContentLoaded', () => {
         window.tvChart = null;
         window.tvSeries = null;
         window.tvWs = null;
-        window.tvIsVisible = false;
+        window.tvIsVisible = true;
 
         window.toggleTVChart = () => {
             window.tvIsVisible = !window.tvIsVisible;
