@@ -116,9 +116,9 @@ function pushLog(level, sym, msg, meta = null) {
     if (terminalLogs.length > 200) terminalLogs.shift();
 }
 
-function pushEvent(level, sym, msg, meta = null) {
-    terminalEvents.push({ time: getISTTimeString(), level, sym, msg, ts: Date.now(), meta });
-    if (terminalEvents.length > 300) terminalEvents.shift();
+function pushEvent(level, sym, msg, meta = null, cat = 'general') {
+    terminalEvents.push({ time: getISTTimeString(), level, sym, msg, ts: Date.now(), meta, cat });
+    if (terminalEvents.length > 2000) terminalEvents.shift();
 }
 
 const log = {
@@ -470,7 +470,7 @@ class PrivateWsClient {
         
         this.ws.on('open', () => {
             log.success('SYSTEM', `${this.label} User Data Stream connected (all events).`);
-            pushEvent('SUCCESS', this.label, `User Data Stream connected`, { status: 'connected', events: 'ALL' });
+            pushEvent('SUCCESS', this.label, `User Data Stream connected`, { status: 'connected', events: 'ALL' }, 'ws');
             this.pingInterval = setInterval(() => {
                 if (this.ws.readyState === WebSocket.OPEN) this.ws.ping();
             }, 30000);
@@ -485,7 +485,7 @@ class PrivateWsClient {
                 if (eventType === 'ORDER_TRADE_UPDATE') {
                     const o = msg.o || {};
                     const summary = `${o.S || ''} ${o.o || ''} ${o.s || ''} | Qty: ${o.q || '-'} | Price: ${o.p || '-'} | Status: ${o.X || '-'}`;
-                    pushEvent('EVENT', this.label, `Order Update: ${summary}`, msg);
+                    pushEvent('EVENT', this.label, `Order Update: ${summary}`, msg, 'order');
                     globalOrderUpdateCounter++;
                     this.onMessageCb(o);
                 } else if (eventType === 'ACCOUNT_UPDATE') {
@@ -493,15 +493,15 @@ class PrivateWsClient {
                     const reason = a.m || 'unknown';
                     const balances = (a.B || []).map(b => `${b.a}: ${b.wb}`).join(', ') || 'N/A';
                     const positions = (a.P || []).length;
-                    pushEvent('EVENT', this.label, `Account Update [${reason}] | Balances: ${balances} | Positions changed: ${positions}`, msg);
+                    pushEvent('EVENT', this.label, `Account Update [${reason}] | Balances: ${balances} | Positions changed: ${positions}`, msg, 'account');
                 } else if (eventType === 'BALANCE_UPDATE') {
                     const delta = msg.d || '0';
-                    pushEvent('EVENT', this.label, `Balance Update | Delta: ${delta}`, msg);
+                    pushEvent('EVENT', this.label, `Balance Update | Delta: ${delta}`, msg, 'balance');
                 } else if (eventType === 'listenKeyExpired') {
-                    pushEvent('WARN', this.label, `Listen key expired — reconnecting...`, msg);
+                    pushEvent('WARN', this.label, `Listen key expired — reconnecting...`, msg, 'ws');
                     this.ws.close();
                 } else {
-                    pushEvent('EVENT', this.label, `WS Event: ${eventType}`, msg);
+                    pushEvent('EVENT', this.label, `WS Event: ${eventType}`, msg, 'general');
                 }
             } catch (e) {
                 log.error('SYSTEM', `Error parsing ${this.label} WS: ${e.message}`);
@@ -510,14 +510,14 @@ class PrivateWsClient {
         
         this.ws.on('close', () => {
             log.warn('SYSTEM', `${this.label} User Data Stream disconnected. Reconnecting in 3s...`);
-            pushEvent('WARN', this.label, `User Data Stream disconnected`, { status: 'disconnected' });
+            pushEvent('WARN', this.label, `User Data Stream disconnected`, { status: 'disconnected' }, 'ws');
             clearInterval(this.pingInterval);
             this.reconnectTimer = setTimeout(() => this.connect(), 3000);
         });
         
         this.ws.on('error', (err) => {
             log.error('SYSTEM', `${this.label} User Data Stream error: ${err.message}`);
-            pushEvent('ERROR', this.label, `User Data Stream error: ${err.message}`, { error: err.message });
+            pushEvent('ERROR', this.label, `User Data Stream error: ${err.message}`, { error: err.message }, 'ws');
         });
     }
 }
@@ -1437,8 +1437,7 @@ startBinanceDepthWS() {
         const url = `wss://fstream.binance.com/public/ws/${sym}@depth20@100ms`;
 
         this.wsBinanceDepth = new WebSocket(url);
-        this.wsBinanceDepth.on('open', () => { pushEvent('SUCCESS', this.symbol, `Binance Depth WS connected`, { stream: 'depth' }); this.binanceLatency = Date.now() - startTime; });
-        this._lastBinDepthEventTs = 0;
+        this.wsBinanceDepth.on('open', () => { pushEvent('SUCCESS', this.symbol, `Binance Depth WS connected`, { stream: 'depth' }, 'ws'); this.binanceLatency = Date.now() - startTime; });
         this.wsBinanceDepth.on('message', (raw) => {
             if (this.status === 'STOPPED') return;
             try {
@@ -1451,20 +1450,15 @@ startBinanceDepthWS() {
                     this.binanceDepth.asks = asks.slice(0, this.depthLevels);
                     this.syncGrid('BUY', this.binanceDepth.bids);
                     this.syncGrid('SELL', this.binanceDepth.asks);
-                    // Throttled depth event every 5 seconds
-                    const now = Date.now();
-                    if (now - this._lastBinDepthEventTs > 5000) {
-                        this._lastBinDepthEventTs = now;
-                        const bestBid = bids[0] ? bids[0][0] : '-';
-                        const bestAsk = asks[0] ? asks[0][0] : '-';
-                        const spread = (bestBid !== '-' && bestAsk !== '-') ? (parseFloat(bestAsk) - parseFloat(bestBid)).toFixed(2) : '-';
-                        pushEvent('EVENT', this.symbol, `Binance Depth | Bid: $${bestBid} | Ask: $${bestAsk} | Spread: $${spread} | Levels: ${bids.length}/${asks.length}`, { bestBid, bestAsk, spread, bidLevels: bids.length, askLevels: asks.length });
-                    }
+                    const bestBid = bids[0] ? bids[0][0] : '-';
+                    const bestAsk = asks[0] ? asks[0][0] : '-';
+                    const spread = (bestBid !== '-' && bestAsk !== '-') ? (parseFloat(bestAsk) - parseFloat(bestBid)).toFixed(2) : '-';
+                    pushEvent('EVENT', this.symbol, `Binance Depth | Bid: $${bestBid} | Ask: $${bestAsk} | Spread: $${spread} | Levels: ${bids.length}/${asks.length}`, data, 'depth');
                 }
             } catch (e) { log.debug && log.debug('SYSTEM', e.message); }
         });
-        this.wsBinanceDepth.on('error', (err) => { pushEvent('ERROR', this.symbol, `Binance Depth WS error: ${err.message}`); });
-        this.wsBinanceDepth.on('close', () => { pushEvent('WARN', this.symbol, `Binance Depth WS disconnected — reconnecting...`); this.wsBinanceDepth = null; if (this.status !== 'STOPPED') setTimeout(() => this.startBinanceDepthWS(), 3000); });
+        this.wsBinanceDepth.on('error', (err) => { pushEvent('ERROR', this.symbol, `Binance Depth WS error: ${err.message}`, null, 'ws'); });
+        this.wsBinanceDepth.on('close', () => { pushEvent('WARN', this.symbol, `Binance Depth WS disconnected — reconnecting...`, null, 'ws'); this.wsBinanceDepth = null; if (this.status !== 'STOPPED') setTimeout(() => this.startBinanceDepthWS(), 3000); });
     }
 
     startBinanceTradesWS() {
@@ -1473,7 +1467,7 @@ startBinanceDepthWS() {
         const url = `wss://fstream.binance.com/market/ws/${sym}@aggTrade`;
 
         this.wsBinanceTrades = new WebSocket(url);
-        this.wsBinanceTrades.on('open', () => { pushEvent('SUCCESS', this.symbol, `Binance Trades WS connected`, { stream: 'aggTrade' }); });
+        this.wsBinanceTrades.on('open', () => { pushEvent('SUCCESS', this.symbol, `Binance Trades WS connected`, { stream: 'aggTrade' }, 'ws'); });
         this.wsBinanceTrades.on('message', (raw) => {
             if (this.status === 'STOPPED') return;
             try {
@@ -1487,8 +1481,8 @@ startBinanceDepthWS() {
                 }
             } catch (e) { log.debug && log.debug('SYSTEM', e.message); }
         });
-        this.wsBinanceTrades.on('error', (err) => { pushEvent('ERROR', this.symbol, `Binance Trades WS error: ${err.message}`); });
-        this.wsBinanceTrades.on('close', () => { pushEvent('WARN', this.symbol, `Binance Trades WS disconnected — reconnecting...`); this.wsBinanceTrades = null; if (this.status !== 'STOPPED') setTimeout(() => this.startBinanceTradesWS(), 3000); });
+        this.wsBinanceTrades.on('error', (err) => { pushEvent('ERROR', this.symbol, `Binance Trades WS error: ${err.message}`, null, 'ws'); });
+        this.wsBinanceTrades.on('close', () => { pushEvent('WARN', this.symbol, `Binance Trades WS disconnected — reconnecting...`, null, 'ws'); this.wsBinanceTrades = null; if (this.status !== 'STOPPED') setTimeout(() => this.startBinanceTradesWS(), 3000); });
     }
 
 
@@ -1498,26 +1492,20 @@ startBinanceDepthWS() {
         const streamUrl = `wss://testnet-futures-socket-gateway.dcxstage.com/market/ws/${sym}@ticker`;
         log.info(this.symbol, `[WS] Connecting to 24h Ticker...`);
         this.wsTestnetTicker = new WebSocket(streamUrl);
-        this.wsTestnetTicker.on('open', () => { pushEvent('SUCCESS', this.symbol, `Testnet Ticker WS connected`, { stream: '24hrTicker' }); });
-        this._lastTickerEventTs = 0;
+        this.wsTestnetTicker.on('open', () => { pushEvent('SUCCESS', this.symbol, `Testnet Ticker WS connected`, { stream: '24hrTicker' }, 'ws'); });
         this.wsTestnetTicker.on('message', (raw) => {
             if (this.status === 'STOPPED') return;
             try {
                 const data = JSON.parse(raw.toString());
                 if (data.e === '24hrTicker') {
                     this.testnetLtp = parseFloat(data.c);
-                    // Push ticker event every 10 seconds (throttled to avoid flood)
-                    const now = Date.now();
-                    if (now - this._lastTickerEventTs > 10000) {
-                        this._lastTickerEventTs = now;
-                        pushEvent('EVENT', this.symbol, `Ticker: LTP $${parseFloat(data.c).toFixed(2)} | 24h Vol: ${parseFloat(data.v || 0).toFixed(0)} | Change: ${parseFloat(data.P || 0).toFixed(2)}%`, data);
-                    }
+                    pushEvent('EVENT', this.symbol, `Ticker | LTP: $${parseFloat(data.c).toFixed(2)} | 24h Vol: ${parseFloat(data.v || 0).toFixed(0)} | Change: ${parseFloat(data.P || 0).toFixed(2)}%`, data, 'ticker');
                     broadcastToUI();
                 }
             } catch(e) { log.debug && log.debug('SYSTEM', e.message); }
         });
-        this.wsTestnetTicker.on('close', () => { pushEvent('WARN', this.symbol, `Testnet Ticker WS disconnected — reconnecting...`); this.wsTestnetTicker = null; if (this.status !== 'STOPPED') setTimeout(() => this.startTestnetTickerWS(), 3000); });
-        this.wsTestnetTicker.on('error', (err) => { pushEvent('ERROR', this.symbol, `Testnet Ticker WS error: ${err.message}`); });
+        this.wsTestnetTicker.on('close', () => { pushEvent('WARN', this.symbol, `Testnet Ticker WS disconnected — reconnecting...`, null, 'ws'); this.wsTestnetTicker = null; if (this.status !== 'STOPPED') setTimeout(() => this.startTestnetTickerWS(), 3000); });
+        this.wsTestnetTicker.on('error', (err) => { pushEvent('ERROR', this.symbol, `Testnet Ticker WS error: ${err.message}`, null, 'ws'); });
     }
 
 
@@ -1529,11 +1517,10 @@ startBinanceDepthWS() {
         const streamUrl = `wss://testnet-futures-socket-gateway.dcxstage.com/public/ws/${sym}@depth20`;
         this.wsTestnet = new WebSocket(streamUrl);
         this.wsTestnet.on('open', () => {
-            pushEvent('SUCCESS', this.symbol, `Testnet Depth WS connected`, { stream: 'depth20' });
+            pushEvent('SUCCESS', this.symbol, `Testnet Depth WS connected`, { stream: 'depth20' }, 'ws');
             this.testnetPingInterval = setInterval(() => { if (this.wsTestnet && this.wsTestnet.readyState === WebSocket.OPEN) this.wsTestnet.ping(); }, 30000);
         });
 
-        this._lastTestDepthEventTs = 0;
         this.wsTestnet.on('message', (raw) => {
             if (this.status === 'STOPPED') return;
             try {
@@ -1545,20 +1532,15 @@ startBinanceDepthWS() {
                     this.testnetDepth.bids = bids.slice(0, this.depthLevels);
                     this.testnetDepth.asks = asks.slice(0, this.depthLevels);
                     broadcastToUI();
-                    // Throttled depth event every 5 seconds
-                    const now = Date.now();
-                    if (now - this._lastTestDepthEventTs > 5000) {
-                        this._lastTestDepthEventTs = now;
-                        const bestBid = bids[0] ? bids[0][0] : '-';
-                        const bestAsk = asks[0] ? asks[0][0] : '-';
-                        const spread = (bestBid !== '-' && bestAsk !== '-') ? (parseFloat(bestAsk) - parseFloat(bestBid)).toFixed(2) : '-';
-                        pushEvent('EVENT', this.symbol, `Testnet Depth | Bid: $${bestBid} | Ask: $${bestAsk} | Spread: $${spread} | Levels: ${bids.length}/${asks.length}`, { bestBid, bestAsk, spread, bidLevels: bids.length, askLevels: asks.length });
-                    }
+                    const bestBid = bids[0] ? bids[0][0] : '-';
+                    const bestAsk = asks[0] ? asks[0][0] : '-';
+                    const spread = (bestBid !== '-' && bestAsk !== '-') ? (parseFloat(bestAsk) - parseFloat(bestBid)).toFixed(2) : '-';
+                    pushEvent('EVENT', this.symbol, `Testnet Depth | Bid: $${bestBid} | Ask: $${bestAsk} | Spread: $${spread} | Levels: ${bids.length}/${asks.length}`, data, 'depth');
                 }
             } catch (e) { log.debug && log.debug('SYSTEM', e.message); }
         });
-        this.wsTestnet.on('error', (err) => { pushEvent('ERROR', this.symbol, `Testnet Depth WS error: ${err.message}`); });
-        this.wsTestnet.on('close', () => { clearInterval(this.testnetPingInterval); pushEvent('WARN', this.symbol, `Testnet Depth WS disconnected — reconnecting...`); this.wsTestnet = null; if (this.status !== 'STOPPED') setTimeout(() => this.startTestnetWS(), 3000); });
+        this.wsTestnet.on('error', (err) => { pushEvent('ERROR', this.symbol, `Testnet Depth WS error: ${err.message}`, null, 'ws'); });
+        this.wsTestnet.on('close', () => { clearInterval(this.testnetPingInterval); pushEvent('WARN', this.symbol, `Testnet Depth WS disconnected — reconnecting...`, null, 'ws'); this.wsTestnet = null; if (this.status !== 'STOPPED') setTimeout(() => this.startTestnetWS(), 3000); });
     }
 
     async wipeOrders() {
@@ -1737,11 +1719,11 @@ async function globalMasterLoop() {
                         if (Math.abs(newWallet - prevWallet) > 0.01) {
                             const delta = (newWallet - prevWallet).toFixed(2);
                             const sign = newWallet > prevWallet ? '+' : '';
-                            pushEvent('EVENT', uLabel, `Balance Update | Wallet: $${newWallet.toFixed(2)} (${sign}${delta}) | Available: $${newAvail.toFixed(2)}`, { walletBalance: newWallet, availableBalance: newAvail, delta: parseFloat(delta) });
+                            pushEvent('EVENT', uLabel, `Balance Update | Wallet: $${newWallet.toFixed(2)} (${sign}${delta}) | Available: $${newAvail.toFixed(2)}`, { walletBalance: newWallet, availableBalance: newAvail, delta: parseFloat(delta) }, 'balance');
                         }
                         if (Math.abs(newPnl - prevPnl) > 0.5) {
                             const pnlColor = newPnl >= 0 ? '+' : '';
-                            pushEvent('EVENT', uLabel, `PnL Update | Unrealized: ${pnlColor}$${newPnl.toFixed(2)}`, { unrealizedProfit: newPnl });
+                            pushEvent('EVENT', uLabel, `PnL Update | Unrealized: ${pnlColor}$${newPnl.toFixed(2)}`, { unrealizedProfit: newPnl }, 'account');
                         }
 
                         // Detect position changes
@@ -1750,11 +1732,11 @@ async function globalMasterLoop() {
                         if (prevPosCount !== newPosCount) {
                             const activePositions = (newPort.positions || []).filter(p => parseFloat(p.positionAmt || p.size || 0) !== 0);
                             const posSummary = activePositions.map(p => `${p.symbol || '?'}: ${p.positionAmt || p.size}`).join(', ') || 'None';
-                            pushEvent('EVENT', uLabel, `Position Update | Active: ${newPosCount} | ${posSummary}`, { activePositions: newPosCount, positions: activePositions });
+                            pushEvent('EVENT', uLabel, `Position Update | Active: ${newPosCount} | ${posSummary}`, { activePositions: newPosCount, positions: activePositions }, 'position');
                         }
                     } else {
                         // First sync — push initial state
-                        pushEvent('EVENT', uLabel, `Account Synced | Wallet: $${parseFloat(newPort.walletBalance || 0).toFixed(2)} | Available: $${parseFloat(newPort.availableBalance || 0).toFixed(2)}`, { walletBalance: newPort.walletBalance, availableBalance: newPort.availableBalance });
+                        pushEvent('EVENT', uLabel, `Account Synced | Wallet: $${parseFloat(newPort.walletBalance || 0).toFixed(2)} | Available: $${parseFloat(newPort.availableBalance || 0).toFixed(2)}`, { walletBalance: newPort.walletBalance, availableBalance: newPort.availableBalance }, 'account');
                     }
 
                     _prevPortfolioState[k] = { walletBalance: newPort.walletBalance, availableBalance: newPort.availableBalance, unrealizedProfit: newPort.unrealizedProfit, positions: newPort.positions };
