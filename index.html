@@ -403,9 +403,6 @@
   .trade-detail-label { color:var(--text-muted); text-transform:uppercase; font-size:9px; letter-spacing:0.5px; font-weight:700; }
   .trade-detail-value { color:var(--text-main); font-family:'JetBrains Mono',monospace; font-weight:500; font-size:11px; }
   .trade-detail-value.mono { user-select:all; cursor:text; }
-  .ltp-stat { display:flex; align-items:center; gap:6px; padding:4px 10px; background:var(--input-bg); border:1px solid var(--border); border-radius:6px; font-size:10px; font-weight:700; font-family:'JetBrains Mono',monospace; }
-  .ltp-stat .ltp-stat-label { color:var(--text-muted); font-family:'Inter',sans-serif; font-weight:600; letter-spacing:0.3px; }
-  .ltp-stat .ltp-stat-val { color:var(--text-main); }
 
   /* Terminal tabs (replaces 5× inline tab styles) */
   .term-tab { padding:6px 14px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600; letter-spacing:0.5px; color:var(--text-muted); background:var(--row-bg); border:1px solid transparent; border-radius:6px; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:6px; }
@@ -1091,11 +1088,8 @@
           <div class="sec-title" style="display:flex;align-items:center;gap:8px;">LTP Cross Stream</div>
         </div>
       </div>
-      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;" id="ltp-chips">
-        <div class="ltp-stat"><span class="ltp-stat-label">Total</span><span class="ltp-stat-val" id="ltp-total">0</span></div>
-        <span id="t-trok" class="badge badge-ok" style="font-size:10px;">0 OK</span>
-        <span id="t-trfail" class="badge badge-fail" style="font-size:10px;">0 FAIL</span>
-        <div class="ltp-stat"><span class="ltp-stat-label">Fill Rate</span><span class="ltp-stat-val" id="ltp-fill-rate" style="color:var(--emerald);">-</span></div>
+      <div style="display:flex;align-items:center;gap:16px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;" id="ltp-chips"></div>
       </div>
     </div>
     <div style="display:flex;border-bottom:1px solid var(--border);background:transparent;flex-shrink:0;">
@@ -1961,17 +1955,19 @@ window.addEventListener('DOMContentLoaded', () => {
             const pgEl = document.getElementById('trades-pagination');
             const pgInfo = document.getElementById('trades-page-info');
 
-            // Update header stats
+            // Update header stats using the same chip pattern as portfolio
             const totalCount = newTrades ? newTrades.length : 0;
             const okCount = newTrades ? newTrades.filter(t => t.success).length : 0;
             const failCount = totalCount - okCount;
-            const fillRate = totalCount > 0 ? ((okCount / totalCount) * 100).toFixed(1) : '-';
-            const ltpTotalEl = document.getElementById('ltp-total');
-            const ltpFillEl = document.getElementById('ltp-fill-rate');
-            if (ltpTotalEl) ltpTotalEl.textContent = totalCount;
-            if (ltpFillEl) {
-                ltpFillEl.textContent = fillRate === '-' ? '-' : fillRate + '%';
-                ltpFillEl.style.color = fillRate === '-' ? 'var(--text-muted)' : parseFloat(fillRate) >= 90 ? 'var(--emerald)' : parseFloat(fillRate) >= 50 ? '#eab308' : 'var(--rose)';
+            const fillRate = totalCount > 0 ? ((okCount / totalCount) * 100).toFixed(1) + '%' : '-';
+            const fillColor = totalCount === 0 ? 'var(--text-muted)' : (okCount / totalCount) >= 0.9 ? '#34d399' : (okCount / totalCount) >= 0.5 ? '#eab308' : '#fb7185';
+            const ltpChipsEl = document.getElementById('ltp-chips');
+            if (ltpChipsEl) {
+                ltpChipsEl.innerHTML = 
+                    chipHtml('Total', totalCount, '#e2e8f0') +
+                    chipHtml('Filled', okCount, '#34d399') +
+                    chipHtml('Failed', failCount, '#fb7185') +
+                    chipHtml('Fill Rate', fillRate, fillColor);
             }
 
             if (!newTrades || !newTrades.length) {
@@ -2269,10 +2265,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('t-bspct').textContent = '('+spp+'%)';
             }
 
-            const ok = (instance.syncedTrades||[]).filter(t => t.success).length;
-            const fail = (instance.syncedTrades||[]).filter(t => !t.success).length;
-            document.getElementById('t-trok').textContent = ok + ' OK';
-            document.getElementById('t-trfail').textContent = fail + ' FAIL';
+            // OK/FAIL counts are now rendered by updateTradeStream into #ltp-chips
 
             renderBook(document.getElementById('bin-asks'), document.getElementById('bin-bids'), document.getElementById('bin-spread-badge'), document.getElementById('bin-spread-mid'), instance.binanceDepth.asks, instance.binanceDepth.bids);
             renderBook(document.getElementById('stage-asks'), document.getElementById('stage-bids'), document.getElementById('stage-spread-badge'), document.getElementById('stage-spread-mid'), instance.testnetDepth.asks, instance.testnetDepth.bids);
