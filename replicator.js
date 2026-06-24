@@ -52,6 +52,8 @@ let globalRoles = {
     takerId: 'user2'
 };
 
+let globalOrderUpdateCounter = 0;
+
 let marketConfigs = [];
 
 try {
@@ -417,6 +419,7 @@ class PrivateWsClient {
                 const msg = JSON.parse(data);
                 pushEvent('EVENT', this.label, `WS Update: ${msg.e || 'Unknown'}`, msg);
                 if (msg.e === 'ORDER_TRADE_UPDATE') {
+                    globalOrderUpdateCounter++;
                     this.onMessageCb(msg.o);
                 }
             } catch (e) {
@@ -1635,7 +1638,7 @@ function buildPayload() {
     
     // We send globalUsers keys (without secrets) and roles to the UI
     const usersMetadata = Object.keys(globalUsers).reduce((acc, k) => {
-        acc[k] = { label: globalUsers[k].label, key: globalUsers[k].key };
+        acc[k] = { label: globalUsers[k].label, key: globalUsers[k].key, email: globalUsers[k].email };
         return acc;
     }, {});
     
@@ -1645,7 +1648,8 @@ function buildPayload() {
         users: usersMetadata,
         roles: globalRoles,
         terminalLogs,
-        terminalEvents
+        terminalEvents,
+        orderUpdateCounter: globalOrderUpdateCounter
     });
 }
 
@@ -1784,7 +1788,7 @@ const server = http.createServer(async (req, res) => {
                         const execAsync = require('util').promisify(require('child_process').exec);
                         const { stdout } = await execAsync(`node scripts/generate-single.js ${id}`);
                         const result = JSON.parse(stdout.trim());
-                        globalUsers[id] = { label: id, key: result.key, secret: result.secret, listenKey: '' };
+                        globalUsers[id] = { label: id, key: result.key, secret: result.secret, email: result.email, listenKey: '' };
                         lastPortfolioSyncTime = 0;
                         log.info('SYSTEM', `User ${id} generated successfully.`);
                     } else if (parsed.action === 'delete') {

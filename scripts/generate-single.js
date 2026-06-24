@@ -99,7 +99,7 @@ async function createUserAndKey(labelPrefix) {
   const key = resData && (resData.key || resData.api_key || (resData.data && (resData.data.key || resData.data.api_key)));
   const secret = resData && (resData.secret || resData.api_secret || (resData.data && (resData.data.secret || resData.data.api_secret)));
   
-  if (key && secret) return { key, secret };
+  if (key && secret) return { key, secret, email };
   throw new Error("Failed to create API key for " + labelPrefix);
 }
 

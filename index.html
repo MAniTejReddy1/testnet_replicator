@@ -18,29 +18,33 @@
     --yellow: #eab308; 
     --purple: #a855f7;
     --text-main: #f8fafc;
-    --text-muted: #64748b;
-    --glass-blur: blur(16px);
-    --title-grad: linear-gradient(90deg, #fff, #94a3b8);
-    --btn-theme: rgba(255,255,255,0.05);
-    --input-bg: rgba(0,0,0,0.2);
-    --hover-bg: rgba(255,255,255,0.05);
-    --row-bg: rgba(255,255,255,0.03);
-    --hdr-bg: rgba(15,23,42,0.8);
-    --drawer-bg: rgba(9,9,11,0.95);
-    --shadow: 0 8px 32px rgba(0,0,0,0.3);
-    --glass-border: rgba(255, 255, 255, 0.1);
+    --text-muted: #94a3b8;
+    --cyan: #22d3ee;
+    --yellow: #facc15;
+    --purple: #a855f7;
+    --ask: #f43f5e;
+    --bid: #10b981;
+    --btn-theme: #334155;
+    --hdr-bg: rgba(15, 23, 42, 0.85);
+    --drawer-bg: rgba(15, 23, 42, 0.95);
+    --shadow: 0 8px 32px rgba(0,0,0,0.4);
+    --glass-border: rgba(255, 255, 255, 0.12);
     --glass-hover: rgba(255, 255, 255, 0.05);
     --glass-active: rgba(255, 255, 255, 0.1);
-    --text-dim: #94a3b8;
-    --text-shadow: var(--text-shadow);
+    --glass-blur: blur(12px);
+    --row-bg: rgba(255, 255, 255, 0.02);
     --shadow-heavy: 0 4px 20px rgba(0, 0, 0, 0.6);
+    --input-bg: rgba(15, 23, 42, 0.5);
+    --title-grad: linear-gradient(90deg, #fff, #94a3b8);
+    --text-shadow: var(--text-shadow);
+    --text-dim: #94a3b8;
   }
 
   :root[data-theme="light"] {
     --bg: #f1f5f9; 
     --panel: rgba(255, 255, 255, 0.85); 
-    --panel-border: rgba(0, 0, 0, 0.08);
-    --border: rgba(0, 0, 0, 0.06); 
+    --panel-border: rgba(0, 0, 0, 0.12);
+    --border: rgba(0, 0, 0, 0.08); 
     --bid: #059669; 
     --ask: #e11d48; 
     --cyan: #0284c7; 
@@ -57,7 +61,7 @@
     --hdr-bg: rgba(255,255,255,0.85);
     --drawer-bg: rgba(248,250,252,0.95);
     --shadow: 0 8px 24px rgba(0,0,0,0.06);
-    --glass-border: rgba(0, 0, 0, 0.1);
+    --glass-border: rgba(0, 0, 0, 0.15);
     --glass-hover: rgba(0, 0, 0, 0.04);
     --glass-active: rgba(0, 0, 0, 0.08);
     --text-dim: #64748b;
@@ -70,11 +74,18 @@
     animation: none;
     mix-blend-mode: normal;
   }
-  .theme-transition::view-transition-new(root) {
+  ::view-transition-new(root) {
     z-index: 9999;
   }
-  .theme-transition::view-transition-old(root) {
+  ::view-transition-old(root) {
     z-index: 1;
+  }
+
+  .theme-transition,
+  .theme-transition * {
+    transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
   }
   
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -201,7 +212,7 @@
   .custom-select { display: flex; justify-content: space-between; align-items: center; background: var(--input-bg); color: var(--text-main); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px; transition: all 0.2s; }
   .custom-select:hover { border-color: rgba(6, 182, 212, 0.4); }
   .custom-select.open { border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.2); }
-  .custom-select-options { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--panel); backdrop-filter: var(--glass-blur); border: 1px solid var(--border); border-radius: 6px; box-shadow: var(--shadow); z-index: 100; max-height: 200px; overflow-y: auto; opacity: 0; visibility: hidden; transform: translateY(-10px); transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+  .custom-select-options { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--drawer-bg); border: 1px solid var(--border); border-radius: 6px; box-shadow: var(--shadow-heavy); z-index: 100; max-height: 200px; overflow-y: auto; opacity: 0; visibility: hidden; transform: translateY(-10px); transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
   .custom-select-options.open { opacity: 1; visibility: visible; transform: translateY(0); }
   .custom-option { padding: 10px 12px; color: var(--text-muted); font-size: 12px; cursor: pointer; transition: background 0.1s, color 0.1s; border-bottom: 1px solid var(--border); }
   .custom-option:last-child { border-bottom: none; }
@@ -463,7 +474,7 @@
 
 <div class="hdr-bar"></div>
 
-<header style="background:var(--hdr-bg);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;position:sticky;top:0;z-index:30;box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+<header style="background:var(--hdr-bg);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;position:sticky;top:0;z-index:30;box-shadow: var(--shadow);">
   <div style="display:flex;align-items:center;gap:14px;flex:1;">
     <div style="position:relative;width:12px;height:12px;"><div id="dot" class="dot-dead" style="width:12px;height:12px;border-radius:50%;position:absolute;"></div></div>
     <div>
@@ -504,44 +515,38 @@
             }
         };
 
-        if (!document.startViewTransition) {
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        if (!document.startViewTransition || prefersReducedMotion) {
+            document.documentElement.classList.add('theme-transition');
             toggleTheme();
+            setTimeout(() => {
+                document.documentElement.classList.remove('theme-transition');
+            }, 400);
             return;
         }
 
-        const x = e.clientX;
-        const y = e.clientY;
+        const x = e.clientX ?? innerWidth / 2;
+        const y = e.clientY ?? innerHeight / 2;
         const endRadius = Math.hypot(
             Math.max(x, innerWidth - x),
             Math.max(y, innerHeight - y)
         );
 
-        document.documentElement.classList.add('theme-transition');
-
-        const style = document.createElement('style');
-        style.textContent = `
-            ::view-transition-new(root) {
-                animation: circle-wipe 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-            }
-            @keyframes circle-wipe {
-                from { clip-path: circle(0px at ${x}px ${y}px); }
-                to { clip-path: circle(${endRadius}px at ${x}px ${y}px); }
-            }
-        `;
-        document.head.appendChild(style);
-
         const transition = document.startViewTransition(() => {
             toggleTheme();
         });
-        
-        transition.finished.then(() => {
-            document.documentElement.classList.remove('theme-transition');
-            style.remove();
+
+        transition.ready.then(() => {
+            document.documentElement.animate(
+                { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${endRadius}px at ${x}px ${y}px)`] },
+                { duration: 500, easing: 'ease-out', pseudoElement: '::view-transition-new(root)' }
+            );
         });
     });
 </script>
 
-<div style="padding: 16px 24px; display:flex; justify-content:space-between; align-items:center; background: rgba(0,0,0,0.4); border-bottom: 1px solid var(--border);">
+<div style="padding: 16px 24px; display:flex; justify-content:space-between; align-items:center; background: var(--panel); border-bottom: 1px solid var(--border);">
     <div style="display:flex; gap: 10px;">
         <button class="ctrl-btn btn-start"  id="btn-cmd-start"><span style="margin-right:6px">▶</span> START</button>
         <button class="ctrl-btn btn-pause"  id="btn-cmd-pause"><span style="margin-right:6px">⏸</span> PAUSE</button>
@@ -567,7 +572,7 @@
     <span style="font-weight:700;color:var(--text-main);font-size:14px;letter-spacing:1px;">MARKET SETTINGS</span>
     <button id="btn-close" style="color:var(--text-muted);font-size:24px;background:none;border:none;cursor:pointer;transition:color 0.2s;">×</button>
   </div>
-  <div class="panel" style="padding:16px;margin-bottom:16px;">
+  <div class="panel" style="padding:16px;margin-bottom:16px;position:relative;z-index:50;">
     <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;font-weight:600;display:flex;align-items:center;justify-content:space-between;">
       <div style="display:flex;align-items:center;gap:8px;">
         <div style="width:4px;height:12px;background:#10b981;border-radius:2px;"></div>Global Replicator Roles
@@ -585,7 +590,7 @@
     </div>
   </div>
 
-  <div class="panel" style="padding:16px;margin-bottom:16px;">
+  <div class="panel" style="padding:16px;margin-bottom:16px;position:relative;z-index:40;">
     <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;font-weight:600;display:flex;align-items:center;justify-content:space-between;">
       <div style="display:flex;align-items:center;gap:8px;">
         <div style="width:4px;height:12px;background:#3b82f6;border-radius:2px;"></div>Configured Accounts
@@ -597,7 +602,7 @@
     </div>
   </div>
   
-  <div class="panel" style="padding:16px;margin-bottom:16px;">
+  <div class="panel" style="padding:16px;margin-bottom:16px;position:relative;z-index:30;">
     <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;font-weight:600;display:flex;align-items:center;gap:8px;">
       <div style="width:4px;height:12px;background:var(--cyan);border-radius:2px;"></div>Market & Sizing
     </div>
@@ -906,10 +911,10 @@
         <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;" id="u1-chips"></div>
       </div>
     </div>
-    <div style="display:flex;border-bottom:1px solid var(--border);background:rgba(0,0,0,0.1);flex-shrink:0;">
+    <div style="display:flex;border-bottom:1px solid var(--border);background:transparent;flex-shrink:0;">
       <button id="tab-u1-pos" class="tab on" style="flex:1" onclick="window.setPortTab('u1', 'pos')">Positions</button>
-      <button id="tab-u1-open" class="tab" style="flex:1" onclick="window.setPortTab('u1', 'open')">Open Orders</button>
-      <button id="tab-u1-hist" class="tab" style="flex:1" onclick="window.setPortTab('u1', 'hist')">Order History</button>
+      <button id="tab-u1-open" class="tab" style="flex:1" onclick="window.setPortTab('u1', 'open')">Open Orders<span id="count-u1-open"></span></button>
+      <button id="tab-u1-hist" class="tab" style="flex:1" onclick="window.setPortTab('u1', 'hist')">Order History<span id="count-u1-hist"></span></button>
     </div>
     <div id="u1-body-wrap" style="display:flex;flex-direction:column;flex:1;min-height:0;">
       <div id="u1-err" class="err-banner" style="display:none;flex-shrink:0;"></div>
@@ -939,10 +944,10 @@
         <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;" id="u2-chips"></div>
       </div>
     </div>
-    <div style="display:flex;border-bottom:1px solid var(--border);background:rgba(0,0,0,0.1);flex-shrink:0;">
+    <div style="display:flex;border-bottom:1px solid var(--border);background:transparent;flex-shrink:0;">
       <button id="tab-u2-pos" class="tab on" style="flex:1" onclick="window.setPortTab('u2', 'pos')">Positions</button>
-      <button id="tab-u2-open" class="tab" style="flex:1" onclick="window.setPortTab('u2', 'open')">Open Orders</button>
-      <button id="tab-u2-hist" class="tab" style="flex:1" onclick="window.setPortTab('u2', 'hist')">Order History</button>
+      <button id="tab-u2-open" class="tab" style="flex:1" onclick="window.setPortTab('u2', 'open')">Open Orders<span id="count-u2-open"></span></button>
+      <button id="tab-u2-hist" class="tab" style="flex:1" onclick="window.setPortTab('u2', 'hist')">Order History<span id="count-u2-hist"></span></button>
     </div>
     <div id="u2-body-wrap" style="display:flex;flex-direction:column;flex:1;min-height:0;">
       <div id="u2-err" class="err-banner" style="display:none;flex-shrink:0;"></div>
@@ -965,7 +970,7 @@
       <div><div class="sec-label">Execution Sync</div><div class="sec-title" style="color:#c084fc;display:flex;align-items:center;gap:8px;"><div style="width:4px;height:14px;background:#c084fc;border-radius:2px;box-shadow:0 0 10px rgba(192,132,252,0.5);"></div>LTP Cross Stream</div></div>
       <div style="display:flex;gap:8px;"><span id="t-trok" class="badge badge-ok">0 OK</span><span id="t-trfail" class="badge badge-fail">0 FAIL</span></div>
     </div>
-    <div style="display:flex;border-bottom:1px solid var(--border);background:rgba(0,0,0,0.1);flex-shrink:0;">
+    <div style="display:flex;border-bottom:1px solid var(--border);background:transparent;flex-shrink:0;">
       <button class="tab on" style="flex:1" data-f="all">All</button>
       <button class="tab" style="flex:1" data-f="ok">Filled</button>
       <button class="tab" style="flex:1" data-f="fail">Failed</button>
@@ -1014,7 +1019,7 @@
       </div>
     </div>
     
-    <div id="mobile-term-tabs" style="display:none; border-bottom:1px solid var(--border); background:var(--input-bg); flex-shrink:0;">
+    <div id="mobile-term-tabs" style="display:none; border-bottom:1px solid var(--border); background:transparent; flex-shrink:0;">
        <button id="mtab-logs" class="tab on" style="flex:1" onclick="window.setMobileTermTab('logs')">Logs</button>
        <button id="mtab-payload" class="tab" style="flex:1" onclick="window.setMobileTermTab('payload')">Payload</button>
        <button id="mtab-response" class="tab" style="flex:1" onclick="window.setMobileTermTab('response')">Response</button>
@@ -1024,7 +1029,7 @@
         <div style="color:#64748b;margin-bottom:12px;font-style:italic;">Initializing replication daemon... Waiting for SSE stream.</div>
       </div>
       <div id="term-details-pane" style="width:400px; display:flex; flex-direction:column; background:var(--panel);">
-        <div id="term-desktop-details-tabs" style="display:flex; border-bottom:1px solid var(--border); background:var(--input-bg); flex-shrink:0;">
+        <div id="term-desktop-details-tabs" style="display:flex; border-bottom:1px solid var(--border); background:transparent; flex-shrink:0;">
            <button id="dtab-payload" class="tab on" style="flex:1;font-size:10px;padding:8px 0;" onclick="window.setDetailsTab('payload')">Payload</button>
            <button id="dtab-response" class="tab" style="flex:1;font-size:10px;padding:8px 0;" onclick="window.setDetailsTab('response')">Response</button>
         </div>
@@ -1045,19 +1050,23 @@ window.addEventListener('DOMContentLoaded', () => {
         window.u1Tab = 'pos';
         window.u2Tab = 'pos';
         window.pagination = { u1: 1, u2: 1, trades: 1 };
-        window.PAGE_SIZE = 50;
+        window.PAGE_SIZE = 10;
 
         window.fetchedOrders = { 'u1': { open: [], hist: [] }, 'u2': { open: [], hist: [] } };
         window.fetchOrders = async function(u, tab) {
             if (tab === 'pos' || !activeTabSymbol) return;
-            const bodyEl = document.getElementById(u + '-' + tab + '-tbody');
-            if (bodyEl) {
-                const colSpan = tab === 'hist' ? 7 : 8;
-                bodyEl.innerHTML = '<tr><td colspan="'+colSpan+'" style="text-align:center;padding:40px 0;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Loading...</td></tr>';
+            
+            if (window[u + 'Tab'] === tab) {
+                const bodyEl = document.getElementById(u + '-body');
+                if (bodyEl) {
+                    const colSpan = tab === 'hist' ? 7 : 9;
+                    bodyEl.innerHTML = '<tr><td colspan="'+colSpan+'" style="text-align:center;padding:40px 0;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Loading...</td></tr>';
+                }
             }
+            
             const endpoint = tab === 'open' ? '/fapi/v1/openOrders' : '/fapi/v1/allOrders';
             const userTag = u === 'u1' ? '1' : '2';
-            const reqBody = { _method: 'GET', symbol: activeTabSymbol, limit: window.PAGE_SIZE, page: window.pagination[u] };
+            const reqBody = { _method: 'GET', symbol: activeTabSymbol, limit: 500 };
             
             try {
                 const res = await fetch(endpoint, {
@@ -1070,6 +1079,12 @@ window.addEventListener('DOMContentLoaded', () => {
             } catch (e) {
                 window.fetchedOrders[u][tab] = [];
             }
+            
+            const countSpan = document.getElementById('count-' + u + '-' + tab);
+            if (countSpan) {
+                countSpan.textContent = window.fetchedOrders[u][tab].length ? ` (${window.fetchedOrders[u][tab].length})` : '';
+            }
+            
             window.renderPortfolios();
         };
 
@@ -1211,7 +1226,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 <div style="background:var(--input-bg);padding:10px 12px;border-radius:6px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
                     <div>
                         <div style="font-size:12px;font-weight:600;color:var(--text-main);">${u.label} <span style="color:var(--text-muted);font-weight:400;font-size:10px;">(${k})</span>${badges}</div>
-                        <div style="font-size:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;">Key: ${u.key ? u.key.substring(0,8)+'...' : 'None'}</div>
+                        ${u.email ? `<div style="font-size:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;cursor:pointer;margin-top:2px;transition:color 0.2s;" onmouseover="this.style.color='var(--text-main)'" onmouseout="this.style.color='var(--text-muted)'" onclick="navigator.clipboard.writeText('${u.email}');window.showToast('Email copied!')" title="Click to copy Email">Email: ${u.email}</div>` : ''}
+                        <div style="font-size:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;cursor:pointer;margin-top:2px;transition:color 0.2s;" onmouseover="this.style.color='var(--text-main)'" onmouseout="this.style.color='var(--text-muted)'" onclick="navigator.clipboard.writeText('${u.key}');window.showToast('API Key copied!')" title="Click to copy Key">Key: ${u.key ? u.key.substring(0,16)+'...' : 'None'}</div>
                     </div>
                 </div>`;
             }).join('');
@@ -1770,9 +1786,11 @@ window.addEventListener('DOMContentLoaded', () => {
                 renderSymbolData(cachedInstances[sym], cachedGlobalData);
             }
             
-            // Re-fetch orders for non-pos tabs
-            if (window.u1Tab !== 'pos') window.fetchOrders('u1', window.u1Tab);
-            if (window.u2Tab !== 'pos') window.fetchOrders('u2', window.u2Tab);
+            // Re-fetch orders for all tabs to update counts
+            window.fetchOrders('u1', 'open');
+            window.fetchOrders('u1', 'hist');
+            window.fetchOrders('u2', 'open');
+            window.fetchOrders('u2', 'hist');
         };
 
         document.querySelectorAll('.tab').forEach(btn => {
@@ -1940,9 +1958,13 @@ window.addEventListener('DOMContentLoaded', () => {
             if (tab === 'open') {
                 theadEl.innerHTML = '<tr><th>Symbol</th><th style="text-align:right;">Side</th><th style="text-align:right;">Price</th><th style="text-align:right;">Amount</th><th style="text-align:right;">Filled</th><th style="text-align:right;">Type</th><th style="text-align:right;">Status</th><th style="text-align:right;">Time</th><th style="text-align:right;">Actions</th></tr>';
                 rawData = window.fetchedOrders[panelId][tab] || [];
+                const countSpan = document.getElementById('count-' + panelId + '-open');
+                if (countSpan) countSpan.textContent = rawData.length ? ` (${rawData.length})` : '';
             } else if (tab === 'hist') {
                 theadEl.innerHTML = '<tr><th>Symbol</th><th style="text-align:right;">Side</th><th style="text-align:right;">Price</th><th style="text-align:right;">Amount</th><th style="text-align:right;">Filled</th><th style="text-align:right;">Status</th><th style="text-align:right;">Time</th></tr>';
                 rawData = (window.fetchedOrders[panelId][tab] || []).sort((a,b) => b.time - a.time);
+                const countSpan = document.getElementById('count-' + panelId + '-hist');
+                if (countSpan) countSpan.textContent = rawData.length ? ` (${rawData.length})` : '';
             } else {
                 theadEl.innerHTML = '<tr><th>Symbol</th><th style="text-align:right;">Lev</th><th style="text-align:right;">Margin</th><th style="text-align:right;">Size</th><th style="text-align:right;">Unreal. PnL</th><th style="text-align:right;">Entry</th><th style="text-align:right;">Mark</th><th style="text-align:right;">Liq.</th><th style="text-align:right;width:160px;">Actions</th></tr>';
                 rawData = data.positions || [];
@@ -1979,7 +2001,8 @@ window.addEventListener('DOMContentLoaded', () => {
             if (tab === 'open') {
                 bodyEl.innerHTML = pageData.map(o => {
                     const sideColor = o.side === 'BUY' ? '#34d399' : '#fb7185';
-                    const timeStr = new Date(o.time).toLocaleString();
+                    const timeVal = o.time || o.updateTime;
+                    const timeStr = timeVal ? new Date(Number(timeVal)).toLocaleString() : 'N/A';
                     
                     let statusHtml = '';
                     if (o.status === 'NEW') statusHtml = '<span class="badge" style="background:rgba(6,182,212,0.1);color:var(--cyan);border:1px solid rgba(6,182,212,0.3);">NEW</span>';
@@ -1991,7 +2014,8 @@ window.addEventListener('DOMContentLoaded', () => {
             } else if (tab === 'hist') {
                 bodyEl.innerHTML = pageData.map(o => {
                     const sideColor = o.side === 'BUY' ? '#34d399' : '#fb7185';
-                    const timeStr = new Date(o.time).toLocaleString();
+                    const timeVal = o.time || o.updateTime;
+                    const timeStr = timeVal ? new Date(Number(timeVal)).toLocaleString() : 'N/A';
                     let statusHtml = '';
                     if (o.status === 'FILLED') statusHtml = '<span class="badge badge-ok">FILLED</span>';
                     else if (o.status === 'CANCELED' || o.status === 'EXPIRED') statusHtml = '<span class="badge badge-fail">'+o.status+'</span>';
@@ -2122,8 +2146,59 @@ window.addEventListener('DOMContentLoaded', () => {
             renderBook(document.getElementById('stage-asks'), document.getElementById('stage-bids'), document.getElementById('stage-spread-badge'), document.getElementById('stage-spread-mid'), instance.testnetDepth.asks, instance.testnetDepth.bids);
 
             updateTradeStream(instance.syncedTrades);
-            updateTradeStream(instance.syncedTrades);
         }
+
+        window.lastOrderUpdateCounter = 0;
+        window.lastProcessedEventTs = Date.now();
+        
+        window.processSocketOrderUpdate = function(o, roleLabel) {
+            if (o.s !== activeTabSymbol) return; // Only process active tab symbols
+            
+            let u = null;
+            if (roleLabel === 'Maker' && window.payload.roles.makerId === 'user1') u = 'u1';
+            else if (roleLabel === 'Maker' && window.payload.roles.makerId === 'user2') u = 'u2';
+            else if (roleLabel === 'Taker' && window.payload.roles.takerId === 'user1') u = 'u1';
+            else if (roleLabel === 'Taker' && window.payload.roles.takerId === 'user2') u = 'u2';
+            
+            if (!u) return;
+
+            const status = o.X || o.x;
+            const apiOrder = {
+                orderId: o.i,
+                symbol: o.s,
+                status: status,
+                price: o.p,
+                origQty: o.q,
+                executedQty: o.z,
+                side: o.S,
+                type: o.o,
+                updateTime: o.T || Date.now(),
+                time: o.T || Date.now()
+            };
+
+            // Update Open Orders
+            let openArr = window.fetchedOrders[u]['open'] || [];
+            const openIdx = openArr.findIndex(x => String(x.orderId) === String(o.i));
+            
+            if (['CANCELED', 'FILLED', 'EXPIRED', 'REJECTED'].includes(status)) {
+                if (openIdx !== -1) openArr.splice(openIdx, 1);
+            } else {
+                if (openIdx !== -1) openArr[openIdx] = { ...openArr[openIdx], ...apiOrder };
+                else openArr.unshift(apiOrder);
+            }
+            window.fetchedOrders[u]['open'] = openArr;
+            const openCountSpan = document.getElementById('count-' + u + '-open');
+            if (openCountSpan) openCountSpan.textContent = openArr.length ? ` (${openArr.length})` : '';
+
+            // Update History
+            let histArr = window.fetchedOrders[u]['hist'] || [];
+            const histIdx = histArr.findIndex(x => String(x.orderId) === String(o.i));
+            if (histIdx !== -1) histArr[histIdx] = { ...histArr[histIdx], ...apiOrder };
+            else histArr.unshift(apiOrder);
+            window.fetchedOrders[u]['hist'] = histArr;
+            const histCountSpan = document.getElementById('count-' + u + '-hist');
+            if (histCountSpan) histCountSpan.textContent = histArr.length ? ` (${histArr.length})` : '';
+        };
 
         let es;
         function connectSSE() {
@@ -2149,6 +2224,19 @@ window.addEventListener('DOMContentLoaded', () => {
             es.onmessage = (ev) => {
                 let data;
                 try { data = JSON.parse(ev.data); } catch(e) { return; }
+
+                if (data.terminalEvents) {
+                    data.terminalEvents.forEach(evt => {
+                        if (evt.ts > window.lastProcessedEventTs) {
+                            window.lastProcessedEventTs = evt.ts;
+                            if (evt.meta && evt.meta.e === 'ORDER_TRADE_UPDATE') {
+                                if (typeof window.processSocketOrderUpdate === 'function') {
+                                    window.processSocketOrderUpdate(evt.meta.o, evt.sym);
+                                }
+                            }
+                        }
+                    });
+                }
 
                 cachedInstances = data.instances || {};
                 cachedGlobalData = data;
@@ -2193,12 +2281,19 @@ window.addEventListener('DOMContentLoaded', () => {
                     window.payload.portfolios = data.portfolios;
                 }
                 if (data.terminalLogs) {
-                    window.cachedTerminalLogs = data.terminalLogs;
+                    window.backendTerminalLogs = data.terminalLogs;
                 }
                 if (data.terminalEvents) {
-                    window.cachedTerminalEvents = data.terminalEvents;
+                    window.backendTerminalEvents = data.terminalEvents;
                 }
+                
                 if (data.terminalLogs || data.terminalEvents) {
+                    window.cachedTerminalLogs = [...(window.clientTerminalLogs || []), ...(window.backendTerminalLogs || [])].sort((a,b) => a.ts - b.ts);
+                    window.cachedTerminalEvents = [...(window.clientTerminalEvents || []), ...(window.backendTerminalEvents || [])].sort((a,b) => a.ts - b.ts);
+                    
+                    if (window.cachedTerminalLogs.length > 500) window.cachedTerminalLogs = window.cachedTerminalLogs.slice(-500);
+                    if (window.cachedTerminalEvents.length > 500) window.cachedTerminalEvents = window.cachedTerminalEvents.slice(-500);
+                    
                     renderTerminalLogs(window.activeTermTab === 'events' ? window.cachedTerminalEvents : window.cachedTerminalLogs);
                 }
                 window.renderPortfolios();
@@ -2210,6 +2305,10 @@ window.addEventListener('DOMContentLoaded', () => {
         
         window.clearTerminal = function() {
             window.terminalClearTs = Date.now();
+            window.clientTerminalLogs = [];
+            window.clientTerminalEvents = [];
+            window.backendTerminalLogs = [];
+            window.backendTerminalEvents = [];
             window.cachedTerminalLogs = [];
             window.cachedTerminalEvents = [];
             window.renderTerminalLogs([]);
@@ -2218,20 +2317,28 @@ window.addEventListener('DOMContentLoaded', () => {
         window.injectTerminalLog = function(level, sym, msg, meta = null) {
             const now = new Date();
             const time = now.toISOString().split('T')[1].substring(0,12); // HH:mm:ss.SSS
-            const logObj = { time, level, sym, msg, meta };
-            if (!window.cachedTerminalLogs) window.cachedTerminalLogs = [];
-            window.cachedTerminalLogs.push(logObj);
-            if (window.cachedTerminalLogs.length > 500) window.cachedTerminalLogs.shift();
+            const logObj = { time, level, sym, msg, meta, ts: Date.now() };
+            if (!window.clientTerminalLogs) window.clientTerminalLogs = [];
+            window.clientTerminalLogs.push(logObj);
+            if (window.clientTerminalLogs.length > 500) window.clientTerminalLogs.shift();
+            
+            window.cachedTerminalLogs = [...(window.clientTerminalLogs || []), ...(window.backendTerminalLogs || [])].sort((a,b) => a.ts - b.ts);
+            if (window.cachedTerminalLogs.length > 500) window.cachedTerminalLogs = window.cachedTerminalLogs.slice(-500);
+            
             if (window.activeTermTab !== 'events') window.renderTerminalLogs(window.cachedTerminalLogs);
         };
         
         window.injectTerminalEvent = function(level, sym, msg, meta = null) {
             const now = new Date();
             const time = now.toISOString().split('T')[1].substring(0,12);
-            const logObj = { time, level, sym, msg, meta };
-            if (!window.cachedTerminalEvents) window.cachedTerminalEvents = [];
-            window.cachedTerminalEvents.push(logObj);
-            if (window.cachedTerminalEvents.length > 500) window.cachedTerminalEvents.shift();
+            const logObj = { time, level, sym, msg, meta, ts: Date.now() };
+            if (!window.clientTerminalEvents) window.clientTerminalEvents = [];
+            window.clientTerminalEvents.push(logObj);
+            if (window.clientTerminalEvents.length > 500) window.clientTerminalEvents.shift();
+            
+            window.cachedTerminalEvents = [...(window.clientTerminalEvents || []), ...(window.backendTerminalEvents || [])].sort((a,b) => a.ts - b.ts);
+            if (window.cachedTerminalEvents.length > 500) window.cachedTerminalEvents = window.cachedTerminalEvents.slice(-500);
+            
             if (window.activeTermTab === 'events') window.renderTerminalLogs(window.cachedTerminalEvents);
         };
 
@@ -2506,12 +2613,13 @@ window.addEventListener('DOMContentLoaded', () => {
                     
                     if (!klineData) return;
                     
-                    const O = klineData.open.toFixed(2);
-                    const H = klineData.high.toFixed(2);
-                    const L = klineData.low.toFixed(2);
-                    const C = klineData.close.toFixed(2);
+                    const prec = window.tvChartPrecision || 2;
+                    const O = klineData.open.toFixed(prec);
+                    const H = klineData.high.toFixed(prec);
+                    const L = klineData.low.toFixed(prec);
+                    const C = klineData.close.toFixed(prec);
                     const V = volData ? volData.value.toFixed(2) : '0.00';
-                    const diff = (klineData.close - klineData.open).toFixed(2);
+                    const diff = (klineData.close - klineData.open).toFixed(prec);
                     const diffPct = (((klineData.close - klineData.open) / klineData.open) * 100).toFixed(2);
                     const color = klineData.close >= klineData.open ? '#10b981' : '#f43f5e';
                     const sign = klineData.close >= klineData.open ? '+' : '';
@@ -2572,6 +2680,24 @@ window.addEventListener('DOMContentLoaded', () => {
                         formattedKlines.push({ time, open, high, low, close });
                         formattedVolume.push({ time, value: volume, color });
                     });
+                    
+                    if (data.length > 0) {
+                        const samplePrice = data[data.length - 1][4];
+                        const str = String(samplePrice);
+                        const split = str.split('.');
+                        let prec = 2;
+                        if (split.length > 1) {
+                            prec = Math.min(Math.max(split[1].length, 2), 6);
+                        }
+                        window.tvChartPrecision = prec;
+                        window.tvSeries.applyOptions({
+                            priceFormat: {
+                                type: 'price',
+                                precision: prec,
+                                minMove: 1 / Math.pow(10, prec)
+                            }
+                        });
+                    }
                     
                     window.tvSeries.setData(formattedKlines);
                     window.tvVolumeSeries.setData(formattedVolume);
