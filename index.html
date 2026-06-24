@@ -391,14 +391,16 @@
   .term-details-close:hover { color:var(--text-main); background:var(--hover-bg); }
 
   /* LTP Cross Stream styles */
-  .trade-row { display:grid; grid-template-columns:1.5fr 1.5fr 1fr 1fr; align-items:center; padding:14px 20px; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.15s; }
+  .trade-header { display:grid; grid-template-columns:1.5fr 1.5fr 1fr 1fr; align-items:center; padding:10px 20px; font-family:'Inter',sans-serif; font-size:10px; text-transform:uppercase; letter-spacing:1px; font-weight:700; color:var(--text-dim); position:sticky; top:0; background:var(--panel); backdrop-filter:blur(8px); z-index:10; border-bottom:1px solid var(--border); }
+  .trade-row { display:flex; flex-direction:column; border-bottom:1px solid var(--border); transition:background 0.15s; }
   .trade-row:hover { background:var(--row-hover); }
   .trade-row.expanded { background:var(--row-hover); }
+  .trade-grid { display:grid; grid-template-columns:1.5fr 1.5fr 1fr 1fr; align-items:center; padding:12px 20px; cursor:pointer; font-family:'JetBrains Mono',monospace; font-size:12px; }
   .trade-side { font-weight:800; font-size:10px; padding:3px 8px; border-radius:4px; display:inline-block; margin-top:4px; letter-spacing:0.5px; }
   .trade-side.buy { color:var(--emerald); background:rgba(16,185,129,0.1); }
   .trade-side.sell { color:var(--rose); background:rgba(244,63,94,0.1); }
-  .trade-details { padding:12px 16px; margin:8px 0 4px; background:var(--input-bg); border-radius:8px; border:1px solid var(--border); font-size:11px; color:var(--text-dim); line-height:1.8; }
-  .trade-detail-row { display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid var(--border); }
+  .trade-details { padding:12px 16px; margin:0 20px 12px; background:var(--input-bg); border-radius:8px; border:1px solid var(--border); font-size:11px; color:var(--text-dim); line-height:1.8; }
+  .trade-detail-row { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--border); }
   .trade-detail-row:last-child { border-bottom:none; }
   .trade-detail-label { color:var(--text-muted); text-transform:uppercase; font-size:10px; letter-spacing:0.5px; font-weight:600; }
   .trade-detail-value { color:var(--text-main); font-family:'JetBrains Mono',monospace; font-weight:500; font-size:11px; }
@@ -424,7 +426,7 @@
     .term-details { width:100% !important; border-left:none !important; border-top:1px solid var(--border); }
     .term-details.hidden { width:0 !important; height:0; border-top:none; }
     #term-body-wrap { flex-direction:column !important; }
-    .trade-row { grid-template-columns:1fr 1fr !important; gap:8px; }
+    .trade-header, .trade-grid { grid-template-columns:1fr 1fr !important; gap:8px; }
   }
 
   /* --- Utility Classes (deduplicates inline styles) --- */
@@ -1985,14 +1987,12 @@ window.addEventListener('DOMContentLoaded', () => {
             const pageData = filtered.slice(startIdx, endIdx);
 
             if (pageData.length > 0) {
-                let html = `
-                    <div class="trade-row" style="font-family:'Inter',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:1px;font-weight:700;color:var(--text-dim);position:sticky;top:0;background:var(--drawer-bg);backdrop-filter:blur(8px);z-index:10;cursor:default;padding:10px 20px;">
-                        <div>Time / Side</div>
-                        <div>Price / Avg</div>
-                        <div>Quantity</div>
-                        <div style="text-align:right;">Status</div>
-                    </div>
-                `;
+                let html = `<div class="trade-header">
+                    <div>Time / Side</div>
+                    <div>Price / Avg</div>
+                    <div>Quantity</div>
+                    <div style="text-align:right;">Status</div>
+                </div>`;
                 pageData.forEach((t, i) => {
                     const rawStatus = t.status || (t.success ? 'FILLED' : 'FAILED');
                     const isFilled = rawStatus === 'FILLED' || rawStatus === 'PARTIALLY_FILLED';
@@ -2003,30 +2003,29 @@ window.addEventListener('DOMContentLoaded', () => {
                     
                     const limitPriceStr = t.price ? parseFloat(t.price).toFixed(pPrec) : '-';
                     const avgPriceStr = t.avgPrice && t.avgPrice !== '0' && t.avgPrice !== '0.0000' 
-                        ? `<div style="font-size:10px;color:var(--text-muted);margin-top:4px;">Avg: ${parseFloat(t.avgPrice).toFixed(pPrec)}</div>` 
+                        ? `<div style="font-size:10px;color:var(--text-muted);margin-top:2px;">Avg: ${parseFloat(t.avgPrice).toFixed(pPrec)}</div>` 
                         : '';
                         
                     const uniqueKey = t.time + '_' + t.price + '_' + t.stageQty;
                     const isExp = window.expandedTrades && window.expandedTrades.has(uniqueKey);
                     const expClass = isExp ? ' expanded' : '';
                     
-                    html += `
-                    <div class="tr-row" style="cursor:pointer;display:flex;flex-direction:column;" data-key="${uniqueKey}">
-                        <div class="trade-row${expClass}" style="border-bottom:none;">
-                            <div style="display:flex;flex-direction:column;">
-                                <span style="color:var(--text-dim);font-size:11px;font-family:'JetBrains Mono',monospace;">${t.time}</span>
+                    html += `<div class="trade-row${expClass}" data-key="${uniqueKey}">
+                        <div class="trade-grid">
+                            <div>
+                                <div style="color:var(--text-dim);font-size:11px;">${t.time}</div>
                                 <div>${sideText}</div>
                             </div>
-                            <div style="display:flex;flex-direction:column;font-family:'JetBrains Mono',monospace;">
-                                <span style="color:var(--text-main);font-weight:700;">$${limitPriceStr}</span>
+                            <div>
+                                <div style="color:var(--text-main);font-weight:700;">$${limitPriceStr}</div>
                                 ${avgPriceStr}
                             </div>
-                            <div style="font-family:'JetBrains Mono',monospace;">
+                            <div>
                                 <span style="color:var(--cyan);font-weight:700;">${parseFloat(t.stageQty).toFixed(qPrec)}</span>
                             </div>
                             <div style="text-align:right;"><span class="badge ${statusClass}" style="font-size:9px;">${rawStatus}</span></div>
                         </div>
-                        <div class="tr-details trade-details" style="display:${isExp ? 'block' : 'none'};margin:0 20px 12px;">
+                        <div class="tr-details trade-details" style="display:${isExp ? 'block' : 'none'};">
                             <div class="trade-detail-row">
                                 <span class="trade-detail-label">Maker ID</span>
                                 <span class="trade-detail-value">${t.makerOrderId || 'N/A'}</span>
@@ -2042,19 +2041,19 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (el.innerHTML !== html) {
                     el.innerHTML = html;
                     // Attach click handlers via event delegation
-                    el.querySelectorAll('.tr-row').forEach(row => {
+                    el.querySelectorAll('.trade-row').forEach(row => {
                         row.onclick = function() {
                             const d = this.querySelector('.tr-details');
-                            const grid = this.querySelector('.trade-row');
+                            if (!d) return;
                             const key = this.dataset.key;
                             window.expandedTrades = window.expandedTrades || new Set();
                             if (d.style.display === 'none') {
                                 d.style.display = 'block';
-                                grid.classList.add('expanded');
+                                this.classList.add('expanded');
                                 window.expandedTrades.add(key);
                             } else {
                                 d.style.display = 'none';
-                                grid.classList.remove('expanded');
+                                this.classList.remove('expanded');
                                 window.expandedTrades.delete(key);
                             }
                         };
