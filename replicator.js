@@ -557,9 +557,28 @@ class PrivateWsClient {
                 } else if (evtType === 'ACCOUNT_UPDATE') {
                     const a = msg.a || {};
                     const reason = a.m || 'unknown';
-                    const balances = (a.B || []).map(b => `${b.a}: ${b.wb}`).join(', ') || 'N/A';
-                    const positions = (a.P || []).length;
-                    pushEvent('EVENT', this.label, `Account Update [${reason}] | Balances: ${balances} | Positions changed: ${positions}`, msg, 'account');
+
+                    // Summary event
+                    pushEvent('EVENT', this.label, `Account Update [${reason}] | Balances: ${(a.B || []).length} | Positions: ${(a.P || []).length}`, msg, 'account');
+
+                    // Individual balance events
+                    (a.B || []).forEach(b => {
+                        const wallet = b.wb || '0';
+                        const crossWallet = b.cw || '0';
+                        const locked = b.lb || '0';
+                        const balChange = b.bc || '0';
+                        pushEvent('EVENT', this.label, `Balance | ${b.a || 'USDT'} | Wallet: ${wallet} | CrossWallet: ${crossWallet} | Locked: ${locked} | Change: ${balChange}`, b, 'balance');
+                    });
+
+                    // Individual position events
+                    (a.P || []).forEach(p => {
+                        const amt = p.pa || '0';
+                        const entry = p.ep || '0';
+                        const upnl = p.up || '0';
+                        const margin = p.mt || 'cross';
+                        const side = parseFloat(amt) > 0 ? 'LONG' : parseFloat(amt) < 0 ? 'SHORT' : 'FLAT';
+                        pushEvent('EVENT', this.label, `Position | ${p.s || '?'} | ${side} ${amt} @ ${entry} | uPnL: ${upnl} | ${margin} | IsolatedWallet: ${p.iw || '0'}`, p, 'position');
+                    });
                 } else if (evtType === 'listenKeyExpired') {
                     pushEvent('WARN', this.label, `Listen key expired on ${eventType} — reconnecting...`, msg, 'ws');
                     ws.close();
