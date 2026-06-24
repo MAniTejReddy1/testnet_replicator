@@ -1709,42 +1709,56 @@ async function globalMasterLoop() {
                     const prevPort = _prevPortfolioState[k];
                     const uLabel = globalUsers[k].label || k;
 
-                    // Detect balance changes
+                    const newWallet = parseFloat(newPort.walletBalance || 0);
+                    const newAvail = parseFloat(newPort.availableBalance || 0);
+                    const newPnl = parseFloat(newPort.unrealizedProfit || 0);
+                    const pnlSign = newPnl >= 0 ? '+' : '';
+
+                    // Always push account state on every poll
+                    pushEvent('EVENT', uLabel, `Account | Wallet: $${newWallet.toFixed(2)} | Available: $${newAvail.toFixed(2)} | PnL: ${pnlSign}$${newPnl.toFixed(2)}`, { walletBalance: newWallet, availableBalance: newAvail, unrealizedProfit: newPnl }, 'account');
+
+                    // Balance change detection (delta)
                     if (prevPort) {
                         const prevWallet = parseFloat(prevPort.walletBalance || 0);
-                        const newWallet = parseFloat(newPort.walletBalance || 0);
-                        const prevAvail = parseFloat(prevPort.availableBalance || 0);
-                        const newAvail = parseFloat(newPort.availableBalance || 0);
-                        const prevPnl = parseFloat(prevPort.unrealizedProfit || 0);
-                        const newPnl = parseFloat(newPort.unrealizedProfit || 0);
-
-                        if (Math.abs(newWallet - prevWallet) > 0.01) {
-                            const delta = (newWallet - prevWallet).toFixed(2);
+                        if (Math.abs(newWallet - prevWallet) > 0.001) {
+                            const delta = (newWallet - prevWallet).toFixed(4);
                             const sign = newWallet > prevWallet ? '+' : '';
-                            pushEvent('EVENT', uLabel, `Balance Update | Wallet: $${newWallet.toFixed(2)} (${sign}${delta}) | Available: $${newAvail.toFixed(2)}`, { walletBalance: newWallet, availableBalance: newAvail, delta: parseFloat(delta) }, 'balance');
+                            pushEvent('EVENT', uLabel, `Balance Changed | Wallet: $${newWallet.toFixed(2)} (${sign}${delta})`, { walletBalance: newWallet, delta: parseFloat(delta) }, 'balance');
                         }
-                        if (Math.abs(newPnl - prevPnl) > 0.5) {
-                            const pnlColor = newPnl >= 0 ? '+' : '';
-                            pushEvent('EVENT', uLabel, `PnL Update | Unrealized: ${pnlColor}$${newPnl.toFixed(2)}`, { unrealizedProfit: newPnl }, 'account');
-                        }
+                    }
 
-                        // Detect position changes
-                        const prevPosCount = (prevPort.positions || []).filter(p => parseFloat(p.positionAmt || p.size || 0) !== 0).length;
-                        const newPosCount = (newPort.positions || []).filter(p => parseFloat(p.positionAmt || p.size || 0) !== 0).length;
-                        if (prevPosCount !== newPosCount) {
-                            const activePositions = (newPort.positions || []).filter(p => parseFloat(p.positionAmt || p.size || 0) !== 0);
-                            const posSummary = activePositions.map(p => `${p.symbol || '?'}: ${p.positionAmt || p.size}`).join(', ') || 'None';
-                            pushEvent('EVENT', uLabel, `Position Update | Active: ${newPosCount} | ${posSummary}`, { activePositions: newPosCount, positions: activePositions }, 'position');
-                        }
+                    // Always push position state on every poll
+                    const allPositions = (newPort.positions || []);
+                    const activePositions = allPositions.filter(p => parseFloat(p.positionAmt || p.size || 0) !== 0);
+                    if (activePositions.length > 0) {
+                        activePositions.forEach(p => {
+                            const amt = p.positionAmt || p.size || '0';
+                            const entry = p.entryPrice || p.avgPrice || '-';
+                            const upnl = parseFloat(p.unrealizedProfit || p.pnl || 0);
+                            const pSign = upnl >= 0 ? '+' : '';
+                            pushEvent('EVENT', uLabel, `Position | ${p.symbol || '?'} | Amt: ${amt} | Entry: $${parseFloat(entry).toFixed(2)} | PnL: ${pSign}$${upnl.toFixed(2)}`, p, 'position');
+                        });
                     } else {
-                        // First sync — push initial state
-                        pushEvent('EVENT', uLabel, `Account Synced | Wallet: $${parseFloat(newPort.walletBalance || 0).toFixed(2)} | Available: $${parseFloat(newPort.availableBalance || 0).toFixed(2)}`, { walletBalance: newPort.walletBalance, availableBalance: newPort.availableBalance }, 'account');
+                        pushEvent('EVENT', uLabel, `Position | No active positions`, { positions: [] }, 'position');
                     }
 
                     _prevPortfolioState[k] = { walletBalance: newPort.walletBalance, availableBalance: newPort.availableBalance, unrealizedProfit: newPort.unrealizedProfit, positions: newPort.positions };
                     globalPortfolios[k] = newPort;
                 }
             });
+
+            // Track open orders via REST (since private WS listenKey is unavailable)
+            for (const [, inst] of instances.entries()) {
+                if (inst.status !== 'RUNNING') continue;
+                const bidCount = (inst.restingBids || []).length;
+                const askCount = (inst.restingAsks || []).length;
+                const totalOrders = bidCount + askCount;
+                if (totalOrders > 0) {
+                    pushEvent('EVENT', inst.symbol, `Orders | Open: ${totalOrders} (${bidCount} bids, ${askCount} asks)`, { bids: bidCount, asks: askCount, total: totalOrders }, 'order');
+                } else {
+                    pushEvent('EVENT', inst.symbol, `Orders | No open orders`, { total: 0 }, 'order');
+                }
+            }
         }
     } catch (e) { log.debug && log.debug('SYSTEM', e.message); }
     finally {
