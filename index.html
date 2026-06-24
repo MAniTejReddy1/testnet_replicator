@@ -2462,6 +2462,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
         // setTermTab is defined once at L1463 with per-tab color coding — do not redefine here
 
+        // Track whether the user has manually scrolled up.
+        // Set by REAL user scroll (mousewheel/touch), not by programmatic scrollTop.
+        let _userScrolledUp = false;
+        let _programmaticScroll = false;
+
         window.toggleAutoScroll = function() {
             terminalAutoScroll = !terminalAutoScroll;
             _userScrolledUp = !terminalAutoScroll;
@@ -2472,16 +2477,12 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (term) {
                     _programmaticScroll = true;
                     term.scrollTop = term.scrollHeight;
-                    _programmaticScroll = false;
+                    setTimeout(() => { _programmaticScroll = false; }, 50);
                 }
             }
         };
 
         const termEl = document.getElementById('live-terminal');
-        // Track whether the user has manually scrolled up.
-        // This is set by a REAL user scroll (mousewheel/touch), not by programmatic scrollTop.
-        let _userScrolledUp = false;
-        let _programmaticScroll = false;
         if (termEl) {
             // Detect real user scrolls UP — disable auto-scroll
             termEl.addEventListener('wheel', (e) => {
