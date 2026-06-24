@@ -332,25 +332,76 @@
   .pnl-neg { color: var(--ask); text-shadow: 0 0 12px rgba(244,63,94,0.4); }
   
   /* Terminal Specifics */
-  .term-scanline { background: linear-gradient(180deg, rgba(2,6,23,1) 0%, rgba(9,9,11,1) 100%); position:relative; overflow:hidden; }
-  .term-scanline::before { content: ""; position: absolute; inset:0; pointer-events: none; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.02) 2px, rgba(255,255,255,0.02) 4px); z-index:1; opacity:0.7; }
-  .term-content { position:relative; z-index:2; flex:1; overflow-y:auto; padding:20px; font-family:'JetBrains Mono',monospace; font-size:12px; color:#e2e8f0; line-height:1.6; white-space:pre-wrap; }
+  .term-panel-bg { background: linear-gradient(180deg, rgba(2,6,23,1) 0%, rgba(9,9,11,1) 100%); position:relative; overflow:hidden; }
+  :root[data-theme="light"] .term-panel-bg { background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%); }
+  .term-panel-bg::before { content: ""; position: absolute; inset:0; pointer-events: none; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.02) 2px, rgba(255,255,255,0.02) 4px); z-index:1; opacity:0.7; }
+  :root[data-theme="light"] .term-panel-bg::before { background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.01) 2px, rgba(0,0,0,0.01) 4px); }
+  .term-content { position:relative; z-index:2; flex:1; overflow-y:auto; padding:12px; font-family:'JetBrains Mono',monospace; font-size:12px; line-height:1.6; white-space:pre-wrap; }
+
+  /* Terminal log rows */
+  .term-log-row { padding:5px 10px; margin-bottom:1px; border-radius:4px; cursor:default; transition:background-color 0.15s; border-left:2px solid transparent; }
+  .term-log-row:hover { background:var(--row-hover); }
+  .term-log-row.has-meta { cursor:pointer; }
+  .term-log-row.has-meta:hover { border-left-color: var(--cyan); }
+  .term-log-row.selected { background:var(--row-hover); border-left-color: var(--cyan); }
+  .term-log-row .log-ts { color:var(--text-muted); opacity:0.7; }
+  .term-log-row .log-tag { font-weight:700; }
+  .term-log-row .log-sym { color:var(--purple); font-weight:600; }
+  .term-log-row .log-msg { color:var(--text-main); }
+  .term-log-row .log-tag.info { color:#3b82f6; }
+  .term-log-row .log-tag.success { color:var(--emerald); }
+  .term-log-row .log-tag.warn { color:var(--yellow); }
+  .term-log-row .log-tag.error { color:#ef4444; }
+  .term-log-row .log-tag.critical { color:#f87171; }
+  .term-log-row .log-tag.event { color:var(--purple); }
+  .log-msg.warn-msg { color:#fef08a; }
+  :root[data-theme="light"] .log-msg.warn-msg { color:#92400e; }
+  .log-msg.error-msg { color:#fca5a5; }
+  :root[data-theme="light"] .log-msg.error-msg { color:#b91c1c; }
+  .log-msg.critical-msg { color:#fff; }
+  :root[data-theme="light"] .log-msg.critical-msg { color:#7f1d1d; }
+  .log-msg.event-msg { color:#d8b4fe; }
+  :root[data-theme="light"] .log-msg.event-msg { color:#6b21a8; }
+
+  /* Inline meta (payload/response) expandable */
+  .log-meta-badge { display:inline-flex; align-items:center; gap:3px; color:var(--cyan); font-size:9px; margin-left:8px; padding:2px 6px; background:rgba(6,182,212,0.08); border:1px solid rgba(6,182,212,0.2); border-radius:4px; font-weight:700; cursor:pointer; transition:all 0.2s; vertical-align:middle; }
+  .log-meta-badge:hover { background:rgba(6,182,212,0.15); border-color:rgba(6,182,212,0.4); }
+  .log-meta-expand { overflow:hidden; max-height:0; transition:max-height 0.3s var(--ease), opacity 0.2s; opacity:0; margin:0 0 0 12px; }
+  .log-meta-expand.open { max-height:600px; opacity:1; margin:4px 0 8px 12px; }
+  .log-meta-tabs { display:flex; gap:4px; margin-bottom:6px; }
+  .log-meta-tab { padding:3px 10px; font-size:9px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; border-radius:4px; cursor:pointer; transition:all 0.15s; border:1px solid transparent; color:var(--text-muted); background:transparent; font-family:'Inter',sans-serif; }
+  .log-meta-tab:hover { color:var(--text-main); background:var(--row-hover); }
+  .log-meta-tab.active { color:var(--cyan); background:rgba(6,182,212,0.08); border-color:rgba(6,182,212,0.2); }
+  .log-meta-pre { background:var(--input-bg); border:1px solid var(--border); border-radius:6px; padding:10px 12px; font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-main); overflow-x:auto; max-height:300px; overflow-y:auto; white-space:pre-wrap; word-break:break-all; line-height:1.5; }
+  .log-meta-pre .json-key { color:var(--cyan); }
+  .log-meta-pre .json-str { color:var(--emerald); }
+  .log-meta-pre .json-num { color:var(--yellow); }
+  .log-meta-pre .json-bool { color:var(--purple); }
+  .log-meta-pre .json-null { color:var(--text-muted); }
+
+  /* Terminal empty state */
+  .term-empty { color:var(--text-muted); margin-bottom:12px; font-style:italic; text-align:center; padding:40px 0; }
+
+  /* Terminal tabs (replaces 5× inline tab styles) */
+  .term-tab { padding:6px 14px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600; letter-spacing:0.5px; color:var(--text-muted); background:var(--row-bg); border:1px solid transparent; border-radius:6px; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:6px; }
+  .term-tab:hover { color:var(--text-main); background:var(--hover-bg); }
+  .term-tab.on { color:var(--text-main); background:rgba(6,182,212,0.15); border-color:rgba(6,182,212,0.3); }
+  .term-tab.on.tab-info { background:rgba(59,130,246,0.15); border-color:rgba(59,130,246,0.3); }
+  .term-tab.on.tab-success { background:rgba(16,185,129,0.15); border-color:rgba(16,185,129,0.3); }
+  .term-tab.on.tab-err { background:rgba(239,68,68,0.15); border-color:rgba(239,68,68,0.3); }
+  .term-tab.on.tab-events { background:rgba(168,85,247,0.15); border-color:rgba(168,85,247,0.3); }
+
+  /* Terminal CLEAR button */
+  .term-clear-btn { background:transparent; border:1px solid var(--border); color:var(--text-muted); border-radius:6px; padding:4px 8px; font-size:9px; cursor:pointer; font-weight:700; font-family:'Inter',sans-serif; transition:all 0.2s; }
+  .term-clear-btn:hover { color:var(--text-main); background:var(--hover-bg); }
 
 .tv-tf-btn { background: transparent; border: 1px solid var(--border); color: var(--text-muted); border-radius: 4px; padding: 4px 8px; font-size: 10px; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.2s; font-weight: 700; }
 .tv-tf-btn:hover { color: var(--text-main); background: var(--hover-bg); }
 .tv-tf-btn.on { background: rgba(6,182,212,0.1); color: var(--cyan); border-color: rgba(6,182,212,0.3); }
 
   @media (max-width: 900px) {
-    #mobile-term-tabs { display: flex !important; }
-    #term-desktop-details-tabs { display: none !important; }
-    #term-body-wrap { flex-direction: column !important; }
-    #term-details-pane { width: 100% !important; border-left: none !important; flex: 1; }
-    
-    #term-body-wrap.show-logs #live-terminal { display: block !important; flex: 1; }
-    #term-body-wrap.show-logs #term-details-pane { display: none !important; }
-
-    #term-body-wrap.show-details #live-terminal { display: none !important; }
-    #term-body-wrap.show-details #term-details-pane { display: flex !important; flex: 1; }
+    .log-meta-expand.open { max-height:400px; }
+    .log-meta-pre { font-size:9px; }
   }
 
   /* --- Utility Classes (deduplicates inline styles) --- */
@@ -1031,26 +1082,26 @@
     <div style="background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:12px;min-height:48px;">
       <div style="font-family:'Inter',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;margin-right:12px;">Terminal</div>
       <div style="display:flex;gap:8px;">
-        <div id="term-tab-live" class="term-tab on" style="padding:6px 14px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;letter-spacing:0.5px;color:var(--text-main);background:rgba(6,182,212,0.15);border:1px solid rgba(6,182,212,0.3);border-radius:6px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:6px;" onclick="event.stopPropagation(); window.setTermTab('live')">
+        <div id="term-tab-live" class="term-tab on" onclick="event.stopPropagation(); window.setTermTab('live')">
           <span style="color:var(--cyan)">⚡</span> All Logs
         </div>
-        <div id="term-tab-info" class="term-tab" style="padding:6px 14px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;letter-spacing:0.5px;color:var(--text-muted);background:var(--row-bg);border:1px solid transparent;border-radius:6px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:6px;" onclick="event.stopPropagation(); window.setTermTab('info')">
+        <div id="term-tab-info" class="term-tab tab-info" onclick="event.stopPropagation(); window.setTermTab('info')">
           <span style="color:#3b82f6">ℹ</span> Info
         </div>
-        <div id="term-tab-success" class="term-tab" style="padding:6px 14px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;letter-spacing:0.5px;color:var(--text-muted);background:var(--row-bg);border:1px solid transparent;border-radius:6px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:6px;" onclick="event.stopPropagation(); window.setTermTab('success')">
-          <span style="color:#10b981">✔</span> Success
+        <div id="term-tab-success" class="term-tab tab-success" onclick="event.stopPropagation(); window.setTermTab('success')">
+          <span style="color:var(--emerald)">✔</span> Success
         </div>
-        <div id="term-tab-err" class="term-tab" style="padding:6px 14px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;letter-spacing:0.5px;color:var(--text-muted);background:var(--row-bg);border:1px solid transparent;border-radius:6px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:6px;" onclick="event.stopPropagation(); window.setTermTab('err')">
+        <div id="term-tab-err" class="term-tab tab-err" onclick="event.stopPropagation(); window.setTermTab('err')">
           <span style="color:#ef4444">⚠</span> Errors
         </div>
-        <div id="term-tab-events" class="term-tab" style="padding:6px 14px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;letter-spacing:0.5px;color:var(--text-muted);background:var(--row-bg);border:1px solid transparent;border-radius:6px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:6px;" onclick="event.stopPropagation(); window.setTermTab('events')">
-          <span style="color:#a855f7">🔌</span> Events
+        <div id="term-tab-events" class="term-tab tab-events" onclick="event.stopPropagation(); window.setTermTab('events')">
+          <span style="color:var(--purple)">🔌</span> Events
         </div>
       </div>
       <div style="flex:1;"></div>
       <div style="display:flex;align-items:center;gap:12px;">
         <input id="term-search" type="text" placeholder="Search logs..." style="width:160px;padding:6px 10px;font-size:11px;background:var(--input-bg);border:1px solid var(--border);color:var(--text-main);border-radius:6px;outline:none;" oninput="window.renderTerminalLogs(window.activeTermTab === 'events' ? window.cachedTerminalEvents : window.cachedTerminalLogs)">
-        <button onclick="event.stopPropagation(); window.clearTerminal()" style="background:transparent;border:1px solid var(--border);color:var(--text-muted);border-radius:6px;padding:4px 8px;font-size:9px;cursor:pointer;font-weight:700;font-family:'Inter',sans-serif;transition:all 0.2s;" onmouseover="this.style.color='var(--text-main)';this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.color='var(--text-muted)';this.style.background='transparent'">CLEAR</button>
+        <button class="term-clear-btn" onclick="event.stopPropagation(); window.clearTerminal()">CLEAR</button>
         <div style="display:flex;align-items:center;gap:6px;cursor:pointer;padding-right:8px;border-right:1px solid var(--border);" onclick="event.stopPropagation(); window.toggleAutoScroll()">
             <span style="font-size:9px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Auto-Scroll</span>
             <div id="term-scroll-tog" class="tog on" style="transform:scale(0.8)"></div>
@@ -1059,23 +1110,9 @@
       </div>
     </div>
     
-    <div id="mobile-term-tabs" style="display:none; border-bottom:1px solid var(--border); background:transparent; flex-shrink:0;">
-       <button id="mtab-logs" class="tab on" style="flex:1" onclick="window.setMobileTermTab('logs')">Logs</button>
-       <button id="mtab-payload" class="tab" style="flex:1" onclick="window.setMobileTermTab('payload')">Payload</button>
-       <button id="mtab-response" class="tab" style="flex:1" onclick="window.setMobileTermTab('response')">Response</button>
-    </div>
-    <div id="term-body-wrap" class="term-scanline show-logs" style="flex:1;display:flex;flex-direction:row;min-height:0;">
-      <div id="live-terminal" class="term-content" style="flex:1; border-right:1px solid var(--border); overflow-y:auto; padding:12px; font-family:'JetBrains Mono',monospace;">
-        <div style="color:#64748b;margin-bottom:12px;font-style:italic;">Initializing replication daemon... Waiting for SSE stream.</div>
-      </div>
-      <div id="term-details-pane" style="width:400px; display:flex; flex-direction:column; background:var(--panel);">
-        <div id="term-desktop-details-tabs" style="display:flex; border-bottom:1px solid var(--border); background:transparent; flex-shrink:0;">
-           <button id="dtab-payload" class="tab on" style="flex:1;font-size:10px;padding:8px 0;" onclick="window.setDetailsTab('payload')">Payload</button>
-           <button id="dtab-response" class="tab" style="flex:1;font-size:10px;padding:8px 0;" onclick="window.setDetailsTab('response')">Response</button>
-        </div>
-        <div id="term-details-content" style="flex:1; overflow-y:auto; padding:12px; font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-dim); white-space:pre-wrap; word-break:break-all;">
-           <div style="text-align:center; padding:40px 0; color:var(--text-muted); font-style:italic;">Select a log to view details</div>
-        </div>
+    <div id="term-body-wrap" class="term-panel-bg" style="flex:1;display:flex;flex-direction:column;min-height:0;">
+      <div id="live-terminal" class="term-content" style="flex:1; overflow-y:auto; padding:12px; font-family:'JetBrains Mono',monospace;">
+        <div class="term-empty">Initializing replication daemon... Waiting for SSE stream.</div>
       </div>
     </div>
     </div>
@@ -1504,15 +1541,9 @@ window.addEventListener('DOMContentLoaded', () => {
                 const el = document.getElementById('term-tab-' + t);
                 if (!el) return;
                 if (t === tabId) {
-                    el.style.color = 'var(--text-main)';
-                    let borderColor = t==='live' ? 'rgba(6,182,212,0.3)' : t==='info' ? 'rgba(59,130,246,0.3)' : t==='success' ? 'rgba(16,185,129,0.3)' : t==='events' ? 'rgba(168,85,247,0.3)' : 'rgba(239,68,68,0.3)';
-                    let bgColor = t==='live' ? 'rgba(6,182,212,0.15)' : t==='info' ? 'rgba(59,130,246,0.15)' : t==='success' ? 'rgba(16,185,129,0.15)' : t==='events' ? 'rgba(168,85,247,0.15)' : 'rgba(239,68,68,0.15)';
-                    el.style.border = '1px solid ' + borderColor;
-                    el.style.background = bgColor;
+                    el.classList.add('on');
                 } else {
-                    el.style.color = 'var(--text-muted)';
-                    el.style.border = '1px solid transparent';
-                    el.style.background = 'rgba(255,255,255,0.03)';
+                    el.classList.remove('on');
                 }
             });
             if (window.renderTerminalLogs) window.renderTerminalLogs(tabId === 'events' ? window.cachedTerminalEvents : window.cachedTerminalLogs);
@@ -2421,84 +2452,59 @@ window.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        
-        window.activeDetailsTab = 'payload';
-        window.activeMobileTab = 'logs';
-        window.activeSelectedMeta = null;
-
-        window.setDetailsTab = function(tab) {
-            window.activeDetailsTab = tab;
-            document.getElementById('dtab-payload').className = tab === 'payload' ? 'tab on' : 'tab';
-            document.getElementById('dtab-response').className = tab === 'response' ? 'tab on' : 'tab';
-            
-            // Sync mobile tabs if we are on details
-            if (window.activeMobileTab !== 'logs') {
-                window.activeMobileTab = tab;
-                document.getElementById('mtab-payload').className = tab === 'payload' ? 'tab on' : 'tab';
-                document.getElementById('mtab-response').className = tab === 'response' ? 'tab on' : 'tab';
-            }
-            
-            window.renderDetailsContent();
+        // --- Syntax-highlighted JSON formatter ---
+        window.formatJsonHtml = function(data) {
+            let str = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+            str = str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            // Highlight JSON tokens
+            str = str.replace(/"([^"]+)"(?=\s*:)/g, '"<span class="json-key">$1</span>"');
+            str = str.replace(/:\s*"([^"]*)"/g, ': "<span class="json-str">$1</span>"');
+            str = str.replace(/:\s*(-?\d+\.?\d*)/g, ': <span class="json-num">$1</span>');
+            str = str.replace(/:\s*(true|false)/g, ': <span class="json-bool">$1</span>');
+            str = str.replace(/:\s*(null)/g, ': <span class="json-null">$1</span>');
+            return str;
         };
 
-        window.setMobileTermTab = function(tab) {
-            window.activeMobileTab = tab;
-            document.getElementById('mtab-logs').className = tab === 'logs' ? 'tab on' : 'tab';
-            document.getElementById('mtab-payload').className = tab === 'payload' ? 'tab on' : 'tab';
-            document.getElementById('mtab-response').className = tab === 'response' ? 'tab on' : 'tab';
-            
-            const wrap = document.getElementById('term-body-wrap');
-            if (tab === 'logs') {
-                wrap.className = 'term-scanline show-logs';
+        // --- Toggle inline meta expand ---
+        window.toggleLogMeta = function(id, defaultTab) {
+            const el = document.getElementById('log-meta-' + id);
+            if (!el) return;
+            const isOpen = el.classList.contains('open');
+            // Close all others first
+            document.querySelectorAll('.log-meta-expand.open').forEach(e => {
+                if (e.id !== 'log-meta-' + id) e.classList.remove('open');
+            });
+            document.querySelectorAll('.term-log-row.selected').forEach(r => r.classList.remove('selected'));
+            if (!isOpen) {
+                el.classList.add('open');
+                const row = el.previousElementSibling;
+                if (row) row.classList.add('selected');
+                window.switchLogMetaTab(id, defaultTab || 'payload');
             } else {
-                wrap.className = 'term-scanline show-details';
-                window.setDetailsTab(tab); // Sync desktop tabs visually too
+                el.classList.remove('open');
             }
         };
 
-        window.renderDetailsContent = function() {
-            const pane = document.getElementById('term-details-content');
-            if (!window.activeSelectedMeta) {
-                pane.innerHTML = '<div style="text-align:center; padding:40px 0; color:var(--text-muted); font-style:italic;">Select a log to view details</div>';
-                return;
-            }
-            
-            let displayData = '';
-            // Determine if meta has req/res structure
-            if (window.activeSelectedMeta.req || window.activeSelectedMeta.res || window.activeSelectedMeta.request || window.activeSelectedMeta.response) {
-                if (window.activeDetailsTab === 'payload') {
-                    displayData = window.activeSelectedMeta.req || window.activeSelectedMeta.request || window.activeSelectedMeta;
+        // --- Switch between payload/response tabs inline ---
+        window.switchLogMetaTab = function(id, tab) {
+            const container = document.getElementById('log-meta-' + id);
+            if (!container) return;
+            container.querySelectorAll('.log-meta-tab').forEach(t => {
+                t.classList.toggle('active', t.dataset.tab === tab);
+            });
+            const pre = container.querySelector('.log-meta-pre');
+            const meta = JSON.parse(decodeURIComponent(container.dataset.meta));
+            let displayData;
+            if (meta.req || meta.res || meta.request || meta.response) {
+                if (tab === 'payload') {
+                    displayData = meta.req || meta.request || meta;
                 } else {
-                    displayData = window.activeSelectedMeta.res || window.activeSelectedMeta.response || window.activeSelectedMeta.error || 'No response data';
+                    displayData = meta.res || meta.response || meta.error || 'No response data';
                 }
             } else {
-                displayData = window.activeSelectedMeta;
+                displayData = meta;
             }
-            
-            let metaStr = typeof displayData === 'string' ? displayData : JSON.stringify(displayData, null, 2);
-            metaStr = metaStr.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            pane.innerHTML = metaStr;
-        };
-
-        window.openTermDetails = function(metaStrEncoded, rowEl) {
-            try {
-                window.activeSelectedMeta = JSON.parse(decodeURIComponent(metaStrEncoded));
-            } catch(e) {
-                window.activeSelectedMeta = { raw: decodeURIComponent(metaStrEncoded) };
-            }
-            
-            // Highlight selected row
-            const rows = document.querySelectorAll('.term-log-row');
-            rows.forEach(r => r.style.backgroundColor = 'transparent');
-            if (rowEl) rowEl.style.backgroundColor = 'var(--row-hover)';
-            
-            // Switch to payload tab
-            window.setDetailsTab('payload');
-            
-            // If on mobile, switch to mobile details view
-            if (window.innerWidth <= 900) {
-                window.setMobileTermTab('payload');
-            }
+            pre.innerHTML = window.formatJsonHtml(displayData);
         };
 
         window.renderTerminalLogs = function(logs) {
@@ -2525,36 +2531,48 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 count++;
-                let color = '#cbd5e1';
-                let tagColor = '#94a3b8';
+                const levelClass = (l.level || '').toLowerCase();
+                let msgClass = '';
+                if (l.level === 'WARN') msgClass = ' warn-msg';
+                else if (l.level === 'ERROR') msgClass = ' error-msg';
+                else if (l.level === 'CRITICAL') msgClass = ' critical-msg';
+                else if (l.level === 'EVENT') msgClass = ' event-msg';
+
+                const hasMeta = !!l.meta;
+                const rowId = 'tl-' + i;
+                const rowClass = 'term-log-row' + (hasMeta ? ' has-meta' : '');
+                const rowClick = hasMeta ? ` onclick="window.toggleLogMeta('${rowId}')"` : '';
+
+                const escapedMsg = (l.msg || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 
-                if (l.level === 'INFO') tagColor = '#3b82f6';
-                else if (l.level === 'SUCCESS') tagColor = '#10b981';
-                else if (l.level === 'WARN') { tagColor = '#eab308'; color = '#fef08a'; }
-                else if (l.level === 'ERROR') { tagColor = '#ef4444'; color = '#fca5a5'; }
-                else if (l.level === 'CRITICAL') { tagColor = '#f87171'; color = '#fff'; }
-                else if (l.level === 'EVENT') { tagColor = '#a855f7'; color = '#d8b4fe'; }
-                
-                
-                let cursor = l.meta ? 'pointer' : 'default';
-                let onClick = '';
-                let hoverClass = l.meta ? 'class="term-log-row" onmouseover="this.style.backgroundColor=\'var(--row-hover)\'" onmouseout="if(this.dataset.selected!==\'true\')this.style.backgroundColor=\'transparent\'"' : 'class="term-log-row"';
-                
-                let metaHtml = '';
-                if (l.meta) {
-                    const encodedMeta = encodeURIComponent(JSON.stringify(l.meta));
-                    onClick = `onclick="document.querySelectorAll('.term-log-row').forEach(r=>{r.dataset.selected='false';r.style.backgroundColor='transparent'}); this.dataset.selected='true'; window.openTermDetails('${encodedMeta}', this)"`;
-                    metaHtml = '<span style="color:var(--cyan);font-size:9px;margin-left:8px;padding:2px 4px;background:rgba(6,182,212,0.1);border-radius:4px;font-weight:700;">DETAILS</span>';
+                let metaBadge = '';
+                if (hasMeta) {
+                    metaBadge = '<span class="log-meta-badge">▶ DETAILS</span>';
                 }
-                
-                html += `<div ${hoverClass} ${onClick} style="padding:4px 8px; margin-bottom:2px; word-break:break-all; cursor:${cursor}; border-radius:4px; transition:background-color 0.2s;"><span style="color:#64748b;">[${l.time}]</span> <span style="color:${tagColor};font-weight:700;">[${l.level}]</span> <span style="color:#a855f7;font-weight:600;">[${l.sym}]</span> <span style="color:${color};">${l.msg}</span>${metaHtml}</div>`;
+
+                html += `<div class="${rowClass}"${rowClick}><span class="log-ts">[${l.time}]</span> <span class="log-tag ${levelClass}">[${l.level}]</span> <span class="log-sym">[${l.sym}]</span> <span class="log-msg${msgClass}">${escapedMsg}</span>${metaBadge}</div>`;
+
+                // Expandable inline meta
+                if (hasMeta) {
+                    const encodedMeta = encodeURIComponent(JSON.stringify(l.meta));
+                    const hasTabs = l.meta.req || l.meta.res || l.meta.request || l.meta.response;
+                    html += `<div id="log-meta-${rowId}" class="log-meta-expand" data-meta="${encodedMeta}">`;
+                    if (hasTabs) {
+                        html += `<div class="log-meta-tabs">`;
+                        html += `<button class="log-meta-tab active" data-tab="payload" onclick="event.stopPropagation();window.switchLogMetaTab('${rowId}','payload')">Payload</button>`;
+                        html += `<button class="log-meta-tab" data-tab="response" onclick="event.stopPropagation();window.switchLogMetaTab('${rowId}','response')">Response</button>`;
+                        html += `</div>`;
+                    }
+                    html += `<div class="log-meta-pre">${window.formatJsonHtml(hasTabs ? (l.meta.req || l.meta.request || l.meta) : l.meta)}</div>`;
+                    html += `</div>`;
+                }
             }
 
             if (count === 0) {
-                html = '<div style="color:#64748b;margin-bottom:12px;font-style:italic;">No logs available for this view.</div>';
+                html = '<div class="term-empty">No logs available for this view.</div>';
             }
             
-            // Only update DOM if HTML changed, or it's forced (to avoid scroll jumping)
+            // Only update DOM if HTML changed, to avoid scroll jumping
             if (term.innerHTML !== html) {
                 term.innerHTML = html;
                 if (terminalAutoScroll) {
