@@ -28,20 +28,28 @@ async function emitOrderEvent(type, payload) {
 // 1. Core Configuration & State
 // ==========================================
 
-// API Keys are hardcoded here for security in the CI/CD environment.
-const HARDCODED_CREDENTIALS = {
-    user1_maker: {
+let globalUsers = {
+    'user1': {
+        label: 'User 1',
+        listenKey: process.env.USER1_LISTEN_KEY || "",
         key: process.env.USER1_KEY || '45cda3aac77c85a66212c1eb1ed70df06defc46e8840aa6d',
         secret: process.env.USER1_SECRET || 'b3ebd30860c13a1bd1f44c358d746874ae52ca5396879de71366c5b2832596fd',
         email: 'mani.reddy+k0g0zvg8@coindcx.com',
         password: 'Test@123'
     },
-    user2_taker: {
+    'user2': {
+        label: 'User 2',
+        listenKey: process.env.USER2_LISTEN_KEY || "",
         key: process.env.USER2_KEY || '6e3ef60d1fcfc8fb6c527eb8218bcdfaf56c02f422846367',
         secret: process.env.USER2_SECRET || 'ce547e76586bfe7d1fff793cb9373d04171b648f89de4706e7b9b2783715e72f',
         email: 'mani.reddy+n1d5l3gq@coindcx.com',
         password: 'Test@123'
     }
+};
+
+let globalRoles = {
+    makerId: 'user1',
+    takerId: 'user2'
 };
 
 let marketConfigs = [];
@@ -77,8 +85,8 @@ try {
 const DEBUG = false;
 
 // Global Portfolios (Account level)
-let user1Portfolio = { walletBalance: "0.00", availableBalance: "0.00", unrealizedProfit: "0.00", positions: [], openOrdersCount: 0, error: null };
-let user2Portfolio = { walletBalance: "0.00", availableBalance: "0.00", unrealizedProfit: "0.00", positions: [], openOrdersCount: 0, error: null };
+let terminalLogs = [];
+let maxTerminalLogs = 1000;
 let lastPortfolioSyncTime = 0;
 const PORTFOLIO_SYNC_INTERVAL_MS = 30000;
 
@@ -98,13 +106,26 @@ function writeStateFile(payload) {
     } catch (e) { /* ignore write errors — path may not exist yet */ }
 }
 
+
+const terminalEvents = [];
+
+function pushLog(level, sym, msg, meta = null) {
+    terminalLogs.push({ time: getISTTimeString(), level, sym, msg, ts: Date.now(), meta });
+    if (terminalLogs.length > 200) terminalLogs.shift();
+}
+
+function pushEvent(level, sym, msg, meta = null) {
+    terminalEvents.push({ time: getISTTimeString(), level, sym, msg, ts: Date.now(), meta });
+    if (terminalEvents.length > 300) terminalEvents.shift();
+}
+
 const log = {
-    info:     (sym, msg) => console.log(`[\x1b[34mINFO\x1b[0m][${sym}] ${msg}`),
-    success:  (sym, msg) => console.log(`[\x1b[32mSUCCESS\x1b[0m][${sym}] ${msg}`),
-    error:    (sym, msg) => console.error(`[\x1b[31mERROR\x1b[0m][${sym}] ${msg}`),
-    warn:     (sym, msg) => console.log(`[\x1b[33mWARN\x1b[0m][${sym}] ${msg}`),
-    critical: (sym, msg) => console.log(`[\x1b[41m\x1b[37mCRITICAL\x1b[0m][${sym}] ${msg}`),
-    debug:    (sym, msg) => { if (DEBUG) console.log(`[\x1b[35mDEBUG\x1b[0m][${sym}] ${msg}`); }
+    info:     (sym, msg, meta) => { console.log(`[\x1b[34mINFO\x1b[0m][${sym}] ${msg}`); pushLog('INFO', sym, msg, meta); },
+    success:  (sym, msg, meta) => { console.log(`[\x1b[32mSUCCESS\x1b[0m][${sym}] ${msg}`); pushLog('SUCCESS', sym, msg, meta); },
+    error:    (sym, msg, meta) => { console.error(`[\x1b[31mERROR\x1b[0m][${sym}] ${msg}`); pushLog('ERROR', sym, msg, meta); },
+    warn:     (sym, msg, meta) => { console.log(`[\x1b[33mWARN\x1b[0m][${sym}] ${msg}`); pushLog('WARN', sym, msg, meta); },
+    critical: (sym, msg, meta) => { console.log(`[\x1b[41m\x1b[37mCRITICAL\x1b[0m][${sym}] ${msg}`); pushLog('CRITICAL', sym, msg, meta); },
+    debug:    (sym, msg, meta) => { if (DEBUG) { console.log(`[\x1b[35mDEBUG\x1b[0m][${sym}] ${msg}`); pushLog('DEBUG', sym, msg, meta); } }
 };
 
 function getISTTimeString() {
@@ -124,12 +145,13 @@ function signAndPrepare(url, method, payloadObj, userConfig) {
 
     if (isGetOrDelete) {
         urlObj.searchParams.set('timestamp', String(timestamp));
+        urlObj.searchParams.set('recvWindow', '60000');
         if (payloadObj) {
             Object.keys(payloadObj).forEach(k => urlObj.searchParams.set(k, String(payloadObj[k])));
         }
         payloadStr = '';
     } else {
-        const bodyObj = { ...payloadObj, timestamp };
+        const bodyObj = { ...payloadObj, timestamp, recvWindow: 60000 };
         payloadStr = JSON.stringify(bodyObj);
     }
 
@@ -156,6 +178,7 @@ async function sendSignedRequest(url, method, payload, userConfig, timeoutMs = 5
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     const startTime = Date.now();
+    const uLabel = userConfig ? (userConfig.label || 'User') : 'System';
 
     try {
         const options = { method: method.toUpperCase(), headers, body: payloadStr || undefined, signal: controller.signal };
@@ -164,19 +187,28 @@ async function sendSignedRequest(url, method, payload, userConfig, timeoutMs = 5
 
         const latencyMs = Date.now() - startTime;
         const text = await res.text();
-        if (!res.ok || DEBUG) log.debug('REST-API', `[${method.toUpperCase()}] ${finalUrl} | Status: ${res.status} | Body: ${text} | Latency: ${latencyMs}ms`);
-
+        
         let data;
         try { data = JSON.parse(text); }
         catch (e) { data = { error: text || 'Invalid JSON response from server' }; }
+
+        const shortUrl = new URL(finalUrl).pathname;
+        const meta = {
+            request: { method: method.toUpperCase(), url: shortUrl, payload: payload },
+            response: { status: res.status, data: data }
+        };
+        log.info(uLabel, `[${method.toUpperCase()}] ${shortUrl} | Status: ${res.status} | Latency: ${latencyMs}ms`, meta);
+
+        if (!res.ok || DEBUG) log.debug('REST-API', `[${method.toUpperCase()}] ${finalUrl} | Status: ${res.status} | Body: ${text} | Latency: ${latencyMs}ms`);
 
         return { ok: res.ok, status: res.status, data, latencyMs };
     } catch (err) {
         clearTimeout(timeoutId);
         const latencyMs = Date.now() - startTime;
         const isTimeout = err.name === 'AbortError' || err.message.includes('aborted');
-        if (isTimeout) log.error('REST-API', `[TIMEOUT] ${method.toUpperCase()} to ${finalUrl} timed out after ${latencyMs}ms.`);
-        else log.error('REST-API', `[ERROR] ${method.toUpperCase()} to ${finalUrl} failed after ${latencyMs}ms: ${err.message}`);
+        const shortUrl = new URL(finalUrl).pathname;
+        if (isTimeout) log.error(uLabel, `[TIMEOUT] ${method.toUpperCase()} to ${shortUrl} timed out after ${latencyMs}ms.`);
+        else log.error(uLabel, `[ERROR] ${method.toUpperCase()} to ${shortUrl} failed after ${latencyMs}ms: ${err.message}`);
         return { ok: false, status: isTimeout ? 408 : 500, error: isTimeout ? 'Request Timeout' : err.message, latencyMs };
     }
 }
@@ -326,7 +358,7 @@ function calculateQty(sizeUsdt, priceStr, symbol) {
 
     let rawQty = sizeUsdt / price;
     const factor = 1 / inst.qtyStep;
-    let qty = Math.floor(rawQty * factor) / factor;
+    let qty = Math.round(rawQty * factor) / factor;
     if (qty < inst.minQty) qty = inst.minQty;
 
     return qty.toFixed(inst.qtyPrecision);
@@ -335,7 +367,7 @@ function calculateQty(sizeUsdt, priceStr, symbol) {
 function formatRawQty(rawQty, symbol) {
     const inst = instrumentsMap[symbol] || { qtyStep: 1.0, minQty: 1.0, qtyPrecision: 0 };
     const factor = 1 / inst.qtyStep;
-    let qty = Math.floor(rawQty * factor) / factor;
+    let qty = Math.round(rawQty * factor) / factor;
     return qty.toFixed(inst.qtyPrecision);
 }
 
@@ -356,6 +388,54 @@ function applyBuffer(priceStr, side, bufferPct, symbol) {
 // ==========================================
 // 3. Replicator Engine Instance
 // ==========================================
+class PrivateWsClient {
+    constructor(listenKey, onMessageCb, label) {
+        this.listenKey = listenKey;
+        this.onMessageCb = onMessageCb;
+        this.label = label;
+        this.ws = null;
+        this.pingInterval = null;
+        this.reconnectTimer = null;
+        if (this.listenKey) this.connect();
+    }
+    
+    connect() {
+        if (this.ws) this.ws.close();
+        const url = `wss://testnet-futures-socket-gateway.dcxstage.com/private/ws?listenKey=${this.listenKey}&events=ORDER_TRADE_UPDATE`;
+        log.info('SYSTEM', `Connecting ${this.label} User Data Stream...`);
+        this.ws = new WebSocket(url);
+        
+        this.ws.on('open', () => {
+            log.success('SYSTEM', `${this.label} User Data Stream connected.`);
+            this.pingInterval = setInterval(() => {
+                if (this.ws.readyState === WebSocket.OPEN) this.ws.ping();
+            }, 30000);
+        });
+        
+        this.ws.on('message', (data) => {
+            try {
+                const msg = JSON.parse(data);
+                pushEvent('EVENT', this.label, `WS Update: ${msg.e || 'Unknown'}`, msg);
+                if (msg.e === 'ORDER_TRADE_UPDATE') {
+                    this.onMessageCb(msg.o);
+                }
+            } catch (e) {
+                log.error('SYSTEM', `Error parsing ${this.label} WS: ${e.message}`);
+            }
+        });
+        
+        this.ws.on('close', () => {
+            log.warn('SYSTEM', `${this.label} User Data Stream disconnected. Reconnecting in 3s...`);
+            clearInterval(this.pingInterval);
+            this.reconnectTimer = setTimeout(() => this.connect(), 3000);
+        });
+        
+        this.ws.on('error', (err) => {
+            log.error('SYSTEM', `${this.label} User Data Stream error: ${err.message}`);
+        });
+    }
+}
+
 class ReplicatorInstance {
     constructor(marketConfig) {
         this.sourceSymbol = marketConfig.sourceSymbol.toUpperCase();
@@ -373,6 +453,8 @@ class ReplicatorInstance {
         this.bufferPct          = marketConfig.bufferPct          || 0;
         this.cancelOnStop       = marketConfig.cancelOnStop !== false;
         this.tradeDelayMs       = marketConfig.tradeDelayMs       || 0;
+        
+        this.inFlightEdits      = new Set();
 
         this.binanceDepth  = { bids: [], asks: [] };
         this.testnetDepth  = { bids: [], asks: [] };
@@ -380,14 +462,18 @@ class ReplicatorInstance {
         this.restingAsks   = [];
         this.syncedTrades  = [];
 
-        this.tradeQueue        = [];
-        this.priceLocks        = new Set();
-        this.ghostCancelQueue  = new Set();
+        this.tradeQueue          = [];
+        this.priceLocks          = new Set();
+        this.ghostCancelQueue    = new Set();
+        this.inFlightCancels     = new Set();
+        this.cancelRetries       = new Map();
+        this.inFlightTakerOrders = new Map();
 
         this.isCrossing         = false;
         this.isSyncingDelta     = false;
         this.isCancellingGhosts = false;
         this.isAligningLtp      = false;
+        this.isSyncingGrid      = false;
 
         this.wsBinanceDepth  = null;
         this.wsBinanceTrades = null;
@@ -400,14 +486,101 @@ class ReplicatorInstance {
         this.totalSyncAttempts = 0;
         this.successfulSyncs   = 0;
         this.hasLoggedAuthError = false;
+
+        this.makerWs = new PrivateWsClient(globalUsers[globalRoles.makerId].listenKey, this.onMakerWsEvent.bind(this), 'Maker');
+        this.takerWs = new PrivateWsClient(globalUsers[globalRoles.takerId].listenKey, this.onTakerWsEvent.bind(this), 'Taker');
     }
 
-    async placeOrder(side, qty, price = null, orderType = 'LIMIT', isTaker = false, _isRetry = false) {
-        const userCreds = isTaker ? HARDCODED_CREDENTIALS.user2_taker : HARDCODED_CREDENTIALS.user1_maker;
+    onMakerWsEvent(o) {
+        if (o.s !== this.symbol) return;
+        const status = o.X || o.x;
+        
+        // Find existing order
+        const pool = o.S === 'BUY' ? this.restingBids : this.restingAsks;
+        const existingIdx = pool.findIndex(r => String(r.orderId) === String(o.i));
+
+        if (status === 'NEW' && existingIdx === -1) {
+            const ro = {
+                orderId: o.i,
+                price: o.p,
+                qty: o.q,
+                executedQty: o.z,
+                side: o.S,
+                status: status,
+                createdAt: Date.now()
+            };
+            pool.push(ro);
+        } else if (['CANCELED', 'FILLED', 'EXPIRED', 'REJECTED'].includes(status)) {
+            if (o.S === 'BUY') this.restingBids = this.restingBids.filter(r => String(r.orderId) !== String(o.i));
+            else this.restingAsks = this.restingAsks.filter(r => String(r.orderId) !== String(o.i));
+        } else if (existingIdx !== -1) {
+            // Update PARTIALLY_FILLED or other states
+            pool[existingIdx].status = status;
+            pool[existingIdx].executedQty = o.z;
+        }
+    }
+
+    onTakerWsEvent(o) {
+        if (o.s !== this.symbol) return;
+        const status = o.X || o.x;
+        // PARTIALLY_FILLED is an intermediate state for IOC orders; wait for EXPIRED or FILLED.
+        const isTerminal = ['CANCELED', 'FILLED', 'EXPIRED', 'REJECTED'].includes(status);
+        
+        if (isTerminal && o.c && this.inFlightTakerOrders.has(o.c)) {
+            const context = this.inFlightTakerOrders.get(o.c);
+            
+            let finalStatus = status;
+            const executedQty = parseFloat(o.z || '0');
+            
+            // For IOC orders: if EXPIRED but with fills, it's PARTIALLY_FILLED. If 0 fills, it's FAILED.
+            if (status === 'EXPIRED') {
+                if (executedQty === 0) finalStatus = 'FAILED';
+                else finalStatus = 'PARTIALLY_FILLED';
+            }
+            
+            this.syncedTrades.unshift({
+                id: Date.now() + Math.random().toString(),
+                time: getISTTimeString(),
+                price: context.limitPrice,
+                avgPrice: o.ap && parseFloat(o.ap) > 0 ? String(o.ap) : null,
+                side: o.S,
+                binanceQty: context.binanceQty,
+                stageQty: executedQty > 0 ? String(o.z) : context.expectedQty,
+                success: (finalStatus === 'FILLED' || finalStatus === 'PARTIALLY_FILLED'),
+                status: finalStatus,
+                makerOrderId: context.makerOrderId,
+                takerOrderId: o.i
+            });
+            if (this.syncedTrades.length > 5000) this.syncedTrades.pop();
+            this.inFlightTakerOrders.delete(o.c);
+            
+            if (finalStatus === 'FAILED' || finalStatus === 'CANCELED') {
+                log.error(this.symbol, `[EXECUTION] Trade sync failed: ${finalStatus} (Stage Qty: ${executedQty})`);
+                emitOrderEvent('order:fill_failed', {
+                    symbol: this.symbol,
+                    makerOrderId: context.makerOrderId,
+                    takerOrderId: o.i,
+                    error: { msg: `Taker execution terminal state: ${finalStatus}` }
+                });
+            } else {
+                log.success(this.symbol, `[EXECUTION] Trade synced! Filled ${executedQty} @ ${o.ap || context.limitPrice}`);
+                emitOrderEvent('order:fill_success', {
+                    symbol: this.symbol,
+                    makerOrderId: context.makerOrderId,
+                    takerOrderId: o.i,
+                    status: finalStatus
+                });
+            }
+        }
+    }
+
+    async placeOrder(side, qty, price = null, orderType = 'LIMIT', isTaker = false, clientOrderId = null, _isRetry = false) {
+        const userCreds = isTaker ? globalUsers[globalRoles.takerId] : globalUsers[globalRoles.makerId];
         const userLabel = isTaker ? 'USER2_TAKER' : 'USER1_MAKER';
         const bufferedPrice = price ? applyBuffer(String(price), side, this.bufferPct, this.symbol) : null;
 
         const payload = { symbol: this.symbol, side: side.toUpperCase(), quantity: String(qty) };
+        if (clientOrderId) payload.newClientOrderId = clientOrderId;
         if (orderType === 'LIMIT') {
             payload.type = 'LIMIT';
             payload.price = String(bufferedPrice);
@@ -446,7 +619,7 @@ class ReplicatorInstance {
                 log.warn(this.symbol, `[POSITION-LIMIT] ${userLabel} hit max position (-2010). Invoking 50% reduction...`);
                 await this.reducePositions();
                 log.success(this.symbol, `[POSITION-LIMIT] Reduction process finished. Retrying original order...`);
-                return this.placeOrder(side, qty, price, orderType, isTaker, true);
+                return this.placeOrder(side, qty, price, orderType, isTaker, clientOrderId, true);
             }
         }
 
@@ -456,7 +629,7 @@ class ReplicatorInstance {
             const seeded = await seedBalance(userCreds);
             if (seeded) {
                 log.success(this.symbol, `[SEED] ${userLabel} balance topped up. Retrying order...`);
-                return this.placeOrder(side, qty, price, orderType, isTaker, true);
+                return this.placeOrder(side, qty, price, orderType, isTaker, clientOrderId, true);
             } else {
                 log.error(this.symbol, `[SEED] ${userLabel} seed_balance failed — cannot retry.`);
             }
@@ -474,7 +647,15 @@ class ReplicatorInstance {
                 orderType,
                 latencyMs: res.latencyMs
             });
-            return { success: true, orderId: res.data.orderId || res.data.id, price: bufferedPrice };
+            return { 
+                success: true, 
+                orderId: String(res.data.orderId || res.data.id), 
+                price: bufferedPrice,
+                avgPrice: res.data.avgPrice,
+                executedQty: res.data.executedQty,
+                status: res.data.status,
+                side: side.toUpperCase()
+            };
         }
         log.error(this.symbol, `[ORDER-FAIL] ${userLabel} failed: ${JSON.stringify(res.data || res.error)}`);
         emitOrderEvent('order:place_failed', {
@@ -503,9 +684,11 @@ class ReplicatorInstance {
         };
 
         log.debug(this.symbol, `[MODIFY-PRE] USER1_MAKER modifying ID: ${orderId} -> ${qty} @ ${bufferedPrice} (raw: ${rawPrice}, buf: ${this.bufferPct}%)`);
-        const res = await sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/order`, 'PUT', payload, HARDCODED_CREDENTIALS.user1_maker);
+        const res = await sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/order`, 'PUT', payload, globalUsers[globalRoles.makerId]);
 
         if (res.status === 401) this.handleAuthFailure('USER1_MAKER');
+        const isTerminal = res.ok || res.status === 404 || (res.data && [-2011, -2013, -4000].includes(res.data.code));
+        
         if (res.ok) {
             log.debug(this.symbol, `[MODIFY-POST] Modified OK. ID: ${orderId}`);
             emitOrderEvent('order:modified', {
@@ -517,7 +700,11 @@ class ReplicatorInstance {
                 latencyMs: res.latencyMs
             });
         } else {
-            log.error(this.symbol, `[MODIFY-FAIL] ID: ${orderId} failed: ${JSON.stringify(res.data || res.error)}`);
+            if (isTerminal) {
+                log.debug(this.symbol, `[MODIFY-TERMINAL] ID: ${orderId} terminal (${res.data?.code}). Handled automatically.`);
+            } else {
+                log.error(this.symbol, `[MODIFY-FAIL] ID: ${orderId} failed: ${JSON.stringify(res.data || res.error)}`);
+            }
             emitOrderEvent('order:modify_failed', {
                 symbol: this.symbol,
                 orderId,
@@ -528,7 +715,7 @@ class ReplicatorInstance {
                 error: res.data || { msg: res.error }
             });
         }
-        return res.ok;
+        return { success: res.ok, isTerminal };
     }
     async alignLtpToTarget(targetPrice, failedSide = null, errMsg = null) {
         if (this.isAligningLtp) return;
@@ -737,8 +924,8 @@ class ReplicatorInstance {
             };
 
             await Promise.all([
-                reduceUser(HARDCODED_CREDENTIALS.user1_maker, 'USER1_MAKER'),
-                reduceUser(HARDCODED_CREDENTIALS.user2_taker, 'USER2_TAKER')
+                reduceUser(globalUsers[globalRoles.makerId], 'USER1_MAKER'),
+                reduceUser(globalUsers[globalRoles.takerId], 'USER2_TAKER')
             ]);
         } catch (err) {
             log.error(this.symbol, `[REDUCE-POS] Exception during position reduction: ${err.message}`);
@@ -748,7 +935,7 @@ class ReplicatorInstance {
     }
 
     async cancelOrder(orderId, isTaker = false) {
-        const userCreds = isTaker ? HARDCODED_CREDENTIALS.user2_taker : HARDCODED_CREDENTIALS.user1_maker;
+        const userCreds = isTaker ? globalUsers[globalRoles.takerId] : globalUsers[globalRoles.makerId];
         const userLabel = isTaker ? 'USER2_TAKER' : 'USER1_MAKER';
 
         let price = null, side = null;
@@ -774,7 +961,12 @@ class ReplicatorInstance {
                 latencyMs: res.latencyMs
             });
         } else {
-            log.error(this.symbol, `[CANCEL-FAIL] ID: ${orderId} failed: ${JSON.stringify(res.data || res.error)}`);
+            const isBenign = res.data && [-2010, -2011, -2013, -4000].includes(res.data.code);
+            if (isBenign) {
+                log.warn(this.symbol, `[CANCEL-IGNORE] ID: ${orderId} message: ${res.data.msg}`);
+            } else {
+                log.error(this.symbol, `[CANCEL-FAIL] ID: ${orderId} failed: ${JSON.stringify(res.data || res.error)}`);
+            }
             emitOrderEvent('order:cancel_failed', {
                 symbol: this.symbol,
                 orderId,
@@ -785,7 +977,8 @@ class ReplicatorInstance {
                 error: res.data || { msg: res.error }
             });
         }
-        return { success: res.ok, isTerminal: res.ok || [400, 401, 404].includes(res.status) };
+        const isTerminal = res.ok || res.status === 404 || (res.data && [-2010, -2011, -2013, -4000].includes(res.data.code));
+        return { success: res.ok, isTerminal };
     }
 
     handleAuthFailure(user) {
@@ -800,19 +993,37 @@ class ReplicatorInstance {
         if (this.isCancellingGhosts) return;
         this.isCancellingGhosts = true;
         try {
-            while (this.ghostCancelQueue.size > 0) {
-                const chunk = Array.from(this.ghostCancelQueue).slice(0, 5);
+            const queueArray = Array.from(this.ghostCancelQueue).filter(id => !this.inFlightCancels.has(id));
+            for (let i = 0; i < queueArray.length; i += 10) {
+                const chunk = queueArray.slice(i, i + 10);
                 await Promise.allSettled(chunk.map(async (orderId) => {
+                    this.inFlightCancels.add(orderId);
                     const res = await this.cancelOrder(orderId);
-                    if (res.isTerminal) this.ghostCancelQueue.delete(orderId);
+                    if (res.isTerminal) {
+                        this.ghostCancelQueue.delete(orderId);
+                        this.inFlightCancels.delete(orderId);
+                        this.cancelRetries.delete(orderId);
+                    } else {
+                        const attempts = (this.cancelRetries.get(orderId) || 0) + 1;
+                        this.cancelRetries.set(orderId, attempts);
+                        this.inFlightCancels.delete(orderId);
+                        if (attempts > 3) {
+                            log.debug(this.symbol, `[GHOST-PRUNE] Abandoning ID ${orderId} after 3 failed cancel attempts.`);
+                            this.ghostCancelQueue.delete(orderId);
+                            this.cancelRetries.delete(orderId);
+                        }
+                    }
                 }));
-                await new Promise(r => setTimeout(r, 200));
+                await new Promise(r => setTimeout(r, 500));
             }
         } finally { this.isCancellingGhosts = false; }
     }
 
     async syncGrid(side, sourceLevels) {
-        ScenarioEngine.tick(this.symbol);
+        if (this.isSyncingGrid) return;
+        this.isSyncingGrid = true;
+        try {
+            ScenarioEngine.tick(this.symbol);
         const transformer = ScenarioEngine.getTransformer(this.symbol);
 
         const isBuy         = side === 'BUY';
@@ -826,7 +1037,8 @@ class ReplicatorInstance {
             rawPrice = PriceTransformer.applyPriceAxes(rawPrice, side, transformer, index);
             const notional  = parseFloat(lvl[0]) * parseFloat(lvl[1]);
             const targetSz  = Math.max(this.minSize, Math.min(this.maxSize, notional));
-            const qty       = calculateQty(targetSz, rawPrice, this.symbol);
+            let qty       = calculateQty(targetSz, rawPrice, this.symbol);
+            qty = PriceTransformer.applyProfileSkew(qty, side, transformer, index);
             return { rawPrice, price: formatPrice(rawPrice, this.symbol), qty };
         });
 
@@ -851,21 +1063,19 @@ class ReplicatorInstance {
                 unmappedTargets.splice(i, 1);
                 const orderStatus = (matched.status || 'NEW').toUpperCase();
 
-                if (orderStatus === 'PARTIALLY_FILLED') {
-                    if (!tradeSync) activePool.push(matched);
-                    else {
-                        cancelBatch.push(this.cancelOrder(matched.orderId));
-                        placeBatch.push(this.placeOrder(side, target.qty, target.rawPrice, 'LIMIT').then(r => r.success && activePool.push({ orderId: r.orderId, price: target.price, qty: target.qty, status: 'NEW' })));
-                    }
+                if (this.inFlightEdits.has(matched.orderId)) {
+                    activePool.push(matched);
+                } else if (orderStatus === 'PARTIALLY_FILLED') {
+                    activePool.push(matched); 
                 } else {
                     const diffPct = Math.abs(parseFloat(matched.qty) - parseFloat(target.qty)) / parseFloat(matched.qty);
                     if (diffPct > this.qtyChangeTolerance) {
+                        this.inFlightEdits.add(matched.orderId);
                         modifyBatch.push((async () => {
-                            const success = await this.modifyMaker(matched.orderId, side, target.rawPrice, target.qty);
-                            if (success) { matched.qty = target.qty; activePool.push(matched); } 
-                            else {
-                                activePool.push(matched); 
-                            }
+                            const result = await this.modifyMaker(matched.orderId, side, target.rawPrice, target.qty);
+                            this.inFlightEdits.delete(matched.orderId);
+                            if (result.success) { matched.qty = target.qty; activePool.push(matched); } 
+                            else if (!result.isTerminal) { activePool.push(matched); }
                         })());
                     } else { activePool.push(matched); }
                 }
@@ -877,15 +1087,19 @@ class ReplicatorInstance {
             if (this.priceLocks.has(target.price)) continue;
 
             if (unmappedResting.length > 0) {
-                const recyclableIdx = unmappedResting.findIndex(ro => (ro.status || 'NEW').toUpperCase() === 'NEW');
+                const recyclableIdx = unmappedResting.findIndex(ro => (ro.status || 'NEW').toUpperCase() === 'NEW' && !this.inFlightEdits.has(ro.orderId));
                 if (recyclableIdx !== -1) {
                     const recycled = unmappedResting[recyclableIdx];
                     unmappedResting.splice(recyclableIdx, 1);
+                    this.inFlightEdits.add(recycled.orderId);
                     modifyBatch.push((async () => {
-                        const success = await this.modifyMaker(recycled.orderId, side, target.rawPrice, target.qty);
-                        if (success) { recycled.price = target.price; recycled.qty = target.qty; recycled.status = 'NEW'; activePool.push(recycled); } 
+                        const result = await this.modifyMaker(recycled.orderId, side, target.rawPrice, target.qty);
+                        this.inFlightEdits.delete(recycled.orderId);
+                        if (result.success) { recycled.price = target.price; recycled.qty = target.qty; recycled.status = 'NEW'; recycled.createdAt = Date.now(); activePool.push(recycled); } 
                         else {
-                            activePool.push(recycled); 
+                            if (!result.isTerminal) activePool.push(recycled); 
+                            const r = await this.placeOrder(side, target.qty, target.rawPrice, 'LIMIT');
+                            if (r.success) activePool.push({ orderId: r.orderId, price: target.price, qty: target.qty, status: 'NEW', createdAt: Date.now() });
                         }
                     })());
                     unmappedTargets.splice(i, 1);
@@ -893,18 +1107,31 @@ class ReplicatorInstance {
                 }
                 if (!tradeSync) { const pf = unmappedResting.pop(); activePool.push(pf); }
             }
-            placeBatch.push(this.placeOrder(side, target.qty, target.rawPrice, 'LIMIT').then(r => r.success && activePool.push({ orderId: r.orderId, price: target.price, qty: target.qty, status: 'NEW' })));
+            placeBatch.push(this.placeOrder(side, target.qty, target.rawPrice, 'LIMIT').then(r => r.success && activePool.push({ orderId: r.orderId, price: target.price, qty: target.qty, status: 'NEW', createdAt: Date.now() })));
             unmappedTargets.splice(i, 1);
         }
 
+        const now = Date.now();
+        const canCleanup = (now - (this.lastExcessCancelTime || 0)) > 3000;
+        let cleanedUpCount = 0;
+
         for (const excess of unmappedResting) {
             const orderStatus = (excess.status || 'NEW').toUpperCase();
-            if (!tradeSync) activePool.push(excess);
-            else { if (orderStatus === 'PARTIALLY_FILLED') cancelBatch.push(this.cancelOrder(excess.orderId)); else activePool.push(excess); }
+            if (this.inFlightEdits.has(excess.orderId) || !tradeSync || orderStatus === 'PARTIALLY_FILLED') {
+                activePool.push(excess);
+            } else if (canCleanup && cleanedUpCount < 5) {
+                this.inFlightEdits.add(excess.orderId);
+                cancelBatch.push(this.cancelOrder(excess.orderId).finally(() => this.inFlightEdits.delete(excess.orderId)));
+                cleanedUpCount++;
+            } else {
+                activePool.push(excess);
+            }
         }
+        if (cleanedUpCount > 0) this.lastExcessCancelTime = now;
 
-        await Promise.allSettled([...modifyBatch, ...placeBatch, ...cancelBatch]);
-        if (isBuy) this.restingBids = activePool; else this.restingAsks = activePool;
+            await Promise.allSettled([...modifyBatch, ...placeBatch, ...cancelBatch]);
+            if (isBuy) this.restingBids = activePool; else this.restingAsks = activePool;
+        } finally { this.isSyncingGrid = false; }
     }
 
     async refreshRestingStatuses(openOrdersData) {
@@ -912,30 +1139,39 @@ class ReplicatorInstance {
         const statusMap = new Map();
         openOrdersData.forEach(o => statusMap.set(o.orderId || o.id, (o.status || 'NEW').toUpperCase()));
         for (const ro of [...this.restingBids, ...this.restingAsks]) {
-            if (ro && statusMap.has(ro.orderId)) ro.status = statusMap.get(ro.orderId);
+            if (ro) {
+                if (statusMap.has(ro.orderId)) ro.status = statusMap.get(ro.orderId);
+                else ro.status = 'FILLED'; // Missing from openOrders means it's dead
+            }
         }
     }
 
     async runDeltaSync() {
+        if (manualOverride) return;
         if (this.status !== 'RUNNING' || this.isSyncingDelta) return;
         this.isSyncingDelta = true;
         this.totalSyncAttempts++;
         const startT = Date.now();
 
         try {
-            const openRes = await sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/openOrders`, 'GET', { symbol: this.symbol }, HARDCODED_CREDENTIALS.user1_maker);
+            const openRes = await sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/openOrders`, 'GET', { symbol: this.symbol }, globalUsers[globalRoles.makerId]);
             if (openRes.status === 401) { this.handleAuthFailure('USER1_MAKER'); return; }
 
             if (openRes.ok && Array.isArray(openRes.data)) {
                 await this.refreshRestingStatuses(openRes.data);
-                const exchangeIds = new Set(openRes.data.map(o => o.orderId || o.id));
-                this.restingBids  = this.restingBids.filter(ro => ro && exchangeIds.has(ro.orderId));
-                this.restingAsks  = this.restingAsks.filter(ro => ro && exchangeIds.has(ro.orderId));
+                const exchangeIds = new Set(openRes.data.map(o => String(o.orderId || o.id)));
+                const now = Date.now();
+                const retain = (ro) => ro && (exchangeIds.has(String(ro.orderId)) || (now - (ro.createdAt || 0) < 5000));
+                this.restingBids  = this.restingBids.filter(retain);
+                this.restingAsks  = this.restingAsks.filter(retain);
 
-                const localIds = new Set([...this.restingBids.map(ro => ro.orderId), ...this.restingAsks.map(ro => ro.orderId)]);
-                const ghosts = openRes.data.filter(o => !localIds.has(o.orderId || o.id));
+                const localIds = new Set([...this.restingBids.map(ro => String(ro.orderId)), ...this.restingAsks.map(ro => String(ro.orderId))]);
+                const ghosts = openRes.data.filter(o => !localIds.has(String(o.orderId || o.id)));
                 if (ghosts.length > 0) {
-                    ghosts.forEach(o => this.ghostCancelQueue.add(o.orderId || o.id));
+                    ghosts.forEach(o => {
+                        const id = o.orderId || o.id;
+                        if (!this.inFlightCancels.has(id)) this.ghostCancelQueue.add(id);
+                    });
                     this.processGhosts();
                 }
             } else {
@@ -966,8 +1202,8 @@ class ReplicatorInstance {
         if (remainingScenarioQty !== null) {
             if (remainingScenarioQty <= 0) return; // Freeze Taker if scenario condition is met
             scaledQty = Math.min(scaledQty, remainingScenarioQty);
-            // Re-round slightly to avoid floating point precision rejection by the exchange
-            scaledQty = Math.round(scaledQty * 1000) / 1000;
+            // Re-round to strict instrument specification to avoid LOT_SIZE rejection
+            scaledQty = formatRawQty(scaledQty, this.symbol);
         }
 
         const makerSide = trade.m ? 'BUY' : 'SELL';
@@ -977,77 +1213,114 @@ class ReplicatorInstance {
         try {
             const restingPool   = makerSide === 'BUY' ? this.restingBids : this.restingAsks;
             const hasRestingMaker = restingPool.find(ro => ro && ro.price === pStr);
-            let matched = false;
+            let finalMakerId = hasRestingMaker ? hasRestingMaker.orderId : null;
 
-            if (hasRestingMaker) {
-                if (this.tradeDelayMs > 0) await new Promise(r => setTimeout(r, this.tradeDelayMs));
-                const takerRes = await this.placeOrder(takerSide, scaledQty, transformedTradePrice, 'LIMIT_IOC', true);
-                matched = takerRes.success;
-                
-                emitOrderEvent('order:fill_attempt', {
-                    symbol: this.symbol,
-                    makerOrderId: hasRestingMaker.orderId,
-                    takerOrderId: takerRes.orderId || 'failed_taker',
-                    expectedQty: scaledQty,
-                    price: transformedTradePrice
-                });
-                
-                if (matched) {
-                    emitOrderEvent('order:fill_success', {
-                        symbol: this.symbol,
-                        makerOrderId: hasRestingMaker.orderId,
-                        takerOrderId: takerRes.orderId
-                    });
-                    if (makerSide === 'BUY') this.restingBids = this.restingBids.filter(ro => ro.orderId !== hasRestingMaker.orderId);
-                    else this.restingAsks = this.restingAsks.filter(ro => ro.orderId !== hasRestingMaker.orderId);
-                } else {
-                    emitOrderEvent('order:fill_failed', {
-                        symbol: this.symbol,
-                        makerOrderId: hasRestingMaker.orderId,
-                        error: { msg: 'Taker limit IOC placement failed' }
-                    });
-                }
-            } else {
+            if (!hasRestingMaker) {
                 const makerRes = await this.placeOrder(makerSide, scaledQty, transformedTradePrice, 'LIMIT');
-                if (makerRes.success) {
-                    if (this.tradeDelayMs > 0) await new Promise(r => setTimeout(r, this.tradeDelayMs));
-                    const takerRes = await this.placeOrder(takerSide, scaledQty, transformedTradePrice, 'LIMIT_IOC', true);
-                    matched = takerRes.success;
+                finalMakerId = makerRes.orderId;
+                if (!makerRes.success) return; // If maker fails, we abort
+            }
+
+            if (this.tradeDelayMs > 0) await new Promise(r => setTimeout(r, this.tradeDelayMs));
+
+            const clientOrderId = require('crypto').randomUUID();
+            
+            // Register in flight context immediately
+            this.inFlightTakerOrders.set(clientOrderId, {
+                makerOrderId: finalMakerId,
+                limitPrice: pStr,
+                expectedQty: String(scaledQty),
+                binanceQty: trade.q
+            });
+
+            emitOrderEvent('order:fill_attempt', {
+                symbol: this.symbol,
+                makerOrderId: finalMakerId,
+                takerOrderId: 'pending_ws',
+                expectedQty: scaledQty,
+                price: transformedTradePrice
+            });
+
+            const takerRes = await this.placeOrder(takerSide, scaledQty, transformedTradePrice, 'LIMIT_IOC', true, clientOrderId);
+            
+            if (!takerRes.success) {
+                // HTTP rejection (e.g. margin limit). Push failure immediately to UI
+                this.inFlightTakerOrders.delete(clientOrderId);
+                this.syncedTrades.unshift({
+                    id: Date.now() + Math.random().toString(),
+                    time: getISTTimeString(),
+                    price: pStr,
+                    avgPrice: null,
+                    side: takerSide,
+                    binanceQty: trade.q,
+                    stageQty: String(scaledQty),
+                    success: false,
+                    status: 'FAILED',
+                    makerOrderId: finalMakerId,
+                    takerOrderId: 'failed'
+                });
+                if (this.syncedTrades.length > 5000) this.syncedTrades.pop();
+
+                emitOrderEvent('order:fill_failed', {
+                    symbol: this.symbol,
+                    makerOrderId: finalMakerId,
+                    error: { msg: 'Taker limit IOC placement failed at HTTP level' }
+                });
+            } else {
+                // Fallback if WS is not configured or disconnected
+                if (!this.takerWs || !this.takerWs.ws || this.takerWs.ws.readyState !== 1) {
                     
-                    emitOrderEvent('order:fill_attempt', {
-                        symbol: this.symbol,
-                        makerOrderId: makerRes.orderId,
-                        takerOrderId: takerRes.orderId || 'failed_taker',
-                        expectedQty: scaledQty,
-                        price: transformedTradePrice
-                    });
-                    
-                    if (matched) {
-                        emitOrderEvent('order:fill_success', {
-                            symbol: this.symbol,
-                            makerOrderId: makerRes.orderId,
-                            takerOrderId: takerRes.orderId
-                        });
-                    } else {
-                        emitOrderEvent('order:fill_failed', {
-                            symbol: this.symbol,
-                            makerOrderId: makerRes.orderId,
-                            error: { msg: 'Taker limit IOC placement failed' }
-                        });
+                    // Poll for final status if we only got an intermediate state
+                    let finalTakerRes = takerRes;
+                    if (takerRes.status === 'CREATE_IN_PROGRESS' || takerRes.status === 'NEW') {
+                        await new Promise(r => setTimeout(r, 150)); // Give matching engine time to process IOC
+                        try {
+                            const checkRes = await sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/order`, 'GET', { symbol: this.symbol, orderId: takerRes.orderId }, globalUsers[globalRoles.takerId]);
+                            if (checkRes.ok && checkRes.data) {
+                                finalTakerRes = {
+                                    ...takerRes,
+                                    status: checkRes.data.status,
+                                    executedQty: checkRes.data.executedQty,
+                                    avgPrice: checkRes.data.avgPrice
+                                };
+                            }
+                        } catch(e) {}
                     }
 
-                    await this.cancelOrder(makerRes.orderId);
+                    const executedQty = finalTakerRes.executedQty || String(scaledQty);
+                    this.inFlightTakerOrders.delete(clientOrderId);
+                    this.syncedTrades.unshift({
+                        id: Date.now() + Math.random().toString(),
+                        time: getISTTimeString(),
+                        price: pStr,
+                        avgPrice: finalTakerRes.avgPrice || null,
+                        side: takerSide,
+                        binanceQty: trade.q,
+                        stageQty: executedQty,
+                        success: true,
+                        status: finalTakerRes.status && finalTakerRes.status !== 'CREATE_IN_PROGRESS' ? finalTakerRes.status : 'FILLED',
+                        makerOrderId: finalMakerId,
+                        takerOrderId: finalTakerRes.orderId
+                    });
+                    if (this.syncedTrades.length > 5000) this.syncedTrades.pop();
+
+                    emitOrderEvent('order:fill_success', {
+                        symbol: this.symbol,
+                        makerOrderId: finalMakerId,
+                        takerOrderId: finalTakerRes.orderId,
+                        price: transformedTradePrice,
+                        executedQty: executedQty
+                    });
                 }
             }
 
             ScenarioEngine.reportExecution(this.symbol, scaledQty);
-            this.syncedTrades.unshift({ id: Date.now() + Math.random().toString(), time: getISTTimeString(), price: pStr, binanceQty: trade.q, stageQty: scaledQty, success: matched });
-            if (this.syncedTrades.length > 50) this.syncedTrades.pop();
 
         } finally { this.priceLocks.delete(pStr); }
     }
 
     async processTradeQueue() {
+        if (manualOverride) return;
         if (this.tradeQueue.length > 50) this.tradeQueue.splice(0, this.tradeQueue.length - 20);
         if (this.isCrossing) return;
         this.isCrossing = true;
@@ -1073,7 +1346,10 @@ startBinanceDepthWS() {
                 if (bids && asks) {
                     this.binanceDepth.bids = bids.slice(0, this.depthLevels);
                     this.binanceDepth.asks = asks.slice(0, this.depthLevels);
-                    this.runDeltaSync();
+                    if (!this.isSyncingGrid) {
+                        this.syncGrid('BUY', this.binanceDepth.bids);
+                        this.syncGrid('SELL', this.binanceDepth.asks);
+                    }
                 }
             } catch (e) {}
         });
@@ -1105,7 +1381,30 @@ startBinanceDepthWS() {
         this.wsBinanceTrades.on('close', () => { this.wsBinanceTrades = null; if (this.status !== 'STOPPED') setTimeout(() => this.startBinanceTradesWS(), 3000); });
     }
 
-startTestnetWS() {
+
+    startTestnetTickerWS() {
+        if (this.wsTestnetTicker) return;
+        const sym = this.symbol.toLowerCase();
+        const streamUrl = `wss://testnet-futures-socket-gateway.dcxstage.com/market/ws/${sym}@ticker`;
+        log.info(this.symbol, `[WS] Connecting to 24h Ticker...`);
+        this.wsTestnetTicker = new WebSocket(streamUrl);
+        this.wsTestnetTicker.on('message', (raw) => {
+            if (this.status === 'STOPPED') return;
+            try {
+                const data = JSON.parse(raw.toString());
+                if (data.e === '24hrTicker') {
+                    this.testnetLtp = parseFloat(data.c);
+                    broadcastToUI();
+                }
+            } catch(e) {}
+        });
+        this.wsTestnetTicker.on('close', () => { this.wsTestnetTicker = null; if (this.status !== 'STOPPED') setTimeout(() => this.startTestnetTickerWS(), 3000); });
+        this.wsTestnetTicker.on('error', () => {});
+    }
+
+
+
+    startTestnetWS() {
         if (this.wsTestnet) return;
         const sym = this.symbol.toLowerCase(); // Target Symbol
         const streamUrl = `wss://testnet-futures-socket-gateway.dcxstage.com/public/ws/${sym}@depth20`;
@@ -1115,6 +1414,7 @@ startTestnetWS() {
             if (this.status === 'STOPPED') return;
             try {
                 const data = JSON.parse(raw.toString());
+                pushEvent('EVENT', this.symbol, `WS Public Update: ${data.e || 'depthUpdate'}`, data);
                 const bids = data.bids || data.b;
                 const asks = data.asks || data.a;
                 
@@ -1133,8 +1433,8 @@ startTestnetWS() {
     async wipeOrders() {
         log.info(this.symbol, 'Wiping orders (15s timeout)...');
         const [u1Res, u2Res] = await Promise.all([
-            sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/openOrders`, 'GET', { symbol: this.symbol }, HARDCODED_CREDENTIALS.user1_maker, 15000),
-            sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/openOrders`, 'GET', { symbol: this.symbol }, HARDCODED_CREDENTIALS.user2_taker, 15000)
+            sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/openOrders`, 'GET', { symbol: this.symbol }, globalUsers[globalRoles.makerId], 15000),
+            sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/openOrders`, 'GET', { symbol: this.symbol }, globalUsers[globalRoles.takerId], 15000)
         ]);
 
         let toCancel = [];
@@ -1164,6 +1464,8 @@ startTestnetWS() {
         }
         if (this.wsTestnet) { clearInterval(this.testnetPingInterval); this.wsTestnet.removeAllListeners('close'); this.wsTestnet.close(); this.wsTestnet = null; }
         this.startTestnetWS();
+        this.startTestnetTickerWS();
+
     }
 
     async start() {
@@ -1208,6 +1510,7 @@ startTestnetWS() {
 }
 
 const instances = new Map();
+let manualOverride = false;
 
 // ==========================================
 // 4. Global Portfolio & Master Loop
@@ -1254,7 +1557,7 @@ async function getUserPortfolio(userConfig) {
     if (posRes.ok) positionData = posRes.data;
     else if (!errorMsg) errorMsg = `Positions API Failed (${posRes.status})`;
 
-    const portfolio = { walletBalance: "0.00", availableBalance: "0.00", unrealizedProfit: "0.00", positions: [], openOrdersCount: 0, error: errorMsg };
+    const portfolio = { walletBalance: "0.00", availableBalance: "0.00", unrealizedProfit: "0.00", positions: [], openOrders: [], orderHistory: [], openOrdersCount: 0, error: errorMsg };
     if (accountData) {
         const pAcc = autoParseAccount(accountData);
         portfolio.walletBalance    = pAcc.walletBalance;
@@ -1264,6 +1567,8 @@ async function getUserPortfolio(userConfig) {
     if (positionData) portfolio.positions = autoParsePositions(positionData);
     return portfolio;
 }
+
+let globalPortfolios = {};
 
 async function globalMasterLoop() {
     try {
@@ -1276,12 +1581,16 @@ async function globalMasterLoop() {
         const now = Date.now();
         if (lastPortfolioSyncTime === 0 || now - lastPortfolioSyncTime >= PORTFOLIO_SYNC_INTERVAL_MS) {
             lastPortfolioSyncTime = now;
-            const [p1, p2] = await Promise.all([
-                getUserPortfolio(HARDCODED_CREDENTIALS.user1_maker),
-                getUserPortfolio(HARDCODED_CREDENTIALS.user2_taker)
-            ]);
-            user1Portfolio = p1;
-            user2Portfolio = p2;
+            
+            const userKeys = Object.keys(globalUsers);
+            const portPromises = userKeys.map(k => getUserPortfolio(globalUsers[k]));
+            const results = await Promise.allSettled(portPromises);
+            
+            userKeys.forEach((k, i) => {
+                if (results[i].status === 'fulfilled') {
+                    globalPortfolios[k] = results[i].value;
+                }
+            });
         }
     } catch (e) {}
     finally {
@@ -1307,6 +1616,8 @@ function buildPayload() {
             diagnostics: {
                 sourceSymbol:    inst.sourceSymbol,
                 testnetLatency:  inst.testnetLatency,
+                testnetLtp:      inst.testnetLtp,
+                testnetKline:    inst.testnetKline,
                 binanceLatency:  inst.binanceLatency,
                 binanceLtp:      inst.binanceLtp,
                 syncRatio:       inst.totalSyncAttempts > 0 ? ((inst.successfulSyncs / inst.totalSyncAttempts) * 100).toFixed(1) : '100',
@@ -1321,7 +1632,21 @@ function buildPayload() {
             scenarioStatus: ScenarioEngine.getStatus(sym)
         };
     }
-    return JSON.stringify({ instances: activeInstancesMap, user1Portfolio, user2Portfolio });
+    
+    // We send globalUsers keys (without secrets) and roles to the UI
+    const usersMetadata = Object.keys(globalUsers).reduce((acc, k) => {
+        acc[k] = { label: globalUsers[k].label, key: globalUsers[k].key };
+        return acc;
+    }, {});
+    
+    return JSON.stringify({ 
+        instances: activeInstancesMap, 
+        portfolios: globalPortfolios,
+        users: usersMetadata,
+        roles: globalRoles,
+        terminalLogs,
+        terminalEvents
+    });
 }
 
 function broadcastToUI() {
@@ -1337,6 +1662,7 @@ function broadcastToUI() {
 const server = http.createServer(async (req, res) => {
     if (req.url === '/events') {
         res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+        res.flushHeaders();
         res.write('\n');
         sseClients.push(res);
         res.on('error', () => { sseClients = sseClients.filter(c => c !== res); });
@@ -1356,7 +1682,30 @@ const server = http.createServer(async (req, res) => {
                 const parsed = JSON.parse(body);
                 const sym = parsed.symbol ? parsed.symbol.toUpperCase() : null;
                 const targetSym = parsed.targetSymbol ? parsed.targetSymbol.toUpperCase() : sym;
-                if (!sym) throw new Error("Symbol is required");
+                
+                // Allow specific routes to omit symbol
+                if (!sym && !req.url.startsWith('/api/users') && !req.url.startsWith('/api/manual-override')) {
+                    throw new Error("Symbol is required");
+                }
+                if (req.url.startsWith('/fapi/')) {
+                    const userId = req.headers['x-replicator-user'];
+                    if (!userId) { res.writeHead(400); return res.end(JSON.stringify({ error: "Missing x-replicator-user header" })); }
+                    const userCreds = globalUsers[userId];
+                    if (!userCreds) { res.writeHead(400); return res.end(JSON.stringify({ error: "Invalid user ID" })); }
+                    try {
+                        const httpMethod = parsed._method || 'POST';
+                        delete parsed._method;
+                        const apiRes = await sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com${req.url}`, httpMethod, parsed, userCreds);
+                        if (apiRes.ok || (apiRes.status >= 200 && apiRes.status < 300)) {
+                            // Force an immediate UI portfolio refresh in the global loop
+                            lastPortfolioSyncTime = 0;
+                        }
+                        res.writeHead(apiRes.status || 200, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify(apiRes.data || {}));
+                    } catch (e) {
+                        res.writeHead(500); return res.end(JSON.stringify({ error: e.message }));
+                    }
+                }
 
                 if (req.url.startsWith('/api/scenario/preset/')) {
                     const presetName = req.url.split('/').pop().split('?')[0];
@@ -1374,7 +1723,9 @@ const server = http.createServer(async (req, res) => {
 
                 if (req.url === '/api/scenario/custom') {
                     try {
-                        const state = ScenarioEngine.startScenario(sym, parsed);
+                        const inst = instances.get(targetSym);
+                        const currentLtp = inst ? inst.binanceLtp : null;
+                        const state = ScenarioEngine.startScenario(sym, parsed, currentLtp);
                         res.writeHead(200); return res.end(JSON.stringify({ success: true, state }));
                     } catch (e) {
                         res.writeHead(400); return res.end(JSON.stringify({ error: e.message }));
@@ -1392,7 +1743,9 @@ const server = http.createServer(async (req, res) => {
                             depthLevels: parseInt(parsed.depthLevels || 10),
                             bufferPct: parseFloat(parsed.bufferPct || 0),
                             tradeDelayMs: parseInt(parsed.tradeDelayMs || 0),
-                            cancelOnStop: Boolean(parsed.cancelOnStop)
+                            cancelOnStop: Boolean(parsed.cancelOnStop),
+                            newUserFlow: Boolean(parsed.newUserFlow),
+                            enableTradeSync: parsed.enableTradeSync !== false
                         });
                         instances.set(targetSym, inst);
                         inst.start().catch(e => log.error(targetSym, `Start failed: ${e.message}`));
@@ -1404,7 +1757,44 @@ const server = http.createServer(async (req, res) => {
                         if (parsed.bufferPct   !== undefined) inst.bufferPct   = parseFloat(parsed.bufferPct);
                         if (parsed.cancelOnStop !== undefined) inst.cancelOnStop = Boolean(parsed.cancelOnStop);
                         if (parsed.tradeDelayMs !== undefined) inst.tradeDelayMs = parseInt(parsed.tradeDelayMs);
+                        if (parsed.newUserFlow !== undefined) inst.newUserFlow = Boolean(parsed.newUserFlow);
+                        if (parsed.enableTradeSync !== undefined) inst.enableTradeSync = Boolean(parsed.enableTradeSync);
                         log.info(targetSym, `Config updated for existing instance.`);
+                    }
+
+                } else if (req.url === '/api/manual-override') {
+                    manualOverride = Boolean(parsed.locked);
+                    log.info('SYSTEM', `Manual override set to ${manualOverride}`);
+                } else if (req.url === '/api/users') {
+                    if (parsed.action === 'add' || parsed.action === 'update') {
+                        const { id, label, key, secret, listenKey } = parsed.user;
+                        if (!id) throw new Error("User ID is required");
+                        globalUsers[id] = { label: label || id, key: key || '', secret: secret || '', listenKey: listenKey || '' };
+                        lastPortfolioSyncTime = 0;
+                        log.info('SYSTEM', `User ${id} saved.`);
+                    } else if (parsed.action === 'setRoles') {
+                        if (parsed.makerId) globalRoles.makerId = parsed.makerId;
+                        if (parsed.takerId) globalRoles.takerId = parsed.takerId;
+                        lastPortfolioSyncTime = 0;
+                        log.info('SYSTEM', `Roles updated: Maker=${globalRoles.makerId}, Taker=${globalRoles.takerId}`);
+                    } else if (parsed.action === 'generate') {
+                        const id = parsed.id;
+                        if (!id) throw new Error("User ID is required for generation");
+                        log.info('SYSTEM', `Generating new user credentials for ${id}...`);
+                        const execAsync = require('util').promisify(require('child_process').exec);
+                        const { stdout } = await execAsync(`node scripts/generate-single.js ${id}`);
+                        const result = JSON.parse(stdout.trim());
+                        globalUsers[id] = { label: id, key: result.key, secret: result.secret, listenKey: '' };
+                        lastPortfolioSyncTime = 0;
+                        log.info('SYSTEM', `User ${id} generated successfully.`);
+                    } else if (parsed.action === 'delete') {
+                        const id = parsed.id;
+                        if (globalRoles.makerId === id || globalRoles.takerId === id) {
+                            throw new Error("Cannot delete a user currently assigned as Maker or Taker.");
+                        }
+                        delete globalUsers[id];
+                        delete globalPortfolios[id];
+                        log.info('SYSTEM', `User ${id} deleted.`);
                     }
                 } else {
                     const inst = instances.get(targetSym);
@@ -1532,735 +1922,5 @@ process.on('SIGINT', async () => {
 // 7. UI Render
 // ==========================================
 function getHtmlUI() {
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Replication Terminal — CoinDCX HPO</title>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<style>
-  :root { --bg: #03040a; --panel: #080c14; --border: rgba(255,255,255,0.055); --bid: #10b981; --ask: #f43f5e; --cyan: #06b6d4; --yellow: #eab308; --purple: #a855f7; }
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; }
-  body { font-family: 'JetBrains Mono', monospace; background: var(--bg); color: #b8c4d4; font-size: 11px; overflow-x: hidden; }
-  ::-webkit-scrollbar { width: 3px; height: 3px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(6,182,212,0.22); border-radius: 99px; }
-  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; }
-  .panel-accent { border-color: rgba(6,182,212,0.18); }
-  .hdr-bar { height: 2px; background: linear-gradient(90deg, #06b6d4, #8b5cf6, #f43f5e, #06b6d4); background-size: 300% 100%; animation: shimmer 5s linear infinite; }
-  @keyframes shimmer { to { background-position: -300% 0; } }
-  .dot-live   { background: #10b981; box-shadow: 0 0 0 0 rgba(16,185,129,0.7); animation: pulse-g 1.6s ease-out infinite; }
-  .dot-paused { background: #eab308; }
-  .dot-dead   { background: #f43f5e; }
-  @keyframes pulse-g { 70% { box-shadow: 0 0 0 7px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
-  .d-row { display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; padding: 2px 10px; position: relative; border-radius: 3px; cursor: default; }
-  .d-row:hover { background: rgba(255,255,255,0.03); }
-  .d-bar { position: absolute; top:0; bottom:0; opacity:.13; border-radius:3px; pointer-events:none; transition: width .22s ease; }
-  .d-bar-r { right:0; left:auto; }
-  .d-bar-l { left:0; right:auto; }
-  .d-spread { flex-shrink:0; text-align:center; padding:4px 0; font-size:10px; color:#4b5563; border-top:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.04); margin:2px 0; letter-spacing:.06em; }
-  @keyframes fG { 50% { color: #10b981; } }
-  @keyframes fR { 50% { color: #f43f5e; } }
-  .fl-g { animation: fG .35s ease; }
-  .fl-r { animation: fR .35s ease; }
-  @keyframes slideIn { from { opacity:0; transform:translateX(6px); } to { opacity:1; transform:none; } }
-  .tr-row { display: grid; grid-template-columns: 75px 1fr 68px 52px; align-items: center; padding: 4px 10px; border-bottom: 1px solid rgba(255,255,255,0.03); border-radius: 3px; font-size: 10px; }
-  .tr-row:hover { background: rgba(255,255,255,0.02); }
-  .tab { padding: 4px 10px; border-bottom: 2px solid transparent; color: #4b5563; cursor:pointer; transition: all .18s; font-size:10px; }
-  .tab.on { border-color: var(--cyan); color: var(--cyan); }
-  .sym-tab { padding: 6px 14px; border-radius: 6px; color: #6b7280; font-weight: 600; cursor: pointer; transition: all .2s; }
-  .sym-tab.on { background: rgba(6,182,212,.1); color: var(--cyan); border: 1px solid rgba(6,182,212,.2); }
-  .badge { font-size:9px; padding:2px 7px; border-radius:99px; font-weight:700; letter-spacing:.05em; }
-  .badge-ok   { background:rgba(16,185,129,.12); border:1px solid rgba(16,185,129,.25); color:#34d399; }
-  .badge-fail { background:rgba(244,63,94,.12);  border:1px solid rgba(244,63,94,.25);  color:#fb7185; }
-  .chip { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; transition: border-color .18s, transform .12s; cursor: default; text-align: center; min-width: 80px; }
-  .chip:hover { border-color: rgba(6,182,212,.2); transform: translateY(-1px); }
-  .chip-label { font-size:9px; color:#4b5563; text-transform:uppercase; letter-spacing:.07em; }
-  .chip-val   { font-size:12px; font-weight:700; margin-top:2px; }
-  .ticker-card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; flex: 1; }
-  .ticker-label { font-size:9px; color:#4b5563; text-transform:uppercase; letter-spacing:.07em; }
-  .ticker-val   { font-size:20px; font-weight:700; font-variant-numeric:tabular-nums; margin-top:3px; }
-  .ticker-sub   { font-size:9px; color:#374151; margin-top:2px; }
-  .hbar { height:2px; border-radius:99px; background:rgba(255,255,255,.06); overflow:hidden; margin-top:6px; }
-  .hbar-fill { height:100%; border-radius:99px; transition: width .4s ease, background .3s; }
-  #drawer { position: fixed; top:0; right:0; bottom:0; width:300px; z-index:50; background: #0b0f1a; border-left:1px solid var(--border); padding: 20px 16px; overflow-y:auto; transform: translateX(100%); transition: transform .25s ease; }
-  #drawer.open { transform: none; }
-  #overlay { position:fixed; inset:0; z-index:49; background:rgba(0,0,0,.45); display:none; }
-  #overlay.open { display:block; }
-  .err-banner { background: rgba(244,63,94,.08); border: 1px solid rgba(244,63,94,.2); color: #fb7185; border-radius: 6px; padding: 6px 10px; font-size: 10px; margin: 8px 12px 0; }
-  .book-hdr { display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 4px 10px; font-size: 9px; color: #374151; text-transform: uppercase; letter-spacing:.07em; border-bottom: 1px solid rgba(255,255,255,0.04); }
-  .sec-label { font-size:9px; text-transform:uppercase; letter-spacing:.08em; color:#374151; }
-  .sec-title { font-size:11px; font-weight:700; color:#e2e8f0; margin-top:1px; }
-  .ctrl-btn { padding: 4px 10px; border-radius: 5px; font-weight: 600; cursor: pointer; transition: opacity .2s; border: 1px solid transparent; }
-  .ctrl-btn:hover { opacity: 0.8; }
-  .btn-start  { background: rgba(16,185,129,.15); color: #34d399; border-color: rgba(16,185,129,.3); }
-  .btn-pause  { background: rgba(234,179,8,.15);  color: #fde047; border-color: rgba(234,179,8,.3); }
-  .btn-stop   { background: rgba(244,63,94,.15);  color: #fb7185; border-color: rgba(244,63,94,.3); }
-  .btn-reload { background: rgba(168,85,247,.15); color: #c084fc; border-color: rgba(168,85,247,.3); }
-  #c-status-toast { position: absolute; top: 16px; right: 50%; transform: translateX(50%); background: #1f2937; padding: 8px 16px; border-radius: 8px; border: 1px solid #374151; z-index: 100; font-size: 12px; }
-  .tog { position: relative; width: 28px; height: 16px; background: rgba(255,255,255,0.06); border: 1px solid var(--border); border-radius: 99px; cursor: pointer; transition: background .2s; }
-  .tog::after { content: ''; position: absolute; top: 1px; left: 1px; width: 12px; height: 12px; border-radius: 50%; background: #4b5563; transition: transform .2s, background .2s; }
-  .tog.on { background: rgba(6,182,212,0.15); border-color: rgba(6,182,212,0.3); }
-  .tog.on::after { transform: translateX(12px); background: var(--cyan); }
-  .flag-pill { font-size:9px; padding:2px 8px; border-radius:99px; font-weight:700; letter-spacing:.04em; }
-  .flag-on  { background:rgba(16,185,129,.1);  border:1px solid rgba(16,185,129,.25); color:#34d399; }
-  .flag-off { background:rgba(244,63,94,.1);   border:1px solid rgba(244,63,94,.25);  color:#fb7185; }
-  .flag-buf { background:rgba(234,179,8,.1);   border:1px solid rgba(234,179,8,.25);  color:#fde047; }
-  /* Utility replacements for removed Tailwind CDN */
-  .c-emerald { color: #10b981; }
-  .c-rose    { color: #f43f5e; }
-  .c-yellow  { color: #eab308; }
-  .c-yellow4 { color: #facc15; }
-  .fw-bold   { font-weight: 700; }
-  #splash { position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .4s; }
-  #splash.hidden { opacity:0;pointer-events:none; }
-  .splash-dot { width:10px;height:10px;border-radius:50%;background:var(--cyan);animation:pulse-g 1.2s ease-out infinite; }
-  #err-splash { position:fixed;inset:0;z-index:998;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#f43f5e;font-size:12px;padding:40px; }
-</style>
-</head>
-<body>
-
-<!-- Loading splash shown until JS initialises -->
-<div id="splash">
-  <div class="hdr-bar" style="position:fixed;top:0;left:0;right:0;"></div>
-  <div class="splash-dot"></div>
-  <div style="color:#06b6d4;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;">REPLICATOR UI — CONNECTING</div>
-  <div style="color:#374151;font-size:10px;">Establishing SSE stream to server…</div>
-</div>
-<div id="err-splash"></div>
-
-<div class="hdr-bar"></div>
-
-<header style="background:var(--panel);border-bottom:1px solid var(--border);padding:8px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:30;">
-  <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
-    <div style="position:relative;width:10px;height:10px;"><div id="dot" class="dot-dead" style="width:10px;height:10px;border-radius:50%;position:absolute;"></div></div>
-    <div><span style="font-weight:700;color:#f1f5f9;font-size:12px;letter-spacing:.08em;">MULTI-MARKET REPLICATOR</span><span style="color:#374151;font-size:9px;margin-left:8px;letter-spacing:.06em;">v5 · HPO STAGING</span></div>
-  </div>
-  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;" id="symbol-tabs"></div>
-  <div style="display:flex;gap:8px;align-items:center;">
-    <div id="c-status-toast" style="display:none;"></div>
-    <div class="chip"><div class="chip-label">Engine</div><div class="chip-val" id="c-eng"><span class="text-rose-500 font-bold">OFFLINE</span></div></div>
-    <div class="chip"><div class="chip-label">IST</div><div class="chip-val" id="c-clock" style="color:#4b5563;font-size:10px;">—</div></div>
-    <button id="btn-cfg" style="background:rgba(6,182,212,.08);border:1px solid rgba(6,182,212,.18);color:var(--cyan);border-radius:7px;padding:6px 14px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;">⚙ ADD MARKET</button>
-  </div>
-</header>
-
-<div style="padding: 10px 20px; display:flex; justify-content:space-between; align-items:center; background: #06090f; border-bottom: 1px solid var(--border);">
-    <div style="display:flex; gap: 8px;">
-        <button class="ctrl-btn btn-start"  id="btn-cmd-start">▶ START</button>
-        <button class="ctrl-btn btn-pause"  id="btn-cmd-pause">⏸ PAUSE</button>
-        <button class="ctrl-btn btn-stop"   id="btn-cmd-stop">⏹ STOP</button>
-        <button class="ctrl-btn btn-reload" id="btn-cmd-reload">↻ RELOAD BOOK</button>
-    </div>
-    <div style="display:flex; gap: 12px; font-size: 10px; align-items:center; flex-wrap:wrap;">
-        <div><span style="color:#6b7280">PAIR:</span> <span id="c-pair" class="font-bold text-gray-200">—</span></div>
-        <div><span style="color:#6b7280">BINANCE RTT:</span> <span id="c-bping" class="font-bold text-yellow-500">0ms</span></div>
-        <div><span style="color:#6b7280">STAGING RTT:</span> <span id="c-sping" class="font-bold text-cyan-500">0ms</span></div>
-        <div><span style="color:#6b7280">SYNC:</span> <span id="c-sync" class="font-bold text-emerald-500">100%</span></div>
-        <div id="flag-tradeSync" class="flag-pill flag-off">TRADE SYNC</div>
-        <div id="flag-cancelStop" class="flag-pill flag-off">CANCEL ON STOP</div>
-        <div id="flag-buffer" class="flag-pill flag-buf">BUF 0%</div>
-        <div id="flag-delay" class="flag-pill" style="background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.25);color:#c084fc;">DELAY 0ms</div>
-        <div id="flag-scenario" class="flag-pill" style="display:none;background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.25);color:#fb7185;">SCENARIO IDLE</div>
-    </div>
-</div>
-
-<div id="overlay"></div>
-<div id="drawer">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-    <span style="font-weight:700;color:#e2e8f0;font-size:12px;letter-spacing:.07em;">ADD / CONFIGURE MARKET</span>
-    <button id="btn-close" style="color:#4b5563;font-size:18px;background:none;border:none;cursor:pointer;">×</button>
-  </div>
-  <div class="panel" style="padding:12px;margin-bottom:12px;">
-    <div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Market & Sizing</div>
-    
-    <label style="display:block;color:#6b7280;font-size:10px;margin-bottom:3px;">Source Symbol (Binance)</label>
-    <input id="cfg-symbol" placeholder="e.g. BNBUSDT" style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:5px;padding:5px 8px;color:#e2e8f0;font-family:inherit;font-size:11px;margin-bottom:8px;">
-    
-    <label style="display:block;color:#6b7280;font-size:10px;margin-bottom:3px;">Target Symbol (Testnet - Optional)</label>
-    <input id="cfg-target" placeholder="e.g. BNBQAUSDT (leave empty if same)" style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:5px;padding:5px 8px;color:#e2e8f0;font-family:inherit;font-size:11px;margin-bottom:8px;">
-    
-    <label style="display:block;color:#6b7280;font-size:10px;margin-bottom:3px;">Min Size (USDT)</label>
-    <input id="cfg-min" type="number" placeholder="100" style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:5px;padding:5px 8px;color:#e2e8f0;font-family:inherit;font-size:11px;margin-bottom:8px;">
-    
-    <label style="display:block;color:#6b7280;font-size:10px;margin-bottom:3px;">Max Size (USDT)</label>
-    <input id="cfg-max" type="number" placeholder="500" style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:5px;padding:5px 8px;color:#e2e8f0;font-family:inherit;font-size:11px;margin-bottom:8px;">
-    
-    <label style="display:block;color:#6b7280;font-size:10px;margin-bottom:3px;">Depth Levels</label>
-    <input id="cfg-depth" type="number" placeholder="10" style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:5px;padding:5px 8px;color:#e2e8f0;font-family:inherit;font-size:11px;margin-bottom:12px;">
-  </div>
-  <div class="panel" style="padding:12px;margin-bottom:12px;">
-    <div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Execution Controls</div>
-    <label style="display:block;color:#6b7280;font-size:10px;margin-bottom:3px;">Price Buffer % <span style="color:#4b5563">(0 = disabled)</span></label>
-    <input id="cfg-buffer" type="number" step="0.01" placeholder="0.5" style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:5px;padding:5px 8px;color:#e2e8f0;font-family:inherit;font-size:11px;margin-bottom:8px;">
-    <label style="display:block;color:#6b7280;font-size:10px;margin-bottom:3px;">Taker Delay ms <span style="color:#4b5563">(0 = immediate)</span></label>
-    <input id="cfg-delay" type="number" placeholder="5000" style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:5px;padding:5px 8px;color:#e2e8f0;font-family:inherit;font-size:11px;margin-bottom:8px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;cursor:pointer;" id="tog-cancel-wrap">
-      <span style="color:#9ca3af;font-size:10px;">Cancel Orders on Stop</span>
-      <div class="tog on" id="tog-cancel-stop"></div>
-    </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;cursor:pointer;" id="tog-new-user-wrap">
-      <span style="color:#9ca3af;font-size:10px;">Simulate New User (120s Delay)</span>
-      <div class="tog off" id="tog-new-user"></div>
-    </div>
-  </div>
-  <div class="panel" style="padding:12px;margin-bottom:12px;">
-    <div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;">Display</div>
-    <div style="display:flex;flex-direction:column;gap:10px;">
-      <label style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;"><span style="color:#9ca3af;font-size:10px;">Depth Bars</span><div class="tog on" id="tog-bars"></div></label>
-      <label style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;"><span style="color:#9ca3af;font-size:10px;">Flash on Price Change</span><div class="tog on" id="tog-flash"></div></label>
-    </div>
-  </div>
-  <button id="btn-apply" style="width:100%;background:rgba(6,182,212,.12);border:1px solid rgba(6,182,212,.25);color:var(--cyan);border-radius:6px;padding:8px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;margin-bottom:16px;">MOUNT / UPDATE MARKET</button>
-  
-  <div class="panel" style="padding:12px;margin-bottom:12px; border-color: rgba(168,85,247,0.3);">
-    <div style="font-size:10px;color:#c084fc;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;font-weight:700;">Advanced Scenario Engine</div>
-    <div style="display:flex;gap:4px;margin-bottom:12px;">
-        <button id="tab-preset" class="tab-btn tab on" style="flex:1;padding:4px;font-size:9px;" onclick="document.getElementById('pnl-preset').style.display='block';document.getElementById('pnl-custom').style.display='none';this.classList.add('on');document.getElementById('tab-custom').classList.remove('on');">Presets</button>
-        <button id="tab-custom" class="tab-btn tab" style="flex:1;padding:4px;font-size:9px;" onclick="document.getElementById('pnl-custom').style.display='block';document.getElementById('pnl-preset').style.display='none';this.classList.add('on');document.getElementById('tab-preset').classList.remove('on');">Custom Pro</button>
-    </div>
-
-    <div id="pnl-preset">
-        <label style="display:block;color:#6b7280;font-size:10px;margin-bottom:3px;">Select Preset</label>
-        <select id="cfg-scenario-preset" style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:5px;padding:5px 8px;color:#e2e8f0;font-family:inherit;font-size:11px;margin-bottom:12px;">
-            <option value="partial-liquidation">Partial Liquidation (-5%, cap 5 Qty)</option>
-            <option value="flash-crash">Flash Crash 10%</option>
-        </select>
-        <button id="btn-scenario-run" style="width:100%;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.25);color:#34d399;border-radius:6px;padding:8px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;margin-bottom:6px;">⚡ EXECUTE PRESET</button>
-    </div>
-
-    <div id="pnl-custom" style="display:none;">
-        <div style="font-size:9px;color:#9ca3af;margin-bottom:4px;font-weight:600;text-transform:uppercase;">1. Price Mechanics</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">
-            <div>
-                <label style="display:block;color:#6b7280;font-size:9px;margin-bottom:2px;">Shift % (e.g. -0.05)</label>
-                <input id="cfg-scen-pct" type="number" step="0.01" placeholder="-0.05" style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:5px;padding:4px 6px;color:#e2e8f0;font-family:inherit;font-size:10px;">
-            </div>
-            <div>
-                <label style="display:block;color:#6b7280;font-size:9px;margin-bottom:2px;">Target Qty Cap</label>
-                <input id="cfg-scen-qty" type="number" step="0.1" placeholder="Infinite" style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:5px;padding:4px 6px;color:#e2e8f0;font-family:inherit;font-size:10px;">
-            </div>
-            <div>
-                <label style="display:block;color:#6b7280;font-size:9px;margin-bottom:2px;">Spread Bias</label>
-                <input id="cfg-scen-bias" type="number" step="0.1" placeholder="1.0" style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:5px;padding:4px 6px;color:#e2e8f0;font-family:inherit;font-size:10px;">
-            </div>
-            <div>
-                <label style="display:block;color:#6b7280;font-size:9px;margin-bottom:2px;">Jitter Noise %</label>
-                <input id="cfg-scen-jitter" type="number" step="0.01" placeholder="0.0" style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:5px;padding:4px 6px;color:#e2e8f0;font-family:inherit;font-size:10px;">
-            </div>
-        </div>
-        
-        <div style="font-size:9px;color:#9ca3af;margin-bottom:4px;font-weight:600;text-transform:uppercase;">2. Time Envelope (ms)</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px;">
-            <div>
-                <label style="display:block;color:#6b7280;font-size:9px;margin-bottom:2px;">Ramp</label>
-                <input id="cfg-scen-ramp" type="number" placeholder="1000" style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:5px;padding:4px 6px;color:#e2e8f0;font-family:inherit;font-size:10px;">
-            </div>
-            <div>
-                <label style="display:block;color:#6b7280;font-size:9px;margin-bottom:2px;">Hold</label>
-                <input id="cfg-scen-hold" type="number" placeholder="3000" style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:5px;padding:4px 6px;color:#e2e8f0;font-family:inherit;font-size:10px;">
-            </div>
-            <div>
-                <label style="display:block;color:#6b7280;font-size:9px;margin-bottom:2px;">Recover</label>
-                <input id="cfg-scen-rec" type="number" placeholder="2000" style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:5px;padding:4px 6px;color:#e2e8f0;font-family:inherit;font-size:10px;">
-            </div>
-        </div>
-        
-        <button id="btn-scenario-custom" style="width:100%;background:rgba(168,85,247,.12);border:1px solid rgba(168,85,247,.25);color:#c084fc;border-radius:6px;padding:8px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;margin-bottom:6px;">⚡ LAUNCH PRO SCENARIO</button>
-    </div>
-
-    <button id="btn-scenario-abort" style="width:100%;background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.3);color:#fb7185;border-radius:6px;padding:8px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;margin-top:4px;">🚨 PANIC ABORT & RECOVER</button>
-  </div>
-
-  <div id="cfg-msg" style="font-size:10px;text-align:center;min-height:14px;"></div>
-</div>
-
-<div style="display:flex;gap:10px;padding:12px 20px 0;">
-  <div class="ticker-card panel-accent"><div class="ticker-label">Binance LTP</div><div class="ticker-val" id="t-bltp" style="color:var(--yellow)">—</div><div class="ticker-sub">Last agg-trade price</div></div>
-  <div class="ticker-card"><div class="ticker-label">Stage Mid Price</div><div class="ticker-val" id="t-sltp" style="color:var(--cyan)">—</div><div class="ticker-sub">(Best ask + best bid) ÷ 2</div></div>
-  <div class="ticker-card" id="drift-card"><div class="ticker-label">Basis Drift</div><div style="display:flex;align-items:baseline;gap:8px;margin-top:3px;"><div class="ticker-val" id="t-drift" style="font-size:18px;">—</div><div id="t-dpct" style="font-size:11px;color:#6b7280;">—</div></div><div class="hbar"><div class="hbar-fill" id="drift-bar" style="width:0%;background:var(--cyan)"></div></div></div>
-  <div class="ticker-card"><div class="ticker-label">Binance Spread</div><div style="display:flex;align-items:baseline;gap:8px;margin-top:3px;"><div class="ticker-val" id="t-bspread" style="font-size:18px;color:var(--purple)">—</div><div id="t-bspct" style="font-size:11px;color:#6b7280;">—</div></div><div class="ticker-sub">Best ask − Best bid</div></div>
-</div>
-
-<div style="display:grid;grid-template-columns:1fr 1fr 340px;gap:10px;padding:10px 20px;">
-  <div class="panel" style="display:flex;flex-direction:column;height:500px;overflow:hidden;">
-    <div style="padding:10px 12px 8px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;"><div><div class="sec-label">Source</div><div class="sec-title" style="color:var(--yellow)">Binance Perpetual</div></div><div id="bin-spread-badge" style="font-size:9px;padding:2px 8px;border-radius:99px;background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.18);color:var(--purple);">Spread —</div></div>
-    <div class="book-hdr"><span>Price</span><span style="text-align:center;">Size</span><span style="text-align:right;">Total</span></div>
-    <div style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column-reverse;" id="bin-asks"></div><div class="d-spread" id="bin-spread-mid">Spread —</div><div style="flex:1;min-height:0;overflow-y:auto;" id="bin-bids"></div>
-  </div>
-  <div class="panel panel-accent" style="display:flex;flex-direction:column;height:500px;overflow:hidden;">
-    <div style="padding:10px 12px 8px;border-bottom:1px solid rgba(6,182,212,0.12);display:flex;justify-content:space-between;align-items:center;"><div><div class="sec-label">Target · Testnet WS</div><div class="sec-title" style="color:var(--cyan)">Stage Orderbook</div></div><div id="stage-spread-badge" style="font-size:9px;padding:2px 8px;border-radius:99px;background:rgba(6,182,212,.07);border:1px solid rgba(6,182,212,.15);color:var(--cyan);">Spread —</div></div>
-    <div class="book-hdr"><span>Price</span><span style="text-align:center;">Size</span><span style="text-align:right;">Total</span></div>
-    <div style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column-reverse;" id="stage-asks"></div><div class="d-spread" id="stage-spread-mid">Spread —</div><div style="flex:1;min-height:0;overflow-y:auto;" id="stage-bids"></div>
-  </div>
-  <div class="panel" style="display:flex;flex-direction:column;height:500px;overflow:hidden;">
-    <div style="padding:10px 12px 8px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-      <div><div class="sec-label">Execution Sync</div><div class="sec-title" style="color:var(--purple);">LTP Cross Stream</div></div>
-      <div style="display:flex;gap:6px;"><span id="t-trok" class="badge badge-ok">0 OK</span><span id="t-trfail" class="badge badge-fail">0 FAIL</span></div>
-    </div>
-    <div style="display:flex;border-bottom:1px solid var(--border);padding:0 8px;">
-      <button class="tab-btn tab on" data-f="all">All</button>
-      <button class="tab-btn tab" data-f="ok">Filled</button>
-      <button class="tab-btn tab" data-f="fail">Failed</button>
-    </div>
-    <div style="flex:1;overflow-y:auto;min-height:0;" id="trade-stream"><div style="text-align:center;padding:40px 0;color:#374151;font-size:10px;text-transform:uppercase;letter-spacing:.08em;">Awaiting trades...</div></div>
-  </div>
-</div>
-
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 20px 20px;">
-  <div class="panel" style="overflow:hidden;">
-    <div style="padding:10px 14px 8px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;"><div style="display:flex;align-items:center;gap:8px;"><div style="width:7px;height:7px;border-radius:50%;background:var(--cyan);flex-shrink:0;"></div><div><div class="sec-label">User 1 · Maker / Orderbook Keeper</div><div class="sec-title" id="u1-title">Global Portfolio</div></div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;" id="u1-chips"></div></div>
-    <div id="u1-err" class="err-banner" style="display:none;"></div>
-    <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;"><thead><tr style="font-size:9px;color:#374151;text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid rgba(255,255,255,.04);"><th style="padding:6px 14px;text-align:left;font-weight:500;">Symbol</th><th style="padding:6px 8px;text-align:right;font-weight:500;">Lev</th><th style="padding:6px 8px;text-align:right;font-weight:500;">Margin</th><th style="padding:6px 8px;text-align:right;font-weight:500;">Size</th><th style="padding:6px 8px;text-align:right;font-weight:500;">Unreal. PnL</th><th style="padding:6px 8px;text-align:right;font-weight:500;">Entry</th><th style="padding:6px 8px;text-align:right;font-weight:500;">Mark</th><th style="padding:6px 14px;text-align:right;font-weight:500;">Liq.</th></tr></thead><tbody id="u1-body"><tr><td colspan="8" style="text-align:center;padding:28px 0;color:#374151;font-size:10px;text-transform:uppercase;">No active positions</td></tr></tbody></table></div>
-  </div>
-  <div class="panel" style="overflow:hidden;">
-    <div style="padding:10px 14px 8px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;"><div style="display:flex;align-items:center;gap:8px;"><div style="width:7px;height:7px;border-radius:50%;background:var(--yellow);flex-shrink:0;"></div><div><div class="sec-label">User 2 · Taker / LTP Consumer</div><div class="sec-title" id="u2-title">Global Portfolio</div></div></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;" id="u2-chips"></div></div>
-    <div id="u2-err" class="err-banner" style="display:none;"></div>
-    <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;"><thead><tr style="font-size:9px;color:#374151;text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid rgba(255,255,255,.04);"><th style="padding:6px 14px;text-align:left;font-weight:500;">Symbol</th><th style="padding:6px 8px;text-align:right;font-weight:500;">Lev</th><th style="padding:6px 8px;text-align:right;font-weight:500;">Margin</th><th style="padding:6px 8px;text-align:right;font-weight:500;">Size</th><th style="padding:6px 8px;text-align:right;font-weight:500;">Unreal. PnL</th><th style="padding:6px 8px;text-align:right;font-weight:500;">Entry</th><th style="padding:6px 8px;text-align:right;font-weight:500;">Mark</th><th style="padding:6px 14px;text-align:right;font-weight:500;">Liq.</th></tr></thead><tbody id="u2-body"><tr><td colspan="8" style="text-align:center;padding:28px 0;color:#374151;font-size:10px;text-transform:uppercase;">No active positions</td></tr></tbody></table></div>
-  </div>
-</div>
-
-<script>
-window.addEventListener('DOMContentLoaded', () => {
-    try {
-        let activeTabSymbol = null;
-        let cachedInstances = {};
-        let cachedGlobalData = null;
-        let tradeFilter = 'all';
-        let showBars = true;
-        let flashOn = true;
-        let pPrec = 4, qPrec = 1;
-        let prevBinLtp = null;
-        let knownTradeIds = new Set();
-        let cancelOnStopState = true;
-        let newUserState = false;
-
-        setInterval(() => {
-            const now = new Date();
-            const el = document.getElementById('c-clock');
-            if (el) el.textContent = now.toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' IST';
-        }, 1000);
-
-        document.getElementById('btn-cfg').onclick = () => { document.getElementById('drawer').classList.add('open'); document.getElementById('overlay').classList.add('open'); };
-        document.getElementById('btn-close').onclick = () => { document.getElementById('drawer').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); };
-        document.getElementById('overlay').onclick = () => { document.getElementById('drawer').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); };
-
-        document.getElementById('tog-cancel-wrap').onclick = () => {
-            cancelOnStopState = !cancelOnStopState;
-            const el = document.getElementById('tog-cancel-stop');
-            if (cancelOnStopState) el.classList.add('on'); else el.classList.remove('on');
-        };
-
-        document.getElementById('tog-new-user-wrap').onclick = () => {
-            newUserState = !newUserState;
-            const el = document.getElementById('tog-new-user');
-            if (newUserState) el.classList.add('on'); else el.classList.remove('on');
-        };
-
-        function bindTog(id, cb) {
-            const el = document.getElementById(id);
-            if (!el) return;
-            el.onclick = () => { el.classList.toggle('on'); cb(el.classList.contains('on')); };
-        }
-        bindTog('tog-bars', v => { showBars = v; });
-        bindTog('tog-flash', v => { flashOn = v; });
-
-        function showToast(msgStr, isErr = false) {
-            const t = document.getElementById('c-status-toast');
-            if (!t) return;
-            t.style.display = 'block';
-            t.style.color = isErr ? '#f43f5e' : '#10b981';
-            t.textContent = msgStr;
-            setTimeout(() => { t.style.display = 'none'; }, 3000);
-        }
-
-        document.getElementById('btn-scenario-run').onclick = async () => {
-            const sym = activeTabSymbol;
-            if (!sym) return showToast('✗ Select a market first', true);
-            const preset = document.getElementById('cfg-scenario-preset').value;
-            try {
-                const r = await fetch('/api/scenario/preset/' + preset, {
-                    method: 'POST', headers:{'Content-Type':'application/json'},
-                    body: JSON.stringify({ symbol: sym })
-                });
-                const j = await r.json();
-                if (j.error) showToast('✗ ' + j.error, true);
-                else { showToast('✓ Triggered ' + preset); document.getElementById('drawer').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); }
-            } catch(e) { showToast('✗ ' + e.message, true); }
-        };
-
-        document.getElementById('btn-scenario-custom').onclick = async () => {
-            const sym = activeTabSymbol;
-            if (!sym) return showToast('✗ Select a market first', true);
-            const pct = parseFloat(document.getElementById('cfg-scen-pct').value || 0);
-            const qty = document.getElementById('cfg-scen-qty').value;
-            const bias = document.getElementById('cfg-scen-bias').value;
-            const jitter = document.getElementById('cfg-scen-jitter').value;
-            const ramp = parseInt(document.getElementById('cfg-scen-ramp').value || 0);
-            const hold = parseInt(document.getElementById('cfg-scen-hold').value || 0);
-            const rec = parseInt(document.getElementById('cfg-scen-rec').value || 2000);
-            
-            const payload = { symbol: sym, pct, rampMs: ramp, holdMs: hold, recoverMs: rec, recovery: 'linear' };
-            if (qty) payload.targetQty = parseFloat(qty);
-            if (bias) payload.spreadBias = parseFloat(bias);
-            if (jitter) payload.jitterPct = parseFloat(jitter);
-
-            try {
-                const r = await fetch('/api/scenario/custom', {
-                    method: 'POST', headers:{'Content-Type':'application/json'},
-                    body: JSON.stringify(payload)
-                });
-                const j = await r.json();
-                if (j.error) showToast('✗ ' + j.error, true);
-                else { showToast('✓ Custom Pro Triggered'); document.getElementById('drawer').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); }
-            } catch(e) { showToast('✗ ' + e.message, true); }
-        };
-
-        document.getElementById('btn-scenario-abort').onclick = async () => {
-            const sym = activeTabSymbol;
-            if (!sym) return showToast('✗ Select a market first', true);
-            try {
-                const r = await fetch('/api/scenario/active', {
-                    method: 'DELETE', headers:{'Content-Type':'application/json'},
-                    body: JSON.stringify({ symbol: sym })
-                });
-                const j = await r.json();
-                if (j.error) showToast('✗ ' + j.error, true);
-                else { showToast('✓ Scenario Aborted'); document.getElementById('drawer').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); }
-            } catch(e) { showToast('✗ ' + e.message, true); }
-        };
-
-        document.getElementById('btn-apply').onclick = async () => {
-            const sym = document.getElementById('cfg-source').value.trim().toUpperCase() || 'BTCUSDT';
-            const tgt = document.getElementById('cfg-target').value.trim().toUpperCase() || sym;
-            const minV = document.getElementById('cfg-min').value;
-            const maxV = document.getElementById('cfg-max').value;
-            const depV = document.getElementById('cfg-depth').value;
-            const bufV = document.getElementById('cfg-buffer').value;
-            const delayV = document.getElementById('cfg-delay').value;
-            
-            const msg = document.getElementById('cfg-msg');
-            msg.textContent = '';
-
-            if (!sym) { msg.style.color='#f43f5e'; msg.textContent='✗ Symbol required'; return; }
-            if (minV && maxV && parseFloat(minV) >= parseFloat(maxV)) { msg.style.color='#f43f5e'; msg.textContent='✗ Min must be < Max'; return; }
-
-            const body = { sourceSymbol: sym, targetSymbol: tgt, cancelOnStop: cancelOnStopState, newUserFlow: newUserState, enableTradeSync: true };
-            if (minV) body.minSize = parseFloat(minV);
-            if (maxV) body.maxSize = parseFloat(maxV);
-            if (depV) body.depthLevels = parseInt(depV);
-            if (bufV) body.bufferPct = parseFloat(bufV);
-            if (delayV) body.tradeDelayMs = parseInt(delayV);
-
-            msg.style.color = '#06b6d4'; msg.textContent = 'Sending...';
-            try {
-                const r = await fetch('/api/config', { method:'POST', body: JSON.stringify(body), headers:{'Content-Type':'application/json'} });
-                const d = await r.json();
-                if (d.success) { msg.style.color='#10b981'; msg.textContent='✓ Market Mounted!'; window.selectTab(tgt); }
-                else { msg.style.color='#f43f5e'; msg.textContent='✗ ' + d.error; }
-            } catch(e) { msg.style.color='#f43f5e'; msg.textContent='✗ Network error'; }
-        };
-
-        window.sendEngineCmd = async function(cmd) {
-            if (!activeTabSymbol) return showToast("Select a market tab first!", true);
-            try {
-                const r = await fetch('/api/engine/'+cmd, { method:'POST', body: JSON.stringify({ symbol: activeTabSymbol }), headers:{'Content-Type':'application/json'} });
-                if (r.ok) showToast('✓ Command ' + cmd.toUpperCase() + ' sent');
-                else showToast('✗ Failed to send command', true);
-            } catch(e) { showToast('✗ Network error', true); }
-        };
-
-        document.getElementById('btn-cmd-start').onclick = () => window.sendEngineCmd('start');
-        document.getElementById('btn-cmd-pause').onclick = () => window.sendEngineCmd('pause');
-        document.getElementById('btn-cmd-stop').onclick = () => window.sendEngineCmd('stop');
-        document.getElementById('btn-cmd-reload').onclick = () => window.sendEngineCmd('reload');
-
-        const fmt = (v, d) => parseFloat(v||0).toFixed(d);
-        function fmtK(v) { const n = parseFloat(v||0); return n >= 1000 ? (n/1000).toFixed(1)+'K' : n.toFixed(0); }
-        function flash(el, cls) {
-            if (!flashOn || !el) return;
-            el.classList.remove('fl-g','fl-r');
-            void el.offsetWidth;
-            el.classList.add(cls);
-            setTimeout(() => el.classList.remove(cls), 350);
-        }
-
-        window.selectTab = function(sym) {
-            activeTabSymbol = sym;
-            tradeFilter = 'all';
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('on'));
-            const defaultTab = document.querySelector('.tab-btn[data-f="all"]');
-            if (defaultTab) defaultTab.classList.add('on');
-            document.getElementById('trade-stream').innerHTML = '<div style="text-align:center;padding:40px 0;color:#374151;font-size:10px;text-transform:uppercase;letter-spacing:.08em;">Loading...</div>';
-            knownTradeIds.clear();
-
-            if (cachedInstances && cachedInstances[sym] && cachedGlobalData) {
-                renderSymbolData(cachedInstances[sym], cachedGlobalData);
-            }
-        };
-
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.onclick = () => {
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('on'));
-                btn.classList.add('on');
-                tradeFilter = btn.getAttribute('data-f');
-                document.getElementById('trade-stream').innerHTML = '';
-                knownTradeIds.clear();
-                if (cachedInstances[activeTabSymbol]) updateTradeStream(cachedInstances[activeTabSymbol].syncedTrades);
-            };
-        });
-
-        function renderBook(askEl, bidEl, spreadBadgeEl, spreadMidEl, asks, bids) {
-            const maxAskQty = (asks||[]).reduce((m,r) => Math.max(m,parseFloat(r[1])), 0.0001);
-            const maxBidQty = (bids||[]).reduce((m,r) => Math.max(m,parseFloat(r[1])), 0.0001);
-
-            function row(r, side, maxQ) {
-                const pct = Math.min(100,(parseFloat(r[1])/maxQ)*100).toFixed(1);
-                const isAsk = side === 'ask';
-                const barCol = isAsk ? '#f43f5e' : '#10b981';
-                const col = isAsk ? 'var(--ask)' : 'var(--bid)';
-                const total = (parseFloat(r[0]) * parseFloat(r[1])).toFixed(0);
-                const barHtml = showBars ? '<div class="d-bar d-bar-'+(isAsk?'r':'l')+'" style="background:'+barCol+';width:'+pct+'%"></div>' : '';
-                return '<div class="d-row"><span style="color:'+col+';font-weight:600;">'+fmt(r[0],pPrec)+'</span><span style="text-align:center;color:#6b7280;">'+fmt(r[1],qPrec)+'</span><span style="text-align:right;color:#374151;">'+fmtK(total)+'</span>'+barHtml+'</div>';
-            }
-
-            askEl.innerHTML = asks && asks.length ? asks.map(r => row(r,'ask',maxAskQty)).join('') : '<div style="text-align:center;padding:16px 0;color:#374151;font-size:10px;">No asks</div>';
-            bidEl.innerHTML = bids && bids.length ? bids.map(r => row(r,'bid',maxBidQty)).join('') : '<div style="text-align:center;padding:16px 0;color:#374151;font-size:10px;">No bids</div>';
-
-            if (asks && asks[0] && bids && bids[0]) {
-                const bestAsk = parseFloat(asks[0][0]);
-                const bestBid = parseFloat(bids[0][0]);
-                const spNum = bestAsk - bestBid;
-                const sp = spNum.toFixed(pPrec);
-                const spp = bestAsk > 0 ? ((spNum/bestAsk)*100).toFixed(3) : "0.000";
-                const txt = "Spread " + sp + " (" + spp + "%)";
-                if (spreadBadgeEl) spreadBadgeEl.textContent = txt;
-                if (spreadMidEl) spreadMidEl.textContent = txt;
-            }
-        }
-
-        function updateTradeStream(newTrades) {
-            const el = document.getElementById('trade-stream');
-            if (!newTrades || !newTrades.length) {
-                el.innerHTML = '<div style="text-align:center;padding:40px 0;color:#374151;font-size:10px;text-transform:uppercase;letter-spacing:.08em;">Awaiting trades...</div>';
-                knownTradeIds.clear();
-                return;
-            }
-
-            const newItems = newTrades.filter(t => !knownTradeIds.has(t.id));
-            if (newItems.length > 0) {
-                if (el.innerHTML.includes('Awaiting trades') || el.innerHTML.includes('Loading')) el.innerHTML = '';
-                newItems.reverse().forEach(t => {
-                    knownTradeIds.add(t.id);
-                    if (tradeFilter === 'ok' && !t.success) return;
-                    if (tradeFilter === 'fail' && t.success) return;
-                    const badge = t.success
-                        ? '<span class="badge badge-ok">FILLED</span>'
-                        : '<span class="badge badge-fail">FAILED</span>';
-                    const temp = document.createElement('div');
-                    temp.className = 'tr-row';
-                    temp.style.animation = 'slideIn .22s ease';
-                    temp.innerHTML = '<span style="color:#4b5563;">'+t.time+'</span><span style="color:var(--yellow);font-weight:600;">'+parseFloat(t.price).toFixed(pPrec)+'</span><span style="color:#6b7280;">'+parseFloat(t.stageQty).toFixed(qPrec)+'</span>'+badge;
-                    el.insertBefore(temp, el.firstChild);
-                });
-                while (el.children.length > 50) el.removeChild(el.lastChild);
-            }
-        }
-
-        function chipHtml(label, value, color) {
-            return '<div class="chip" style="min-width:70px;"><div class="chip-label">'+label+'</div><div class="chip-val" style="color:'+color+';font-size:10px;">'+value+'</div></div>';
-        }
-
-        function renderPortfolio(data, errEl, chipsEl, titleEl, bodyEl) {
-            if (data.error) { errEl.style.display='block'; errEl.textContent='\u26a0 '+data.error; }
-            else { errEl.style.display='none'; }
-
-            const wallet = parseFloat(data.walletBalance||0);
-            const avail = parseFloat(data.availableBalance||0);
-            const locked = Math.max(0, wallet - avail);
-            const pnl = parseFloat(data.unrealizedProfit||0);
-
-            chipsEl.innerHTML =
-                chipHtml('Wallet', wallet.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+' U', '#e2e8f0') +
-                chipHtml('Available', avail.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+' U', '#10b981') +
-                chipHtml('Locked', locked.toFixed(2)+' U', '#f43f5e') +
-                chipHtml('PnL', (pnl>=0?'+':'')+pnl.toFixed(2)+' U', pnl>=0?'#10b981':'#f43f5e') +
-                chipHtml('Orders', String(data.openOrdersCount||0), 'var(--cyan)');
-
-            const pos = data.positions || [];
-            titleEl.textContent = 'Global Portfolio ('+pos.length+')';
-
-            if (!pos.length) {
-                bodyEl.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px 0;color:#374151;font-size:10px;text-transform:uppercase;">No active positions</td></tr>';
-                return;
-            }
-            bodyEl.innerHTML = pos.map(p => {
-                const sideBg = p.side === 'LONG'
-                    ? 'background:rgba(16,185,129,.09);border:1px solid rgba(16,185,129,.2);color:#34d399;'
-                    : 'background:rgba(244,63,94,.09);border:1px solid rgba(244,63,94,.2);color:#fb7185;';
-                const pnlV = parseFloat(p.unrealizedPnL);
-                const pnlCol = pnlV >= 0 ? '#34d399' : '#fb7185';
-                const pnlSign= pnlV >= 0 ? '+' : '';
-                return '<tr style="border-bottom:1px solid rgba(255,255,255,.03);"><td style="padding:7px 14px;"><span style="font-weight:700;color:#e2e8f0;">'+p.symbol+'</span><span style="margin-left:5px;font-size:9px;padding:1px 6px;border-radius:99px;'+sideBg+'">'+p.side+'</span></td><td style="padding:7px 8px;text-align:right;color:#6b7280;">'+p.leverage+'×</td><td style="padding:7px 8px;text-align:right;color:var(--cyan);">'+parseFloat(p.margin).toFixed(2)+'</td><td style="padding:7px 8px;text-align:right;color:#9ca3af;">'+p.size+'</td><td style="padding:7px 8px;text-align:right;font-weight:700;color:'+pnlCol+';">'+pnlSign+pnlV.toFixed(2)+'</td><td style="padding:7px 8px;text-align:right;color:#6b7280;">'+p.entryPrice+'</td><td style="padding:7px 8px;text-align:right;color:#6b7280;">'+p.markPrice+'</td><td style="padding:7px 14px;text-align:right;color:var(--yellow);">'+p.liqPrice+'</td></tr>';
-            }).join('');
-        }
-
-        function renderSymbolData(instance, data) {
-            const diag = instance.diagnostics || {};
-            pPrec = diag.pricePrecision !== undefined ? diag.pricePrecision : 4;
-            qPrec = diag.qtyPrecision !== undefined ? diag.qtyPrecision : 1;
-
-            const dot = document.getElementById('dot');
-            const statusTxt = document.getElementById('c-eng');
-            if (instance.status === 'RUNNING') { dot.className = 'dot-live'; statusTxt.innerHTML = "<span class='c-emerald fw-bold'>RUNNING</span>"; }
-            else if (instance.status === 'PAUSED') { dot.className = 'dot-paused'; statusTxt.innerHTML = "<span class='c-yellow fw-bold'>PAUSED</span>"; }
-            else { dot.className = 'dot-dead'; statusTxt.innerHTML = "<span class='c-rose fw-bold'>STOPPED</span>"; }
-
-            document.getElementById('c-bping').textContent = (diag.binanceLatency||0) + 'ms';
-            document.getElementById('c-sping').textContent = (diag.testnetLatency||0) + 'ms';
-            document.getElementById('c-sync').textContent = (diag.syncRatio||'100') + '%';
-            
-            const srcStr = (diag.sourceSymbol && diag.sourceSymbol !== activeTabSymbol) ? ' (SRC: ' + diag.sourceSymbol + ')' : '';
-            document.getElementById('c-pair').textContent = activeTabSymbol + srcStr;
-
-            const tsEl = document.getElementById('flag-tradeSync');
-            const csEl = document.getElementById('flag-cancelStop');
-            const bufEl = document.getElementById('flag-buffer');
-            const delEl = document.getElementById('flag-delay');
-
-            if (diag.enableTradeSync) { tsEl.textContent='TRADE SYNC ON'; tsEl.className='flag-pill flag-on'; }
-            else { tsEl.textContent='TRADE SYNC OFF'; tsEl.className='flag-pill flag-off'; }
-
-            if (diag.cancelOnStop) { csEl.textContent='CANCEL ON STOP'; csEl.className='flag-pill flag-on'; }
-            else { csEl.textContent='KEEP ON STOP'; csEl.className='flag-pill flag-off'; }
-
-            const buf = parseFloat(diag.bufferPct||0);
-            bufEl.textContent = buf > 0 ? 'BUF '+buf+'%' : 'NO BUFFER';
-
-            const delay = parseInt(diag.tradeDelayMs||0);
-            delEl.textContent = delay > 0 ? 'DELAY '+delay+'ms' : 'DELAY OFF';
-
-            const scEl = document.getElementById('flag-scenario');
-            if (instance.scenarioStatus && instance.scenarioStatus.phase !== 'IDLE') {
-                scEl.style.display = 'block';
-                scEl.textContent = 'SCENARIO: ' + instance.scenarioStatus.phase;
-            } else {
-                scEl.style.display = 'none';
-            }
-
-            const binLtp = diag.binanceLtp || '0.0000';
-            const ltpEl = document.getElementById('t-bltp');
-            if (prevBinLtp !== null && flashOn) {
-                const d = parseFloat(binLtp) - parseFloat(prevBinLtp);
-                if (d > 0) flash(ltpEl, 'fl-g');
-                else if (d < 0) flash(ltpEl, 'fl-r');
-            }
-            prevBinLtp = binLtp;
-            ltpEl.textContent = fmt(binLtp, pPrec);
-
-            const sa = instance.testnetDepth.asks, sb = instance.testnetDepth.bids;
-            const stageLtp = (sa&&sa[0]&&sb&&sb[0]) ? ((parseFloat(sa[0][0])+parseFloat(sb[0][0]))/2).toFixed(pPrec) : binLtp;
-            document.getElementById('t-sltp').textContent = fmt(stageLtp, pPrec);
-
-            const dAbs = Math.abs(parseFloat(binLtp)-parseFloat(stageLtp)).toFixed(pPrec);
-            const dPct = parseFloat(binLtp)>0 ? ((dAbs/parseFloat(binLtp))*100).toFixed(3) : '0.000';
-            const dp = parseFloat(dPct);
-            document.getElementById('t-drift').textContent = dAbs;
-            document.getElementById('t-dpct').textContent = '('+dPct+'%)';
-            const driftBar = document.getElementById('drift-bar');
-            driftBar.style.width = Math.min(100, dp*1000)+'%';
-            driftBar.style.background = dp>0.05 ? '#f43f5e' : dp>0.02 ? '#eab308' : 'var(--cyan)';
-
-            const ba = instance.binanceDepth.asks, bb = instance.binanceDepth.bids;
-            if (ba&&ba[0]&&bb&&bb[0]) {
-                const spNum = parseFloat(ba[0][0]) - parseFloat(bb[0][0]);
-                const sp = spNum.toFixed(pPrec);
-                const spp = parseFloat(ba[0][0]) > 0 ? ((spNum/parseFloat(ba[0][0]))*100).toFixed(3) : "0.000";
-                document.getElementById('t-bspread').textContent = sp;
-                document.getElementById('t-bspct').textContent = '('+spp+'%)';
-            }
-
-            const ok = (instance.syncedTrades||[]).filter(t => t.success).length;
-            const fail = (instance.syncedTrades||[]).filter(t => !t.success).length;
-            document.getElementById('t-trok').textContent = ok + ' OK';
-            document.getElementById('t-trfail').textContent = fail + ' FAIL';
-
-            renderBook(document.getElementById('bin-asks'), document.getElementById('bin-bids'), document.getElementById('bin-spread-badge'), document.getElementById('bin-spread-mid'), instance.binanceDepth.asks, instance.binanceDepth.bids);
-            renderBook(document.getElementById('stage-asks'), document.getElementById('stage-bids'), document.getElementById('stage-spread-badge'), document.getElementById('stage-spread-mid'), instance.testnetDepth.asks, instance.testnetDepth.bids);
-
-            updateTradeStream(instance.syncedTrades);
-            renderPortfolio(data.user1Portfolio, document.getElementById('u1-err'), document.getElementById('u1-chips'), document.getElementById('u1-title'), document.getElementById('u1-body'));
-            renderPortfolio(data.user2Portfolio, document.getElementById('u2-err'), document.getElementById('u2-chips'), document.getElementById('u2-title'), document.getElementById('u2-body'));
-        }
-
-        let es;
-        function connectSSE() {
-            if (es) es.close();
-            es = new EventSource('/events');
-
-            es.onopen = () => {
-                knownTradeIds.clear();
-                prevBinLtp = null;
-                // Hide splash once connected
-                const sp = document.getElementById('splash');
-                if (sp) { sp.classList.add('hidden'); setTimeout(()=>sp.remove(),500); }
-                document.getElementById('dot').className = 'dot-live';
-                document.getElementById('c-eng').innerHTML = "<span class='c-yellow4 fw-bold'>CONNECTING...</span>";
-            };
-
-            es.onerror = () => {
-                document.getElementById('dot').className = 'dot-dead';
-                document.getElementById('c-eng').innerHTML = "<span class='c-rose fw-bold'>DISCONNECTED</span>";
-                es.close();
-                setTimeout(connectSSE, 2500); // auto-reconnect
-            };
-
-            es.onmessage = (ev) => {
-                let data;
-                try { data = JSON.parse(ev.data); } catch(e) { return; }
-
-                cachedInstances = data.instances || {};
-                cachedGlobalData = data;
-
-                const tabContainer = document.getElementById('symbol-tabs');
-                const symbols = Object.keys(cachedInstances);
-
-                if (symbols.length === 0) {
-                    tabContainer.innerHTML = '<span style="color:#374151;font-size:10px;letter-spacing:.06em;">Waiting for engine...</span>';
-                    document.getElementById('c-eng').innerHTML = "<span class='c-yellow4 fw-bold'>BOOTING...</span>";
-                    return;
-                }
-
-                if (!activeTabSymbol || !cachedInstances[activeTabSymbol]) window.selectTab(symbols[0]);
-
-                tabContainer.innerHTML = symbols.map(sym => {
-                    const isActive = sym === activeTabSymbol;
-                    const statColor = cachedInstances[sym].status === 'RUNNING' ? '#10b981' : cachedInstances[sym].status === 'PAUSED' ? '#eab308' : '#f43f5e';
-                    return '<div class="sym-tab '+(isActive?'on':'')+'" onclick="window.selectTab(\\''+sym+'\\')"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:'+statColor+';margin-right:6px;"></span>'+sym+'</div>';
-                }).join('');
-
-                if (activeTabSymbol && cachedInstances[activeTabSymbol]) {
-                    renderSymbolData(cachedInstances[activeTabSymbol], data);
-                }
-            };
-        }
-
-        connectSSE();
-
-    } catch (e) {
-        console.error("FATAL UI INITIALIZATION ERROR: ", e);
-        const errDiv = document.getElementById('err-splash');
-        if (errDiv) {
-            errDiv.style.display = 'flex';
-            errDiv.innerHTML = '<div style="font-size:16px;font-weight:700;">⚠ UI Initialization Error</div><div style="color:#9ca3af;text-align:center;max-width:600px;word-break:break-all;">' + (e && e.message ? e.message : String(e)) + '</div><div style="color:#374151;font-size:10px;">Check browser console (F12) for details.</div>';
-        }
-        const sp = document.getElementById('splash');
-        if (sp) sp.classList.add('hidden');
-    }
-});
-</script>
-</body>
-</html>`;
+    return require('fs').readFileSync(require('path').join(__dirname, 'index.html'), 'utf8');
 }

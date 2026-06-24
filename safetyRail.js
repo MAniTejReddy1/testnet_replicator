@@ -5,7 +5,7 @@
  * damage or matching engine crashes due to extreme illiquidity or massive price spikes.
  */
 
-const MAX_PCT_CAP = parseFloat(process.env.FLASH_MAX_PCT || "0.50"); // Max 50% movement
+const MAX_PCT_CAP = parseFloat(process.env.FLASH_MAX_PCT || "5.0"); // Max 500% movement
 const COOLDOWN_MS = parseInt(process.env.FLASH_COOLDOWN_MS || "5000", 10);
 const ALLOWED_SYMBOLS = (process.env.FLASH_ALLOWED_SYMBOLS || "BTCUSDT,ETHUSDT").split(',');
 

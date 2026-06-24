@@ -1,0 +1,12 @@
+[
+  {
+    "sourceSymbol": "BTCUSDT",
+    "targetSymbol": "BTCUSDT",
+    "minSize": 100,
+    "maxSize": 1000,
+    "depthLevels": 10,
+    "bufferPct": 0,
+    "tradeDelayMs": 0,
+    "cancelOnStop": true
+  }
+]

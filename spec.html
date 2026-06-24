@@ -1,0 +1,3398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<script>(function(){var k='cdx-theme';try{var d=localStorage.getItem(k)==='dark';document.documentElement.setAttribute('data-theme',d?'dark':'light');}catch(_){document.documentElement.setAttribute('data-theme','light');}})();</script>
+<title>Order Management (FAPI) · CoinDCX Futures API</title>
+<meta name="theme-color" content="#ffffff" />
+<style>
+  /*  Design tokens
+   *  ─────────────────────────────────
+   *  Spacing: --space-1 (4px) → --space-12 (96px) on a 4px grid
+   *  Type:    --text-xs (11px) → --text-display (clamp 32→50)
+   *  Radii:   --r-sm (6) --r-md (10) --r-lg (12) --r-xl (16)
+   *  Containers: --container (max 1180), --prose-w (780)
+   */
+  :root {
+    --sw: 248px;
+    color-scheme: light;
+    --bg:         #ffffff;
+    --bg-2:       #f8f9fc;
+    --bg-3:       #eef0f5;
+    --sidebar-bg: #ffffff;
+    --border:     #dde1ec;
+    --border-strong: #c6cce0;
+    --fg:         #1a1f30;
+    --fg-dim:     #55617a;
+    --fg-muted:   #9099b2;
+    --accent:     #6d48f5;
+    --accent-strong: #5733e6;
+    --accent-gl:  rgba(109,72,245,.14);
+    --accent-2:   #0891b2;
+    --shadow-card: 0 4px 16px rgba(15,23,42,.06);
+    --shadow-lift: 0 10px 30px rgba(15,23,42,.10);
+    --shadow-pop:  0 16px 40px rgba(15,23,42,.14);
+
+    /* spacing */
+    --space-1: 4px; --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+    --space-5: 20px; --space-6: 24px; --space-7: 32px; --space-8: 40px;
+    --space-9: 48px; --space-10: 56px; --space-11: 72px; --space-12: 96px;
+
+    /* radii */
+    --r-sm: 6px; --r-md: 10px; --r-lg: 12px; --r-xl: 16px;
+
+    /* type */
+    --text-xs:    11px;
+    --text-sm:    12.5px;
+    --text-base:  14px;
+    --text-md:    15px;
+    --text-lg:    17px;
+    --text-xl:    20px;
+    --text-2xl:   24px;
+    --text-3xl:   30px;
+    --text-display: clamp(34px, 4.2vw, 52px);
+
+    /* line heights */
+    --lh-tight: 1.2;
+    --lh-snug:  1.35;
+    --lh-base:  1.6;
+    --lh-loose: 1.72;
+
+    /* layout */
+    --container: 1180px;
+    --content-pad: clamp(20px, 3.5vw, 40px);
+    --prose-w: 780px;
+
+    --tx-fast: .12s cubic-bezier(.4,0,.2,1);
+    --tx-base: .18s cubic-bezier(.4,0,.2,1);
+  }
+  [data-theme="dark"] {
+    color-scheme: dark;
+    --bg:         #0b0d12;
+    --bg-2:       #11141c;
+    --bg-3:       #181d28;
+    --sidebar-bg: #0d1018;
+    --border:     #1e2636;
+    --border-strong: #2a3346;
+    --fg:         #e4e8f0;
+    --fg-dim:     #8a93a8;
+    --fg-muted:   #52596b;
+    --accent:     #7c5cff;
+    --accent-strong: #9d83ff;
+    --accent-gl:  rgba(124,92,255,.28);
+    --accent-2:   #22d3ee;
+    --shadow-card: 0 4px 16px rgba(0,0,0,.3);
+    --shadow-lift: 0 10px 30px rgba(0,0,0,.45);
+    --shadow-pop:  0 16px 40px rgba(0,0,0,.55);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; min-height: 100vh;
+    background: var(--bg); color: var(--fg);
+    font-family: ui-sans-serif, -apple-system, "Inter", "SF Pro Text", system-ui, sans-serif;
+    font-size: var(--text-base);
+    line-height: var(--lh-base);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  /* universal focus ring for keyboard users */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: var(--r-sm);
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0;
+    width: var(--sw);
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex; flex-direction: column;
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--border);
+    z-index: 200;
+    overflow: hidden;
+  }
+
+  .sb-brand {
+    display: flex; align-items: center; gap: var(--space-3);
+    padding: 18px var(--space-4) 14px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    text-decoration: none;
+    transition: background var(--tx-fast);
+  }
+  .sb-brand:hover { background: var(--bg-2); }
+  .sb-brand img {
+    height: 26px; width: auto; display: block;
+  }
+  .sb-brand-text { display: flex; flex-direction: column; min-width: 0; }
+  .sb-brand-name {
+    font-size: 13.5px; font-weight: 700; color: var(--fg);
+    letter-spacing: -0.01em; line-height: var(--lh-tight);
+  }
+  .sb-brand-tag {
+    font-size: 10px; font-weight: 600; color: var(--fg-muted);
+    letter-spacing: .08em; text-transform: uppercase; margin-top: 2px;
+  }
+
+  /* ── Search ── */
+  .sb-search-wrap {
+    padding: var(--space-3) var(--space-3) var(--space-2);
+    flex-shrink: 0;
+  }
+  .sb-search {
+    position: relative; display: flex; align-items: center;
+  }
+  .sb-search svg {
+    position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+    width: 14px; height: 14px; color: var(--fg-muted); pointer-events: none;
+  }
+  .sb-search input {
+    width: 100%;
+    padding: 8px 38px 8px 32px;
+    background: var(--bg-3);
+    border: 1px solid transparent;
+    border-radius: var(--r-md);
+    color: var(--fg);
+    font-size: 13px;
+    outline: none;
+    transition: border-color var(--tx-fast), background var(--tx-fast), box-shadow var(--tx-fast);
+    font-family: inherit;
+  }
+  .sb-search input::placeholder { color: var(--fg-muted); }
+  .sb-search input:focus {
+    border-color: var(--accent);
+    background: var(--bg);
+    box-shadow: 0 0 0 3px var(--accent-gl);
+  }
+  .sb-search-kbd {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    font-size: 10px; color: var(--fg-muted);
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 4px; padding: 1px 6px; pointer-events: none;
+    font-family: inherit; letter-spacing: .02em;
+  }
+
+  /* ── Nav ── */
+  .sb-nav {
+    flex: 1; overflow-y: auto; overflow-x: hidden;
+    padding: var(--space-1) var(--space-3) var(--space-2);
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .sb-nav::-webkit-scrollbar { width: 6px; }
+  .sb-nav::-webkit-scrollbar-thumb {
+    background: var(--border); border-radius: 4px;
+    border: 1px solid transparent; background-clip: padding-box;
+  }
+  .sb-nav::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+
+  .sb-section { margin-top: var(--space-3); }
+  .sb-section:first-child { margin-top: var(--space-1); }
+  .sb-section-label {
+    font-size: 10px; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--fg-muted);
+    padding: var(--space-2) var(--space-3) var(--space-1);
+    display: block;
+  }
+  .sb-item {
+    display: flex; align-items: center; gap: var(--space-2);
+    padding: 6px var(--space-2);
+    border-radius: var(--r-sm);
+    color: var(--fg-dim); font-size: 13px;
+    transition: background var(--tx-fast), color var(--tx-fast);
+    cursor: pointer; text-decoration: none;
+    position: relative;
+    line-height: var(--lh-snug);
+  }
+  .sb-item:hover { background: var(--bg-3); color: var(--fg); }
+  .sb-item.active {
+    background: var(--accent-gl);
+    color: var(--fg);
+    font-weight: 600;
+  }
+  .sb-item.active::before {
+    content: ""; position: absolute; left: -2px; top: 18%; bottom: 18%;
+    width: 3px; border-radius: 0 3px 3px 0;
+    background: var(--item-accent, var(--accent));
+  }
+  .sb-item-dot {
+    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+    background: var(--item-accent, var(--fg-muted));
+    opacity: .7;
+    transition: opacity var(--tx-fast), transform var(--tx-fast);
+  }
+  .sb-item:hover .sb-item-dot,
+  .sb-item.active .sb-item-dot { opacity: 1; transform: scale(1.15); }
+
+  .sb-item[data-hidden="true"] { display: none !important; }
+  [data-nav-group][data-hidden="true"] { display: none !important; }
+  .sb-subitem[data-hidden="true"] { display: none !important; }
+
+  /* Collapsible groups + nested subpages */
+  .sb-group { margin-bottom: 0; }
+  .sb-group-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+  .sb-expand {
+    flex-shrink: 0;
+    width: 22px;
+    min-height: 28px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--fg-muted);
+    cursor: pointer;
+    border-radius: var(--r-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--tx-fast), color var(--tx-fast);
+  }
+  .sb-expand:hover { background: var(--bg-3); color: var(--fg); }
+  .sb-expand-icon {
+    width: 0; height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid currentColor;
+    transition: transform var(--tx-base);
+    transform: rotate(-90deg);
+    margin-top: 2px;
+  }
+  .sb-group[data-expanded="true"] .sb-expand-icon { transform: rotate(0deg); }
+  .sb-group[data-expanded="false"] .sb-children { display: none; }
+  .sb-item.sb-parent {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+  }
+  .sb-parent-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sb-children {
+    padding: 2px 0 4px 0;
+    margin: 0 0 2px 22px;
+    border-left: 1px solid var(--border);
+  }
+  .sb-subitem {
+    display: block;
+    padding: 4px 8px 4px 12px;
+    margin: 1px 0;
+    font-size: 12.5px;
+    line-height: var(--lh-snug);
+    color: var(--fg-dim);
+    border-radius: var(--r-sm);
+    text-decoration: none;
+    transition: background var(--tx-fast), color var(--tx-fast);
+    position: relative;
+  }
+  .sb-subitem:hover {
+    background: var(--bg-3);
+    color: var(--fg);
+  }
+  .sb-subitem.active {
+    background: var(--accent-gl);
+    color: var(--fg);
+    font-weight: 600;
+  }
+
+  /* ── Footer strip ── */
+  .sb-footer {
+    flex-shrink: 0; border-top: 1px solid var(--border);
+    padding: var(--space-3); display: flex; align-items: center; justify-content: space-between;
+  }
+  .sb-footer-copy {
+    font-size: 11px; color: var(--fg-muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    letter-spacing: .02em;
+  }
+  .theme-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; border-radius: var(--r-sm); cursor: pointer;
+    background: var(--bg-3); border: 1px solid var(--border);
+    color: var(--fg-dim); transition: background var(--tx-fast), color var(--tx-fast), transform var(--tx-fast);
+    flex-shrink: 0;
+  }
+  .theme-btn:hover { background: var(--bg-2); color: var(--fg); transform: scale(1.05); }
+  .theme-btn:active { transform: scale(.95); }
+  .theme-btn svg { width: 15px; height: 15px; }
+  /* Light (default): moon = switch to dark; Dark: sun = switch to light */
+  .icon-sun  { display: none; }
+  .icon-moon { display: block; }
+  [data-theme="dark"] .icon-sun  { display: block; }
+  [data-theme="dark"] .icon-moon { display: none; }
+
+  /* ── Page body ── */
+  .page-body {
+    margin-left: var(--sw);
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .page-body main { flex: 1; min-width: 0; }
+  /* WS + landing/guides: never let descendants force a horizontal scrollbar
+     at the page level. (Scalar pages need natural overflow for sticky panels.) */
+  body:not(.page-spec) .page-body { overflow-x: clip; }
+
+  /* REST (Scalar): content scrolls naturally; Scalar fills page-body width */
+  body.page-spec .page-body {
+    min-height: 100dvh;
+    overflow: auto;
+  }
+  body.page-spec .page-body main {
+    flex: 1 1 auto;
+    overflow: visible;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+  }
+  /* The Scalar bootstrap script — <script type="application/json"> — must
+   * stay non-rendering. Earlier we set display:block here when the element
+   * was a <div>; with the script-tag mounting pattern it would otherwise
+   * render the raw spec JSON as visible text at the bottom of the page. */
+  body.page-spec script#api-reference,
+  script[type="application/json"] {
+    display: none !important;
+  }
+
+  body.page-ws .page-body main {
+    overflow-x: hidden;
+    background: var(--bg);
+  }
+
+  /* AsyncAPI legacy shell */
+  body.page-async .async-host { background: white; }
+
+  /* ── Container helper ── */
+  .container {
+    max-width: var(--container);
+    padding-left: var(--content-pad);
+    padding-right: var(--content-pad);
+    margin-left: auto; margin-right: auto;
+  }
+
+  /* ── Hero (landing) ── */
+  .hero {
+    padding: var(--space-12) var(--content-pad) var(--space-8);
+    max-width: var(--container);
+    margin: 0 auto;
+  }
+  .hero h1 {
+    font-size: var(--text-display);
+    margin: 0 0 var(--space-4);
+    letter-spacing: -0.025em;
+    line-height: 1.05;
+    background: linear-gradient(160deg, var(--fg) 30%, var(--fg-dim) 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  [data-theme="dark"] .hero h1 {
+    background: linear-gradient(160deg, #ffffff 30%, #a0a8bc 100%);
+    -webkit-background-clip: text; background-clip: text;
+  }
+  .hero p {
+    color: var(--fg-dim);
+    font-size: var(--text-lg);
+    max-width: 640px;
+    margin: 0;
+    line-height: var(--lh-base);
+  }
+  .hero .actions { margin-top: var(--space-7); display: flex; gap: var(--space-3); flex-wrap: wrap; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: var(--space-2);
+    padding: 10px 18px; border-radius: var(--r-md);
+    font-size: var(--text-base); font-weight: 500;
+    border: 1px solid var(--border);
+    background: var(--bg-2); color: var(--fg);
+    cursor: pointer;
+    transition: transform var(--tx-fast), background var(--tx-fast), box-shadow var(--tx-fast), border-color var(--tx-fast);
+    white-space: nowrap;
+  }
+  .btn:hover {
+    transform: translateY(-1px);
+    background: var(--bg);
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-card);
+  }
+  .btn.primary {
+    background: var(--accent); border-color: transparent; color: white;
+    box-shadow: 0 6px 24px var(--accent-gl);
+  }
+  .btn.primary:hover {
+    background: var(--accent-strong);
+    box-shadow: 0 10px 32px var(--accent-gl);
+  }
+
+  /* ── Service grid ── */
+  .section-title {
+    font-size: var(--text-xs);
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--fg-muted);
+    padding: var(--space-9) var(--content-pad) var(--space-3);
+    max-width: var(--container);
+    margin: 0 auto;
+  }
+  .section-title:first-of-type { padding-top: var(--space-7); }
+
+  .grid {
+    display: grid; gap: var(--space-4);
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    padding: 0 var(--content-pad) var(--space-7);
+    max-width: var(--container);
+    margin: 0 auto;
+  }
+  .card {
+    position: relative;
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    background: var(--bg-2);
+    padding: var(--space-5) var(--space-6) var(--space-5);
+    overflow: hidden;
+    transition: transform var(--tx-base), border-color var(--tx-base), box-shadow var(--tx-base);
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    min-height: 168px;
+  }
+  .card::after {
+    content: ""; position: absolute; left: 0; top: 0;
+    width: 100%; height: 3px;
+    background: var(--card-accent, var(--accent));
+    opacity: .85;
+    transition: opacity var(--tx-base), height var(--tx-base);
+  }
+  .card:hover {
+    transform: translateY(-3px);
+    border-color: var(--card-accent, var(--accent));
+    box-shadow: var(--shadow-lift);
+  }
+  .card:hover::after { opacity: 1; height: 4px; }
+  .card .icon {
+    width: 38px; height: 38px;
+    border-radius: var(--r-md);
+    display: grid; place-items: center;
+    font-size: 18px;
+    background: var(--bg-3);
+    border: 1px solid var(--border);
+    margin-bottom: var(--space-3);
+    transition: transform var(--tx-base);
+  }
+  .card:hover .icon { transform: scale(1.05); }
+  .card h3 {
+    margin: 0 0 var(--space-1);
+    font-size: var(--text-md);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--fg);
+  }
+  .card p {
+    margin: 0;
+    color: var(--fg-dim);
+    font-size: 13.5px;
+    line-height: var(--lh-base);
+    flex: 1;
+  }
+  .card .arrow {
+    margin-top: var(--space-3);
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--fg-muted);
+    transition: color var(--tx-base), transform var(--tx-base);
+  }
+  .card:hover .arrow {
+    color: var(--card-accent, var(--accent));
+    transform: translateX(2px);
+  }
+
+  /* ── Guide / prose ── */
+  .prose {
+    max-width: var(--prose-w);
+    margin: 0 auto;
+    padding: var(--space-9) var(--content-pad) var(--space-12);
+    line-height: var(--lh-loose);
+    font-size: var(--text-md);
+    /* keep the article from creating a horizontal scrollbar at the page level */
+    min-width: 0;
+    overflow-wrap: break-word;
+  }
+  /* Tables in prose should scroll horizontally on narrow viewports */
+  .prose table { display: block; max-width: 100%; overflow-x: auto; }
+  @media (min-width: 720px) { .prose table { display: table; } }
+  .prose h1 {
+    font-size: var(--text-3xl);
+    margin: 0 0 var(--space-5);
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+  .prose h2 {
+    font-size: var(--text-xl);
+    margin-top: var(--space-9);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--border);
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+  }
+  .prose h3 {
+    font-size: var(--text-lg);
+    margin-top: var(--space-7);
+    line-height: 1.3;
+  }
+  .prose p, .prose li { color: var(--fg); }
+  .prose p { margin: var(--space-4) 0; }
+  .prose ul, .prose ol { padding-left: 1.4em; }
+  .prose li { margin: var(--space-1) 0; }
+  .prose code {
+    background: var(--bg-3);
+    padding: 2px 6px;
+    border-radius: 5px;
+    font-size: 0.88em;
+    border: 1px solid var(--border);
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+    /* allow long inline tokens (URLs, HMAC strings) to wrap on narrow screens */
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+  .prose pre {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    padding: var(--space-4) var(--space-5);
+    border-radius: var(--r-md);
+    overflow-x: auto;
+    line-height: 1.55;
+    font-size: 13px;
+    margin: var(--space-5) 0;
+    /* prevent inner code from expanding the prose container width */
+    max-width: 100%;
+  }
+  .prose pre code {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    font-size: inherit;
+    /* in code blocks we want explicit horizontal scrolling, not wrapping */
+    word-break: normal;
+    overflow-wrap: normal;
+    white-space: pre;
+  }
+  .prose table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+    margin: var(--space-5) 0;
+    font-size: 13.5px;
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    overflow: hidden;
+  }
+  .prose th, .prose td {
+    border-bottom: 1px solid var(--border);
+    padding: var(--space-2) var(--space-4);
+    text-align: left;
+    vertical-align: top;
+  }
+  .prose tr:last-child td { border-bottom: 0; }
+  .prose th {
+    background: var(--bg-2);
+    font-weight: 600;
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--fg-dim);
+  }
+  .prose blockquote {
+    margin: var(--space-5) 0;
+    padding: var(--space-3) var(--space-5);
+    border-left: 3px solid var(--accent);
+    background: var(--bg-2);
+    color: var(--fg-dim);
+    border-radius: 0 var(--r-md) var(--r-md) 0;
+  }
+  .prose blockquote p { margin: var(--space-2) 0; }
+  .prose a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+    transition: color var(--tx-fast);
+  }
+  .prose a:hover { color: var(--accent-strong); }
+  .prose hr {
+    border: 0; border-top: 1px solid var(--border);
+    margin: var(--space-8) 0;
+  }
+
+  /* ── Hamburger (mobile menu) ── */
+  .hamburger {
+    display: none;
+    position: fixed;
+    top: var(--space-3); left: var(--space-3);
+    z-index: 300;
+    width: 36px; height: 36px;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--fg);
+    box-shadow: var(--shadow-card);
+    transition: background var(--tx-fast);
+  }
+  .hamburger:hover { background: var(--bg-3); }
+  .sb-backdrop {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(11,13,18,.5);
+    backdrop-filter: blur(3px);
+    z-index: 199;
+    opacity: 0;
+    transition: opacity var(--tx-base);
+  }
+
+  /* ── Responsive ── */
+  /* Tablet */
+  @media (max-width: 980px) {
+    :root { --sw: 220px; }
+  }
+  /* Mobile */
+  @media (max-width: 768px) {
+    :root { --sw: 0px; }
+    .sidebar {
+      width: 280px;
+      transform: translateX(-100%);
+      transition: transform var(--tx-base);
+      box-shadow: var(--shadow-pop);
+    }
+    .sidebar.open { transform: translateX(0); }
+    .sb-backdrop.open { display: block; opacity: 1; }
+    .hamburger { display: flex; }
+    .page-body { margin-left: 0; }
+    .page-body main { padding-top: 56px; }
+    body.page-spec .page-body main { padding-top: 0; }
+  }
+  @media (max-width: 480px) {
+    .hero { padding-top: var(--space-9); padding-bottom: var(--space-6); }
+    .hero h1 { font-size: clamp(28px, 8vw, 38px); }
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Print */
+  @media print {
+    .sidebar, .hamburger, .sb-backdrop { display: none !important; }
+    .page-body { margin-left: 0 !important; }
+  }
+</style>
+<style>
+  /* ── Map shell theme vars → Scalar tokens ─────────────────────────────── */
+  .scalar-api-reference {
+    --scalar-background-1: var(--bg) !important;
+    --scalar-background-2: var(--bg-2) !important;
+    --scalar-background-3: var(--bg-3) !important;
+    --scalar-color-1: var(--fg) !important;
+    --scalar-color-2: var(--fg-dim) !important;
+    --scalar-color-3: var(--fg-muted) !important;
+    --scalar-border-color: var(--border) !important;
+    --scalar-border-width: 1px !important;
+    --scalar-color-accent: var(--accent) !important;
+    --scalar-radius: 8px !important;
+    --scalar-radius-lg: 12px !important;
+    font-family: ui-sans-serif, -apple-system, "Inter", "SF Pro Text", system-ui, sans-serif !important;
+    font-size: 14px !important;
+    line-height: 1.6 !important;
+  }
+
+  /* ── Layout shell: kill Scalar's own sidebar, fill width ──────────────── */
+  .references-layout[data-v-6712abf1],
+  .references-layout {
+    --refs-sidebar-width: 0px !important;
+    min-height: 100dvh !important;
+  }
+  .references-rendered { background: var(--bg); }
+
+  /* ── Constrain content to a comfortable reading width ─────────────────── */
+  .section[data-v-64ccd510],
+  .section {
+    padding-top: 48px !important;
+    padding-bottom: 48px !important;
+  }
+  .section-container[data-v-3afcb4e7],
+  .section-container,
+  .section-accordion-wrapper[data-v-1a30b4ff],
+  .section-accordion-wrapper {
+    max-width: 1180px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-left: clamp(20px, 3.5vw, 40px) !important;
+    padding-right: clamp(20px, 3.5vw, 40px) !important;
+  }
+  .section-columns[data-v-8b9602bf],
+  .section-columns {
+    gap: 32px !important;
+  }
+  .section-content[data-v-8b9602bf] { min-width: 0 !important; }
+
+  /* ── Section dividers (subtle separation between endpoints) ───────────── */
+  .section-accordion[data-v-1a30b4ff] + .section-accordion[data-v-1a30b4ff] {
+    border-top: 1px solid var(--border) !important;
+  }
+
+  /* ── Intro block (.start): clean alignment + smaller gutter ───────────── */
+  .start[data-v-7f17a9e3],
+  .start {
+    padding: clamp(28px, 4vw, 56px) clamp(20px, 3.5vw, 40px) 24px !important;
+    max-width: 1180px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+  .start-h1[data-v-7f17a9e3],
+  .start-h1 {
+    font-size: clamp(28px, 3vw, 36px) !important;
+    line-height: 1.15 !important;
+    letter-spacing: -0.02em !important;
+    font-weight: 700 !important;
+    margin: 0 0 12px !important;
+    text-transform: none !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0 !important;
+  }
+  .start-p[data-v-7f17a9e3],
+  .start-p {
+    margin-top: 8px !important;
+    font-size: 15px !important;
+    line-height: 1.65 !important;
+    color: var(--fg-dim) !important;
+  }
+
+  /* ── Suppress the leading icon/logo that creates dead space ───────────── */
+  .start-h1 > img,
+  .start-h1 > svg,
+  .start-h1 .start-logo,
+  .start-logo,
+  .scalar-card--intro img { display: none !important; }
+
+  /* ── Section headings (Tag titles) ────────────────────────────────────── */
+  .section h2,
+  .section-header h2,
+  .section-header-tag h2 {
+    font-size: 20px !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.01em !important;
+    text-transform: none !important;
+    margin: 0 0 8px !important;
+  }
+  .section-header[data-v-64ccd510] { margin-bottom: 16px !important; }
+
+  /* ── Endpoint title row ───────────────────────────────────────────────── */
+  .endpoint-label-path,
+  .request-method,
+  .endpoint-summary { font-size: 13px !important; }
+
+  /* ── HTTP method colour pills (already styled, just consistent radii) ─── */
+  .http-method,
+  .endpoint-method {
+    border-radius: 6px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    letter-spacing: .04em !important;
+    padding: 3px 7px !important;
+  }
+
+  /* ── Code blocks: tighter rhythm, monospace clarity ───────────────────── */
+  pre, code, .scalar-card pre, .scalar-card code {
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace !important;
+  }
+  .scalar-card pre {
+    border-radius: 8px !important;
+    line-height: 1.55 !important;
+    font-size: 12.5px !important;
+  }
+  .scalar-card {
+    border-radius: 12px !important;
+    box-shadow: 0 1px 3px rgba(15,23,42,0.04) !important;
+  }
+
+  /* ── Show-more reveal button: normal flow ─────────────────────────────── */
+  .show-more[data-v-252cd03d],
+  .show-more {
+    position: relative !important;
+    top: 0 !important;
+    left: auto !important;
+    margin: 14px 0 8px !important;
+    width: fit-content !important;
+    display: flex !important;
+  }
+
+  /* ── Property/parameter rows: roomier ─────────────────────────────────── */
+  .property[data-v-9eb53f29],
+  .property {
+    padding-top: 14px !important;
+    padding-bottom: 14px !important;
+  }
+  .property-name { font-size: 13.5px !important; font-weight: 600 !important; }
+  .property-type { font-size: 12px !important; }
+  .property-description { font-size: 13.5px !important; line-height: 1.6 !important; }
+
+  /* ── Tab strips (request/response samples) ────────────────────────────── */
+  .scalar-card-header { border-bottom: 1px solid var(--border) !important; }
+
+  /* ── Empty title fix (sometimes Scalar emits aria-label "for ") ───────── */
+  main[aria-label^="Open API Documentation for"] { outline: none !important; }
+
+  /* ── Defence in depth: never let the inline spec script leak as text ─── */
+  script#api-reference,
+  script[type="application/json"] { display: none !important; }
+
+  /* ── "Test Request" client modal ──────────────────────────────────────────
+   *  Scalar renders three layers inside a single position:fixed wrapper:
+   *    .scalar-container  (the wrapper, z-index:10000)
+   *      .scalar-app-layout (the actual modal panel — request/response UI)
+   *      .scalar-app-exit   (the dim backdrop + close-on-click target)
+   *  In the bundled CSS only .scalar-container has an explicit z-index;
+   *  both children stack by DOM order, so .scalar-app-exit ends up painting
+   *  over the modal panel — making the whole UI look greyed out and
+   *  unclickable, with only the close pseudo-element showing through.
+   *  Fix: pull the backdrop behind the panel and lift the panel above it. */
+  .scalar-container {
+    left: 0 !important;
+    width: 100vw !important;
+    padding: clamp(16px, 2.5vw, 32px) !important;
+    z-index: 10000 !important;
+  }
+  .scalar-container .scalar-app-exit,
+  .scalar-app-exit {
+    left: 0 !important;
+    width: 100vw !important;
+    z-index: 0 !important;
+  }
+  .scalar-container .scalar-app-layout,
+  .scalar-app-layout {
+    position: relative !important;
+    z-index: 1 !important;
+  }
+  .scalar-container > .scalar-app,
+  .scalar-container .scalar-client-app {
+    max-width: 100% !important;
+    width: 100% !important;
+    position: relative !important;
+    z-index: 1 !important;
+  }
+  /* The modal eats the whole viewport, so the shell sidebar should not be
+   * keyboard-reachable while it's open. Scalar handles focus-trap itself. */
+
+  /* ── Responsive: stack columns earlier and tighten paddings ───────────── */
+  @media (max-width: 1024px) {
+    .section-columns[data-v-8b9602bf],
+    .section-columns { grid-template-columns: 1fr !important; gap: 24px !important; }
+  }
+  @media (max-width: 768px) {
+    .section[data-v-64ccd510], .section {
+      padding-top: 32px !important;
+      padding-bottom: 32px !important;
+    }
+    .start[data-v-7f17a9e3], .start { padding: 32px 20px 16px !important; }
+    .start-h1[data-v-7f17a9e3], .start-h1 { font-size: 24px !important; }
+  }
+</style>
+<script>
+(function () {
+  var THEME_KEY = 'cdx-theme';
+  var SCALAR_COLOR_KEY = 'colorMode';
+
+  function applyShellTheme(isLight) {
+    document.documentElement.setAttribute('data-theme', isLight ? 'light' : 'dark');
+    try {
+      localStorage.setItem(THEME_KEY, isLight ? 'light' : 'dark');
+      localStorage.setItem(SCALAR_COLOR_KEY, isLight ? 'light' : 'dark');
+    } catch (e) {}
+  }
+
+  /** Scalar mounts to body.light-mode / body.dark-mode — keep in sync on spec pages */
+  function syncScalarBodyClasses(isLight) {
+    var b = document.body;
+    if (!b || !b.classList.contains('page-spec')) return;
+    b.classList.toggle('light-mode', isLight);
+    b.classList.toggle('dark-mode', !isLight);
+  }
+
+  var stored = localStorage.getItem(THEME_KEY);
+  var isLightInit = stored !== 'dark';
+  document.documentElement.setAttribute('data-theme', isLightInit ? 'light' : 'dark');
+  try {
+    localStorage.setItem(THEME_KEY, isLightInit ? 'light' : 'dark');
+    localStorage.setItem(SCALAR_COLOR_KEY, isLightInit ? 'light' : 'dark');
+  } catch (e) {}
+
+  document.addEventListener('DOMContentLoaded', function () {
+    syncScalarBodyClasses(document.documentElement.getAttribute('data-theme') === 'light');
+
+    var btn = document.getElementById('theme-btn');
+    if (btn) btn.addEventListener('click', function () {
+      var nextLight = document.documentElement.getAttribute('data-theme') !== 'light';
+      applyShellTheme(nextLight);
+      syncScalarBodyClasses(nextLight);
+      try {
+        window.dispatchEvent(new CustomEvent('scalar:update-references-config', { detail: { darkMode: !nextLight } }));
+      } catch (e) {}
+    });
+
+    // Sidebar: collapse / expand subpages
+    document.querySelectorAll('.sb-expand').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        var g = btn.closest('[data-nav-group]');
+        if (!g) return;
+        var open = g.getAttribute('data-expanded') === 'true';
+        g.setAttribute('data-expanded', open ? 'false' : 'true');
+        btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+      });
+    });
+
+    function trimPath(p) {
+      if (!p || p === '/') return '/';
+      var s = p;
+      while (s.length > 1 && s.charAt(s.length - 1) === '/') s = s.slice(0, -1);
+      return s || '/';
+    }
+
+    function syncSubnavActive() {
+      var path = trimPath(location.pathname);
+      var hash = location.hash || '';
+      document.querySelectorAll('.sb-subitem').forEach(function (a) {
+        var u;
+        try {
+          u = new URL(a.getAttribute('href') || '', window.location.href);
+        } catch (err) {
+          return;
+        }
+        var p = trimPath(u.pathname);
+        var h = u.hash || '';
+        a.classList.toggle('active', p === path && h === hash);
+      });
+      // Open group that contains the active subpage
+      document.querySelectorAll('.sb-subitem.active').forEach(function (sub) {
+        var g = sub.closest('[data-nav-group]');
+        if (g) {
+          g.setAttribute('data-expanded', 'true');
+          var b = g.querySelector('.sb-expand');
+          if (b) b.setAttribute('aria-expanded', 'true');
+        }
+      });
+    }
+    syncSubnavActive();
+    window.addEventListener('hashchange', syncSubnavActive);
+    window.addEventListener('popstate', syncSubnavActive);
+
+    // Search: groups, flat links, and individual subpages
+    function runNavSearch(qRaw) {
+      var q = (qRaw || '').trim().toLowerCase();
+      document.querySelectorAll('[data-nav-group]').forEach(function (g) {
+        var blob = (g.getAttribute('data-search-blob') || '').toLowerCase();
+        g.setAttribute('data-hidden', q && !blob.includes(q) ? 'true' : 'false');
+      });
+      document.querySelectorAll('a.sb-item[data-nav="flat"]').forEach(function (el) {
+        var title = el.getAttribute('data-title') || '';
+        el.setAttribute('data-hidden', q && !title.includes(q) ? 'true' : 'false');
+      });
+      document.querySelectorAll('.sb-subitem').forEach(function (el) {
+        var title = el.getAttribute('data-title') || '';
+        el.setAttribute('data-hidden', q && !title.includes(q) ? 'true' : 'false');
+      });
+    }
+
+    var inp = document.getElementById('sb-search-input');
+    if (inp) {
+      inp.addEventListener('input', function () {
+        runNavSearch(this.value);
+      });
+    }
+
+    // Keyboard shortcut: "/" focuses search
+    document.addEventListener('keydown', function (e) {
+      if ((e.key === '/' || (e.key === 'k' && (e.metaKey || e.ctrlKey))) &&
+          document.activeElement.tagName !== 'INPUT' &&
+          document.activeElement.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        if (inp) { inp.focus(); inp.select(); }
+      }
+      if (e.key === 'Escape' && inp && document.activeElement === inp) {
+        inp.value = '';
+        inp.dispatchEvent(new Event('input'));
+        inp.blur();
+      }
+    });
+
+    // Mobile hamburger + backdrop
+    var ham = document.getElementById('hamburger');
+    var sidebar = document.querySelector('.sidebar');
+    var backdrop = document.getElementById('sb-backdrop');
+    function setMenu(open) {
+      if (!sidebar) return;
+      sidebar.classList.toggle('open', open);
+      if (backdrop) backdrop.classList.toggle('open', open);
+      if (ham) ham.setAttribute('aria-expanded', open ? 'true' : 'false');
+      document.body.style.overflow = open ? 'hidden' : '';
+    }
+    if (ham) ham.addEventListener('click', function () {
+      setMenu(!sidebar.classList.contains('open'));
+    });
+    if (backdrop) backdrop.addEventListener('click', function () { setMenu(false); });
+    // Close on link click (mobile)
+    document.querySelectorAll('.sb-item, .sb-subitem').forEach(function (a) {
+      a.addEventListener('click', function () {
+        if (window.matchMedia('(max-width: 768px)').matches) setMenu(false);
+      });
+    });
+    // Close on Escape
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && sidebar && sidebar.classList.contains('open')) setMenu(false);
+    });
+  });
+})();
+</script>
+</head>
+<body class="page-spec">
+
+  <button class="hamburger" id="hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="sidebar">
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <line x1="2" y1="5" x2="16" y2="5"/><line x1="2" y1="9" x2="16" y2="9"/><line x1="2" y1="13" x2="16" y2="13"/>
+    </svg>
+  </button>
+
+  <div class="sb-backdrop" id="sb-backdrop" aria-hidden="true"></div>
+
+  <aside class="sidebar" id="sidebar" aria-label="Sidebar">
+    
+  <a class="sb-brand" href="../index.html">
+    <img
+      src="https://coindcx.com/wp-content/uploads/2024/02/coindcx-logo.svg"
+      alt="CoinDCX"
+      onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+      style="height:26px;width:auto"
+    />
+    <span class="sb-brand-fallback" style="display:none;width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#7c5cff,#22d3ee);"></span>
+    <span class="sb-brand-text">
+      <span class="sb-brand-name">Futures API</span>
+      <span class="sb-brand-tag">Testnet · Docs</span>
+    </span>
+  </a>
+
+  <div class="sb-search-wrap">
+    <div class="sb-search">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="9" cy="9" r="6"/><path d="m15 15 3.5 3.5"/>
+      </svg>
+      <input
+        id="sb-search-input"
+        type="text"
+        placeholder="Search APIs…"
+        autocomplete="off"
+        spellcheck="false"
+        aria-label="Search navigation"
+      />
+      <kbd class="sb-search-kbd">/</kbd>
+    </div>
+  </div>
+
+  <nav class="sb-nav" id="sb-nav" aria-label="Main navigation">
+    <div class="sb-section"><a href="../index.html" class="sb-item" data-title="overview" data-nav="flat" data-hidden="false"><span class="sb-item-dot"></span>Overview</a></div><div class="sb-section"><span class="sb-section-label">REST APIs</span><div class="sb-group" data-nav-group data-search-blob="onboarding &amp; account registration authentication wallet api keys" data-expanded="true" data-hidden="false" style="--item-accent:#7c5cff">
+    <div class="sb-group-row">
+      <button type="button" class="sb-expand" aria-expanded="true" title="Show or hide subpages" aria-label="Toggle subpages for Onboarding &amp; Account">
+        <span class="sb-expand-icon" aria-hidden="true"></span>
+      </button>
+      <a href="../onboarding/index.html" class="sb-item sb-parent" data-title="onboarding &amp; account" data-hidden="false"><span class="sb-item-dot"></span><span class="sb-parent-text">Onboarding &amp; Account</span></a>
+    </div>
+    <div class="sb-children"><a href="../onboarding/index.html#tag/registration" class="sb-subitem" data-title="registration" data-hidden="false">Registration</a><a href="../onboarding/index.html#tag/authentication" class="sb-subitem" data-title="authentication" data-hidden="false">Authentication</a><a href="../onboarding/index.html#tag/wallet" class="sb-subitem" data-title="wallet" data-hidden="false">Wallet</a><a href="../onboarding/index.html#tag/api-keys" class="sb-subitem" data-title="api keys" data-hidden="false">API Keys</a></div>
+  </div><div class="sb-group" data-nav-group data-search-blob="order management (v1) instruments orders positions wallet" data-expanded="true" data-hidden="false" style="--item-accent:#06b6d4">
+    <div class="sb-group-row">
+      <button type="button" class="sb-expand" aria-expanded="true" title="Show or hide subpages" aria-label="Toggle subpages for Order Management (v1)">
+        <span class="sb-expand-icon" aria-hidden="true"></span>
+      </button>
+      <a href="../oms-v1/index.html" class="sb-item sb-parent" data-title="order management (v1)" data-hidden="false"><span class="sb-item-dot"></span><span class="sb-parent-text">Order Management (v1)</span></a>
+    </div>
+    <div class="sb-children"><a href="../oms-v1/index.html#tag/instruments" class="sb-subitem" data-title="instruments" data-hidden="false">Instruments</a><a href="../oms-v1/index.html#tag/orders" class="sb-subitem" data-title="orders" data-hidden="false">Orders</a><a href="../oms-v1/index.html#tag/positions" class="sb-subitem" data-title="positions" data-hidden="false">Positions</a><a href="../oms-v1/index.html#tag/wallet" class="sb-subitem" data-title="wallet" data-hidden="false">Wallet</a></div>
+  </div><div class="sb-group" data-nav-group data-search-blob="order management (fapi) instruments orders positions trades account income" data-expanded="true" data-hidden="false" style="--item-accent:#f59e0b">
+    <div class="sb-group-row">
+      <button type="button" class="sb-expand" aria-expanded="true" title="Show or hide subpages" aria-label="Toggle subpages for Order Management (FAPI)">
+        <span class="sb-expand-icon" aria-hidden="true"></span>
+      </button>
+      <a href="../oms-fapi/index.html" class="sb-item sb-parent active" data-title="order management (fapi)" data-hidden="false"><span class="sb-item-dot"></span><span class="sb-parent-text">Order Management (FAPI)</span></a>
+    </div>
+    <div class="sb-children"><a href="../oms-fapi/index.html#tag/instrument" class="sb-subitem" data-title="instruments" data-hidden="false">Instruments</a><a href="../oms-fapi/index.html#tag/orders" class="sb-subitem" data-title="orders" data-hidden="false">Orders</a><a href="../oms-fapi/index.html#tag/positions" class="sb-subitem" data-title="positions" data-hidden="false">Positions</a><a href="../oms-fapi/index.html#tag/trades" class="sb-subitem" data-title="trades" data-hidden="false">Trades</a><a href="../oms-fapi/index.html#tag/account" class="sb-subitem" data-title="account" data-hidden="false">Account</a><a href="../oms-fapi/index.html#tag/income" class="sb-subitem" data-title="income" data-hidden="false">Income</a></div>
+  </div><div class="sb-group" data-nav-group data-search-blob="public market data order book funding" data-expanded="true" data-hidden="false" style="--item-accent:#10b981">
+    <div class="sb-group-row">
+      <button type="button" class="sb-expand" aria-expanded="true" title="Show or hide subpages" aria-label="Toggle subpages for Public Market Data">
+        <span class="sb-expand-icon" aria-hidden="true"></span>
+      </button>
+      <a href="../market-data/index.html" class="sb-item sb-parent" data-title="public market data" data-hidden="false"><span class="sb-item-dot"></span><span class="sb-parent-text">Public Market Data</span></a>
+    </div>
+    <div class="sb-children"><a href="../market-data/index.html#tag/order-book" class="sb-subitem" data-title="order book" data-hidden="false">Order Book</a><a href="../market-data/index.html#tag/funding" class="sb-subitem" data-title="funding" data-hidden="false">Funding</a></div>
+  </div></div><div class="sb-section"><span class="sb-section-label">Streaming</span><div class="sb-group" data-nav-group data-search-blob="market data websocket subscribe / unsubscribe aggregate trade mark price mark price (all symbols) kline / candlestick 24h ticker 24h ticker (all symbols) book ticker diff book depth partial book depth" data-expanded="true" data-hidden="false" style="--item-accent:#ec4899">
+    <div class="sb-group-row">
+      <button type="button" class="sb-expand" aria-expanded="true" title="Show or hide subpages" aria-label="Toggle subpages for Market Data WebSocket">
+        <span class="sb-expand-icon" aria-hidden="true"></span>
+      </button>
+      <a href="../ws-gateway/index.html" class="sb-item sb-parent" data-title="market data websocket" data-hidden="false"><span class="sb-item-dot"></span><span class="sb-parent-text">Market Data WebSocket</span></a>
+    </div>
+    <div class="sb-children"><a href="../ws-gateway/index.html#subscribe" class="sb-subitem" data-title="subscribe / unsubscribe" data-hidden="false">Subscribe / Unsubscribe</a><a href="../ws-gateway/index.html#aggTrade" class="sb-subitem" data-title="aggregate trade" data-hidden="false">Aggregate Trade</a><a href="../ws-gateway/index.html#markPrice" class="sb-subitem" data-title="mark price" data-hidden="false">Mark Price</a><a href="../ws-gateway/index.html#markPriceArr" class="sb-subitem" data-title="mark price (all symbols)" data-hidden="false">Mark Price (all symbols)</a><a href="../ws-gateway/index.html#kline" class="sb-subitem" data-title="kline / candlestick" data-hidden="false">Kline / Candlestick</a><a href="../ws-gateway/index.html#ticker" class="sb-subitem" data-title="24h ticker" data-hidden="false">24h Ticker</a><a href="../ws-gateway/index.html#tickerArr" class="sb-subitem" data-title="24h ticker (all symbols)" data-hidden="false">24h Ticker (all symbols)</a><a href="../ws-gateway/index.html#bookTicker" class="sb-subitem" data-title="book ticker" data-hidden="false">Book Ticker</a><a href="../ws-gateway/index.html#depth" class="sb-subitem" data-title="diff book depth" data-hidden="false">Diff book depth</a><a href="../ws-gateway/index.html#depth5" class="sb-subitem" data-title="partial book depth" data-hidden="false">Partial book depth</a></div>
+  </div><div class="sb-group" data-nav-group data-search-blob="user data stream order_trade_update account_update (balance) account_update (position)" data-expanded="true" data-hidden="false" style="--item-accent:#f97316">
+    <div class="sb-group-row">
+      <button type="button" class="sb-expand" aria-expanded="true" title="Show or hide subpages" aria-label="Toggle subpages for User Data Stream">
+        <span class="sb-expand-icon" aria-hidden="true"></span>
+      </button>
+      <a href="../ws-user-data/index.html" class="sb-item sb-parent" data-title="user data stream" data-hidden="false"><span class="sb-item-dot"></span><span class="sb-parent-text">User Data Stream</span></a>
+    </div>
+    <div class="sb-children"><a href="../ws-user-data/index.html#orderTradeUpdate" class="sb-subitem" data-title="order_trade_update" data-hidden="false">ORDER_TRADE_UPDATE</a><a href="../ws-user-data/index.html#accountUpdateBalance" class="sb-subitem" data-title="account_update (balance)" data-hidden="false">ACCOUNT_UPDATE (Balance)</a><a href="../ws-user-data/index.html#accountUpdatePosition" class="sb-subitem" data-title="account_update (position)" data-hidden="false">ACCOUNT_UPDATE (Position)</a></div>
+  </div></div><div class="sb-section"><span class="sb-section-label">Docs</span><div class="sb-group" data-nav-group data-search-blob="guides getting started authentication error codes websocket overview changelog" data-expanded="true" data-hidden="false">
+    <div class="sb-group-row">
+      <button type="button" class="sb-expand" aria-expanded="true" title="Show or hide subpages" aria-label="Toggle subpages for Guides">
+        <span class="sb-expand-icon" aria-hidden="true"></span>
+      </button>
+      <a href="../guides/index.html" class="sb-item sb-parent" data-title="guides" data-hidden="false"><span class="sb-item-dot"></span><span class="sb-parent-text">Guides</span></a>
+    </div>
+    <div class="sb-children"><a href="../guides/01-getting-started/index.html" class="sb-subitem" data-title="getting started" data-hidden="false">Getting Started</a><a href="../guides/02-authentication/index.html" class="sb-subitem" data-title="authentication" data-hidden="false">Authentication</a><a href="../guides/03-errors/index.html" class="sb-subitem" data-title="error codes" data-hidden="false">Error Codes</a><a href="../guides/04-websocket-overview/index.html" class="sb-subitem" data-title="websocket overview" data-hidden="false">WebSocket Overview</a><a href="../guides/05-changelog/index.html" class="sb-subitem" data-title="changelog" data-hidden="false">Changelog</a></div>
+  </div></div>
+  </nav>
+
+  <div class="sb-footer">
+    <span class="sb-footer-copy">© 2026 CoinDCX</span>
+    <button class="theme-btn" id="theme-btn" aria-label="Toggle colour theme" title="Toggle theme">
+      <!-- sun -->
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="5"/>
+        <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+      <!-- moon -->
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
+  </div>
+  </aside>
+
+  <div class="page-body">
+    <main>
+<script type="application/json" id="api-reference" hidden style="display:none" data-configuration='{"theme":"default","layout":"modern","hideDarkModeToggle":true,"hideLogo":true,"showSidebar":false,"defaultOpenAllTags":true,"searchHotKey":"k","metaData":{"title":"Order Management (FAPI) · CoinDCX Futures API"}}'>{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "CoinDCX Futures — Order Management (FAPI)",
+    "version": "1.1.0",
+    "summary": "HMAC-signed REST surface for programmatic order management.",
+    "description": "Stable REST endpoints under `/fapi/v1` and `/fapi/v2`, designed for\n**programmatic trading and SDK integrations**.\nThese endpoints use industry-standard field names and payload conventions,\nmaking it straightforward to adapt existing trading tooling.\n\n## Authentication\n\nAll FAPI endpoints are signed with HMAC-SHA256:\n\n1. Build the **raw JSON request body** (FAPI is unusual in that even `GET`\n   requests carry a JSON body containing the query parameters and `timestamp`).\n2. Compute `signature = HMAC_SHA256(api_secret, body).hex()`.\n3. Send headers:\n   - `X-AUTH-APIKEY: <api_key>`\n   - `X-AUTH-SIGNATURE: <signature>`\n   - `Content-Type: application/json`\n\nFor empty bodies (rare), sign the literal empty string `\"\"`.\n\n## Timestamp\n\nEvery request body includes a millisecond `timestamp`. Requests older than\n`recvWindow` (default 5000 ms, configurable) are rejected with `-1021`.\n\n## Unsupported Endpoints\n\nThe following endpoints are **not** currently supported:\n- Modify Multiple Orders (batch)\n- Cancel All Open Orders\n- Batch Orders\n- Exit Position\n",
+    "contact": {
+      "name": "CoinDCX Futures Platform",
+      "url": "https://coindcx.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://testnet-futures-hpo.dcxstage.com",
+      "description": "Testnet — Futures HPO"
+    }
+  ],
+  "security": [
+    {
+      "HmacApiKey": [],
+      "HmacSignature": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Instrument",
+      "description": "Tradeable contract metadata — symbols, precision, fees, and constraints."
+    },
+    {
+      "name": "Orders",
+      "description": "Submit, modify, query and cancel orders."
+    },
+    {
+      "name": "Positions",
+      "description": "Leverage, margin mode, and per-position margin operations."
+    },
+    {
+      "name": "Trades",
+      "description": "Read user trade history."
+    },
+    {
+      "name": "Account",
+      "description": "Balance and account snapshot."
+    },
+    {
+      "name": "Income",
+      "description": "Income history (realized PnL, funding fees, etc.)."
+    }
+  ],
+  "paths": {
+    "/fapi/v1/order": {
+      "post": {
+        "tags": [
+          "Orders"
+        ],
+        "operationId": "fapiCreateOrder",
+        "summary": "New order",
+        "description": "Create a new order. The combination of `type`, `price`, `stopPrice` and\n`timeInForce` selects the working semantics.\n\n| Type                    | Required fields                                |\n|-------------------------|------------------------------------------------|\n| `LIMIT`                 | quantity, price                                |\n| `MARKET`                | quantity                                       |\n| `STOP` / `TAKE_PROFIT`  | quantity, price, stopPrice                     |\n| `STOP_MARKET` / `TAKE_PROFIT_MARKET` | stopPrice                         |\n\n### `timeInForce` behaviour per order type\n\n| Order type | `timeInForce` sent | Result |\n|---|---|---|\n| `MARKET` | Any value (`GTC` / `IOC` / `FOK` / `GTX`) | Error **-1114**: *\"Parameter 'timeInForce' sent when not required.\"* |\n| `MARKET` | Omitted | Success — response shows `GTC` |\n| `STOP_MARKET` | Any value | Error **-1114**: *\"Parameter 'timeInForce' sent when not required.\"* |\n| `STOP_MARKET` | Omitted | Success — response shows `GTC` |\n| `TAKE_PROFIT_MARKET` | Any value | Error **-1114**: *\"Parameter 'timeInForce' sent when not required.\"* |\n| `TAKE_PROFIT_MARKET` | Omitted | Success — response shows `GTC` |\n| `LIMIT` | Omitted | Success — defaults to `GTC` |\n| `LIMIT` | `GTC` | Success |\n| `LIMIT` | `IOC` | Success |\n| `LIMIT` | `FOK` | Success |\n| `LIMIT` | `GTX` | Success — `post_only = true` |\n| `LIMIT` | Invalid value | Error **-1115**: *\"Invalid timeInForce.\"* |\n| `STOP` (stop-limit) | Omitted | Success — defaults to `GTC` |\n| `STOP` (stop-limit) | `GTC` / `IOC` / `FOK` | Success |\n| `STOP` (stop-limit) | `GTX` | Success — `post_only = true` (requires `allow_post_only` on the instrument) |\n| `TAKE_PROFIT` (take-profit limit) | Omitted / `GTC` / `IOC` / `FOK` / `GTX` | Same behaviour as `STOP` |\n\n> **Key rule:** Market-family orders (`MARKET`, `STOP_MARKET`,\n> `TAKE_PROFIT_MARKET`) must **not** include `timeInForce` in the\n> request — the server defaults to `GTC` internally. Limit-family\n> orders (`LIMIT`, `STOP`, `TAKE_PROFIT`) may optionally include\n> `timeInForce`; if omitted it defaults to `GTC`.\n\n**Not supported:** `TRAILING_STOP_MARKET` order type.\n\n**Self-trade prevention:** Default mode is `EXPIRE_MAKER`. The value `NONE` is not supported.\n",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewOrderRequest"
+              },
+              "examples": {
+                "limit": {
+                  "summary": "LIMIT — XRPUSDT SELL",
+                  "value": {
+                    "symbol": "XRPUSDT",
+                    "side": "SELL",
+                    "type": "LIMIT",
+                    "quantity": "1",
+                    "price": "50",
+                    "timeInForce": "GTC",
+                    "timestamp": 1777964530490
+                  }
+                },
+                "market": {
+                  "summary": "MARKET — XRPUSDT BUY",
+                  "value": {
+                    "symbol": "XRPUSDT",
+                    "side": "BUY",
+                    "type": "MARKET",
+                    "quantity": "1",
+                    "timestamp": 1777964530490
+                  }
+                },
+                "stopLimit": {
+                  "summary": "STOP (stop-limit) — XRPUSDT SELL",
+                  "value": {
+                    "symbol": "XRPUSDT",
+                    "side": "SELL",
+                    "type": "STOP",
+                    "quantity": "1",
+                    "price": "2000",
+                    "stopPrice": "1000",
+                    "timeInForce": "GTC",
+                    "timestamp": 1777964530490
+                  }
+                },
+                "stopMarket": {
+                  "summary": "STOP_MARKET — XRPUSDT SELL",
+                  "value": {
+                    "symbol": "XRPUSDT",
+                    "side": "SELL",
+                    "type": "STOP_MARKET",
+                    "quantity": "1",
+                    "stopPrice": "7000",
+                    "timestamp": 1777964530490
+                  }
+                },
+                "tpLimit": {
+                  "summary": "TAKE_PROFIT — XRPUSDT SELL",
+                  "value": {
+                    "symbol": "XRPUSDT",
+                    "side": "SELL",
+                    "type": "TAKE_PROFIT",
+                    "quantity": "1",
+                    "price": "5000",
+                    "stopPrice": "4000",
+                    "timeInForce": "GTC",
+                    "timestamp": 1777964530490
+                  }
+                },
+                "tpMarket": {
+                  "summary": "TAKE_PROFIT_MARKET — BTCUSDT SELL",
+                  "value": {
+                    "symbol": "BTCUSDT",
+                    "side": "SELL",
+                    "type": "TAKE_PROFIT_MARKET",
+                    "quantity": "0.1",
+                    "stopPrice": "54000",
+                    "timestamp": 1777964530490
+                  }
+                },
+                "withClientId": {
+                  "summary": "LIMIT with client order ID",
+                  "value": {
+                    "symbol": "ETHUSDT",
+                    "side": "BUY",
+                    "type": "LIMIT",
+                    "quantity": "1",
+                    "price": "3500",
+                    "timeInForce": "GTC",
+                    "newClientOrderId": "550e8400-e29b-41d4-a716-446655440000",
+                    "timestamp": 1777964530490
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Order accepted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Orders"
+        ],
+        "operationId": "fapiCancelOrder",
+        "summary": "Cancel order",
+        "description": "Cancel by `orderId` or `origClientOrderId`. At least one must be provided.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelOrderRequest"
+              },
+              "examples": {
+                "byOrderId": {
+                  "value": {
+                    "symbol": "XRPUSDT",
+                    "orderId": "cbf9e990-c2da-413e-9060-cef758603f7b",
+                    "timestamp": 1777964530490
+                  }
+                },
+                "byClientId": {
+                  "value": {
+                    "symbol": "BTCUSDT",
+                    "origClientOrderId": "550e8400-e29b-41d4-a716-446655440000",
+                    "timestamp": 1777964530490
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Order cancelled. Returns same shape as Create Order response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Orders"
+        ],
+        "operationId": "fapiModifyOrder",
+        "summary": "Modify order (price / quantity)",
+        "description": "Modify an existing order's price and/or quantity. Identify the order by\n`orderId` or `origClientOrderId` (at least one required).\n",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModifyOrderRequest"
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "symbol": "XRPUSDT",
+                    "orderId": "cbf9e990-c2da-413e-9060-cef758603f7b",
+                    "quantity": "1",
+                    "price": "51000",
+                    "timestamp": 1777964530490
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Order modified. Returns same shape as Create Order response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Orders"
+        ],
+        "operationId": "fapiQueryOrder",
+        "summary": "Query order by ID",
+        "description": "Look up a single order by `orderId` or `origClientOrderId`. At least one\nof the two must be provided. Returns the same shape as the Create Order\nresponse.\n",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryOrderRequest"
+              },
+              "examples": {
+                "byOrderId": {
+                  "summary": "By exchange-generated order ID",
+                  "value": {
+                    "symbol": "BTCUSDT",
+                    "orderId": "cbf9e990-c2da-413e-9060-cef758603f7b",
+                    "timestamp": 1777964530490
+                  }
+                },
+                "byClientId": {
+                  "summary": "By client-defined order ID",
+                  "value": {
+                    "symbol": "BTCUSDT",
+                    "origClientOrderId": "550e8400-e29b-41d4-a716-446655440000",
+                    "timestamp": 1777964530490
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Order details. Same shape as Create Order response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/fapi/v1/openOrders": {
+      "get": {
+        "tags": [
+          "Orders"
+        ],
+        "operationId": "fapiOpenOrders",
+        "summary": "Get open orders",
+        "description": "Returns all currently working orders. Pass `symbol` to scope to one\ninstrument, or omit it to query every symbol (heavier, rate-limited).\n",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenOrdersRequest"
+              },
+              "examples": {
+                "one": {
+                  "value": {
+                    "symbol": "ETHUSDT",
+                    "timestamp": 1777964530490
+                  }
+                },
+                "allSymbols": {
+                  "value": {
+                    "timestamp": 1777964530490
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Array of open orders.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Order"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/fapi/v1/allOrders": {
+      "get": {
+        "tags": [
+          "Orders"
+        ],
+        "operationId": "fapiAllOrders",
+        "summary": "Get all orders (open, filled, cancelled)",
+        "description": "Returns historical orders. `symbol` is optional; if omitted returns\norders for all symbols. Use `orderId` to paginate (returns orders with\norderId >= specified value).\n",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AllOrdersRequest"
+              },
+              "examples": {
+                "symbolOnly": {
+                  "value": {
+                    "symbol": "XRPUSDT",
+                    "timestamp": 1777964530490
+                  }
+                },
+                "timeRange": {
+                  "value": {
+                    "symbol": "XRPUSDT",
+                    "startTime": 1777334400000,
+                    "endTime": 1777852800000,
+                    "limit": 100,
+                    "timestamp": 1777964530490
+                  }
+                },
+                "withOrderId": {
+                  "value": {
+                    "symbol": "BTCUSDT",
+                    "orderId": "cbf9e990-c2da-413e-9060-cef758603f7b",
+                    "limit": 500,
+                    "timestamp": 1777964530490
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Array of orders.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Order"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/fapi/v1/leverage": {
+      "post": {
+        "tags": [
+          "Positions"
+        ],
+        "operationId": "fapiChangeLeverage",
+        "summary": "Change initial leverage",
+        "description": "Update the initial leverage for a symbol's position.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeLeverageRequest"
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "symbol": "XRPUSDT",
+                    "leverage": 20,
+                    "timestamp": 1777964530490
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Leverage updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeverageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/fapi/v1/positionMargin": {
+      "post": {
+        "tags": [
+          "Positions"
+        ],
+        "operationId": "fapiModifyPositionMargin",
+        "summary": "Add or remove isolated-position margin",
+        "description": "Add margin to or remove margin from an isolated position.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PositionMarginRequest"
+              },
+              "examples": {
+                "add": {
+                  "value": {
+                    "symbol": "XRPUSDT",
+                    "amount": "100",
+                    "type": 1,
+                    "timestamp": 1777964530490
+                  }
+                },
+                "remove": {
+                  "value": {
+                    "symbol": "BTCUSDT",
+                    "amount": "50",
+                    "type": 2,
+                    "timestamp": 1777964530490
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Margin updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PositionMarginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/fapi/v1/userTrades": {
+      "get": {
+        "tags": [
+          "Trades"
+        ],
+        "operationId": "fapiUserTrades",
+        "summary": "Get user trade history",
+        "description": "Returns the user's executed trade history for a given symbol.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserTradesRequest"
+              },
+              "examples": {
+                "symbolOnly": {
+                  "value": {
+                    "symbol": "XRPUSDT",
+                    "timestamp": 1777964530490
+                  }
+                },
+                "timeRange": {
+                  "value": {
+                    "symbol": "XRPUSDT",
+                    "startTime": 1777334400000,
+                    "endTime": 1777852800000,
+                    "limit": 100,
+                    "timestamp": 1777964530490
+                  }
+                },
+                "fromId": {
+                  "value": {
+                    "symbol": "XRPUSDT",
+                    "fromId": 12345,
+                    "timestamp": 1777964530490
+                  }
+                },
+                "byOrder": {
+                  "value": {
+                    "symbol": "XRPUSDT",
+                    "orderId": "cbf9e990-c2da-413e-9060-cef758603f7b",
+                    "timestamp": 1777964530490
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Array of trades.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserTrade"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/fapi/v2/positionRisk": {
+      "get": {
+        "tags": [
+          "Positions"
+        ],
+        "operationId": "fapiPositionRisk",
+        "summary": "Get position risk",
+        "description": "Per-symbol position risk. Omit `symbol` to receive every position.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/BaseSignedBody"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "symbol": {
+                        "$ref": "#/components/schemas/Symbol"
+                      }
+                    }
+                  }
+                ]
+              },
+              "examples": {
+                "one": {
+                  "value": {
+                    "symbol": "XRPUSDT",
+                    "timestamp": 1777964530490
+                  }
+                },
+                "allSymbols": {
+                  "value": {
+                    "timestamp": 1777964530490
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Array of position-risk records.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PositionRisk"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/fapi/v2/balance": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "operationId": "fapiBalance",
+        "summary": "Get futures account balance",
+        "description": "Returns the futures wallet balance for each asset.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BaseSignedBody"
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "timestamp": 1777964530490
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Array of asset balances.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Balance"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/fapi/v2/account": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "operationId": "fapiAccount",
+        "summary": "Get full account snapshot (balances + positions)",
+        "description": "Returns a complete account snapshot including balances per asset and all positions.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BaseSignedBody"
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "timestamp": 1777964530490
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Account snapshot.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/fapi/v1/exchangeInfo": {
+      "get": {
+        "tags": [
+          "Instrument"
+        ],
+        "operationId": "fapiExchangeInfo",
+        "summary": "Exchange information",
+        "description": "Public endpoint — no authentication headers required.\nReturns exchange-level configuration including assets, symbols (instruments),\nfilters, order types, and time-in-force options per symbol.\n\n**Status mapping:** `active` → `TRADING`, `inactive`/`archived` → `NA`.\n\n**Note:** `orderTypes` and `timeInForce` vary per instrument based on DB associations.\n",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Exchange information.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExchangeInfoResponse"
+                },
+                "examples": {
+                  "default": {
+                    "value": {
+                      "timezone": "UTC",
+                      "serverTime": 1715692200000,
+                      "exchangeFilters": [],
+                      "rateLimits": [],
+                      "assets": [
+                        {
+                          "asset": "USDT",
+                          "marginAvailable": true
+                        },
+                        {
+                          "asset": "INR",
+                          "marginAvailable": true
+                        }
+                      ],
+                      "symbols": [
+                        {
+                          "symbol": "BTCUSDT",
+                          "pair": "BTCUSDT",
+                          "contractType": "PERPETUAL",
+                          "deliveryDate": 2555423400000,
+                          "onboardDate": 1674472440000,
+                          "status": "TRADING",
+                          "baseAsset": "BTC",
+                          "quoteAsset": "USDT",
+                          "marginAsset": "USDT",
+                          "pricePrecision": 1,
+                          "quantityPrecision": 3,
+                          "baseAssetPrecision": 8,
+                          "quotePrecision": 8,
+                          "underlyingType": "COIN",
+                          "underlyingSubType": [],
+                          "settlePlan": 0,
+                          "filters": [
+                            {
+                              "filterType": "PRICE_FILTER",
+                              "maxPrice": "794445.0",
+                              "minPrice": "261.1",
+                              "tickSize": "0.1"
+                            },
+                            {
+                              "filterType": "LOT_SIZE",
+                              "maxQty": "10000.0",
+                              "minQty": "0.001",
+                              "stepSize": "0.001"
+                            },
+                            {
+                              "filterType": "MARKET_LOT_SIZE",
+                              "maxQty": "120.0",
+                              "minQty": "0.001",
+                              "stepSize": "0.001"
+                            },
+                            {
+                              "filterType": "MAX_NUM_ORDERS",
+                              "limit": 200
+                            },
+                            {
+                              "filterType": "MIN_NOTIONAL",
+                              "notional": "50.0"
+                            },
+                            {
+                              "filterType": "PERCENT_PRICE",
+                              "multiplierUp": "5.0",
+                              "multiplierDown": "5.0",
+                              "multiplierDecimal": "4"
+                            }
+                          ],
+                          "orderTypes": [
+                            "LIMIT",
+                            "MARKET",
+                            "STOP",
+                            "STOP_MARKET",
+                            "TAKE_PROFIT",
+                            "TAKE_PROFIT_MARKET"
+                          ],
+                          "timeInForce": [
+                            "GTC",
+                            "IOC",
+                            "FOK"
+                          ],
+                          "liquidationFee": "0.03",
+                          "marketTakeBound": ""
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
+    "/fapi/v1/income": {
+      "get": {
+        "tags": [
+          "Income"
+        ],
+        "operationId": "fapiIncome",
+        "summary": "Get income history",
+        "description": "Returns income history records (realized PnL, funding fees, etc.).\nOnly `REALIZED_PNL` and `FUNDING_FEE` income types are fully supported.\n",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IncomeRequest"
+              },
+              "examples": {
+                "allIncome": {
+                  "summary": "All income for a symbol",
+                  "value": {
+                    "symbol": "BTCUSDT",
+                    "timestamp": 1777964530490
+                  }
+                },
+                "realizedPnl": {
+                  "summary": "Filter by REALIZED_PNL",
+                  "value": {
+                    "symbol": "BTCUSDT",
+                    "incomeType": "REALIZED_PNL",
+                    "startTime": 1777334400000,
+                    "endTime": 1777852800000,
+                    "limit": 100,
+                    "timestamp": 1777964530490
+                  }
+                },
+                "fundingFee": {
+                  "summary": "Filter by FUNDING_FEE",
+                  "value": {
+                    "symbol": "ETHUSDT",
+                    "incomeType": "FUNDING_FEE",
+                    "page": 1,
+                    "limit": 50,
+                    "timestamp": 1777964530490
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Array of income records.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IncomeRecord"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "HmacApiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-AUTH-APIKEY",
+        "description": "API key issued via \"Create API Key\" flow. Pair this header with\n`X-AUTH-SIGNATURE` (HMAC-SHA256 of the **raw JSON body** using your API\nsecret). Used for **FAPI / Market Maker** endpoints under `/fapi/v1` and `/fapi/v2`.\n"
+      },
+      "HmacSignature": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-AUTH-SIGNATURE",
+        "description": "Hex-encoded HMAC-SHA256 of the request body, signed with your API secret.\nFor GET requests with no body, sign the empty string `\"\"`.\n"
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "Machine-readable error code (negative for FAPI-style errors, e.g. `-2010`).",
+            "example": -2010
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error description.",
+            "example": "New order rejected — insufficient balance."
+          },
+          "requestId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Server-assigned request identifier (echo in support tickets).",
+            "example": "7c3d2f8a-9e21-4f07-9a64-93cda12b4a01"
+          }
+        }
+      },
+      "DecimalString": {
+        "type": "string",
+        "description": "Decimal number encoded as a string (never as a JSON number) to preserve\nfull precision. Trailing zeros are significant for the instrument's configured precision.\n",
+        "pattern": "^-?\\d+(\\.\\d+)?$",
+        "example": "68450.23"
+      },
+      "Symbol": {
+        "type": "string",
+        "description": "Contract symbol in **uppercase** Binance-style format (`BASEQUOTE`),\ne.g. `BTCUSDT`, `ETHUSDT`, `XRPUSDT`.\n",
+        "pattern": "^[A-Z0-9]{2,20}$",
+        "example": "BTCUSDT"
+      },
+      "Side": {
+        "type": "string",
+        "enum": [
+          "BUY",
+          "SELL"
+        ],
+        "description": "Order side. Lowercase `buy`/`sell` for Retail OMS; uppercase for FAPI."
+      },
+      "OrderType": {
+        "type": "string",
+        "enum": [
+          "LIMIT",
+          "MARKET",
+          "STOP",
+          "STOP_MARKET",
+          "TAKE_PROFIT",
+          "TAKE_PROFIT_MARKET"
+        ],
+        "description": "FAPI order type. Retail OMS uses lowercase variants\n(`limit_order`, `market_order`, `stop_limit`, `stop_market`,\n`take_profit_limit`, `take_profit_market`).\n"
+      },
+      "TimeInForce": {
+        "type": "string",
+        "enum": [
+          "GTC",
+          "IOC",
+          "FOK",
+          "GTX"
+        ],
+        "description": "- **GTC** — Good Till Cancel\n- **IOC** — Immediate Or Cancel\n- **FOK** — Fill Or Kill\n- **GTX** — Post Only (maker only, rejected if would immediately match; sets `post_only = true` in the response)\n\nOptional for limit-family orders (`LIMIT`, `STOP`, `TAKE_PROFIT`);\ndefaults to `GTC` when omitted. Market-family orders (`MARKET`,\n`STOP_MARKET`, `TAKE_PROFIT_MARKET`) must **not** send this parameter —\ndoing so returns error -1114.\n"
+      },
+      "MarginType": {
+        "type": "string",
+        "enum": [
+          "ISOLATED"
+        ],
+        "description": "Position margin mode."
+      },
+      "OrderStatus": {
+        "type": "string",
+        "enum": [
+          "NEW",
+          "PARTIALLY_FILLED",
+          "FILLED",
+          "CANCELED",
+          "CANCELLATION_IN_PROGRESS",
+          "EDIT_IN_PROGRESS",
+          "EXPIRED",
+          "REJECTED"
+        ],
+        "description": "Lifecycle status of a working or terminal order."
+      },
+      "SelfTradePreventionMode": {
+        "type": "string",
+        "enum": [
+          "EXPIRE_TAKER",
+          "EXPIRE_MAKER",
+          "EXPIRE_BOTH"
+        ],
+        "description": "Self-trade prevention mode. Default is `EXPIRE_MAKER`.\nNote: `NONE` is **not** supported on CoinDCX.\n"
+      },
+      "Timestamp": {
+        "type": "integer",
+        "format": "int64",
+        "description": "Millisecond Unix timestamp. Must be within `recvWindow` of server time.",
+        "example": 1777964530490
+      },
+      "BaseSignedBody": {
+        "type": "object",
+        "required": [
+          "timestamp"
+        ],
+        "properties": {
+          "timestamp": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        }
+      },
+      "PositionSignedBody": {
+        "type": "object",
+        "required": [
+          "timestamp"
+        ],
+        "properties": {
+          "timestamp": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Millisecond Unix timestamp. Must be recent relative to server time.",
+            "example": 1777964530490
+          }
+        }
+      },
+      "NewOrderRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseSignedBody"
+          },
+          {
+            "type": "object",
+            "required": [
+              "symbol",
+              "side",
+              "type"
+            ],
+            "properties": {
+              "symbol": {
+                "$ref": "#/components/schemas/Symbol"
+              },
+              "side": {
+                "$ref": "#/components/schemas/Side"
+              },
+              "type": {
+                "$ref": "#/components/schemas/OrderType"
+              },
+              "quantity": {
+                "$ref": "#/components/schemas/DecimalString",
+                "description": "Order quantity. Must satisfy symbol lot size filters."
+              },
+              "price": {
+                "$ref": "#/components/schemas/DecimalString",
+                "description": "Limit price. Must satisfy tick size filters."
+              },
+              "stopPrice": {
+                "$ref": "#/components/schemas/DecimalString",
+                "description": "Trigger price for stop/take-profit orders."
+              },
+              "timeInForce": {
+                "$ref": "#/components/schemas/TimeInForce",
+                "description": "Optional for limit-family orders (`LIMIT`, `STOP`, `TAKE_PROFIT`);\ndefaults to `GTC` when omitted.\nMust be **omitted** for market-family orders (`MARKET`, `STOP_MARKET`,\n`TAKE_PROFIT_MARKET`) — sending any value returns error -1114.\nWhen set to `GTX`, the order is treated as post-only (`post_only = true`).\n"
+              },
+              "newClientOrderId": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Client-supplied unique order ID."
+              },
+              "selfTradePreventionMode": {
+                "$ref": "#/components/schemas/SelfTradePreventionMode"
+              }
+            }
+          }
+        ]
+      },
+      "Order": {
+        "type": "object",
+        "properties": {
+          "orderId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Exchange-generated order ID.",
+            "example": "cbf9e990-c2da-413e-9060-cef758603f7b"
+          },
+          "clientOrderId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Client-defined order ID.",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "symbol": {
+            "$ref": "#/components/schemas/Symbol"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OrderStatus"
+          },
+          "type": {
+            "$ref": "#/components/schemas/OrderType"
+          },
+          "origType": {
+            "$ref": "#/components/schemas/OrderType",
+            "description": "Original order type (before any modifications)."
+          },
+          "side": {
+            "$ref": "#/components/schemas/Side"
+          },
+          "price": {
+            "$ref": "#/components/schemas/DecimalString"
+          },
+          "avgPrice": {
+            "$ref": "#/components/schemas/DecimalString"
+          },
+          "stopPrice": {
+            "$ref": "#/components/schemas/DecimalString"
+          },
+          "origQty": {
+            "$ref": "#/components/schemas/DecimalString"
+          },
+          "executedQty": {
+            "$ref": "#/components/schemas/DecimalString"
+          },
+          "timeInForce": {
+            "$ref": "#/components/schemas/TimeInForce"
+          },
+          "selfTradePreventionMode": {
+            "$ref": "#/components/schemas/SelfTradePreventionMode"
+          },
+          "time": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "updateTime": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        },
+        "example": {
+          "orderId": "cbf9e990-c2da-413e-9060-cef758603f7b",
+          "clientOrderId": "550e8400-e29b-41d4-a716-446655440000",
+          "symbol": "BTCUSDT",
+          "status": "NEW",
+          "type": "LIMIT",
+          "origType": "LIMIT",
+          "side": "BUY",
+          "price": "0",
+          "avgPrice": "0.00000",
+          "stopPrice": "0",
+          "origQty": "10",
+          "executedQty": "0",
+          "timeInForce": "GTC",
+          "selfTradePreventionMode": "EXPIRE_MAKER",
+          "updateTime": 1566818724722
+        }
+      },
+      "CancelOrderRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseSignedBody"
+          },
+          {
+            "type": "object",
+            "required": [
+              "symbol"
+            ],
+            "properties": {
+              "symbol": {
+                "$ref": "#/components/schemas/Symbol"
+              },
+              "orderId": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Exchange-generated order ID."
+              },
+              "origClientOrderId": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Client-defined order identifier."
+              }
+            }
+          }
+        ]
+      },
+      "ModifyOrderRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseSignedBody"
+          },
+          {
+            "type": "object",
+            "required": [
+              "symbol",
+              "quantity"
+            ],
+            "properties": {
+              "symbol": {
+                "$ref": "#/components/schemas/Symbol"
+              },
+              "orderId": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Exchange-generated order ID. Either `orderId` or `origClientOrderId` must be provided."
+              },
+              "origClientOrderId": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Client-defined original order ID. Either `orderId` or `origClientOrderId` must be provided."
+              },
+              "quantity": {
+                "$ref": "#/components/schemas/DecimalString"
+              },
+              "price": {
+                "$ref": "#/components/schemas/DecimalString"
+              }
+            }
+          }
+        ]
+      },
+      "QueryOrderRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseSignedBody"
+          },
+          {
+            "type": "object",
+            "description": "Provide at least one of `orderId` or `origClientOrderId`.",
+            "properties": {
+              "symbol": {
+                "$ref": "#/components/schemas/Symbol"
+              },
+              "orderId": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Exchange-generated order ID. Not required if `origClientOrderId` is provided."
+              },
+              "origClientOrderId": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Client-defined order ID. Not required if `orderId` is provided."
+              }
+            }
+          }
+        ]
+      },
+      "OpenOrdersRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseSignedBody"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "symbol": {
+                "$ref": "#/components/schemas/Symbol"
+              }
+            },
+            "description": "Optional `symbol`; omit to query open orders across all symbols."
+          }
+        ]
+      },
+      "AllOrdersRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseSignedBody"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "symbol": {
+                "$ref": "#/components/schemas/Symbol"
+              },
+              "orderId": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Returns orders with orderId >= specified value."
+              },
+              "startTime": {
+                "$ref": "#/components/schemas/Timestamp"
+              },
+              "endTime": {
+                "$ref": "#/components/schemas/Timestamp"
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000,
+                "default": 500
+              }
+            }
+          }
+        ]
+      },
+      "ChangeLeverageRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PositionSignedBody"
+          },
+          {
+            "type": "object",
+            "required": [
+              "symbol",
+              "leverage"
+            ],
+            "properties": {
+              "symbol": {
+                "$ref": "#/components/schemas/Symbol"
+              },
+              "leverage": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 125,
+                "description": "Target initial leverage. Fractional part with more than one decimal digit is rejected; value is coerced to integer."
+              }
+            }
+          }
+        ]
+      },
+      "LeverageResponse": {
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "$ref": "#/components/schemas/Symbol"
+          },
+          "leverage": {
+            "type": "integer",
+            "example": 10
+          },
+          "maxNotionalValue": {
+            "$ref": "#/components/schemas/DecimalString"
+          }
+        },
+        "example": {
+          "symbol": "BTCUSDT",
+          "leverage": 10,
+          "maxNotionalValue": "100000"
+        }
+      },
+      "ChangeMarginTypeRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PositionSignedBody"
+          },
+          {
+            "type": "object",
+            "required": [
+              "symbol",
+              "marginType"
+            ],
+            "properties": {
+              "symbol": {
+                "$ref": "#/components/schemas/Symbol"
+              },
+              "marginType": {
+                "$ref": "#/components/schemas/MarginType"
+              }
+            }
+          }
+        ]
+      },
+      "PositionMarginRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PositionSignedBody"
+          },
+          {
+            "type": "object",
+            "required": [
+              "symbol",
+              "amount",
+              "type"
+            ],
+            "properties": {
+              "symbol": {
+                "$ref": "#/components/schemas/Symbol"
+              },
+              "amount": {
+                "$ref": "#/components/schemas/DecimalString",
+                "description": "Margin amount to add or remove. Must be greater than 0."
+              },
+              "type": {
+                "type": "integer",
+                "enum": [
+                  1,
+                  2
+                ],
+                "description": "`1` = add margin, `2` = remove margin."
+              }
+            }
+          }
+        ]
+      },
+      "PositionMarginResponse": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "description": "Margin amount added or removed.",
+            "example": 10.5
+          },
+          "code": {
+            "type": "integer",
+            "description": "Success code.",
+            "example": 200
+          },
+          "msg": {
+            "type": "string",
+            "description": "Success message.",
+            "example": "Successfully modify position margin."
+          },
+          "type": {
+            "type": "integer",
+            "enum": [
+              1,
+              2
+            ],
+            "description": "Margin action type: `1` = add, `2` = remove.",
+            "example": 1
+          }
+        }
+      },
+      "UserTrade": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique trade ID.",
+            "example": "698759"
+          },
+          "orderId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Associated exchange order ID.",
+            "example": "cbf9e990-c2da-413e-9060-cef758603f7b"
+          },
+          "symbol": {
+            "$ref": "#/components/schemas/Symbol"
+          },
+          "side": {
+            "$ref": "#/components/schemas/Side"
+          },
+          "price": {
+            "$ref": "#/components/schemas/DecimalString"
+          },
+          "qty": {
+            "$ref": "#/components/schemas/DecimalString"
+          },
+          "quoteQty": {
+            "$ref": "#/components/schemas/DecimalString"
+          },
+          "commission": {
+            "$ref": "#/components/schemas/DecimalString"
+          },
+          "commissionAsset": {
+            "type": "string",
+            "example": "USDT"
+          },
+          "time": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "maker": {
+            "type": "boolean"
+          },
+          "buyer": {
+            "type": "boolean"
+          }
+        }
+      },
+      "UserTradesRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseSignedBody"
+          },
+          {
+            "type": "object",
+            "required": [
+              "symbol"
+            ],
+            "properties": {
+              "symbol": {
+                "$ref": "#/components/schemas/Symbol"
+              },
+              "orderId": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Returns trades related to specified order ID."
+              },
+              "startTime": {
+                "$ref": "#/components/schemas/Timestamp"
+              },
+              "endTime": {
+                "$ref": "#/components/schemas/Timestamp"
+              },
+              "fromId": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Trade ID to fetch from (inclusive)."
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000,
+                "default": 500
+              }
+            }
+          }
+        ]
+      },
+      "PositionRisk": {
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "$ref": "#/components/schemas/Symbol"
+          },
+          "positionAmt": {
+            "$ref": "#/components/schemas/DecimalString"
+          },
+          "entryPrice": {
+            "$ref": "#/components/schemas/DecimalString"
+          },
+          "markPrice": {
+            "$ref": "#/components/schemas/DecimalString"
+          },
+          "unRealizedProfit": {
+            "$ref": "#/components/schemas/DecimalString"
+          },
+          "liquidationPrice": {
+            "$ref": "#/components/schemas/DecimalString"
+          },
+          "leverage": {
+            "type": "string",
+            "example": "10"
+          },
+          "maxNotionalValue": {
+            "$ref": "#/components/schemas/DecimalString"
+          },
+          "marginType": {
+            "type": "string",
+            "description": "Margin mode (`isolated`). Note: `crossed` is not supported.",
+            "example": "isolated"
+          },
+          "currentMargin": {
+            "$ref": "#/components/schemas/DecimalString",
+            "description": "Isolated margin amount for the position."
+          },
+          "openOrderMargin": {
+            "$ref": "#/components/schemas/DecimalString",
+            "description": "Isolated margin for open orders on this position."
+          },
+          "isAutoAddMargin": {
+            "type": "string",
+            "description": "Whether auto-add margin is enabled. Currently always `\"false\"`.",
+            "example": "false"
+          },
+          "notional": {
+            "$ref": "#/components/schemas/DecimalString",
+            "description": "Position notional value, signed (absolute position quantity × mark price)."
+          },
+          "isolatedWallet": {
+            "$ref": "#/components/schemas/DecimalString",
+            "description": "Total invested amount for the position."
+          },
+          "updateTime": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        }
+      },
+      "Balance": {
+        "type": "object",
+        "properties": {
+          "accountAlias": {
+            "type": "string",
+            "description": "Account alias; currently constant value.",
+            "example": "FAPI"
+          },
+          "asset": {
+            "type": "string",
+            "example": "USDT"
+          },
+          "balance": {
+            "$ref": "#/components/schemas/DecimalString"
+          },
+          "crossWalletBalance": {
+            "$ref": "#/components/schemas/DecimalString"
+          },
+          "crossUnPnl": {
+            "$ref": "#/components/schemas/DecimalString",
+            "description": "Cross unrealized PnL; currently returned as \"0\"."
+          },
+          "availableBalance": {
+            "$ref": "#/components/schemas/DecimalString"
+          },
+          "maxWithdrawAmount": {
+            "$ref": "#/components/schemas/DecimalString",
+            "description": "Maximum withdraw amount; currently same as available balance."
+          },
+          "marginAvailable": {
+            "type": "boolean",
+            "description": "Whether the asset can be used as margin; currently always `true`.",
+            "example": true
+          },
+          "updateTime": {
+            "$ref": "#/components/schemas/Timestamp"
+          }
+        }
+      },
+      "Account": {
+        "type": "object",
+        "properties": {
+          "feeTier": {
+            "type": "integer",
+            "description": "Account fee tier; currently constant value.",
+            "example": 0
+          },
+          "canTrade": {
+            "type": "boolean",
+            "description": "Whether account trading is enabled; currently always `true`.",
+            "example": true
+          },
+          "canDeposit": {
+            "type": "boolean",
+            "description": "Whether deposits are enabled; currently always `true`.",
+            "example": true
+          },
+          "canWithdraw": {
+            "type": "boolean",
+            "description": "Whether withdrawals are enabled; currently always `true`.",
+            "example": true
+          },
+          "updateTime": {
+            "$ref": "#/components/schemas/Timestamp"
+          },
+          "totalInitialMargin": {
+            "$ref": "#/components/schemas/DecimalString",
+            "description": "Total initial margin; currently returned as \"0\"."
+          },
+          "totalMaintMargin": {
+            "$ref": "#/components/schemas/DecimalString",
+            "description": "Total maintenance margin; currently returned as \"0\"."
+          },
+          "totalWalletBalance": {
+            "$ref": "#/components/schemas/DecimalString"
+          },
+          "totalUnrealizedProfit": {
+            "$ref": "#/components/schemas/DecimalString",
+            "description": "Total unrealized profit; currently returned as \"0\"."
+          },
+          "totalMarginBalance": {
+            "$ref": "#/components/schemas/DecimalString",
+            "description": "Total margin balance; currently same as total wallet balance."
+          },
+          "totalPositionInitialMargin": {
+            "$ref": "#/components/schemas/DecimalString",
+            "description": "Total position initial margin; currently returned as \"0\"."
+          },
+          "totalOpenOrderInitialMargin": {
+            "$ref": "#/components/schemas/DecimalString",
+            "description": "Total open order initial margin; currently returned as \"0\"."
+          },
+          "totalCrossWalletBalance": {
+            "$ref": "#/components/schemas/DecimalString",
+            "description": "Total cross wallet balance; currently same as total wallet balance."
+          },
+          "totalCrossUnPnl": {
+            "$ref": "#/components/schemas/DecimalString",
+            "description": "Total cross unrealized PnL; currently returned as \"0\"."
+          },
+          "availableBalance": {
+            "$ref": "#/components/schemas/DecimalString",
+            "description": "Available account balance; currently same as total wallet balance."
+          },
+          "maxWithdrawAmount": {
+            "$ref": "#/components/schemas/DecimalString",
+            "description": "Maximum withdraw amount; currently same as total wallet balance."
+          },
+          "assets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Balance"
+            }
+          },
+          "positions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PositionRisk"
+            }
+          }
+        }
+      },
+      "ExchangeInfoResponse": {
+        "type": "object",
+        "properties": {
+          "timezone": {
+            "type": "string",
+            "description": "Always \"UTC\".",
+            "example": "UTC"
+          },
+          "serverTime": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Current UTC epoch milliseconds.",
+            "example": 1715692200000
+          },
+          "exchangeFilters": {
+            "type": "array",
+            "items": {},
+            "description": "Empty array (reserved for future use)."
+          },
+          "rateLimits": {
+            "type": "array",
+            "items": {},
+            "description": "Empty array until rate limits are enabled."
+          },
+          "assets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "asset": {
+                  "type": "string",
+                  "example": "USDT"
+                },
+                "marginAvailable": {
+                  "type": "boolean",
+                  "example": true
+                }
+              }
+            }
+          },
+          "symbols": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExchangeSymbol"
+            }
+          }
+        }
+      },
+      "ExchangeSymbol": {
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "example": "BTCUSDT"
+          },
+          "pair": {
+            "type": "string",
+            "description": "Same as symbol for perpetuals.",
+            "example": "BTCUSDT"
+          },
+          "contractType": {
+            "type": "string",
+            "enum": [
+              "PERPETUAL",
+              "FUTURE"
+            ],
+            "example": "PERPETUAL"
+          },
+          "deliveryDate": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Expiry time in epoch ms."
+          },
+          "onboardDate": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Listing time in epoch ms."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "TRADING",
+              "NA"
+            ],
+            "description": "TRADING for active; NA for inactive/archived."
+          },
+          "baseAsset": {
+            "type": "string",
+            "example": "BTC"
+          },
+          "quoteAsset": {
+            "type": "string",
+            "example": "USDT"
+          },
+          "marginAsset": {
+            "type": "string",
+            "example": "USDT"
+          },
+          "pricePrecision": {
+            "type": "integer",
+            "description": "Derived from tick_size. Use filters for actual tick size."
+          },
+          "quantityPrecision": {
+            "type": "integer",
+            "description": "Derived from quantity_increment. Use filters for actual step size."
+          },
+          "baseAssetPrecision": {
+            "type": "integer",
+            "example": 8
+          },
+          "quotePrecision": {
+            "type": "integer",
+            "example": 8
+          },
+          "underlyingType": {
+            "type": "string",
+            "example": "COIN"
+          },
+          "underlyingSubType": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "settlePlan": {
+            "type": "integer",
+            "enum": [
+              0,
+              1,
+              2
+            ],
+            "description": "0=never, 1=weekly, 2=monthly."
+          },
+          "filters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SymbolFilter"
+            }
+          },
+          "orderTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "LIMIT",
+              "MARKET",
+              "STOP",
+              "STOP_MARKET",
+              "TAKE_PROFIT",
+              "TAKE_PROFIT_MARKET"
+            ]
+          },
+          "timeInForce": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "GTC",
+              "IOC",
+              "FOK"
+            ]
+          },
+          "liquidationFee": {
+            "type": "string",
+            "description": "Liquidation fee as decimal string.",
+            "example": "0.03"
+          },
+          "marketTakeBound": {
+            "type": "string",
+            "description": "Placeholder — empty string for now.",
+            "example": ""
+          }
+        }
+      },
+      "SymbolFilter": {
+        "type": "object",
+        "description": "One of PRICE_FILTER, LOT_SIZE, MARKET_LOT_SIZE, MAX_NUM_ORDERS, MIN_NOTIONAL, PERCENT_PRICE.",
+        "properties": {
+          "filterType": {
+            "type": "string",
+            "enum": [
+              "PRICE_FILTER",
+              "LOT_SIZE",
+              "MARKET_LOT_SIZE",
+              "MAX_NUM_ORDERS",
+              "MIN_NOTIONAL",
+              "PERCENT_PRICE"
+            ]
+          },
+          "maxPrice": {
+            "type": "string"
+          },
+          "minPrice": {
+            "type": "string"
+          },
+          "tickSize": {
+            "type": "string"
+          },
+          "maxQty": {
+            "type": "string"
+          },
+          "minQty": {
+            "type": "string"
+          },
+          "stepSize": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "notional": {
+            "type": "string"
+          },
+          "multiplierUp": {
+            "type": "string"
+          },
+          "multiplierDown": {
+            "type": "string"
+          },
+          "multiplierDecimal": {
+            "type": "string"
+          }
+        }
+      },
+      "IncomeRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseSignedBody"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "symbol": {
+                "$ref": "#/components/schemas/Symbol"
+              },
+              "incomeType": {
+                "type": "string",
+                "enum": [
+                  "REALIZED_PNL",
+                  "FUNDING_FEE"
+                ],
+                "description": "Type of income entry to filter. Only `REALIZED_PNL` and `FUNDING_FEE` are fully supported.\n"
+              },
+              "startTime": {
+                "$ref": "#/components/schemas/Timestamp"
+              },
+              "endTime": {
+                "$ref": "#/components/schemas/Timestamp"
+              },
+              "page": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Page number for pagination."
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000,
+                "default": 100
+              }
+            }
+          }
+        ]
+      },
+      "IncomeRecord": {
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "$ref": "#/components/schemas/Symbol"
+          },
+          "incomeType": {
+            "type": "string",
+            "description": "Type of income event.",
+            "example": "REALIZED_PNL"
+          },
+          "income": {
+            "$ref": "#/components/schemas/DecimalString",
+            "description": "Net income amount."
+          },
+          "gross": {
+            "$ref": "#/components/schemas/DecimalString",
+            "description": "Gross amount."
+          },
+          "fee": {
+            "$ref": "#/components/schemas/DecimalString",
+            "description": "Fees amount."
+          },
+          "asset": {
+            "type": "string",
+            "description": "Asset in which income is denominated.",
+            "example": "USDT"
+          },
+          "time": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Income transaction timestamp in milliseconds.",
+            "example": 1570608000000
+          },
+          "tranId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unique transaction ID within same income type.",
+            "example": 9689322392
+          },
+          "tradeId": {
+            "type": "string",
+            "description": "Associated trade ID, if applicable.",
+            "example": "185942919"
+          }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Invalid request — malformed body, missing required field, or schema violation.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "invalidParam": {
+                "value": {
+                  "code": -1102,
+                  "message": "Mandatory parameter 'symbol' was not sent, was empty/null, or malformed."
+                }
+              }
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Missing or invalid credentials (JWT or HMAC signature).",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "badSignature": {
+                "value": {
+                  "code": -1022,
+                  "message": "Signature for this request is not valid."
+                }
+              }
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource (order, position, symbol) not found.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "unknownOrder": {
+                "value": {
+                  "code": -2013,
+                  "message": "Order does not exist."
+                }
+              }
+            }
+          }
+        }
+      },
+      "TooManyRequests": {
+        "description": "Rate limit exceeded.",
+        "headers": {
+          "Retry-After": {
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Seconds to wait before retrying."
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "ServerError": {
+        "description": "Internal server error.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      }
+    }
+  }
+}</script>
+<script>
+(function () {
+  var isLight = localStorage.getItem('cdx-theme') !== 'dark';
+  try {
+    localStorage.setItem('colorMode', isLight ? 'light' : 'dark');
+  } catch (e) {}
+  var el = document.getElementById('api-reference');
+  try {
+    var cfg = JSON.parse(el.getAttribute('data-configuration') || '{}');
+    cfg.darkMode = !isLight;
+    el.setAttribute('data-configuration', JSON.stringify(cfg));
+  } catch (e) {}
+  var s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.25.124/dist/browser/standalone.min.js';
+  s.async = true;
+  document.body.appendChild(s);
+})();
+</script></main>
+  </div>
+
+</body>
+</html>

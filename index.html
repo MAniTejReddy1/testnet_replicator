@@ -1,0 +1,2644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Replication Terminal — Premium Edition</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+  :root { 
+    --bg: #020617; 
+    --panel: rgba(15, 23, 42, 0.7); 
+    --panel-border: rgba(255, 255, 255, 0.05);
+    --border: rgba(255, 255, 255, 0.04); 
+    --bid: #10b981; 
+    --ask: #f43f5e; 
+    --cyan: #06b6d4; 
+    --yellow: #eab308; 
+    --purple: #a855f7;
+    --text-main: #f8fafc;
+    --text-muted: #64748b;
+    --glass-blur: blur(16px);
+    --title-grad: linear-gradient(90deg, #fff, #94a3b8);
+    --btn-theme: rgba(255,255,255,0.05);
+    --input-bg: rgba(0,0,0,0.2);
+    --hover-bg: rgba(255,255,255,0.05);
+    --row-bg: rgba(255,255,255,0.03);
+    --hdr-bg: rgba(15,23,42,0.8);
+    --drawer-bg: rgba(9,9,11,0.95);
+    --shadow: 0 8px 32px rgba(0,0,0,0.3);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-hover: rgba(255, 255, 255, 0.05);
+    --glass-active: rgba(255, 255, 255, 0.1);
+    --text-dim: #94a3b8;
+    --text-shadow: var(--text-shadow);
+    --shadow-heavy: 0 4px 20px rgba(0, 0, 0, 0.6);
+  }
+
+  :root[data-theme="light"] {
+    --bg: #f1f5f9; 
+    --panel: rgba(255, 255, 255, 0.85); 
+    --panel-border: rgba(0, 0, 0, 0.08);
+    --border: rgba(0, 0, 0, 0.06); 
+    --bid: #059669; 
+    --ask: #e11d48; 
+    --cyan: #0284c7; 
+    --yellow: #ca8a04; 
+    --purple: #7e22ce;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --glass-blur: blur(24px);
+    --title-grad: linear-gradient(90deg, #0f172a, #64748b);
+    --btn-theme: rgba(0,0,0,0.05);
+    --input-bg: rgba(255,255,255,0.6);
+    --hover-bg: rgba(0,0,0,0.05);
+    --row-bg: rgba(0,0,0,0.03);
+    --hdr-bg: rgba(255,255,255,0.85);
+    --drawer-bg: rgba(248,250,252,0.95);
+    --shadow: 0 8px 24px rgba(0,0,0,0.06);
+    --glass-border: rgba(0, 0, 0, 0.1);
+    --glass-hover: rgba(0, 0, 0, 0.04);
+    --glass-active: rgba(0, 0, 0, 0.08);
+    --text-dim: #64748b;
+    --text-shadow: none;
+    --shadow-heavy: 0 4px 20px rgba(0, 0, 0, 0.1);
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+  }
+  .theme-transition::view-transition-new(root) {
+    z-index: 9999;
+  }
+  .theme-transition::view-transition-old(root) {
+    z-index: 1;
+  }
+  
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { 
+    font-family: 'Inter', sans-serif; 
+    background: var(--bg); 
+    color: var(--text-main); 
+    font-size: 12px; 
+    overflow-x: hidden;
+    background-image: radial-gradient(circle at 15% 50%, rgba(6, 182, 212, 0.03), transparent 25vw),
+                      radial-gradient(circle at 85% 30%, rgba(168, 85, 247, 0.03), transparent 25vw);
+    background-attachment: fixed;
+  }
+  
+  /* Fonts */
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(6,182,212,0.5); }
+  /* Forms & Inputs */
+  select {
+    background: var(--input-bg);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    outline: none;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+  }
+  select:hover {
+    border-color: rgba(6, 182, 212, 0.4);
+  }
+  select:focus {
+    border-color: var(--cyan);
+    box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.2);
+  }
+  select option {
+    background: var(--drawer-bg);
+    color: var(--text-main);
+    padding: 8px;
+  }
+  
+  /* Panels */
+  .panel { 
+    background: var(--panel); 
+    border: 1px solid var(--panel-border); 
+    border-radius: 16px; 
+    backdrop-filter: var(--glass-blur);
+    box-shadow: var(--shadow);
+  }
+  .panel-accent { border-color: rgba(6,182,212,0.25); box-shadow: 0 0 20px rgba(6,182,212,0.05); }
+  
+  /* Header Shimmer */
+  .hdr-bar { height: 3px; background: linear-gradient(90deg, #06b6d4, #8b5cf6, #f43f5e, #06b6d4); background-size: 300% 100%; animation: shimmer 4s linear infinite; }
+  @keyframes shimmer { to { background-position: -300% 0; } }
+  
+  /* Dots */
+  .dot-live   { background: #10b981; box-shadow: 0 0 0 0 rgba(16,185,129,0.7); animation: pulse-g 1.6s ease-out infinite; }
+  .dot-paused { background: #eab308; }
+  .dot-dead   { background: #f43f5e; }
+  @keyframes pulse-g { 70% { box-shadow: 0 0 0 8px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+  
+  /* Data Rows */
+  .d-row { display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; padding: 3px 12px; position: relative; border-radius: 4px; cursor: default; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+  .d-row:hover { background:var(--hover-bg); }
+  .d-bar { position: absolute; top:0; bottom:0; opacity:0.15; pointer-events:none; transition: width .22s ease; }
+  .d-bar-r { right:0; left:auto; border-radius: 4px 0 0 4px; }
+  .d-bar-l { left:0; right:auto; border-radius: 0 4px 4px 0; }
+  .d-spread { flex-shrink:0; text-align:center; padding:6px 0; font-size:11px; color:var(--text-muted); border-top:1px solid var(--border); border-bottom:1px solid var(--border); margin:4px 0; letter-spacing:1px; background:var(--input-bg); }
+  
+  /* Flashes */
+  @keyframes fG { 50% { color: #10b981; text-shadow: 0 0 8px rgba(16,185,129,0.5); } }
+  @keyframes fR { 50% { color: #f43f5e; text-shadow: 0 0 8px rgba(244,63,94,0.5); } }
+  .fl-g { animation: fG .35s ease; }
+  .fl-r { animation: fR .35s ease; }
+  @keyframes slideIn { from { opacity:0; transform:translateX(8px); } to { opacity:1; transform:none; } }
+  
+  /* Tables */
+  .tr-row { display: grid; grid-template-columns: 80px 1fr 75px 60px; align-items: center; padding: 6px 12px; border-bottom: 1px solid var(--border); border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+  .tr-row:hover { background: rgba(255,255,255,0.04); }
+  
+  /* Tabs */
+  .tab { padding: 6px 12px; border-bottom: 2px solid transparent; color: var(--text-muted); cursor:pointer; transition: all .2s; font-weight: 500; background: transparent; border-top:none; border-left:none; border-right:none; }
+  .tab:hover { color: var(--text-main); }
+  .tab.on { border-color: var(--cyan); color: var(--cyan); }
+  
+  .sym-tab { padding: 8px 16px; border-radius: 8px; color: var(--text-muted); font-weight: 600; cursor: pointer; transition: all .2s; background:var(--row-bg); border: 1px solid transparent; display: flex; align-items: center; }
+  .sym-tab:hover { background: rgba(255,255,255,0.06); }
+  .sym-tab.on { background: rgba(6,182,212,.1); color: var(--cyan); border: 1px solid rgba(6,182,212,.3); box-shadow: 0 0 10px rgba(6,182,212,0.1); }
+  
+  /* Badges & Chips */
+  .badge { font-size:10px; padding:3px 8px; border-radius:99px; font-weight:700; letter-spacing:0.5px; }
+  .badge-ok { background:rgba(16,185,129,.1); border:1px solid rgba(16,185,129,.2); color:var(--bid); }
+  .badge-fail { background:rgba(244,63,94,.1); border:1px solid rgba(244,63,94,.2); color:var(--ask); }
+  
+  .chip { background:var(--row-bg); border: 1px solid var(--border); border-radius: 10px; padding: 8px 14px; transition: all .2s; cursor: default; text-align: center; min-width: 80px; }
+  .chip:hover { border-color: var(--glass-active); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+  .chip-label { font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; font-weight:600; }
+  .chip-val   { font-size:14px; font-weight:700; margin-top:4px; font-family: 'JetBrains Mono', monospace; }
+  
+  /* Ticker Cards */
+  .ticker-card { background: var(--panel); border: 1px solid var(--panel-border); border-radius: 12px; padding: 16px 20px; flex: 1; backdrop-filter: var(--glass-blur); transition: transform 0.2s; }
+  .ticker-card:hover { transform: translateY(-2px); border-color: var(--glass-border); }
+  .ticker-label { font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; font-weight:600; }
+  .ticker-val   { font-size:24px; font-weight:700; font-variant-numeric:tabular-nums; margin-top:6px; font-family: 'JetBrains Mono', monospace; text-shadow: var(--text-shadow); }
+  .ticker-sub   { font-size:10px; color:#52525b; margin-top:4px; }
+  
+  /* Progress Bars */
+  .hbar { height:3px; border-radius:99px; background:var(--glass-hover); overflow:hidden; margin-top:10px; }
+  .hbar-fill { height:100%; border-radius:99px; transition: width .4s cubic-bezier(0.4, 0, 0.2, 1), background .3s; }
+  
+  /* Drawer */
+  #drawer { position: fixed; top:0; right:0; bottom:0; width:360px; z-index:50; background: var(--drawer-bg); backdrop-filter: blur(20px); border-left:1px solid var(--border); padding: 24px 24px 200px 24px; overflow-y:auto; transform: translateX(100%); transition: transform .3s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: -10px 0 30px rgba(0,0,0,0.2); color: var(--text-main); }
+  #drawer.open { transform: none; }
+  #overlay { position:fixed; inset:0; z-index:49; background:rgba(0,0,0,.6); backdrop-filter: blur(2px); display:none; opacity: 0; transition: opacity .3s; }
+  #overlay.open { display:block; opacity: 1; }
+  
+  /* Custom Dropdown UI */
+  .custom-select-wrapper { position: relative; user-select: none; width: 100%; margin-bottom: 4px; }
+  .custom-select { display: flex; justify-content: space-between; align-items: center; background: var(--input-bg); color: var(--text-main); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12px; transition: all 0.2s; }
+  .custom-select:hover { border-color: rgba(6, 182, 212, 0.4); }
+  .custom-select.open { border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.2); }
+  .custom-select-options { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--panel); backdrop-filter: var(--glass-blur); border: 1px solid var(--border); border-radius: 6px; box-shadow: var(--shadow); z-index: 100; max-height: 200px; overflow-y: auto; opacity: 0; visibility: hidden; transform: translateY(-10px); transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+  .custom-select-options.open { opacity: 1; visibility: visible; transform: translateY(0); }
+  .custom-option { padding: 10px 12px; color: var(--text-muted); font-size: 12px; cursor: pointer; transition: background 0.1s, color 0.1s; border-bottom: 1px solid var(--border); }
+  .custom-option:last-child { border-bottom: none; }
+  .custom-option:hover, .custom-option.selected { background: var(--hover-bg); color: var(--text-main); }
+
+  /* Forms & Buttons */
+  input, select { 
+    width: 100%; 
+    background:var(--input-bg); 
+    border: 1px solid var(--glass-border); 
+    border-radius: 8px; 
+    padding: 8px 12px; 
+    color: var(--text-main); 
+    font-family: 'Inter', sans-serif; 
+    font-size: 12px; 
+    transition: all 0.2s;
+    outline: none;
+  }
+  input:focus, select:focus { border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(6,182,212,0.2); }
+  label { display:block; color:var(--text-muted); font-size:11px; margin-bottom:4px; font-weight:500; }
+  
+  .btn-primary { 
+    width: 100%; background: linear-gradient(135deg, rgba(6,182,212,0.2), rgba(6,182,212,0.1)); 
+    border: 1px solid rgba(6,182,212,0.4); color: var(--cyan); 
+    border-radius: 8px; padding: 10px; cursor: pointer; font-family: 'Inter', sans-serif; 
+    font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+    transition: all 0.2s; box-shadow: 0 4px 12px rgba(6,182,212,0.1);
+  }
+  .btn-primary:hover { background: rgba(6,182,212,0.25); transform: translateY(-1px); box-shadow: 0 6px 16px rgba(6,182,212,0.2); }
+  .btn-primary:active { transform: translateY(1px); }
+  
+  .btn-purple { background: linear-gradient(135deg, rgba(168,85,247,0.2), rgba(168,85,247,0.1)); border-color: rgba(168,85,247,0.4); color: #c084fc; box-shadow: 0 4px 12px rgba(168,85,247,0.1); }
+  .btn-purple:hover { background: rgba(168,85,247,0.25); box-shadow: 0 6px 16px rgba(168,85,247,0.2); }
+  
+  .btn-danger { background: linear-gradient(135deg, rgba(244,63,94,0.2), rgba(244,63,94,0.1)); border-color: rgba(244,63,94,0.4); color: #fb7185; box-shadow: 0 4px 12px rgba(244,63,94,0.1); }
+  .btn-danger:hover { background: rgba(244,63,94,0.25); box-shadow: 0 6px 16px rgba(244,63,94,0.2); }
+  
+  .btn-success { background: linear-gradient(135deg, rgba(16,185,129,0.2), rgba(16,185,129,0.1)); border-color: rgba(16,185,129,0.4); color: var(--bid); box-shadow: 0 4px 12px rgba(16,185,129,0.1); }
+  .btn-success:hover { background: rgba(16,185,129,0.25); box-shadow: 0 6px 16px rgba(16,185,129,0.2); }
+
+  /* Control buttons */
+  .ctrl-btn { padding: 6px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all .2s; border: 1px solid transparent; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .ctrl-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+  .ctrl-btn:active { transform: translateY(1px); }
+  .btn-start  { background: rgba(16,185,129,.15); color: var(--bid); border-color: rgba(16,185,129,.3); }
+  .btn-start:hover { background: rgba(16,185,129,.25); }
+  .btn-pause  { background: rgba(234,179,8,.15);  color: #fde047; border-color: rgba(234,179,8,.3); }
+  .btn-pause:hover { background: rgba(234,179,8,.25); }
+  .btn-stop   { background: rgba(244,63,94,.15);  color: #fb7185; border-color: rgba(244,63,94,.3); }
+  .btn-stop:hover { background: rgba(244,63,94,.25); }
+  .btn-reload { background: rgba(168,85,247,.15); color: #c084fc; border-color: rgba(168,85,247,.3); }
+  .btn-reload:hover { background: rgba(168,85,247,.25); }
+  
+  /* Sections */
+  .sec-label { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); font-weight: 600; }
+  .sec-title { font-size:14px; font-weight:700; color:var(--text-main); margin-top:2px; }
+  .book-hdr { display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 6px 12px; font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing:1px; border-bottom: 1px solid var(--border); font-weight: 600; background:var(--input-bg); }
+  
+  /* Toggles */
+  .tog { position: relative; width: 32px; height: 18px; background: rgba(255,255,255,0.1); border: 1px solid var(--border); border-radius: 99px; cursor: pointer; transition: all .3s cubic-bezier(0.4, 0, 0.2, 1); }
+  .tog::after { content: ''; position: absolute; top: 1px; left: 1px; width: 14px; height: 14px; border-radius: 50%; background: #94a3b8; transition: all .3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+  .tog.on { background: rgba(6,182,212,0.2); border-color: rgba(6,182,212,0.4); }
+  .tog.on::after { transform: translateX(14px); background: var(--cyan); }
+  
+  /* Flag Pills */
+  .flag-pill { font-size:10px; padding:4px 10px; border-radius:99px; font-weight:700; letter-spacing:0.5px; }
+  .flag-on  { background:rgba(16,185,129,.15); border:1px solid rgba(16,185,129,.3); color:#34d399; }
+  .flag-off { background:rgba(244,63,94,.15);  border:1px solid rgba(244,63,94,.3);  color:#fb7185; }
+  .flag-buf { background:rgba(234,179,8,.15);  border:1px solid rgba(234,179,8,.3);  color:#fde047; }
+  
+  /* Status Toast */
+  #c-status-toast { position: absolute; top: 20px; right: 50%; transform: translateX(50%); background: rgba(15,23,42,0.9); backdrop-filter: blur(10px); padding: 10px 20px; border-radius: 12px; border: 1px solid var(--glass-border); z-index: 100; font-size: 13px; font-weight: 600; box-shadow: 0 10px 30px rgba(0,0,0,0.5); transition: opacity 0.3s; }
+  
+  /* Utils */
+  .c-emerald { color: #10b981; text-shadow: 0 0 10px rgba(16,185,129,0.3); }
+  .c-rose    { color: #f43f5e; text-shadow: 0 0 10px rgba(244,63,94,0.3); }
+  .c-yellow  { color: #eab308; }
+  .c-yellow4 { color: #facc15; }
+  .fw-bold   { font-weight: 700; }
+  
+  /* Splash Screens */
+  #splash { position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity .5s ease; }
+  #splash.hidden { opacity:0;pointer-events:none; }
+  .splash-dot { width:16px;height:16px;border-radius:50%;background:var(--cyan);animation:pulse-g 1.2s ease-out infinite; box-shadow: 0 0 20px rgba(6,182,212,0.5); }
+  #err-splash { position:fixed;inset:0;z-index:998;background:var(--drawer-bg);backdrop-filter:blur(10px);display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:#f43f5e;font-size:14px;padding:40px; }
+  
+  /* Tables inside panels */
+  table { width: 100%; border-collapse: separate; border-spacing: 0; }
+  th { padding: 14px 18px; text-align: left; font-weight: 600; font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); background:var(--input-bg); }
+  td { padding: 14px 18px; font-family: 'JetBrains Mono', monospace; font-size: 12px; border-bottom: 1px solid var(--border); transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  
+  .err-banner { background: rgba(244,63,94,.1); border: 1px solid rgba(244,63,94,.3); color: #fb7185; border-radius: 8px; padding: 10px 14px; font-size: 12px; margin: 12px 16px 0; font-weight: 500; }
+
+  /* Pagination UI */
+  .pg-btn { padding: 6px 14px; background:var(--hover-bg); color: var(--cyan); border: 1px solid rgba(6,182,212,0.3); border-radius: 6px; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+  .pg-btn:hover:not(:disabled) { background: rgba(6,182,212,0.15); box-shadow: 0 0 10px rgba(6,182,212,0.1); }
+  .pg-btn:disabled { opacity: 0.5; cursor: not-allowed; border-color: var(--glass-border); color: var(--text-muted); }
+
+  /* Premium Portfolio Action Buttons */
+  .act-btn { padding:6px 12px; font-size:10px; font-weight:700; border-radius:99px; cursor:pointer; transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border:1px solid transparent; font-family:'Inter', sans-serif; }
+  .act-btn:active { transform: scale(0.95); }
+  .act-lev  { color:var(--text-main); background:var(--row-bg); }
+  .act-lev:hover { background:rgba(255,255,255,0.1); }
+  .act-marg { color:var(--text-main); background:var(--row-bg); }
+  .act-marg:hover { background:rgba(255,255,255,0.1); }
+  .act-red  { color:var(--yellow); background:rgba(234,179,8,0.05); }
+  .act-red:hover { background:rgba(234,179,8,0.15); box-shadow:0 0 12px rgba(234,179,8,0.1); }
+  .act-cls  { color:var(--rose); background:rgba(244,63,94,0.05); }
+  .act-cls:hover { background:rgba(244,63,94,0.15); box-shadow:0 0 12px rgba(244,63,94,0.1); }
+  
+  /* PnL Glow classes */
+  .pnl-pos { color: var(--bid); text-shadow: 0 0 12px rgba(16,185,129,0.4); }
+  .pnl-neg { color: var(--ask); text-shadow: 0 0 12px rgba(244,63,94,0.4); }
+  
+  /* Terminal Specifics */
+  .term-scanline { background: linear-gradient(180deg, rgba(2,6,23,1) 0%, rgba(9,9,11,1) 100%); position:relative; overflow:hidden; }
+  .term-scanline::before { content: ""; position: absolute; inset:0; pointer-events: none; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.02) 2px, rgba(255,255,255,0.02) 4px); z-index:1; opacity:0.7; }
+  .term-content { position:relative; z-index:2; flex:1; overflow-y:auto; padding:20px; font-family:'JetBrains Mono',monospace; font-size:12px; color:#e2e8f0; line-height:1.6; white-space:pre-wrap; }
+
+.tv-tf-btn { background: transparent; border: 1px solid var(--border); color: var(--text-muted); border-radius: 4px; padding: 4px 8px; font-size: 10px; cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.2s; font-weight: 700; }
+.tv-tf-btn:hover { color: var(--text-main); background: var(--hover-bg); }
+.tv-tf-btn.on { background: rgba(6,182,212,0.1); color: var(--cyan); border-color: rgba(6,182,212,0.3); }
+
+  @media (max-width: 900px) {
+    #mobile-term-tabs { display: flex !important; }
+    #term-desktop-details-tabs { display: none !important; }
+    #term-body-wrap { flex-direction: column !important; }
+    #term-details-pane { width: 100% !important; border-left: none !important; flex: 1; }
+    
+    #term-body-wrap.show-logs #live-terminal { display: block !important; flex: 1; }
+    #term-body-wrap.show-logs #term-details-pane { display: none !important; }
+
+    #term-body-wrap.show-details #live-terminal { display: none !important; }
+    #term-body-wrap.show-details #term-details-pane { display: flex !important; flex: 1; }
+  }
+</style>
+</head>
+<body>
+<div id="toast-container" style="position:fixed;top:24px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:12px;pointer-events:none;align-items:center;"></div>
+<script>
+    window.showFlushbar = function(msg, type = 'info') {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+
+        // Backward compatibility for old signature (msg, isErr)
+        if (type === true) type = 'error';
+        if (type === false) type = 'info';
+
+        // Automatically infer success messages
+        if (type === 'info' && (msg.toLowerCase().includes('success') || msg.toLowerCase().includes('resumed'))) {
+            type = 'success';
+        }
+
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            padding: 14px 20px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--panel);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            box-shadow: var(--shadow);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            opacity: 0;
+            transform: translateY(-20px) scale(0.95);
+            pointer-events: auto;
+            position: relative;
+            overflow: hidden;
+            min-width: 280px;
+        `;
+
+        let iconStr = '';
+        let themeColor = '';
+        if (type === 'error') {
+            themeColor = 'var(--rose)';
+            iconStr = `<div style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:rgba(244,63,94,0.15);color:var(--rose);font-size:12px;border:1px solid rgba(244,63,94,0.3);">⚠</div>`;
+            toast.style.borderLeft = '4px solid var(--rose)';
+        } else if (type === 'success') {
+            themeColor = 'var(--emerald)';
+            iconStr = `<div style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:rgba(16,185,129,0.15);color:var(--emerald);font-size:12px;border:1px solid rgba(16,185,129,0.3);">✓</div>`;
+            toast.style.borderLeft = '4px solid var(--emerald)';
+        } else {
+            themeColor = 'var(--cyan)';
+            iconStr = `<div style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:rgba(6,182,212,0.15);color:var(--cyan);font-size:12px;border:1px solid rgba(6,182,212,0.3);">⚡</div>`;
+            toast.style.borderLeft = '4px solid var(--cyan)';
+        }
+
+        toast.innerHTML = `
+            ${iconStr}
+            <div style="flex:1;display:flex;flex-direction:column;gap:2px;">
+                <span style="font-weight:700;color:white;">${type === 'error' ? 'Error' : (type === 'success' ? 'Success' : 'Processing')}</span>
+                <span style="color:var(--text-muted);font-size:11px;">${msg}</span>
+            </div>
+            <div style="position:absolute;bottom:0;left:0;height:2px;background:${themeColor};width:100%;transform-origin:left;animation:toast-progress 3.5s linear forwards;box-shadow:0 0 10px ${themeColor};"></div>
+        `;
+        
+        container.appendChild(toast);
+
+        // Add keyframes if not exists
+        if (!document.getElementById('toast-keyframes')) {
+            const style = document.createElement('style');
+            style.id = 'toast-keyframes';
+            style.innerHTML = `@keyframes toast-progress { from { transform: scaleX(1); } to { transform: scaleX(0); } }`;
+            document.head.appendChild(style);
+        }
+
+        // Enter animation
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                toast.style.opacity = '1';
+                toast.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+
+        // Exit animation and cleanup
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(-20px) scale(0.9)';
+            setTimeout(() => {
+                if (toast.parentNode === container) {
+                    container.removeChild(toast);
+                }
+            }, 400); // Wait for transition
+        }, 3500);
+    };
+
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('button');
+        if (btn && btn.textContent) {
+            const text = btn.textContent.trim().substring(0, 30);
+            if (!btn.classList.contains('tab') && !btn.classList.contains('pg-btn')) {
+                window.showFlushbar(`Action processing: ${text}`, 'info');
+            }
+        }
+    });
+
+    // Override default alert to use our sleek flushbar
+    window.alert = function(msg) {
+        const isErr = msg.toLowerCase().includes('error') || msg.toLowerCase().includes('fail');
+        window.showFlushbar(msg, isErr ? 'error' : 'info');
+    };
+</script>
+
+<div id="splash">
+  <div class="hdr-bar" style="position:fixed;top:0;left:0;right:0;"></div>
+  <div class="splash-dot"></div>
+  <div style="color:var(--cyan);font-size:14px;letter-spacing:4px;text-transform:uppercase;font-weight:700;text-shadow: 0 0 15px rgba(6,182,212,0.5);">REPLICATOR UI</div>
+  <div style="color:var(--text-muted);font-size:12px;font-family:'JetBrains Mono',monospace;">Establishing secure SSE stream...</div>
+</div>
+<div id="err-splash"></div>
+
+<div class="hdr-bar"></div>
+
+<header style="background:var(--hdr-bg);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;position:sticky;top:0;z-index:30;box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+  <div style="display:flex;align-items:center;gap:14px;flex:1;">
+    <div style="position:relative;width:12px;height:12px;"><div id="dot" class="dot-dead" style="width:12px;height:12px;border-radius:50%;position:absolute;"></div></div>
+    <div>
+      <span style="font-weight:700;font-size:14px;letter-spacing:1px;background: var(--title-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">MULTI-MARKET REPLICATOR</span>
+      <span style="color:var(--text-muted);font-size:10px;margin-left:12px;letter-spacing:1px;font-family:'JetBrains Mono',monospace;background:rgba(255,255,255,0.1);padding:3px 8px;border-radius:99px;">v5 PRO</span>
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;flex:0 1 auto;justify-content:center;" id="symbol-tabs"></div>
+  <div style="display:flex;gap:12px;align-items:center;flex:1;justify-content:flex-end;">
+    <div id="c-status-toast" style="display:none;"></div>
+    <div class="chip"><div class="chip-label">Engine Status</div><div class="chip-val" id="c-eng"><span class="c-rose fw-bold">OFFLINE</span></div></div>
+    <div class="chip"><div class="chip-label">Network Time</div><div class="chip-val" id="c-clock" style="color:var(--text-muted);font-size:12px;">—</div></div>
+    <button id="btn-theme-toggle" style="background:var(--btn-theme);border:1px solid var(--border);cursor:pointer;font-size:14px;color:var(--text-main);padding:8px 12px;border-radius:8px;transition:all 0.3s;display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px rgba(0,0,0,0.1);" title="Toggle Light/Dark Theme">☀</button>
+    <button id="btn-cfg" class="btn-primary" style="padding: 10px 20px; width: auto; font-size: 11px;">⚙ CONFIGURE</button>
+  </div>
+</header>
+<script>
+    document.getElementById('btn-theme-toggle').addEventListener('click', (e) => {
+        const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+        const toggleTheme = () => {
+            if (isDark) {
+                document.documentElement.setAttribute('data-theme', 'light');
+                e.currentTarget.innerHTML = '🌙';
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                e.currentTarget.innerHTML = '☀';
+            }
+            if (window.tvChart) {
+                const newIsLight = isDark; // isDark was before the switch
+                const text = newIsLight ? '#64748b' : '#94a3b8';
+                const grid = newIsLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.04)';
+                window.window.tvChart.applyOptions({
+                    layout: { textColor: text },
+                    grid: { vertLines: { color: grid }, horzLines: { color: grid } },
+                    rightPriceScale: { borderColor: grid },
+                    timeScale: { borderColor: grid }
+                });
+            }
+        };
+
+        if (!document.startViewTransition) {
+            toggleTheme();
+            return;
+        }
+
+        const x = e.clientX;
+        const y = e.clientY;
+        const endRadius = Math.hypot(
+            Math.max(x, innerWidth - x),
+            Math.max(y, innerHeight - y)
+        );
+
+        document.documentElement.classList.add('theme-transition');
+
+        const style = document.createElement('style');
+        style.textContent = `
+            ::view-transition-new(root) {
+                animation: circle-wipe 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            @keyframes circle-wipe {
+                from { clip-path: circle(0px at ${x}px ${y}px); }
+                to { clip-path: circle(${endRadius}px at ${x}px ${y}px); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        const transition = document.startViewTransition(() => {
+            toggleTheme();
+        });
+        
+        transition.finished.then(() => {
+            document.documentElement.classList.remove('theme-transition');
+            style.remove();
+        });
+    });
+</script>
+
+<div style="padding: 16px 24px; display:flex; justify-content:space-between; align-items:center; background: rgba(0,0,0,0.4); border-bottom: 1px solid var(--border);">
+    <div style="display:flex; gap: 10px;">
+        <button class="ctrl-btn btn-start"  id="btn-cmd-start"><span style="margin-right:6px">▶</span> START</button>
+        <button class="ctrl-btn btn-pause"  id="btn-cmd-pause"><span style="margin-right:6px">⏸</span> PAUSE</button>
+        <button class="ctrl-btn btn-stop"   id="btn-cmd-stop"><span style="margin-right:6px">⏹</span> STOP</button>
+        <button class="ctrl-btn btn-reload" id="btn-cmd-reload"><span style="margin-right:6px">↻</span> RELOAD</button>
+    </div>
+    <div style="display:flex; gap: 16px; font-size: 11px; align-items:center; flex-wrap:wrap; font-family: 'JetBrains Mono', monospace;">
+        <div style="background:var(--row-bg);padding:6px 12px;border-radius:8px;border:1px solid var(--border);"><span style="color:var(--text-muted);margin-right:6px;">PAIR</span><span id="c-pair" style="color:var(--text-main);font-weight:700;">—</span></div>
+        <div style="background:var(--row-bg);padding:6px 12px;border-radius:8px;border:1px solid var(--border);"><span style="color:var(--text-muted);margin-right:6px;">BINANCE LATENCY</span><span id="c-bping" style="color:var(--yellow);font-weight:700;">0ms</span></div>
+        <div style="background:var(--row-bg);padding:6px 12px;border-radius:8px;border:1px solid var(--border);"><span style="color:var(--text-muted);margin-right:6px;">TESTNET LATENCY</span><span id="c-sping" style="color:var(--cyan);font-weight:700;">0ms</span></div>
+        <div style="background:var(--row-bg);padding:6px 12px;border-radius:8px;border:1px solid var(--border);"><span style="color:var(--text-muted);margin-right:6px;">SYNC RATIO</span><span id="c-sync" style="color:var(--bid);font-weight:700;">100%</span></div>
+        <div id="flag-tradeSync" class="flag-pill flag-off">TRADE SYNC</div>
+        <div id="flag-cancelStop" class="flag-pill flag-off">CANCEL ON STOP</div>
+        <div id="flag-buffer" class="flag-pill flag-buf">BUF 0%</div>
+        <div id="flag-delay" class="flag-pill" style="background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.2);color:var(--purple);">DELAY 0ms</div>
+        <div id="flag-scenario" class="flag-pill" style="display:none;background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.2);color:var(--ask);box-shadow:0 0 10px rgba(244,63,94,0.1);">SCENARIO IDLE</div>
+            </div>
+</div>
+
+<div id="overlay"></div>
+<div id="drawer">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+    <span style="font-weight:700;color:var(--text-main);font-size:14px;letter-spacing:1px;">MARKET SETTINGS</span>
+    <button id="btn-close" style="color:var(--text-muted);font-size:24px;background:none;border:none;cursor:pointer;transition:color 0.2s;">×</button>
+  </div>
+  <div class="panel" style="padding:16px;margin-bottom:16px;">
+    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;font-weight:600;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="width:4px;height:12px;background:#10b981;border-radius:2px;"></div>Global Replicator Roles
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div>
+        <label>Maker User</label>
+        <select id="cfg-role-maker" style="padding:8px 12px;font-size:12px;width:100%;" onchange="window.saveRoles()"></select>
+      </div>
+      <div>
+        <label>Taker User</label>
+        <select id="cfg-role-taker" style="padding:8px 12px;font-size:12px;width:100%;" onchange="window.saveRoles()"></select>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" style="padding:16px;margin-bottom:16px;">
+    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;font-weight:600;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="width:4px;height:12px;background:#3b82f6;border-radius:2px;"></div>Configured Accounts
+      </div>
+      <button onclick="window.autoGenerateUser()" style="background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.5);color:#3b82f6;border-radius:4px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;transition:all 0.2s;box-shadow:0 0 10px rgba(59,130,246,0.2);">⚡ Auto-Generate Account</button>
+    </div>
+    
+    <div id="cfg-users-list" style="display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto;margin-bottom:12px;">
+    </div>
+  </div>
+  
+  <div class="panel" style="padding:16px;margin-bottom:16px;">
+    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;font-weight:600;display:flex;align-items:center;gap:8px;">
+      <div style="width:4px;height:12px;background:var(--cyan);border-radius:2px;"></div>Market & Sizing
+    </div>
+    
+    <label>Source Symbol (Binance)</label>
+    <input id="cfg-symbol" placeholder="e.g. BNBUSDT" style="margin-bottom:12px;">
+    
+    <label>Target Symbol (Testnet - Optional)</label>
+    <input id="cfg-target" placeholder="e.g. BNBQAUSDT (leave empty if same)" style="margin-bottom:12px;">
+    
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+      <div><label>Min Size (USDT)</label><input id="cfg-min" type="number" placeholder="100"></div>
+      <div><label>Max Size (USDT)</label><input id="cfg-max" type="number" placeholder="500"></div>
+    </div>
+    
+    <label>Depth Levels</label>
+    <input id="cfg-depth" type="number" placeholder="10" style="margin-bottom:4px;">
+  </div>
+  
+  <div class="panel" style="padding:16px;margin-bottom:16px;">
+    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;font-weight:600;display:flex;align-items:center;gap:8px;">
+      <div style="width:4px;height:12px;background:var(--yellow);border-radius:2px;"></div>Execution Controls
+    </div>
+    
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+      <div><label>Buffer % <span style="color:#64748b;font-weight:400">(0 = off)</span></label><input id="cfg-buffer" type="number" step="0.01" placeholder="0.5"></div>
+      <div><label>Delay ms <span style="color:#64748b;font-weight:400">(0 = inst)</span></label><input id="cfg-delay" type="number" placeholder="5000"></div>
+    </div>
+    
+    <div style="background:var(--input-bg);border-radius:8px;padding:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;cursor:pointer;" id="tog-cancel-wrap">
+        <span style="color:var(--text-main);font-size:12px;font-weight:500;">Cancel Orders on Stop</span>
+        <div class="tog on" id="tog-cancel-stop"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" id="tog-new-user-wrap">
+        <span style="color:var(--text-main);font-size:12px;font-weight:500;">Simulate New User <span style="color:var(--text-muted);font-size:10px;">(120s)</span></span>
+        <div class="tog off" id="tog-new-user"></div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="panel" style="padding:16px;margin-bottom:16px;">
+    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;font-weight:600;display:flex;align-items:center;gap:8px;">
+      <div style="width:4px;height:12px;background:var(--bid);border-radius:2px;"></div>Display Options
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <label style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--input-bg);padding:10px;border-radius:8px;">
+        <span style="color:var(--text-main);font-size:11px;font-weight:500;">Depth Bars</span><div class="tog on" id="tog-bars"></div>
+      </label>
+      <label style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--input-bg);padding:10px;border-radius:8px;">
+        <span style="color:var(--text-main);font-size:11px;font-weight:500;">Flash FX</span><div class="tog on" id="tog-flash"></div>
+      </label>
+    </div>
+  </div>
+  
+  <button id="btn-apply" class="btn-primary" style="margin-bottom:24px;padding:12px;font-size:13px;">MOUNT & UPDATE MARKET</button>
+  
+  <div class="panel panel-accent" style="padding:16px;margin-bottom:16px;border-color:rgba(168,85,247,0.4);box-shadow:0 0 30px rgba(168,85,247,0.1);background:linear-gradient(180deg, var(--panel), rgba(168,85,247,0.05));">
+    <div style="font-size:12px;color:#d8b4fe;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;font-weight:700;display:flex;align-items:center;gap:8px;text-shadow:0 0 10px rgba(168,85,247,0.5);">
+      <div style="width:8px;height:8px;background:#c084fc;border-radius:50%;box-shadow:0 0 10px #c084fc;"></div>
+      Advanced Scenario Engine
+    </div>
+    
+    <div style="display:flex;background:var(--input-bg);border-radius:8px;padding:4px;margin-bottom:16px;">
+        <button id="tab-preset" class="tab on" style="flex:1;border-radius:6px;" onclick="document.getElementById('pnl-preset').style.display='block';document.getElementById('pnl-custom').style.display='none';this.classList.add('on');document.getElementById('tab-custom').classList.remove('on');">Presets</button>
+        <button id="tab-custom" class="tab" style="flex:1;border-radius:6px;" onclick="document.getElementById('pnl-custom').style.display='block';document.getElementById('pnl-preset').style.display='none';this.classList.add('on');document.getElementById('tab-preset').classList.remove('on');">Custom Pro</button>
+    </div>
+
+    <div id="pnl-preset">
+        <label>Select Condition Template</label>
+        <select id="cfg-scenario-preset" style="margin-bottom:16px;font-size:13px;padding:10px;">
+            <option value="partial-liquidation">Partial Liquidation (-5%, cap 5 Qty)</option>
+            <option value="flash-crash">Flash Crash 10%</option>
+        </select>
+        <button id="btn-scenario-run" class="btn-success" style="width:100%;padding:10px;font-size:12px;font-weight:700;">⚡ EXECUTE PRESET SCENARIO</button>
+    </div>
+
+    <div id="pnl-custom" style="display:none;">
+        <div style="background:var(--input-bg);border-radius:10px;padding:12px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.03);">
+            <div style="font-size:10px;color:#c084fc;margin-bottom:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">1. Market Mechanics</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div><label>Price Shift (%) <span style="color:#64748b;">(e.g. -5)</span></label><input id="cfg-scen-pct" type="number" step="0.1" placeholder="-5"></div>
+                <div><label>Exact Target Price</label><input id="cfg-scen-target-price" type="number" step="0.1" placeholder="65000"></div>
+                <div><label>Max Qty Dump</label><input id="cfg-scen-qty" type="number" step="0.1" placeholder="Infinite"></div>
+                <div><label>Spread Bias (%)</label><input id="cfg-scen-bias" type="number" step="0.1" placeholder="5.0"></div>
+                <div><label>Exact Spread (%)</label><input id="cfg-scen-spread-pct" type="number" step="0.1" placeholder="2.0"></div>
+                <div>
+                    <label>Depth Skew</label>
+                    <select id="cfg-scen-skew" style="padding:8px 12px;font-size:12px;">
+                        <option value="">None (Normal Depth)</option>
+                        <option value="thin">Thin (2 Levels)</option>
+                        <option value="drain-bids">Drain Bids (1 Level)</option>
+                        <option value="drain-asks">Drain Asks (1 Level)</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Volume Profile</label>
+                    <select id="cfg-scen-profile" style="padding:8px 12px;font-size:12px;">
+                        <option value="">None (Copy Source)</option>
+                        <option value="flat">Flat (1.0 at all levels)</option>
+                        <option value="stepped">Stepped (Exp. increasing)</option>
+                        <option value="dust">Dust (0.001)</option>
+                        <option value="wall-bids">Wall Bids (10x vs 0.1x)</option>
+                        <option value="wall-asks">Wall Asks (10x vs 0.1x)</option>
+                    </select>
+                </div>
+                <div style="grid-column: 1 / -1;"><label>Jitter Noise (%)</label><input id="cfg-scen-jitter" type="number" step="0.1" placeholder="0.0" style="width:50%;"></div>
+            </div>
+        </div>
+        
+        <div style="background:var(--input-bg);border-radius:10px;padding:12px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.03);">
+            <div style="font-size:10px;color:#c084fc;margin-bottom:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">2. Time Envelope & Recovery</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
+                <div><label>Ramp (ms)</label><input id="cfg-scen-ramp" type="number" placeholder="1000"></div>
+                <div><label>Hold (ms)</label><input id="cfg-scen-hold" type="number" placeholder="3000"></div>
+                <div><label>Recover (ms)</label><input id="cfg-scen-rec" type="number" placeholder="2000"></div>
+            </div>
+            <div>
+                <label>Recovery Mode</label>
+                <select id="cfg-scen-recovery">
+                    <option value="linear">Auto (Linear)</option>
+                    <option value="none">None (Hold Shift Forever)</option>
+                    <option value="funding-premium">Funding Premium (Lock Forever)</option>
+                    <option value="ping-pong">Ping-Pong (Oscillate via Hold ms)</option>
+                </select>
+            </div>
+        </div>
+        
+        <button id="btn-scenario-custom" class="btn-purple" style="width:100%;padding:12px;font-size:12px;font-weight:700;">⚡ LAUNCH PRO SCENARIO</button>
+    </div>
+
+    <div style="margin-top:16px;border-top:1px solid rgba(244,63,94,0.2);padding-top:16px;">
+        <button id="btn-scenario-abort" class="btn-danger" style="width:100%;padding:12px;font-size:12px;font-weight:800;">🚨 PANIC ABORT & RECOVER</button>
+    </div>
+  </div>
+
+  <div id="cfg-msg" style="font-size:12px;font-weight:600;text-align:center;min-height:20px;margin-bottom:20px;"></div>
+</div>
+
+<div style="display:flex;gap:16px;padding:24px 24px 0;">
+  <div class="ticker-card panel-accent">
+    <div class="ticker-label">Binance LTP</div>
+    <div class="ticker-val" id="t-bltp" style="color:var(--yellow)">—</div>
+    <div class="ticker-sub">Last agg-trade price</div>
+  </div>
+  <div class="ticker-card" style="border-color:rgba(16,185,129,0.3);box-shadow:0 0 20px rgba(16,185,129,0.05);">
+    <div class="ticker-label">Stage LTP</div>
+    <div class="ticker-val" id="t-sltp" style="color:var(--cyan)">—</div>
+    <div class="ticker-sub">24h Ticker Websocket</div>
+  </div>
+  <div class="ticker-card" id="drift-card">
+    <div class="ticker-label">Basis Drift</div>
+    <div style="display:flex;align-items:baseline;gap:12px;margin-top:6px;">
+      <div class="ticker-val" id="t-drift" style="margin-top:0;">—</div>
+      <div id="t-dpct" style="font-size:13px;color:var(--text-muted);font-weight:600;font-family:'JetBrains Mono',monospace;">—</div>
+    </div>
+    <div class="hbar"><div class="hbar-fill" id="drift-bar" style="width:0%;background:var(--cyan)"></div></div>
+  </div>
+  <div class="ticker-card">
+    <div class="ticker-label">Binance Spread</div>
+    <div style="display:flex;align-items:baseline;gap:12px;margin-top:6px;">
+      <div class="ticker-val" id="t-bspread" style="color:var(--purple);margin-top:0;">—</div>
+      <div id="t-bspct" style="font-size:13px;color:var(--text-muted);font-weight:600;font-family:'JetBrains Mono',monospace;">—</div>
+    </div>
+    <div class="ticker-sub" style="margin-top:6px;">Best ask − Best bid</div>
+  </div>
+</div>
+
+<div id="tv-chart-wrapper" style="display:block; padding: 0 24px 24px;">
+  <div class="panel" style="display:flex; flex-direction:column; overflow:hidden;">
+    <div style="padding:14px 16px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:var(--input-bg); cursor:pointer;" onclick="window.toggleTVChart()">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div id="tv-chevron" style="color:var(--text-muted);font-size:14px;transition:transform 0.2s;transform:rotate(-90deg);">▼</div>
+        <div>
+          <div class="sec-label">Testnet Klines</div>
+          <div class="sec-title" id="tv-chart-title" style="color:var(--cyan);display:flex;align-items:center;gap:8px;">TradingView Chart</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:4px;align-items:center;" id="tv-timeframes" onclick="event.stopPropagation()">
+        <button class="tv-tf-btn on" data-tf="1s">1s</button>
+        <button class="tv-tf-btn" data-tf="1m">1m</button>
+        <button class="tv-tf-btn" data-tf="3m">3m</button>
+        <button class="tv-tf-btn" data-tf="5m">5m</button>
+        <button class="tv-tf-btn" data-tf="15m">15m</button>
+        <button class="tv-tf-btn" data-tf="30m">30m</button>
+        <button class="tv-tf-btn" data-tf="1h">1H</button>
+        <button class="tv-tf-btn" data-tf="4h">4H</button>
+        <button class="tv-tf-btn" data-tf="1d">1D</button>
+      </div>
+    </div>
+    <div id="tv-chart-container" style="display:none; height:400px; flex-direction:column; width:100%; border-top:1px solid var(--border); position: relative;">
+      <div id="tv-tooltip" style="position:absolute; top:8px; left:12px; z-index:50; background:transparent; border:none; padding:0; font-family:'JetBrains Mono',monospace; font-size:12px; display:none; pointer-events:none; color:var(--text-main);"></div>
+      <div id="tv-chart" style="flex:1; width:100%;"></div>
+    </div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr 380px;gap:16px;padding:24px;">
+  <div class="panel" style="display:flex;flex-direction:column;height:550px;overflow:hidden;">
+    <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);">
+      <div><div class="sec-label">Source</div><div class="sec-title" style="color:var(--yellow)">Binance Perpetual</div></div>
+      <div id="bin-spread-badge" style="font-size:11px;padding:4px 10px;border-radius:99px;background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);color:#c084fc;font-weight:600;letter-spacing:1px;">Spread —</div>
+    </div>
+    <div class="book-hdr"><span>Price</span><span style="text-align:center;">Size</span><span style="text-align:right;">Total</span></div>
+    <div style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column-reverse;padding:4px 0;" id="bin-asks"></div>
+    <div class="d-spread" id="bin-spread-mid">Spread —</div>
+    <div style="flex:1;min-height:0;overflow-y:auto;padding:4px 0;" id="bin-bids"></div>
+  </div>
+  
+  <div class="panel panel-accent" style="display:flex;flex-direction:column;height:550px;overflow:hidden;">
+    <div style="padding:14px 16px;border-bottom:1px solid rgba(6,182,212,0.15);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);">
+      <div><div class="sec-label">Target · Testnet WS</div><div class="sec-title" style="color:var(--cyan)">Stage Orderbook</div></div>
+      <div id="stage-spread-badge" style="font-size:11px;padding:4px 10px;border-radius:99px;background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.3);color:var(--cyan);font-weight:600;letter-spacing:1px;">Spread —</div>
+    </div>
+    <div class="book-hdr"><span>Price</span><span style="text-align:center;">Size</span><span style="text-align:right;">Total</span></div>
+    <div style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column-reverse;padding:4px 0;" id="stage-asks"></div>
+    <div class="d-spread" id="stage-spread-mid" style="background:rgba(6,182,212,0.05);color:var(--cyan);border-color:rgba(6,182,212,0.1);">Spread —</div>
+    <div style="flex:1;min-height:0;overflow-y:auto;padding:4px 0;" id="stage-bids"></div>
+  </div>
+  
+  <div class="panel panel-accent" style="display:flex;flex-direction:column;border-color:rgba(16,185,129,0.3);box-shadow:0 0 20px rgba(16,185,129,0.05);">
+    <div style="padding:14px 16px;border-bottom:1px solid rgba(16,185,129,0.15);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);">
+      <div><div class="sec-label" style="color:var(--text-muted)">Manual Execution</div><div class="sec-title" style="color:#10b981;display:flex;align-items:center;gap:8px;"><div style="width:4px;height:14px;background:#10b981;border-radius:2px;box-shadow:0 0 10px rgba(16,185,129,0.5);"></div>Order Terminal</div></div>
+    </div>
+    <div style="padding:16px;flex:1;display:flex;flex-direction:column;">
+      <div style="margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:6px;"><label>Select Account</label></div>
+        <select id="sel-trade-user" style="padding:10px 12px;font-size:12px;width:100%;margin-bottom:4px;" onchange="window.setTradeUser(this.value)"></select>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;background:var(--input-bg);padding:8px 12px;border-radius:8px;">
+          <span style="font-size:11px;color:var(--text-muted);font-weight:600;">Manual Override Lock</span>
+          <div class="tog off" id="tog-manual-lock" onclick="window.toggleManualLock()"></div>
+      </div>
+      <div style="margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:6px;"><label>Order Type</label></div>
+        <select id="trade-type" style="padding:10px 12px;font-size:12px;margin-bottom:12px;width:100%;" onchange="window.updateTradeFormUI()">
+          <option value="MARKET">Market</option>
+          <option value="LIMIT">Limit</option>
+          <option value="STOP">Stop</option>
+          <option value="STOP_MARKET">Stop Market</option>
+          <option value="TAKE_PROFIT">Take Profit</option>
+          <option value="TAKE_PROFIT_MARKET">Take Profit Market</option>
+          <option value="TRAILING_STOP_MARKET">Trailing Stop Market</option>
+        </select>
+        
+        <div id="trade-qty-wrap">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:6px;"><label>Quantity (Base)</label></div>
+          <input id="trade-qty" type="number" step="0.001" placeholder="0.0" style="margin-bottom:12px;font-size:14px;padding:10px 12px;width:100%;background:var(--input-bg);border:1px solid var(--border);color:var(--text-main);border-radius:6px;outline:none;">
+        </div>
+        <div id="trade-price-wrap" style="display:none;">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:6px;"><label>Price (USDT)</label></div>
+          <input id="trade-price" type="number" step="0.1" placeholder="0.0" style="margin-bottom:12px;font-size:14px;padding:10px 12px;width:100%;background:var(--input-bg);border:1px solid var(--border);color:var(--text-main);border-radius:6px;outline:none;">
+        </div>
+        <div id="trade-stop-price-wrap" style="display:none;">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:6px;"><label>Stop Price (USDT)</label></div>
+          <input id="trade-stop-price" type="number" step="0.1" placeholder="0.0" style="margin-bottom:12px;font-size:14px;padding:10px 12px;width:100%;background:var(--input-bg);border:1px solid var(--border);color:var(--text-main);border-radius:6px;outline:none;">
+        </div>
+        <div id="trade-callback-wrap" style="display:none;">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:6px;"><label>Callback Rate (%)</label></div>
+          <input id="trade-callback-rate" type="number" step="0.1" placeholder="1.0" style="margin-bottom:12px;font-size:14px;padding:10px 12px;width:100%;background:var(--input-bg);border:1px solid var(--border);color:var(--text-main);border-radius:6px;outline:none;">
+        </div>
+        <div id="trade-tif-wrap" style="display:none;">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:6px;"><label>Time in Force</label></div>
+          <select id="trade-tif" style="padding:10px 12px;font-size:12px;margin-bottom:12px;width:100%;">
+            <option value="GTC">GTC (Good Till Cancel)</option>
+            <option value="IOC">IOC (Immediate or Cancel)</option>
+            <option value="FOK">FOK (Fill or Kill)</option>
+            <option value="GTX">GTX (Post Only)</option>
+          </select>
+        </div>
+        <div id="trade-stp-wrap" style="display:block;">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:6px;"><label>Self-Trade Prevention (STP)</label></div>
+          <select id="trade-stp" style="padding:10px 12px;font-size:12px;margin-bottom:12px;width:100%;">
+            <option value="NONE">NONE (Default)</option>
+            <option value="EXPIRE_TAKER">EXPIRE_TAKER</option>
+            <option value="EXPIRE_MAKER">EXPIRE_MAKER</option>
+            <option value="EXPIRE_BOTH">EXPIRE_BOTH</option>
+          </select>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);padding:8px 12px;border-radius:8px;margin-bottom:8px;">
+            <span style="font-size:11px;color:var(--text-muted);font-weight:600;">Reduce Only</span>
+            <input type="checkbox" id="trade-reduce-only" style="cursor:pointer;width:16px;height:16px;accent-color:var(--cyan);">
+        </div>
+      </div>
+      <div style="flex:1;"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <button id="btn-buy" class="btn-success" style="padding:14px;font-size:13px;font-weight:700;letter-spacing:1px;box-shadow:0 0 15px rgba(16,185,129,0.2);" onclick="window.submitManualTrade('BUY')">BUY / LONG</button>
+        <button id="btn-sell" class="btn-primary" style="padding:14px;font-size:13px;font-weight:700;letter-spacing:1px;background:#f43f5e;color:white;border:none;box-shadow:0 0 15px rgba(244,63,94,0.2);" onclick="window.submitManualTrade('SELL')" onmouseover="this.style.background='#e11d48'" onmouseout="this.style.background='#f43f5e'">SELL / SHORT</button>
+      </div>
+      <button id="btn-close" class="btn-purple" style="width:100%;padding:10px;font-size:11px;font-weight:700;letter-spacing:1px;box-shadow:0 0 15px rgba(168,85,247,0.2);margin-top:auto;" onclick="window.submitClosePosition()">⚡ CLOSE / EXIT POSITION</button>
+    </div>
+  </div>
+</div>
+
+
+<div style="display:grid;grid-template-columns:1fr 1fr 340px;gap:16px;padding:0 24px 24px;">
+  <div class="panel" style="display:flex;flex-direction:column;height:550px;overflow:hidden;" id="u1-panel">
+    <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:10px;height:10px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px rgba(6,182,212,0.5);"></div>
+        <div><div class="sec-label">Portfolio View 1</div><div class="sec-title" id="u1-title" style="display:flex;align-items:center;gap:6px;">
+          <select id="sel-port-u1" onchange="window.renderPortfolios(); event.stopPropagation();" style="background:transparent;color:var(--text-main);border:none;font-size:16px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;outline:none;padding:0;margin:0;"></select>
+        </div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;" id="u1-chips"></div>
+      </div>
+    </div>
+    <div style="display:flex;border-bottom:1px solid var(--border);background:rgba(0,0,0,0.1);flex-shrink:0;">
+      <button id="tab-u1-pos" class="tab on" style="flex:1" onclick="window.setPortTab('u1', 'pos')">Positions</button>
+      <button id="tab-u1-open" class="tab" style="flex:1" onclick="window.setPortTab('u1', 'open')">Open Orders</button>
+      <button id="tab-u1-hist" class="tab" style="flex:1" onclick="window.setPortTab('u1', 'hist')">Order History</button>
+    </div>
+    <div id="u1-body-wrap" style="display:flex;flex-direction:column;flex:1;min-height:0;">
+      <div id="u1-err" class="err-banner" style="display:none;flex-shrink:0;"></div>
+      <div style="flex:1;overflow-y:auto;overflow-x:auto;" id="u1-scroll">
+        <table>
+          <thead><tr><th>Symbol</th><th style="text-align:right;">Lev</th><th style="text-align:right;">Margin</th><th style="text-align:right;">Size</th><th style="text-align:right;">Unreal. PnL</th><th style="text-align:right;">Entry</th><th style="text-align:right;">Mark</th><th style="text-align:right;">Liq.</th><th style="text-align:right;width:160px;">Actions</th></tr></thead>
+          <tbody id="u1-body"><tr><td colspan="9" style="text-align:center;padding:40px 0;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;font-family:'Inter',sans-serif;font-weight:600;">No active positions</td></tr></tbody>
+        </table>
+      </div>
+      <div id="u1-pagination" style="display:none;align-items:center;justify-content:center;gap:12px;padding:12px;background:var(--input-bg);border-top:1px solid var(--border);">
+          <button class="pg-btn" onclick="window.changePage('u1', -1)">&lt; Prev</button>
+          <span id="u1-page-info" style="font-size:11px;font-weight:600;color:var(--text-muted);">Page 1 of 1</span>
+          <button class="pg-btn" onclick="window.changePage('u1', 1)">Next &gt;</button>
+      </div>
+    </div>
+  </div>
+  
+  <div class="panel" style="display:flex;flex-direction:column;height:550px;overflow:hidden;" id="u2-panel">
+    <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:10px;height:10px;border-radius:50%;background:var(--yellow);box-shadow:0 0 10px rgba(234,179,8,0.5);"></div>
+        <div><div class="sec-label">Portfolio View 2</div><div class="sec-title" id="u2-title" style="display:flex;align-items:center;gap:6px;">
+          <select id="sel-port-u2" onchange="window.renderPortfolios(); event.stopPropagation();" style="background:transparent;color:var(--text-main);border:none;font-size:16px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;outline:none;padding:0;margin:0;"></select>
+        </div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;" id="u2-chips"></div>
+      </div>
+    </div>
+    <div style="display:flex;border-bottom:1px solid var(--border);background:rgba(0,0,0,0.1);flex-shrink:0;">
+      <button id="tab-u2-pos" class="tab on" style="flex:1" onclick="window.setPortTab('u2', 'pos')">Positions</button>
+      <button id="tab-u2-open" class="tab" style="flex:1" onclick="window.setPortTab('u2', 'open')">Open Orders</button>
+      <button id="tab-u2-hist" class="tab" style="flex:1" onclick="window.setPortTab('u2', 'hist')">Order History</button>
+    </div>
+    <div id="u2-body-wrap" style="display:flex;flex-direction:column;flex:1;min-height:0;">
+      <div id="u2-err" class="err-banner" style="display:none;flex-shrink:0;"></div>
+      <div style="flex:1;overflow-y:auto;overflow-x:auto;" id="u2-scroll">
+        <table>
+          <thead><tr><th>Symbol</th><th style="text-align:right;">Lev</th><th style="text-align:right;">Margin</th><th style="text-align:right;">Size</th><th style="text-align:right;">Unreal. PnL</th><th style="text-align:right;">Entry</th><th style="text-align:right;">Mark</th><th style="text-align:right;">Liq.</th><th style="text-align:right;width:160px;">Actions</th></tr></thead>
+          <tbody id="u2-body"><tr><td colspan="9" style="text-align:center;padding:40px 0;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;font-family:'Inter',sans-serif;font-weight:600;">No active positions</td></tr></tbody>
+        </table>
+      </div>
+        <div id="u2-pagination" style="display:none;align-items:center;justify-content:center;gap:12px;padding:12px;background:var(--input-bg);border-top:1px solid var(--border);">
+          <button class="pg-btn" onclick="window.changePage('u2', -1)">&lt; Prev</button>
+          <span id="u2-page-info" style="font-size:11px;font-weight:600;color:var(--text-muted);">Page 1 of 1</span>
+          <button class="pg-btn" onclick="window.changePage('u2', 1)">Next &gt;</button>
+        </div>
+    </div>
+  </div>
+
+  <div class="panel" style="display:flex;flex-direction:column;height:550px;overflow:hidden;">
+    <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);flex-shrink:0;">
+      <div><div class="sec-label">Execution Sync</div><div class="sec-title" style="color:#c084fc;display:flex;align-items:center;gap:8px;"><div style="width:4px;height:14px;background:#c084fc;border-radius:2px;box-shadow:0 0 10px rgba(192,132,252,0.5);"></div>LTP Cross Stream</div></div>
+      <div style="display:flex;gap:8px;"><span id="t-trok" class="badge badge-ok">0 OK</span><span id="t-trfail" class="badge badge-fail">0 FAIL</span></div>
+    </div>
+    <div style="display:flex;border-bottom:1px solid var(--border);background:rgba(0,0,0,0.1);flex-shrink:0;">
+      <button class="tab on" style="flex:1" data-f="all">All</button>
+      <button class="tab" style="flex:1" data-f="ok">Filled</button>
+      <button class="tab" style="flex:1" data-f="fail">Failed</button>
+    </div>
+      <div style="flex:1;overflow-y:auto;min-height:0;" id="trade-stream-scroll">
+        <div id="trade-stream" style="text-align:center;padding:60px 0;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Awaiting trades...</div>
+      </div>
+        <div id="trades-pagination" style="display:none;align-items:center;justify-content:center;gap:12px;padding:12px;background:var(--input-bg);border-top:1px solid var(--border);">
+          <button class="pg-btn" onclick="window.changePage('trades', -1)">&lt; Prev</button>
+          <span id="trades-page-info" style="font-size:11px;font-weight:600;color:var(--text-muted);">Page 1 of 1</span>
+          <button class="pg-btn" onclick="window.changePage('trades', 1)">Next &gt;</button>
+        </div>
+  </div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:16px;padding:0 24px 24px;">
+  <div class="panel" style="background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;height:400px;box-shadow:var(--shadow);transition:height 0.3s;" id="term-panel">
+    <div style="background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:12px;min-height:48px;">
+      <div style="font-family:'Inter',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;margin-right:12px;">Terminal</div>
+      <div style="display:flex;gap:8px;">
+        <div id="term-tab-live" class="term-tab on" style="padding:6px 14px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;letter-spacing:0.5px;color:var(--text-main);background:rgba(6,182,212,0.15);border:1px solid rgba(6,182,212,0.3);border-radius:6px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:6px;" onclick="event.stopPropagation(); window.setTermTab('live')">
+          <span style="color:var(--cyan)">⚡</span> All Logs
+        </div>
+        <div id="term-tab-info" class="term-tab" style="padding:6px 14px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;letter-spacing:0.5px;color:var(--text-muted);background:var(--row-bg);border:1px solid transparent;border-radius:6px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:6px;" onclick="event.stopPropagation(); window.setTermTab('info')">
+          <span style="color:#3b82f6">ℹ</span> Info
+        </div>
+        <div id="term-tab-success" class="term-tab" style="padding:6px 14px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;letter-spacing:0.5px;color:var(--text-muted);background:var(--row-bg);border:1px solid transparent;border-radius:6px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:6px;" onclick="event.stopPropagation(); window.setTermTab('success')">
+          <span style="color:#10b981">✔</span> Success
+        </div>
+        <div id="term-tab-err" class="term-tab" style="padding:6px 14px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;letter-spacing:0.5px;color:var(--text-muted);background:var(--row-bg);border:1px solid transparent;border-radius:6px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:6px;" onclick="event.stopPropagation(); window.setTermTab('err')">
+          <span style="color:#ef4444">⚠</span> Errors
+        </div>
+        <div id="term-tab-events" class="term-tab" style="padding:6px 14px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;letter-spacing:0.5px;color:var(--text-muted);background:var(--row-bg);border:1px solid transparent;border-radius:6px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:6px;" onclick="event.stopPropagation(); window.setTermTab('events')">
+          <span style="color:#a855f7">🔌</span> Events
+        </div>
+      </div>
+      <div style="flex:1;"></div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <input id="term-search" type="text" placeholder="Search logs..." style="width:160px;padding:6px 10px;font-size:11px;background:var(--input-bg);border:1px solid var(--border);color:var(--text-main);border-radius:6px;outline:none;" oninput="window.renderTerminalLogs(window.activeTermTab === 'events' ? window.cachedTerminalEvents : window.cachedTerminalLogs)">
+        <button onclick="event.stopPropagation(); window.clearTerminal()" style="background:transparent;border:1px solid var(--border);color:var(--text-muted);border-radius:6px;padding:4px 8px;font-size:9px;cursor:pointer;font-weight:700;font-family:'Inter',sans-serif;transition:all 0.2s;" onmouseover="this.style.color='var(--text-main)';this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.color='var(--text-muted)';this.style.background='transparent'">CLEAR</button>
+        <div style="display:flex;align-items:center;gap:6px;cursor:pointer;padding-right:8px;border-right:1px solid var(--border);" onclick="event.stopPropagation(); window.toggleAutoScroll()">
+            <span style="font-size:9px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Auto-Scroll</span>
+            <div id="term-scroll-tog" class="tog on" style="transform:scale(0.8)"></div>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted);font-weight:500;opacity:0.5;">~/replicator/daemon</div>
+      </div>
+    </div>
+    
+    <div id="mobile-term-tabs" style="display:none; border-bottom:1px solid var(--border); background:var(--input-bg); flex-shrink:0;">
+       <button id="mtab-logs" class="tab on" style="flex:1" onclick="window.setMobileTermTab('logs')">Logs</button>
+       <button id="mtab-payload" class="tab" style="flex:1" onclick="window.setMobileTermTab('payload')">Payload</button>
+       <button id="mtab-response" class="tab" style="flex:1" onclick="window.setMobileTermTab('response')">Response</button>
+    </div>
+    <div id="term-body-wrap" class="term-scanline show-logs" style="flex:1;display:flex;flex-direction:row;min-height:0;">
+      <div id="live-terminal" class="term-content" style="flex:1; border-right:1px solid var(--border); overflow-y:auto; padding:12px; font-family:'JetBrains Mono',monospace;">
+        <div style="color:#64748b;margin-bottom:12px;font-style:italic;">Initializing replication daemon... Waiting for SSE stream.</div>
+      </div>
+      <div id="term-details-pane" style="width:400px; display:flex; flex-direction:column; background:var(--panel);">
+        <div id="term-desktop-details-tabs" style="display:flex; border-bottom:1px solid var(--border); background:var(--input-bg); flex-shrink:0;">
+           <button id="dtab-payload" class="tab on" style="flex:1;font-size:10px;padding:8px 0;" onclick="window.setDetailsTab('payload')">Payload</button>
+           <button id="dtab-response" class="tab" style="flex:1;font-size:10px;padding:8px 0;" onclick="window.setDetailsTab('response')">Response</button>
+        </div>
+        <div id="term-details-content" style="flex:1; overflow-y:auto; padding:12px; font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-dim); white-space:pre-wrap; word-break:break-all;">
+           <div style="text-align:center; padding:40px 0; color:var(--text-muted); font-style:italic;">Select a log to view details</div>
+        </div>
+      </div>
+    </div>
+    </div>
+  </div>
+</div>
+
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+    try {
+        window.payload = { users: {}, roles: { makerId: '', takerId: '' }, portfolios: {} };
+        window.tradeUser = ''; // Active trade user ID
+        window.u1Tab = 'pos';
+        window.u2Tab = 'pos';
+        window.pagination = { u1: 1, u2: 1, trades: 1 };
+        window.PAGE_SIZE = 50;
+
+        window.fetchedOrders = { 'u1': { open: [], hist: [] }, 'u2': { open: [], hist: [] } };
+        window.fetchOrders = async function(u, tab) {
+            if (tab === 'pos' || !activeTabSymbol) return;
+            const bodyEl = document.getElementById(u + '-' + tab + '-tbody');
+            if (bodyEl) {
+                const colSpan = tab === 'hist' ? 7 : 8;
+                bodyEl.innerHTML = '<tr><td colspan="'+colSpan+'" style="text-align:center;padding:40px 0;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Loading...</td></tr>';
+            }
+            const endpoint = tab === 'open' ? '/fapi/v1/openOrders' : '/fapi/v1/allOrders';
+            const userTag = u === 'u1' ? '1' : '2';
+            const reqBody = { _method: 'GET', symbol: activeTabSymbol, limit: window.PAGE_SIZE, page: window.pagination[u] };
+            
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-replicator-user': 'user' + userTag },
+                    body: JSON.stringify(reqBody)
+                });
+                const data = await res.json();
+                window.fetchedOrders[u][tab] = Array.isArray(data) ? data : [];
+            } catch (e) {
+                window.fetchedOrders[u][tab] = [];
+            }
+            window.renderPortfolios();
+        };
+
+        window.changePage = function(type, delta) {
+            const newPage = window.pagination[type] + delta;
+            if (newPage > 0) {
+                window.pagination[type] = newPage;
+                if (type === 'trades' && cachedInstances[activeTabSymbol]) {
+                    updateTradeStream(cachedInstances[activeTabSymbol].syncedTrades);
+                } else if (type === 'u1' || type === 'u2') {
+                    if (window[type + 'Tab'] !== 'pos') {
+                        window.fetchOrders(type, window[type + 'Tab']);
+                    } else {
+                        window.renderPortfolios();
+                    }
+                }
+            }
+        };
+
+        window.setPortTab = function(u, tab) {
+            window[u + 'Tab'] = tab;
+            window.pagination[u] = 1; // Reset to page 1
+            const p = document.getElementById(u + '-panel');
+            if (p) {
+                p.querySelectorAll('.tab').forEach(b => b.classList.remove('on'));
+                const btn = document.getElementById('tab-' + u + '-' + tab);
+                if (btn) btn.classList.add('on');
+            }
+            if (tab !== 'pos') {
+                window.fetchOrders(u, tab);
+            } else {
+                window.renderPortfolios();
+            }
+        };
+
+        // Custom Dropdown Engine
+        window.initCustomSelects = function() {
+            document.querySelectorAll('select').forEach(sel => {
+                if (sel.nextElementSibling && sel.nextElementSibling.classList.contains('custom-select-wrapper')) return; // already init
+                sel.style.display = 'none';
+                const wrapper = document.createElement('div');
+                wrapper.className = 'custom-select-wrapper';
+                
+                const customSel = document.createElement('div');
+                customSel.className = 'custom-select';
+                
+                const selText = document.createElement('span');
+                const selIcon = document.createElement('span');
+                selIcon.innerHTML = `<svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+                selIcon.style.display = 'flex';
+                selIcon.style.alignItems = 'center';
+                selIcon.style.color = 'var(--text-muted)';
+                selIcon.style.transition = 'transform 0.2s';
+                
+                customSel.appendChild(selText);
+                customSel.appendChild(selIcon);
+                
+                const optionsDiv = document.createElement('div');
+                optionsDiv.className = 'custom-select-options';
+                
+                wrapper.appendChild(customSel);
+                wrapper.appendChild(optionsDiv);
+                sel.parentNode.insertBefore(wrapper, sel.nextSibling);
+                
+                wrapper.updateOptions = function() {
+                    optionsDiv.innerHTML = '';
+                    let selectedHtml = '';
+                    Array.from(sel.options).forEach(opt => {
+                        if (opt.selected) selectedHtml = opt.innerHTML;
+                        const optDiv = document.createElement('div');
+                        optDiv.className = 'custom-option' + (opt.selected ? ' selected' : '');
+                        optDiv.innerHTML = opt.innerHTML;
+                        optDiv.onclick = (e) => {
+                            e.stopPropagation();
+                            sel.value = opt.value;
+                            sel.dispatchEvent(new Event('change'));
+                            customSel.classList.remove('open');
+                            optionsDiv.classList.remove('open');
+                            selIcon.style.transform = 'none';
+                            wrapper.updateOptions();
+                        };
+                        optionsDiv.appendChild(optDiv);
+                    });
+                    selText.innerHTML = selectedHtml;
+                };
+                
+                sel.addEventListener('change', wrapper.updateOptions);
+                wrapper.updateOptions();
+                
+                customSel.onclick = (e) => {
+                    e.stopPropagation();
+                    const isOpen = customSel.classList.contains('open');
+                    document.querySelectorAll('.custom-select.open').forEach(el => el.classList.remove('open'));
+                    document.querySelectorAll('.custom-select-options.open').forEach(el => el.classList.remove('open'));
+                    document.querySelectorAll('.custom-select span:last-child').forEach(el => el.style.transform = 'none');
+                    if (!isOpen) {
+                        customSel.classList.add('open');
+                        optionsDiv.classList.add('open');
+                        selIcon.style.transform = 'rotate(180deg)';
+                    }
+                };
+            });
+        };
+
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.custom-select.open').forEach(el => el.classList.remove('open'));
+            document.querySelectorAll('.custom-select-options.open').forEach(el => el.classList.remove('open'));
+            document.querySelectorAll('.custom-select span:last-child').forEach(el => el.style.transform = 'none');
+        });
+
+        window.renderUsers = function(users, roles) {
+            window.payload.users = users;
+            window.payload.roles = roles;
+
+            const uList = document.getElementById('cfg-users-list');
+            const roleMaker = document.getElementById('cfg-role-maker');
+            const roleTaker = document.getElementById('cfg-role-taker');
+            const tradeUser = document.getElementById('sel-trade-user');
+            const selPort1 = document.getElementById('sel-port-u1');
+            const selPort2 = document.getElementById('sel-port-u2');
+
+            // Save old selections
+            const oldR1 = roleMaker.value;
+            const oldR2 = roleTaker.value;
+            const oldTU = tradeUser.value;
+            const oldP1 = selPort1.value;
+            const oldP2 = selPort2.value;
+
+            // Render users list in Config Drawer
+            const uListHtml = Object.keys(users).map(k => {
+                const u = users[k];
+                const isMaker = roles.makerId === k;
+                const isTaker = roles.takerId === k;
+                let badges = '';
+                if (isMaker) badges += '<span style="background:rgba(16,185,129,0.2);color:#10b981;padding:2px 6px;border-radius:4px;font-size:9px;margin-left:8px;">Maker</span>';
+                if (isTaker) badges += '<span style="background:rgba(234,179,8,0.2);color:#eab308;padding:2px 6px;border-radius:4px;font-size:9px;margin-left:4px;">Taker</span>';
+                
+                return `
+                <div style="background:var(--input-bg);padding:10px 12px;border-radius:6px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <div style="font-size:12px;font-weight:600;color:var(--text-main);">${u.label} <span style="color:var(--text-muted);font-weight:400;font-size:10px;">(${k})</span>${badges}</div>
+                        <div style="font-size:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;">Key: ${u.key ? u.key.substring(0,8)+'...' : 'None'}</div>
+                    </div>
+                </div>`;
+            }).join('');
+            
+            if (uList.innerHTML !== uListHtml) {
+                uList.innerHTML = uListHtml;
+            }
+
+            // Helper to render <select> options
+            const optionsHtml = Object.keys(users).map(k => `<option value="${k}">${users[k].label}</option>`).join('');
+            let optionsChanged = false;
+            if (window.lastOptionsHtml !== optionsHtml) {
+                window.lastOptionsHtml = optionsHtml;
+                optionsChanged = true;
+                roleMaker.innerHTML = optionsHtml;
+                roleTaker.innerHTML = optionsHtml;
+                tradeUser.innerHTML = optionsHtml;
+                selPort1.innerHTML = optionsHtml;
+                selPort2.innerHTML = optionsHtml;
+            }
+
+            // Track previous global roles to detect deliberate changes
+            const globalMakerChanged = window.lastMakerId && window.lastMakerId !== roles.makerId;
+            const globalTakerChanged = window.lastTakerId && window.lastTakerId !== roles.takerId;
+
+            window.lastMakerId = roles.makerId;
+            window.lastTakerId = roles.takerId;
+
+            // Always respect the global roles if they changed from backend
+            if (roleMaker.value !== roles.makerId) roleMaker.value = roles.makerId;
+            if (roleTaker.value !== roles.takerId) roleTaker.value = roles.takerId;
+            
+            // For order terminal and portfolios, set default if empty or invalid
+            if (optionsChanged) {
+                tradeUser.value = oldTU && users[oldTU] ? oldTU : roles.makerId;
+                selPort1.value = oldP1 && users[oldP1] ? oldP1 : roles.makerId;
+                selPort2.value = oldP2 && users[oldP2] ? oldP2 : roles.takerId;
+            } else {
+                if (!tradeUser.value || !users[tradeUser.value]) tradeUser.value = roles.makerId;
+                if (!selPort1.value || !users[selPort1.value]) selPort1.value = roles.makerId;
+                if (!selPort2.value || !users[selPort2.value]) selPort2.value = roles.takerId;
+            }
+
+            // Snap portfolio to new maker/taker if global role was just deliberately changed
+            if (globalMakerChanged) selPort1.value = roles.makerId;
+            if (globalTakerChanged) selPort2.value = roles.takerId;
+            
+            window.tradeUser = tradeUser.value;
+
+            // Force custom dropdown wrappers to sync with their underlying <select> values
+            if (optionsChanged || globalMakerChanged || globalTakerChanged) {
+                document.querySelectorAll('.custom-select-wrapper').forEach(wrapper => {
+                    if (wrapper.updateOptions) wrapper.updateOptions();
+                });
+            }
+        };
+
+        window.renderPortfolios = function() {
+            const p1 = document.getElementById('sel-port-u1').value;
+            const p2 = document.getElementById('sel-port-u2').value;
+            if (!p1 || !p2 || !window.payload.portfolios) return;
+            
+            const port1 = window.payload.portfolios[p1] || {};
+            const port2 = window.payload.portfolios[p2] || {};
+            
+            // the second arg in fapiAction for portfolio 1 is now the exact user ID `p1`
+            // same for p2. But we need to define renderPortfolio globally.
+            if (typeof renderPortfolio === 'function') {
+                renderPortfolio(port1, document.getElementById('u1-err'), document.getElementById('u1-chips'), document.getElementById('u1-title'), document.getElementById('u1-body'), p1, window.u1Tab, 'u1');
+                renderPortfolio(port2, document.getElementById('u2-err'), document.getElementById('u2-chips'), document.getElementById('u2-title'), document.getElementById('u2-body'), p2, window.u2Tab, 'u2');
+            }
+        };
+
+        window.isGeneratingAccount = false;
+        window.autoGenerateUser = function() {
+            if (window.isGeneratingAccount) return showToast('Account creation in progress, please wait...', true);
+            window.isGeneratingAccount = true;
+            
+            // Find next available user number
+            const currentUsers = Object.keys(window.payload?.users || {});
+            let maxNum = 0;
+            for (let k of currentUsers) {
+                if (k.startsWith('user')) {
+                    const num = parseInt(k.replace('user',''));
+                    if (!isNaN(num) && num > maxNum) maxNum = num;
+                }
+            }
+            const newId = 'user' + (maxNum + 1);
+            showToast('Generating new account: ' + newId + '...');
+            
+            const btn = document.querySelector('button[onclick="window.autoGenerateUser()"]');
+            if (btn) {
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+                btn.textContent = 'Generating...';
+            }
+            
+            fetch('/api/users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'generate', id: newId })
+            }).then(r => r.json()).then(r => {
+                window.isGeneratingAccount = false;
+                if (btn) {
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    btn.textContent = '⚡ Auto-Generate Account';
+                }
+                if(r.success) {
+                    showToast('✓ Generated ' + newId);
+                } else {
+                    showToast('✗ ' + (r.error || 'Unknown error'), true);
+                }
+            }).catch(e => {
+                window.isGeneratingAccount = false;
+                if (btn) {
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    btn.textContent = '⚡ Auto-Generate Account';
+                }
+                showToast('✗ Error: ' + e.message, true);
+            });
+        };
+
+        window.saveRoles = function() {
+            const makerId = document.getElementById('cfg-role-maker').value;
+            const takerId = document.getElementById('cfg-role-taker').value;
+            fetch('/api/users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'setRoles', makerId, takerId })
+            }).then(r => r.json()).then(r => {
+                if(!r.success) alert(r.error);
+            });
+        };
+
+        window.setTradeUser = function(val) {
+            window.tradeUser = val;
+        };
+        window.togglePanel = function(id) {
+            const wrap = document.getElementById(id + '-body-wrap');
+            const chev = document.getElementById(id + '-chev');
+            const panel = document.getElementById(id + '-panel');
+            if (wrap.style.display === 'none') {
+                wrap.style.display = id === 'term' ? 'flex' : 'block';
+                chev.style.transform = 'rotate(0deg)';
+                if (id === 'term') panel.style.height = '400px';
+            } else {
+                wrap.style.display = 'none';
+                chev.style.transform = 'rotate(-90deg)';
+                if (id === 'term') panel.style.height = '48px';
+            }
+        };
+
+        window.fapiAction = async function(action, userId, symbol, currentSide) {
+            let endpoint = '';
+            let payload = { symbol };
+            
+            if (action === 'lev') {
+                const lev = prompt(`Set leverage for ${symbol} (e.g. 10):`);
+                if (!lev) return;
+                endpoint = '/fapi/v1/leverage';
+                payload.leverage = parseInt(lev);
+            } else if (action === 'marg') {
+                const amt = prompt(`Margin Amount to add/reduce for ${symbol}:`);
+                if (!amt) return;
+                const type = confirm(`Click OK to ADD margin, Cancel to REDUCE margin`) ? 1 : 2;
+                endpoint = '/fapi/v1/positionMargin';
+                payload.amount = parseFloat(amt);
+                payload.type = type;
+            } else if (action === 'red') {
+                const qty = prompt(`Quantity to REDUCE for ${symbol}:`);
+                if (!qty) return;
+                const type = prompt(`Order Type (MARKET / LIMIT):`, "MARKET");
+                if (!type) return;
+                endpoint = '/fapi/v1/order';
+                payload.side = currentSide === 'LONG' ? 'SELL' : 'BUY';
+                payload.type = type.toUpperCase();
+                payload.quantity = parseFloat(qty);
+                payload.reduceOnly = 'true';
+                if (payload.type === 'LIMIT') {
+                    const price = prompt(`Limit Price:`);
+                    if (!price) return;
+                    payload.price = parseFloat(price);
+                    payload.timeInForce = 'GTC';
+                }
+            } else if (action === 'cancel') {
+                if (!confirm(`Are you sure you want to CANCEL this order?`)) return;
+                endpoint = '/fapi/v1/order';
+                payload._method = 'DELETE';
+                payload.orderId = currentSide;
+            } else if (action === 'edit') {
+                const qty = prompt(`New Quantity for order ${currentSide} (leave blank to keep current):`);
+                if (qty === null) return;
+                const price = prompt(`New Price for order ${currentSide} (leave blank to keep current):`);
+                if (price === null) return;
+                if (!qty && !price) return;
+                
+                endpoint = '/fapi/v1/order';
+                payload._method = 'PUT';
+                payload.orderId = currentSide;
+                if (qty) payload.quantity = parseFloat(qty);
+                if (price) payload.price = parseFloat(price);
+            } else if (action === 'close') {
+                if (!confirm(`Are you sure you want to CLOSE the entire ${symbol} position?`)) return;
+                endpoint = '/fapi/v1/exitPosition';
+                payload.timestamp = Date.now();
+            }
+
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-replicator-user': userId },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.error || data.msg || data.code < 0) {
+                    alert(`Error: ${data.error || data.msg}`);
+                } else {
+                    console.log(`Success ${action}:`, data);
+                }
+            } catch (err) {
+                alert(`Request Failed: ${err.message}`);
+            }
+        };
+
+        window.activeTermTab = 'live';
+        window.cachedTerminalLogs = [];
+        window.cachedTerminalEvents = [];
+        window.setTermTab = function(tabId) {
+            window.activeTermTab = tabId;
+            const tabs = ['live', 'info', 'success', 'err', 'events'];
+            tabs.forEach(t => {
+                const el = document.getElementById('term-tab-' + t);
+                if (!el) return;
+                if (t === tabId) {
+                    el.style.color = 'var(--text-main)';
+                    let borderColor = t==='live' ? 'rgba(6,182,212,0.3)' : t==='info' ? 'rgba(59,130,246,0.3)' : t==='success' ? 'rgba(16,185,129,0.3)' : t==='events' ? 'rgba(168,85,247,0.3)' : 'rgba(239,68,68,0.3)';
+                    let bgColor = t==='live' ? 'rgba(6,182,212,0.15)' : t==='info' ? 'rgba(59,130,246,0.15)' : t==='success' ? 'rgba(16,185,129,0.15)' : t==='events' ? 'rgba(168,85,247,0.15)' : 'rgba(239,68,68,0.15)';
+                    el.style.border = '1px solid ' + borderColor;
+                    el.style.background = bgColor;
+                } else {
+                    el.style.color = 'var(--text-muted)';
+                    el.style.border = '1px solid transparent';
+                    el.style.background = 'rgba(255,255,255,0.03)';
+                }
+            });
+            if (window.renderTerminalLogs) window.renderTerminalLogs(tabId === 'events' ? window.cachedTerminalEvents : window.cachedTerminalLogs);
+        };
+
+        let activeTabSymbol = null;
+        let cachedInstances = {};
+        let cachedGlobalData = null;
+        let tradeFilter = 'all';
+        let showBars = true;
+        let flashOn = true;
+        let pPrec = 4, qPrec = 1;
+        let prevBinLtp = null;
+        let knownTradeIds = new Set();
+        let cancelOnStopState = true;
+        let newUserState = false;
+
+        setInterval(() => {
+            const now = new Date();
+            const el = document.getElementById('c-clock');
+            if (el) el.textContent = now.toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' IST';
+        }, 1000);
+
+        document.getElementById('btn-cfg').onclick = () => { document.getElementById('drawer').classList.add('open'); document.getElementById('overlay').classList.add('open'); };
+        document.getElementById('btn-close').onclick = () => { document.getElementById('drawer').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); };
+        document.getElementById('overlay').onclick = () => { document.getElementById('drawer').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); };
+
+        document.getElementById('tog-cancel-wrap').onclick = () => {
+            cancelOnStopState = !cancelOnStopState;
+            const el = document.getElementById('tog-cancel-stop');
+            if (cancelOnStopState) el.classList.add('on'); else el.classList.remove('on');
+        };
+
+        document.getElementById('tog-new-user-wrap').onclick = () => {
+            newUserState = !newUserState;
+            const el = document.getElementById('tog-new-user');
+            if (newUserState) el.classList.add('on'); else el.classList.remove('on');
+        };
+
+        function bindTog(id, cb) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.onclick = () => { el.classList.toggle('on'); cb(el.classList.contains('on')); };
+        }
+        bindTog('tog-bars', v => { showBars = v; });
+        bindTog('tog-flash', v => { flashOn = v; });
+
+        function showToast(msgStr, isErr = false) {
+            window.showFlushbar(msgStr, isErr ? 'error' : 'info');
+        }
+
+        document.getElementById('btn-scenario-run').onclick = async () => {
+            const sym = activeTabSymbol;
+            if (!sym) return showToast('✗ Select a market first', true);
+            const preset = document.getElementById('cfg-scenario-preset').value;
+            try {
+                const r = await fetch('/api/scenario/preset/' + preset, {
+                    method: 'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ symbol: sym })
+                });
+                const j = await r.json();
+                if (j.error) showToast('✗ ' + j.error, true);
+                else { showToast('✓ Triggered ' + preset); document.getElementById('drawer').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); }
+            } catch(e) { showToast('✗ ' + e.message, true); }
+        };
+
+        document.getElementById('btn-scenario-custom').onclick = async () => {
+            const sym = activeTabSymbol;
+            if (!sym) return showToast('✗ Select a market first', true);
+            const pctInput = parseFloat(document.getElementById('cfg-scen-pct').value || 0);
+            const pct = pctInput / 100.0;
+            const targetPrice = document.getElementById('cfg-scen-target-price').value;
+            const qty = document.getElementById('cfg-scen-qty').value;
+            const biasInput = document.getElementById('cfg-scen-bias').value;
+            const bias = biasInput ? parseFloat(biasInput) / 100.0 : null;
+            const spreadPctInput = document.getElementById('cfg-scen-spread-pct').value;
+            const targetSpreadPct = spreadPctInput ? parseFloat(spreadPctInput) / 100.0 : null;
+            const skew = document.getElementById('cfg-scen-skew').value;
+            const profile = document.getElementById('cfg-scen-profile').value;
+            const jitterInput = document.getElementById('cfg-scen-jitter').value;
+            const jitter = jitterInput ? (parseFloat(jitterInput) / 100.0) : null;
+            const ramp = parseInt(document.getElementById('cfg-scen-ramp').value || 0);
+            const hold = parseInt(document.getElementById('cfg-scen-hold').value || 0);
+            const rec = parseInt(document.getElementById('cfg-scen-rec').value || 2000);
+            const recoveryMode = document.getElementById('cfg-scen-recovery').value || 'linear';
+            
+            const payload = { symbol: sym, pct, rampMs: ramp, holdMs: hold, recoverMs: rec, recovery: recoveryMode };
+            if (targetPrice) payload.targetPrice = parseFloat(targetPrice);
+            if (qty) payload.targetQty = parseFloat(qty);
+            if (bias !== null) payload.spreadBias = bias;
+            if (targetSpreadPct !== null) payload.targetSpreadPct = targetSpreadPct;
+            if (skew) payload.depthSkew = skew;
+            if (profile) payload.profileSkew = profile;
+            if (jitter !== null) payload.jitterPct = jitter;
+
+            try {
+                const r = await fetch('/api/scenario/custom', {
+                    method: 'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                const j = await r.json();
+                if (j.error) showToast('✗ ' + j.error, true);
+                else { showToast('✓ Custom Pro Scenario Triggered'); document.getElementById('drawer').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); }
+            } catch(e) { showToast('✗ ' + e.message, true); }
+        };
+
+        document.getElementById('btn-scenario-abort').onclick = async () => {
+            const sym = activeTabSymbol;
+            if (!sym) return showToast('✗ Select a market first', true);
+            try {
+                const r = await fetch('/api/scenario/active', {
+                    method: 'DELETE', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ symbol: sym })
+                });
+                const j = await r.json();
+                if (j.error) showToast('✗ ' + j.error, true);
+                else { showToast('✓ Scenario Aborted'); document.getElementById('drawer').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); }
+            } catch(e) { showToast('✗ ' + e.message, true); }
+        };
+
+        document.getElementById('btn-apply').onclick = async () => {
+            const sym = document.getElementById('cfg-symbol').value.trim().toUpperCase();
+            const tgt = document.getElementById('cfg-target').value.trim().toUpperCase() || sym;
+            const minV = document.getElementById('cfg-min').value;
+            const maxV = document.getElementById('cfg-max').value;
+            const depV = document.getElementById('cfg-depth').value;
+            const bufV = document.getElementById('cfg-buffer').value;
+            const delayV = document.getElementById('cfg-delay').value;
+            
+            const msg = document.getElementById('cfg-msg');
+            msg.textContent = '';
+
+            if (!sym) { msg.style.color='#f43f5e'; msg.textContent='✗ Symbol required'; return; }
+            if (minV && maxV && parseFloat(minV) >= parseFloat(maxV)) { msg.style.color='#f43f5e'; msg.textContent='✗ Min must be < Max'; return; }
+
+            const body = { symbol: sym, targetSymbol: tgt, cancelOnStop: cancelOnStopState, newUserFlow: newUserState, enableTradeSync: true };
+            if (minV) body.minSize = parseFloat(minV);
+            if (maxV) body.maxSize = parseFloat(maxV);
+            if (depV) body.depthLevels = parseInt(depV);
+            if (bufV) body.bufferPct = parseFloat(bufV);
+            if (delayV) body.tradeDelayMs = parseInt(delayV);
+            
+            msg.style.color = 'var(--cyan)'; msg.textContent = 'Sending configuration...';
+            try {
+                const r = await fetch('/api/config', { method:'POST', body: JSON.stringify(body), headers:{'Content-Type':'application/json'} });
+                const d = await r.json();
+                if (d.success) { msg.style.color='#34d399'; msg.textContent='✓ Market Successfully Mounted!'; window.selectTab(tgt); }
+                else { msg.style.color='#fb7185'; msg.textContent='✗ ' + d.error; }
+            } catch(e) { msg.style.color='#fb7185'; msg.textContent='✗ Network error'; }
+        };
+
+        window.manualLockState = false;
+        window.toggleManualLock = async function() {
+            window.manualLockState = !window.manualLockState;
+            const el = document.getElementById('tog-manual-lock');
+            el.className = window.manualLockState ? 'tog on' : 'tog off';
+            
+            try {
+                await fetch('/api/manual-override', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ locked: window.manualLockState })
+                });
+                showToast(window.manualLockState ? '✓ Manual Override Locked' : '✓ Auto-Replicate Resumed');
+            } catch(e) { showToast('✗ Error setting manual override', true); }
+        };
+
+        window.updateTradeFormUI = function() {
+            const type = document.getElementById('trade-type').value;
+            
+            const priceWrap = document.getElementById('trade-price-wrap');
+            const stopPriceWrap = document.getElementById('trade-stop-price-wrap');
+            const callbackWrap = document.getElementById('trade-callback-wrap');
+            const tifWrap = document.getElementById('trade-tif-wrap');
+            const qtyWrap = document.getElementById('trade-qty-wrap');
+
+            // Reset visibility
+            priceWrap.style.display = 'none';
+            stopPriceWrap.style.display = 'none';
+            callbackWrap.style.display = 'none';
+            tifWrap.style.display = 'none';
+            qtyWrap.style.display = 'block';
+
+            if (type === 'LIMIT') {
+                priceWrap.style.display = 'block';
+                tifWrap.style.display = 'block';
+            } else if (type === 'STOP' || type === 'TAKE_PROFIT') {
+                priceWrap.style.display = 'block';
+                stopPriceWrap.style.display = 'block';
+                tifWrap.style.display = 'block';
+            } else if (type === 'STOP_MARKET' || type === 'TAKE_PROFIT_MARKET') {
+                stopPriceWrap.style.display = 'block';
+            } else if (type === 'TRAILING_STOP_MARKET') {
+                callbackWrap.style.display = 'block';
+            }
+        };
+
+        window.submitManualTrade = async function(side) {
+            if (!activeTabSymbol) return showToast('✗ Select a market first', true);
+            const type = document.getElementById('trade-type').value;
+            const qty = parseFloat(document.getElementById('trade-qty').value);
+            const price = parseFloat(document.getElementById('trade-price').value);
+            const stopPrice = parseFloat(document.getElementById('trade-stop-price').value);
+            const cbRate = parseFloat(document.getElementById('trade-callback-rate').value);
+            const tif = document.getElementById('trade-tif').value;
+            const stp = document.getElementById('trade-stp').value;
+            const reduceOnly = document.getElementById('trade-reduce-only').checked;
+
+            if (!qty || qty <= 0) return showToast('✗ Invalid Quantity', true);
+
+            const payload = {
+                symbol: activeTabSymbol,
+                side: side,
+                type: type,
+                quantity: qty
+            };
+
+            if (stp && stp !== 'NONE') payload.selfTradePreventionMode = stp;
+            if (reduceOnly) payload.reduceOnly = "true";
+
+            if (type === 'LIMIT') {
+                if (!price || price <= 0 || isNaN(price)) return showToast('✗ Invalid or missing Price', true);
+                if (!tif) return showToast('✗ Time in Force is required for LIMIT orders', true);
+                payload.price = price;
+                payload.timeInForce = tif;
+            } else if (type === 'STOP' || type === 'TAKE_PROFIT') {
+                if (!price || price <= 0 || isNaN(price)) return showToast('✗ Invalid or missing Price', true);
+                if (!stopPrice || stopPrice <= 0 || isNaN(stopPrice)) return showToast('✗ Invalid or missing Stop Price', true);
+                if (!tif) return showToast('✗ Time in Force is required for STOP/TAKE_PROFIT orders', true);
+                payload.price = price;
+                payload.stopPrice = stopPrice;
+                payload.timeInForce = tif;
+            } else if (type === 'STOP_MARKET' || type === 'TAKE_PROFIT_MARKET') {
+                if (!stopPrice || stopPrice <= 0 || isNaN(stopPrice)) return showToast('✗ Invalid or missing Stop Price', true);
+                payload.stopPrice = stopPrice;
+            } else if (type === 'TRAILING_STOP_MARKET') {
+                if (!cbRate || cbRate <= 0.1 || cbRate >= 5 || isNaN(cbRate)) return showToast('✗ Callback rate must be between 0.1 and 5', true);
+                payload.callbackRate = cbRate;
+            }
+
+            try {
+                const res = await fetch('/fapi/v1/order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-replicator-user': window.tradeUser.toString() },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.error || data.msg || data.code < 0) {
+                    showToast(`✗ Order Failed: ${data.error || data.msg}`, true);
+                } else {
+                    showToast(`✓ Order Placed (${side} ${qty})`);
+                }
+            } catch (err) {
+                showToast(`✗ Request Failed: ${err.message}`, true);
+            }
+        };
+
+        window.submitClosePosition = async function() {
+            if (!activeTabSymbol) return showToast('✗ Select a market first', true);
+            try {
+                const res = await fetch('/fapi/v1/exitPosition', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-replicator-user': window.tradeUser.toString() },
+                    body: JSON.stringify({ symbol: activeTabSymbol, timestamp: Date.now() })
+                });
+                const data = await res.json();
+                if (data.error || data.msg || data.code < 0) {
+                    showToast(`✗ Close Failed: ${data.error || data.msg}`, true);
+                } else {
+                    showToast(`✓ Position Closed successfully`);
+                }
+            } catch (err) {
+                showToast(`✗ Request Failed: ${err.message}`, true);
+            }
+        };
+
+        window.sendEngineCmd = async function(cmd) {
+            if (!activeTabSymbol) return showToast("Select a market tab first!", true);
+            try {
+                const r = await fetch('/api/engine/'+cmd, { method:'POST', body: JSON.stringify({ symbol: activeTabSymbol }), headers:{'Content-Type':'application/json'} });
+                if (r.ok) showToast('✓ Command ' + cmd.toUpperCase() + ' sent');
+                else showToast('✗ Failed to send command', true);
+            } catch(e) { showToast('✗ Network error', true); }
+        };
+
+        document.getElementById('btn-cmd-start').onclick = () => window.sendEngineCmd('start');
+        document.getElementById('btn-cmd-pause').onclick = () => window.sendEngineCmd('pause');
+        document.getElementById('btn-cmd-stop').onclick = () => window.sendEngineCmd('stop');
+        document.getElementById('btn-cmd-reload').onclick = () => window.sendEngineCmd('reload');
+
+        const fmt = (v, d) => parseFloat(v||0).toFixed(d);
+        function fmtK(v) { const n = parseFloat(v||0); return n >= 1000 ? (n/1000).toFixed(1)+'K' : n.toFixed(0); }
+        function flash(el, cls) {
+            if (!flashOn || !el) return;
+            el.classList.remove('fl-g','fl-r');
+            void el.offsetWidth;
+            el.classList.add(cls);
+            setTimeout(() => el.classList.remove(cls), 350);
+        }
+
+        window.selectTab = function(sym) {
+            activeTabSymbol = sym;
+            if (window.tvIsVisible) window.initTVChart(sym);
+            tradeFilter = 'all';
+            document.querySelectorAll('.tab').forEach(b => { if(b.hasAttribute('data-f')) b.classList.remove('on'); });
+            const defaultTab = document.querySelector('.tab[data-f="all"]');
+            if (defaultTab) defaultTab.classList.add('on');
+            document.getElementById('trade-stream').innerHTML = '<div style="text-align:center;padding:60px 0;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Loading...</div>';
+            knownTradeIds.clear();
+
+            if (cachedInstances && cachedInstances[sym] && cachedGlobalData) {
+                renderSymbolData(cachedInstances[sym], cachedGlobalData);
+            }
+            
+            // Re-fetch orders for non-pos tabs
+            if (window.u1Tab !== 'pos') window.fetchOrders('u1', window.u1Tab);
+            if (window.u2Tab !== 'pos') window.fetchOrders('u2', window.u2Tab);
+        };
+
+        document.querySelectorAll('.tab').forEach(btn => {
+            if(btn.hasAttribute('data-f')) {
+                btn.onclick = () => {
+                    document.querySelectorAll('.tab').forEach(b => { if(b.hasAttribute('data-f')) b.classList.remove('on'); });
+                    btn.classList.add('on');
+                    tradeFilter = btn.getAttribute('data-f');
+                    window.pagination.trades = 1; // Reset to page 1
+                    document.getElementById('trade-stream').innerHTML = '';
+                    knownTradeIds.clear();
+                    if (cachedInstances[activeTabSymbol]) updateTradeStream(cachedInstances[activeTabSymbol].syncedTrades);
+                };
+            }
+        });
+
+        function renderBook(askEl, bidEl, spreadBadgeEl, spreadMidEl, asks, bids) {
+            const maxAskQty = (asks||[]).reduce((m,r) => Math.max(m,parseFloat(r[1])), 0.0001);
+            const maxBidQty = (bids||[]).reduce((m,r) => Math.max(m,parseFloat(r[1])), 0.0001);
+
+            function row(r, side, maxQ) {
+                const pct = Math.min(100,(parseFloat(r[1])/maxQ)*100).toFixed(1);
+                const isAsk = side === 'ask';
+                const barCol = isAsk ? 'rgba(244,63,94,0.2)' : 'rgba(16,185,129,0.2)';
+                const col = isAsk ? 'var(--ask)' : 'var(--bid)';
+                const total = (parseFloat(r[0]) * parseFloat(r[1])).toFixed(0);
+                const barHtml = showBars ? '<div class="d-bar d-bar-'+(isAsk?'r':'l')+'" style="background:'+barCol+';width:'+pct+'%"></div>' : '';
+                return '<div class="d-row"><span style="color:'+col+';font-weight:600;">'+fmt(r[0],pPrec)+'</span><span style="text-align:center;color:var(--text-muted);">'+fmt(r[1],qPrec)+'</span><span style="text-align:right;color:#64748b;">'+fmtK(total)+'</span>'+barHtml+'</div>';
+            }
+
+            askEl.innerHTML = asks && asks.length ? asks.map(r => row(r,'ask',maxAskQty)).join('') : '<div style="text-align:center;padding:24px 0;color:var(--text-muted);font-size:11px;font-family:\'Inter\',sans-serif;">No asks</div>';
+            bidEl.innerHTML = bids && bids.length ? bids.map(r => row(r,'bid',maxBidQty)).join('') : '<div style="text-align:center;padding:24px 0;color:var(--text-muted);font-size:11px;font-family:\'Inter\',sans-serif;">No bids</div>';
+
+            if (asks && asks[0] && bids && bids[0]) {
+                const bestAsk = parseFloat(asks[0][0]);
+                const bestBid = parseFloat(bids[0][0]);
+                const spNum = bestAsk - bestBid;
+                const sp = spNum.toFixed(pPrec);
+                const spp = bestAsk > 0 ? ((spNum/bestAsk)*100).toFixed(3) : "0.000";
+                const txt = "Spread " + sp + " (" + spp + "%)";
+                if (spreadBadgeEl) spreadBadgeEl.textContent = txt;
+                if (spreadMidEl) spreadMidEl.textContent = txt;
+            }
+        }
+
+        function updateTradeStream(newTrades) {
+            const el = document.getElementById('trade-stream');
+            const pgEl = document.getElementById('trades-pagination');
+            const pgInfo = document.getElementById('trades-page-info');
+
+            if (!newTrades || !newTrades.length) {
+                el.innerHTML = '<div style="text-align:center;padding:60px 0;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Awaiting trades...</div>';
+                pgEl.style.display = 'none';
+                return;
+            }
+
+            let filtered = newTrades;
+            if (tradeFilter === 'ok') filtered = newTrades.filter(t => t.success);
+            else if (tradeFilter === 'fail') filtered = newTrades.filter(t => !t.success);
+
+            const total = filtered.length;
+            if (total > window.PAGE_SIZE) {
+                pgEl.style.display = 'flex';
+                const maxPage = Math.ceil(total / window.PAGE_SIZE);
+                if (window.pagination.trades > maxPage) window.pagination.trades = maxPage;
+                pgInfo.textContent = `Page ${window.pagination.trades} of ${maxPage}`;
+                pgEl.children[0].disabled = window.pagination.trades === 1;
+                pgEl.children[2].disabled = window.pagination.trades === maxPage;
+                pgEl.children[0].style.opacity = window.pagination.trades === 1 ? '0.5' : '1';
+                pgEl.children[2].style.opacity = window.pagination.trades === maxPage ? '0.5' : '1';
+            } else {
+                pgEl.style.display = 'none';
+            }
+
+            const startIdx = (window.pagination.trades - 1) * window.PAGE_SIZE;
+            const endIdx = startIdx + window.PAGE_SIZE;
+            const pageData = filtered.slice(startIdx, endIdx);
+
+            if (pageData.length > 0) {
+                let html = `
+                    <div style="display:grid;grid-template-columns: 1.5fr 1.5fr 1fr 1fr;align-items:center;width:100%;font-family:'Inter',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:1px;font-weight:700;color:var(--text-dim);padding:12px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--drawer-bg);backdrop-filter:blur(8px);z-index:10;">
+                        <div>Time / Side</div>
+                        <div>Price / Avg</div>
+                        <div>Quantity</div>
+                        <div style="text-align:right;">Status</div>
+                    </div>
+                `;
+                pageData.forEach((t, i) => {
+                    const rawStatus = t.status || (t.success ? 'FILLED' : 'FAILED');
+                    
+                    let statusColor = 'var(--rose)';
+                    if (rawStatus === 'FILLED' || rawStatus === 'PARTIALLY_FILLED') statusColor = 'var(--emerald)';
+                    
+                    const badge = `<span class="badge" style="background-color:${statusColor}20; color:${statusColor}; border:1px solid ${statusColor}40; padding:4px 8px; font-size:9px;">${rawStatus}</span>`;
+                    
+                    const sideColor = t.side === 'BUY' ? 'var(--emerald)' : 'var(--rose)';
+                    const sideText = t.side ? `<span style="color:${sideColor};font-weight:800;font-size:11px;background:${sideColor}15;padding:2px 6px;border-radius:4px;display:inline-block;margin-top:4px;">${t.side}</span>` : '';
+                    
+                    const limitPriceStr = t.price ? parseFloat(t.price).toFixed(pPrec) : '-';
+                    const avgPriceStr = t.avgPrice && t.avgPrice !== '0' && t.avgPrice !== '0.0000' 
+                        ? `<div style="font-size:10px;color:var(--text-muted);margin-top:4px;">Avg: ${parseFloat(t.avgPrice).toFixed(pPrec)}</div>` 
+                        : '';
+                        
+                    const uniqueKey = t.time + '_' + t.price + '_' + t.stageQty;
+                    const isExp = window.expandedTrades && window.expandedTrades.has(uniqueKey);
+                    const disp = isExp ? 'block' : 'none';
+                    const bg = isExp ? 'var(--row-hover)' : 'transparent';
+                    
+                    html += `
+                    <div class="tr-row" style="padding:16px 20px; border-bottom:1px solid rgba(255,255,255,0.03); background-color:${bg}; cursor:pointer; display:flex; flex-direction:column; transition:all 0.2s;" onclick="const d=this.querySelector('.tr-details'); window.expandedTrades = window.expandedTrades || new Set(); if(d.style.display==='none'){d.style.display='block';this.style.backgroundColor='var(--row-hover)'; window.expandedTrades.add('${uniqueKey}');}else{d.style.display='none';this.style.backgroundColor='transparent'; window.expandedTrades.delete('${uniqueKey}');}">
+                        <div style="display:grid;grid-template-columns: 1.5fr 1.5fr 1fr 1fr;align-items:center;width:100%;font-family:'JetBrains Mono',monospace;font-size:12px;">
+                            <div style="display:flex;flex-direction:column;">
+                                <span style="color:var(--text-dim);font-size:11px;">${t.time}</span>
+                                <div>${sideText}</div>
+                            </div>
+                            <div style="display:flex;flex-direction:column;">
+                                <span style="color:var(--text-main);font-weight:700;">$${limitPriceStr}</span>
+                                ${avgPriceStr}
+                            </div>
+                            <div style="display:flex;flex-direction:column;gap:4px;">
+                                <span style="color:var(--cyan);font-weight:700;">${parseFloat(t.stageQty).toFixed(qPrec)}</span>
+                            </div>
+                            <div style="text-align:right;">${badge}</div>
+                        </div>
+                        <div class="tr-details" style="display:${disp};width:100%;padding:12px 16px;margin-top:16px;background:var(--input-bg);border-radius:8px;border:1px solid var(--border);font-size:11px;color:var(--text-dim);line-height:1.6;word-break:break-all;">
+                            <div style="display:flex;justify-content:space-between;margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.02);padding-bottom:6px;">
+                                <span style="color:#64748b;text-transform:uppercase;font-size:10px;letter-spacing:1px;">Maker ID</span> 
+                                <span style="color:var(--text-main);font-family:monospace;font-weight:500;">${t.makerOrderId || 'N/A'}</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;">
+                                <span style="color:#64748b;text-transform:uppercase;font-size:10px;letter-spacing:1px;">Taker ID</span> 
+                                <span style="color:var(--text-main);font-family:monospace;font-weight:500;">${t.takerOrderId || 'N/A'}</span>
+                            </div>
+                        </div>
+                    </div>`;
+                });
+                
+                if (el.innerHTML !== html) {
+                    el.innerHTML = html;
+                }
+            }
+        }
+
+        function chipHtml(label, value, color) {
+            return '<div class="chip"><div class="chip-label">'+label+'</div><div class="chip-val" style="color:'+color+';">'+value+'</div></div>';
+        }
+
+        function renderPortfolio(data, errEl, chipsEl, titleEl, bodyEl, userId, tab, panelId) {
+            if (data.error) { errEl.style.display='block'; errEl.textContent='\u26a0 '+data.error; }
+            else { errEl.style.display='none'; }
+
+            const wallet = parseFloat(data.walletBalance||0);
+            const avail = parseFloat(data.availableBalance||0);
+            const locked = Math.max(0, wallet - avail);
+            const pnl = parseFloat(data.unrealizedProfit||0);
+
+            chipsEl.innerHTML =
+                chipHtml('Wallet', wallet.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}), '#e2e8f0') +
+                chipHtml('Available', avail.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}), '#34d399');
+
+            const theadEl = bodyEl.previousElementSibling;
+            const userStr = userId || (bodyEl.id.startsWith('u1') ? '1' : '2');
+
+            let rawData = [];
+            if (tab === 'open') {
+                theadEl.innerHTML = '<tr><th>Symbol</th><th style="text-align:right;">Side</th><th style="text-align:right;">Price</th><th style="text-align:right;">Amount</th><th style="text-align:right;">Filled</th><th style="text-align:right;">Type</th><th style="text-align:right;">Status</th><th style="text-align:right;">Time</th><th style="text-align:right;">Actions</th></tr>';
+                rawData = window.fetchedOrders[panelId][tab] || [];
+            } else if (tab === 'hist') {
+                theadEl.innerHTML = '<tr><th>Symbol</th><th style="text-align:right;">Side</th><th style="text-align:right;">Price</th><th style="text-align:right;">Amount</th><th style="text-align:right;">Filled</th><th style="text-align:right;">Status</th><th style="text-align:right;">Time</th></tr>';
+                rawData = (window.fetchedOrders[panelId][tab] || []).sort((a,b) => b.time - a.time);
+            } else {
+                theadEl.innerHTML = '<tr><th>Symbol</th><th style="text-align:right;">Lev</th><th style="text-align:right;">Margin</th><th style="text-align:right;">Size</th><th style="text-align:right;">Unreal. PnL</th><th style="text-align:right;">Entry</th><th style="text-align:right;">Mark</th><th style="text-align:right;">Liq.</th><th style="text-align:right;width:160px;">Actions</th></tr>';
+                rawData = data.positions || [];
+            }
+
+            const pgEl = document.getElementById(panelId + '-pagination');
+            const pgInfo = document.getElementById(panelId + '-page-info');
+            const total = rawData.length;
+            
+            if (total > window.PAGE_SIZE) {
+                pgEl.style.display = 'flex';
+                const maxPage = Math.ceil(total / window.PAGE_SIZE);
+                if (window.pagination[panelId] > maxPage) window.pagination[panelId] = maxPage;
+                pgInfo.textContent = `Page ${window.pagination[panelId]} of ${maxPage}`;
+                pgEl.children[0].disabled = window.pagination[panelId] === 1;
+                pgEl.children[2].disabled = window.pagination[panelId] === maxPage;
+                pgEl.children[0].style.opacity = window.pagination[panelId] === 1 ? '0.5' : '1';
+                pgEl.children[2].style.opacity = window.pagination[panelId] === maxPage ? '0.5' : '1';
+            } else {
+                pgEl.style.display = 'none';
+            }
+
+            const startIdx = (window.pagination[panelId] - 1) * window.PAGE_SIZE;
+            const endIdx = startIdx + window.PAGE_SIZE;
+            const pageData = rawData.slice(startIdx, endIdx);
+
+            if (!pageData.length) {
+                const msg = tab === 'open' ? 'No open orders' : (tab === 'hist' ? 'No recent order history for active symbols' : 'No active positions');
+                const colSpan = tab === 'hist' ? 7 : (tab === 'open' ? 9 : 9);
+                bodyEl.innerHTML = '<tr><td colspan="'+colSpan+'" style="text-align:center;padding:40px 0;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;font-family:\'Inter\',sans-serif;font-weight:600;">'+msg+'</td></tr>';
+                return;
+            }
+
+            if (tab === 'open') {
+                bodyEl.innerHTML = pageData.map(o => {
+                    const sideColor = o.side === 'BUY' ? '#34d399' : '#fb7185';
+                    const timeStr = new Date(o.time).toLocaleString();
+                    
+                    let statusHtml = '';
+                    if (o.status === 'NEW') statusHtml = '<span class="badge" style="background:rgba(6,182,212,0.1);color:var(--cyan);border:1px solid rgba(6,182,212,0.3);">NEW</span>';
+                    else if (o.status === 'PARTIALLY_FILLED') statusHtml = '<span class="badge" style="background:rgba(16,185,129,0.1);color:var(--emerald);border:1px solid rgba(16,185,129,0.3);">PARTIAL</span>';
+                    else statusHtml = '<span class="badge" style="background:rgba(255,255,255,0.1);color:var(--text-muted);">'+o.status+'</span>';
+
+                    return '<tr><td><span style="font-weight:700;color:var(--text-main);font-family:\'Inter\',sans-serif;">'+o.symbol+'</span></td><td style="text-align:right;color:'+sideColor+';font-weight:700;">'+o.side+'</td><td style="text-align:right;color:var(--text-main);">'+parseFloat(o.price)+'</td><td style="text-align:right;color:var(--text-muted);">'+parseFloat(o.origQty)+'</td><td style="text-align:right;color:var(--text-muted);">'+parseFloat(o.executedQty)+'</td><td style="text-align:right;color:var(--text-muted);">'+o.type+'</td><td style="text-align:right;">'+statusHtml+'</td><td style="text-align:right;color:var(--text-muted);font-size:10px;">'+timeStr+'</td><td style="text-align:right;"><button class="act-btn act-lev" onclick="window.fapiAction(\'edit\', \''+userStr+'\', \''+o.symbol+'\', \''+o.orderId+'\')" style="margin-right:8px;">EDIT</button><button class="act-btn act-cls" onclick="window.fapiAction(\'cancel\', \''+userStr+'\', \''+o.symbol+'\', \''+o.orderId+'\')">CANCEL</button></td></tr>';
+                }).join('');
+            } else if (tab === 'hist') {
+                bodyEl.innerHTML = pageData.map(o => {
+                    const sideColor = o.side === 'BUY' ? '#34d399' : '#fb7185';
+                    const timeStr = new Date(o.time).toLocaleString();
+                    let statusHtml = '';
+                    if (o.status === 'FILLED') statusHtml = '<span class="badge badge-ok">FILLED</span>';
+                    else if (o.status === 'CANCELED' || o.status === 'EXPIRED') statusHtml = '<span class="badge badge-fail">'+o.status+'</span>';
+                    else statusHtml = '<span class="badge" style="background:rgba(255,255,255,0.1);color:var(--text-muted);">'+o.status+'</span>';
+                    
+                    return '<tr><td><span style="font-weight:700;color:var(--text-main);font-family:\'Inter\',sans-serif;">'+o.symbol+'</span></td><td style="text-align:right;color:'+sideColor+';font-weight:700;">'+o.side+'</td><td style="text-align:right;color:var(--text-main);">'+parseFloat(o.price)+'</td><td style="text-align:right;color:var(--text-muted);">'+parseFloat(o.origQty)+'</td><td style="text-align:right;color:var(--text-muted);">'+parseFloat(o.executedQty)+'</td><td style="text-align:right;">'+statusHtml+'</td><td style="text-align:right;color:var(--text-muted);font-size:10px;">'+timeStr+'</td></tr>';
+                }).join('');
+            } else {
+                bodyEl.innerHTML = pageData.map(p => {
+                    const sideBg = p.side === 'LONG'
+                        ? 'background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);color:#34d399;'
+                        : 'background:rgba(244,63,94,.15);border:1px solid rgba(244,63,94,.3);color:#fb7185;';
+                    const pnlV = parseFloat(p.unrealizedPnL);
+                    const pnlClass = pnlV >= 0 ? 'pnl-pos' : 'pnl-neg';
+                    const pnlSign= pnlV >= 0 ? '+' : '';
+                    const actionBtns = `
+                        <div style="display:flex;gap:8px;justify-content:flex-end;">
+                            <button class="act-btn act-lev" onclick="window.fapiAction('lev', '${userStr}', '${p.symbol}', '${p.side}')">LEV</button>
+                            <button class="act-btn act-marg" onclick="window.fapiAction('marg', '${userStr}', '${p.symbol}', '${p.side}')">MARG</button>
+                            <button class="act-btn act-red" onclick="window.fapiAction('red', '${userStr}', '${p.symbol}', '${p.side}')">REDUCE</button>
+                            <button class="act-btn act-cls" onclick="window.fapiAction('close', '${userStr}', '${p.symbol}', '${p.side}')">CLOSE</button>
+                        </div>`;
+                    return '<tr><td><span style="font-weight:700;color:var(--text-main);font-family:\'Inter\',sans-serif;">'+p.symbol+'</span><span style="margin-left:8px;font-size:10px;padding:2px 8px;border-radius:99px;font-weight:700;letter-spacing:0.5px;font-family:\'Inter\',sans-serif;'+sideBg+'">'+p.side+'</span></td><td style="text-align:right;color:var(--text-muted);">'+p.leverage+'×</td><td style="text-align:right;color:var(--cyan);font-weight:600;">'+parseFloat(p.margin).toFixed(2)+'</td><td style="text-align:right;color:var(--text-dim);">'+p.size+'</td><td style="text-align:right;font-weight:700;" class="'+pnlClass+'">'+pnlSign+pnlV.toFixed(2)+'</td><td style="text-align:right;color:var(--text-muted);">'+p.entryPrice+'</td><td style="text-align:right;color:var(--text-muted);">'+p.markPrice+'</td><td style="text-align:right;color:var(--yellow);font-weight:600;">'+p.liqPrice+'</td><td style="text-align:right;">'+actionBtns+'</td></tr>';
+                }).join('');
+            }
+        }
+
+        function renderSymbolData(instance, data) {
+            const diag = instance.diagnostics || {};
+            pPrec = diag.pricePrecision !== undefined ? diag.pricePrecision : 4;
+            qPrec = diag.qtyPrecision !== undefined ? diag.qtyPrecision : 1;
+
+            const dot = document.getElementById('dot');
+            const statusTxt = document.getElementById('c-eng');
+            if (instance.status === 'RUNNING') { dot.className = 'dot-live'; statusTxt.innerHTML = "<span class='c-emerald fw-bold'>RUNNING</span>"; }
+            else if (instance.status === 'PAUSED') { dot.className = 'dot-paused'; statusTxt.innerHTML = "<span class='c-yellow fw-bold'>PAUSED</span>"; }
+            else { dot.className = 'dot-dead'; statusTxt.innerHTML = "<span class='c-rose fw-bold'>STOPPED</span>"; }
+
+            document.getElementById('c-bping').textContent = (diag.binanceLatency||0) + 'ms';
+            document.getElementById('c-sping').textContent = (diag.testnetLatency||0) + 'ms';
+            document.getElementById('c-sync').textContent = (diag.syncRatio||'100') + '%';
+            
+            const srcStr = (diag.sourceSymbol && diag.sourceSymbol !== activeTabSymbol) ? ' (SRC: ' + diag.sourceSymbol + ')' : '';
+            document.getElementById('c-pair').textContent = activeTabSymbol + srcStr;
+
+            const tsEl = document.getElementById('flag-tradeSync');
+            const csEl = document.getElementById('flag-cancelStop');
+            const bufEl = document.getElementById('flag-buffer');
+            const delEl = document.getElementById('flag-delay');
+
+            if (diag.enableTradeSync) { tsEl.textContent='TRADE SYNC ON'; tsEl.className='flag-pill flag-on'; }
+            else { tsEl.textContent='TRADE SYNC OFF'; tsEl.className='flag-pill flag-off'; }
+
+            if (diag.cancelOnStop) { csEl.textContent='CANCEL ON STOP'; csEl.className='flag-pill flag-on'; }
+            else { csEl.textContent='KEEP ON STOP'; csEl.className='flag-pill flag-off'; }
+
+            const buf = parseFloat(diag.bufferPct||0);
+            bufEl.textContent = buf > 0 ? 'BUF '+buf+'%' : 'NO BUFFER';
+
+            const delay = parseInt(diag.tradeDelayMs||0);
+            delEl.textContent = delay > 0 ? 'DELAY '+delay+'ms' : 'DELAY OFF';
+
+            const scEl = document.getElementById('flag-scenario');
+            if (instance.scenarioStatus && instance.scenarioStatus.phase !== 'IDLE') {
+                scEl.style.display = 'block';
+                scEl.textContent = 'SCENARIO: ' + instance.scenarioStatus.phase;
+                if(instance.scenarioStatus.phase === 'RAMPING') {
+                    scEl.style.background = 'rgba(234,179,8,0.2)';
+                    scEl.style.color = '#fde047';
+                    scEl.style.borderColor = 'rgba(234,179,8,0.4)';
+                    scEl.style.boxShadow = '0 0 15px rgba(234,179,8,0.4)';
+                } else if(instance.scenarioStatus.phase === 'HOLDING') {
+                    scEl.style.background = 'rgba(244,63,94,0.2)';
+                    scEl.style.color = '#fda4af';
+                    scEl.style.borderColor = 'rgba(244,63,94,0.4)';
+                    scEl.style.boxShadow = '0 0 15px rgba(244,63,94,0.4)';
+                } else if(instance.scenarioStatus.phase === 'RECOVERING') {
+                    scEl.style.background = 'rgba(168,85,247,0.2)';
+                    scEl.style.color = '#d8b4fe';
+                    scEl.style.borderColor = 'rgba(168,85,247,0.4)';
+                    scEl.style.boxShadow = '0 0 15px rgba(168,85,247,0.4)';
+                }
+            } else {
+                scEl.style.display = 'none';
+            }
+
+            const binLtp = diag.binanceLtp || '0.0000';
+            const ltpEl = document.getElementById('t-bltp');
+            if (prevBinLtp !== null && flashOn) {
+                const d = parseFloat(binLtp) - parseFloat(prevBinLtp);
+                if (d > 0) flash(ltpEl, 'fl-g');
+                else if (d < 0) flash(ltpEl, 'fl-r');
+            }
+            prevBinLtp = binLtp;
+            ltpEl.textContent = fmt(binLtp, pPrec);
+
+            const sa = instance.testnetDepth.asks, sb = instance.testnetDepth.bids;
+            const stageLtp = (sa&&sa[0]&&sb&&sb[0]) ? ((parseFloat(sa[0][0])+parseFloat(sb[0][0]))/2).toFixed(pPrec) : binLtp;
+            document.getElementById('t-sltp').textContent = fmt(stageLtp, pPrec);
+
+            const dAbs = Math.abs(parseFloat(binLtp)-parseFloat(stageLtp)).toFixed(pPrec);
+            const dPct = parseFloat(binLtp)>0 ? ((dAbs/parseFloat(binLtp))*100).toFixed(3) : '0.000';
+            const dp = parseFloat(dPct);
+            document.getElementById('t-drift').textContent = dAbs;
+            document.getElementById('t-dpct').textContent = '('+dPct+'%)';
+            const driftBar = document.getElementById('drift-bar');
+            driftBar.style.width = Math.min(100, dp*1000)+'%';
+            driftBar.style.background = dp>0.05 ? '#f43f5e' : dp>0.02 ? '#eab308' : 'var(--cyan)';
+            if(dp > 0.05) driftBar.style.boxShadow = '0 0 10px #f43f5e';
+            else if(dp > 0.02) driftBar.style.boxShadow = '0 0 10px #eab308';
+            else driftBar.style.boxShadow = '0 0 10px var(--cyan)';
+
+            const ba = instance.binanceDepth.asks, bb = instance.binanceDepth.bids;
+            if (ba&&ba[0]&&bb&&bb[0]) {
+                const spNum = parseFloat(ba[0][0]) - parseFloat(bb[0][0]);
+                const sp = spNum.toFixed(pPrec);
+                const spp = parseFloat(ba[0][0]) > 0 ? ((spNum/parseFloat(ba[0][0]))*100).toFixed(3) : "0.000";
+                document.getElementById('t-bspread').textContent = sp;
+                document.getElementById('t-bspct').textContent = '('+spp+'%)';
+            }
+
+            const ok = (instance.syncedTrades||[]).filter(t => t.success).length;
+            const fail = (instance.syncedTrades||[]).filter(t => !t.success).length;
+            document.getElementById('t-trok').textContent = ok + ' OK';
+            document.getElementById('t-trfail').textContent = fail + ' FAIL';
+
+            renderBook(document.getElementById('bin-asks'), document.getElementById('bin-bids'), document.getElementById('bin-spread-badge'), document.getElementById('bin-spread-mid'), instance.binanceDepth.asks, instance.binanceDepth.bids);
+            renderBook(document.getElementById('stage-asks'), document.getElementById('stage-bids'), document.getElementById('stage-spread-badge'), document.getElementById('stage-spread-mid'), instance.testnetDepth.asks, instance.testnetDepth.bids);
+
+            updateTradeStream(instance.syncedTrades);
+            updateTradeStream(instance.syncedTrades);
+        }
+
+        let es;
+        function connectSSE() {
+            if (es) es.close();
+            es = new EventSource('/events');
+
+            es.onopen = () => {
+                knownTradeIds.clear();
+                prevBinLtp = null;
+                const sp = document.getElementById('splash');
+                if (sp) { sp.classList.add('hidden'); setTimeout(()=>sp.remove(),500); }
+                document.getElementById('dot').className = 'dot-live';
+                document.getElementById('c-eng').innerHTML = "<span class='c-emerald fw-bold'>CONNECTED</span>";
+            };
+
+            es.onerror = () => {
+                document.getElementById('dot').className = 'dot-dead';
+                document.getElementById('c-eng').innerHTML = "<span class='c-rose fw-bold'>DISCONNECTED</span>";
+                es.close();
+                setTimeout(connectSSE, 2500);
+            };
+
+            es.onmessage = (ev) => {
+                let data;
+                try { data = JSON.parse(ev.data); } catch(e) { return; }
+
+                cachedInstances = data.instances || {};
+                cachedGlobalData = data;
+
+                const tabContainer = document.getElementById('symbol-tabs');
+                const symbols = Object.keys(cachedInstances);
+
+                const sp = document.getElementById('splash');
+                if (sp) { sp.classList.add('hidden'); setTimeout(()=>sp.remove(),500); }
+                
+                document.getElementById('dot').className = 'dot-live';
+                if(symbols.length > 0) document.getElementById('c-eng').innerHTML = "<span class='c-emerald fw-bold'>CONNECTED</span>";
+
+                if (symbols.length === 0) {
+                    tabContainer.innerHTML = '<span style="color:var(--text-muted);font-size:12px;letter-spacing:1px;font-family:\'Inter\',sans-serif;font-weight:500;">Waiting for engine...</span>';
+                    document.getElementById('c-eng').innerHTML = "<span class='c-yellow4 fw-bold'>BOOTING...</span>";
+                    return;
+                }
+
+                if (!activeTabSymbol || !cachedInstances[activeTabSymbol]) window.selectTab(symbols[0]);
+
+                tabContainer.innerHTML = symbols.map(sym => {
+                    const isActive = sym === activeTabSymbol;
+                    const statColor = cachedInstances[sym].status === 'RUNNING' ? '#10b981' : cachedInstances[sym].status === 'PAUSED' ? '#eab308' : '#f43f5e';
+                    const shadow = isActive ? 'box-shadow: 0 0 10px '+statColor+';' : '';
+                    return '<div class="sym-tab '+(isActive?'on':'')+'" onclick="window.selectTab(\''+sym+'\')"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+statColor+';margin-right:8px;'+shadow+'"></span>'+sym+'</div>';
+                }).join('');
+
+                if (activeTabSymbol && cachedInstances[activeTabSymbol]) {
+                    try {
+                        renderSymbolData(cachedInstances[activeTabSymbol], data);
+                    } catch(err) {
+                        console.error('Error rendering symbol data:', err);
+                    }
+                }
+                
+                if (data.users && data.roles) {
+                    window.renderUsers(data.users, data.roles);
+                }
+                
+                if (data.portfolios) {
+                    window.payload.portfolios = data.portfolios;
+                }
+                if (data.terminalLogs) {
+                    window.cachedTerminalLogs = data.terminalLogs;
+                }
+                if (data.terminalEvents) {
+                    window.cachedTerminalEvents = data.terminalEvents;
+                }
+                if (data.terminalLogs || data.terminalEvents) {
+                    renderTerminalLogs(window.activeTermTab === 'events' ? window.cachedTerminalEvents : window.cachedTerminalLogs);
+                }
+                window.renderPortfolios();
+            };
+        }
+
+        let terminalAutoScroll = true;
+        window.terminalClearTs = 0;
+        
+        window.clearTerminal = function() {
+            window.terminalClearTs = Date.now();
+            window.cachedTerminalLogs = [];
+            window.cachedTerminalEvents = [];
+            window.renderTerminalLogs([]);
+        };
+
+        window.injectTerminalLog = function(level, sym, msg, meta = null) {
+            const now = new Date();
+            const time = now.toISOString().split('T')[1].substring(0,12); // HH:mm:ss.SSS
+            const logObj = { time, level, sym, msg, meta };
+            if (!window.cachedTerminalLogs) window.cachedTerminalLogs = [];
+            window.cachedTerminalLogs.push(logObj);
+            if (window.cachedTerminalLogs.length > 500) window.cachedTerminalLogs.shift();
+            if (window.activeTermTab !== 'events') window.renderTerminalLogs(window.cachedTerminalLogs);
+        };
+        
+        window.injectTerminalEvent = function(level, sym, msg, meta = null) {
+            const now = new Date();
+            const time = now.toISOString().split('T')[1].substring(0,12);
+            const logObj = { time, level, sym, msg, meta };
+            if (!window.cachedTerminalEvents) window.cachedTerminalEvents = [];
+            window.cachedTerminalEvents.push(logObj);
+            if (window.cachedTerminalEvents.length > 500) window.cachedTerminalEvents.shift();
+            if (window.activeTermTab === 'events') window.renderTerminalLogs(window.cachedTerminalEvents);
+        };
+
+        window.setTermTab = function(tab) {
+            window.activeTermTab = tab;
+            document.querySelectorAll('.term-tab').forEach(el => {
+                if (el.id === 'term-tab-' + tab) {
+                    el.classList.add('on');
+                    el.style.background = 'rgba(6,182,212,0.15)';
+                    el.style.borderColor = 'rgba(6,182,212,0.3)';
+                    el.style.color = 'var(--text-main)';
+                } else {
+                    el.classList.remove('on');
+                    el.style.background = 'rgba(255,255,255,0.03)';
+                    el.style.borderColor = 'transparent';
+                    el.style.color = 'var(--text-muted)';
+                }
+            });
+            window.renderTerminalLogs(tab === 'events' ? window.cachedTerminalEvents : window.cachedTerminalLogs);
+        };
+
+        window.toggleAutoScroll = function() {
+            terminalAutoScroll = !terminalAutoScroll;
+            document.getElementById('term-scroll-tog').className = terminalAutoScroll ? 'tog on' : 'tog off';
+            if (terminalAutoScroll) {
+                const term = document.getElementById('live-terminal');
+                if (term) term.scrollTop = term.scrollHeight;
+            }
+        };
+
+        const termEl = document.getElementById('live-terminal');
+        if (termEl) {
+            termEl.addEventListener('scroll', () => {
+                if (termEl.scrollHeight - termEl.scrollTop - termEl.clientHeight < 20) {
+                    if (!terminalAutoScroll) {
+                        terminalAutoScroll = true;
+                        document.getElementById('term-scroll-tog').className = 'tog on';
+                    }
+                } else {
+                    if (terminalAutoScroll) {
+                        terminalAutoScroll = false;
+                        document.getElementById('term-scroll-tog').className = 'tog off';
+                    }
+                }
+            });
+        }
+
+        
+        window.activeDetailsTab = 'payload';
+        window.activeMobileTab = 'logs';
+        window.activeSelectedMeta = null;
+
+        window.setDetailsTab = function(tab) {
+            window.activeDetailsTab = tab;
+            document.getElementById('dtab-payload').className = tab === 'payload' ? 'tab on' : 'tab';
+            document.getElementById('dtab-response').className = tab === 'response' ? 'tab on' : 'tab';
+            
+            // Sync mobile tabs if we are on details
+            if (window.activeMobileTab !== 'logs') {
+                window.activeMobileTab = tab;
+                document.getElementById('mtab-payload').className = tab === 'payload' ? 'tab on' : 'tab';
+                document.getElementById('mtab-response').className = tab === 'response' ? 'tab on' : 'tab';
+            }
+            
+            window.renderDetailsContent();
+        };
+
+        window.setMobileTermTab = function(tab) {
+            window.activeMobileTab = tab;
+            document.getElementById('mtab-logs').className = tab === 'logs' ? 'tab on' : 'tab';
+            document.getElementById('mtab-payload').className = tab === 'payload' ? 'tab on' : 'tab';
+            document.getElementById('mtab-response').className = tab === 'response' ? 'tab on' : 'tab';
+            
+            const wrap = document.getElementById('term-body-wrap');
+            if (tab === 'logs') {
+                wrap.className = 'term-scanline show-logs';
+            } else {
+                wrap.className = 'term-scanline show-details';
+                window.setDetailsTab(tab); // Sync desktop tabs visually too
+            }
+        };
+
+        window.renderDetailsContent = function() {
+            const pane = document.getElementById('term-details-content');
+            if (!window.activeSelectedMeta) {
+                pane.innerHTML = '<div style="text-align:center; padding:40px 0; color:var(--text-muted); font-style:italic;">Select a log to view details</div>';
+                return;
+            }
+            
+            let displayData = '';
+            // Determine if meta has req/res structure
+            if (window.activeSelectedMeta.req || window.activeSelectedMeta.res || window.activeSelectedMeta.request || window.activeSelectedMeta.response) {
+                if (window.activeDetailsTab === 'payload') {
+                    displayData = window.activeSelectedMeta.req || window.activeSelectedMeta.request || window.activeSelectedMeta;
+                } else {
+                    displayData = window.activeSelectedMeta.res || window.activeSelectedMeta.response || window.activeSelectedMeta.error || 'No response data';
+                }
+            } else {
+                displayData = window.activeSelectedMeta;
+            }
+            
+            let metaStr = typeof displayData === 'string' ? displayData : JSON.stringify(displayData, null, 2);
+            metaStr = metaStr.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            pane.innerHTML = metaStr;
+        };
+
+        window.openTermDetails = function(metaStrEncoded, rowEl) {
+            try {
+                window.activeSelectedMeta = JSON.parse(decodeURIComponent(metaStrEncoded));
+            } catch(e) {
+                window.activeSelectedMeta = { raw: decodeURIComponent(metaStrEncoded) };
+            }
+            
+            // Highlight selected row
+            const rows = document.querySelectorAll('.term-log-row');
+            rows.forEach(r => r.style.backgroundColor = 'transparent');
+            if (rowEl) rowEl.style.backgroundColor = 'var(--row-hover)';
+            
+            // Switch to payload tab
+            window.setDetailsTab('payload');
+            
+            // If on mobile, switch to mobile details view
+            if (window.innerWidth <= 900) {
+                window.setMobileTermTab('payload');
+            }
+        };
+
+        window.renderTerminalLogs = function(logs) {
+            const term = document.getElementById('live-terminal');
+            if (!term || !logs) return;
+            
+            const searchEl = document.getElementById('term-search');
+            const searchVal = searchEl ? searchEl.value.toLowerCase() : '';
+            
+            let html = '';
+            let count = 0;
+            for (let i = 0; i < logs.length; i++) {
+                const l = logs[i];
+                if (l.ts && l.ts < window.terminalClearTs) continue;
+                if (window.activeTermTab === 'err' && l.level !== 'ERROR' && l.level !== 'CRITICAL') continue;
+                if (window.activeTermTab === 'info' && l.level !== 'INFO') continue;
+                if (window.activeTermTab === 'success' && l.level !== 'SUCCESS') continue;
+                
+                if (searchVal) {
+                    const match = (l.msg && l.msg.toLowerCase().includes(searchVal)) || 
+                                  (l.sym && l.sym.toLowerCase().includes(searchVal)) || 
+                                  (l.level && l.level.toLowerCase().includes(searchVal));
+                    if (!match) continue;
+                }
+                
+                count++;
+                let color = '#cbd5e1';
+                let tagColor = '#94a3b8';
+                
+                if (l.level === 'INFO') tagColor = '#3b82f6';
+                else if (l.level === 'SUCCESS') tagColor = '#10b981';
+                else if (l.level === 'WARN') { tagColor = '#eab308'; color = '#fef08a'; }
+                else if (l.level === 'ERROR') { tagColor = '#ef4444'; color = '#fca5a5'; }
+                else if (l.level === 'CRITICAL') { tagColor = '#f87171'; color = '#fff'; }
+                else if (l.level === 'EVENT') { tagColor = '#a855f7'; color = '#d8b4fe'; }
+                
+                
+                let cursor = l.meta ? 'pointer' : 'default';
+                let onClick = '';
+                let hoverClass = l.meta ? 'class="term-log-row" onmouseover="this.style.backgroundColor=\'var(--row-hover)\'" onmouseout="if(this.dataset.selected!==\'true\')this.style.backgroundColor=\'transparent\'"' : 'class="term-log-row"';
+                
+                let metaHtml = '';
+                if (l.meta) {
+                    const encodedMeta = encodeURIComponent(JSON.stringify(l.meta));
+                    onClick = `onclick="document.querySelectorAll('.term-log-row').forEach(r=>{r.dataset.selected='false';r.style.backgroundColor='transparent'}); this.dataset.selected='true'; window.openTermDetails('${encodedMeta}', this)"`;
+                    metaHtml = '<span style="color:var(--cyan);font-size:9px;margin-left:8px;padding:2px 4px;background:rgba(6,182,212,0.1);border-radius:4px;font-weight:700;">DETAILS</span>';
+                }
+                
+                html += `<div ${hoverClass} ${onClick} style="padding:4px 8px; margin-bottom:2px; word-break:break-all; cursor:${cursor}; border-radius:4px; transition:background-color 0.2s;"><span style="color:#64748b;">[${l.time}]</span> <span style="color:${tagColor};font-weight:700;">[${l.level}]</span> <span style="color:#a855f7;font-weight:600;">[${l.sym}]</span> <span style="color:${color};">${l.msg}</span>${metaHtml}</div>`;
+            }
+
+            if (count === 0) {
+                html = '<div style="color:#64748b;margin-bottom:12px;font-style:italic;">No logs available for this view.</div>';
+            }
+            
+            // Only update DOM if HTML changed, or it's forced (to avoid scroll jumping)
+            if (term.innerHTML !== html) {
+                term.innerHTML = html;
+                if (terminalAutoScroll) {
+                    term.scrollTop = term.scrollHeight;
+                }
+            }
+        };
+        const renderTerminalLogs = window.renderTerminalLogs;
+
+        window.tvChart = null;
+        window.tvSeries = null;
+        window.tvWs = null;
+        window.tvIsVisible = false;
+
+        window.toggleTVChart = () => {
+            window.tvIsVisible = !window.tvIsVisible;
+            const container = document.getElementById('tv-chart-container');
+            const chevron = document.getElementById('tv-chevron');
+            if (window.tvIsVisible) {
+                container.style.display = 'flex';
+                chevron.style.transform = 'rotate(0deg)';
+                if (!window.tvChart) {
+                    window.initTVChart(activeTabSymbol);
+                }
+            } else {
+                container.style.display = 'none';
+                chevron.style.transform = 'rotate(-90deg)';
+            }
+        };
+
+        window.tvInterval = '1m';
+        window.initTVChart = async (pair, interval = window.tvInterval) => {
+            window.tvInterval = interval;
+            window.tvCurrentPair = pair;
+            const container = document.getElementById('tv-chart');
+            
+            if (window.tvWs) {
+                window.tvWs.close();
+                window.tvWs = null;
+            }
+
+            // Update header
+            const titleEl = document.getElementById('tv-chart-title');
+            if (titleEl) titleEl.innerHTML = pair + ' <span style="color:var(--text-muted)">•</span> ' + interval.toUpperCase() + ' <span style="color:var(--text-muted)">•</span> <span style="font-size:9px;color:var(--cyan);background:rgba(6,182,212,0.1);padding:2px 6px;border-radius:4px;border:1px solid rgba(6,182,212,0.2);">IST</span>';
+
+            // Update buttons
+            document.querySelectorAll('.tv-tf-btn').forEach(b => {
+                if (b.getAttribute('data-tf') === interval) b.classList.add('on');
+                else b.classList.remove('on');
+                b.onclick = () => window.initTVChart(activeTabSymbol, b.getAttribute('data-tf'));
+            });
+
+            const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+            const text = isLight ? '#64748b' : '#94a3b8';
+            const grid = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.04)';
+
+            if (!window.tvChart) {
+                window.tvChart = LightweightCharts.createChart(container, {
+                    width: container.clientWidth,
+                    height: container.clientHeight,
+                    layout: { background: { type: 'solid', color: 'transparent' }, textColor: text },
+                    grid: { vertLines: { color: grid }, horzLines: { color: grid } },
+                    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+                    rightPriceScale: { borderColor: grid },
+                    timeScale: { borderColor: grid, timeVisible: true, rightOffset: 12 },
+                    watermark: { visible: true, text: pair, color: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.03)', fontSize: 120, horzAlign: 'center', vertAlign: 'center' }
+                });
+
+                window.tvSeries = window.tvChart.addCandlestickSeries({
+                    upColor: '#10b981', downColor: '#f43f5e', borderVisible: false,
+                    wickUpColor: '#10b981', wickDownColor: '#f43f5e'
+                });
+
+                window.tvVolumeSeries = window.tvChart.addHistogramSeries({
+                    color: '#26a69a',
+                    priceFormat: { type: 'volume' },
+                    priceScaleId: '', // set as an overlay by setting a blank priceScaleId
+                });
+                window.tvVolumeSeries.priceScale().applyOptions({
+                    scaleMargins: { top: 0.85, bottom: 0 },
+                });
+
+                const tooltip = document.getElementById('tv-tooltip');
+                window.tvChart.subscribeCrosshairMove((param) => {
+                    if (!param.time || param.point.x < 0 || param.point.x > container.clientWidth || param.point.y < 0 || param.point.y > container.clientHeight) {
+                        tooltip.style.display = 'none';
+                        return;
+                    }
+                    const klineData = param.seriesData.get(window.tvSeries);
+                    const volData = param.seriesData.get(window.tvVolumeSeries);
+                    
+                    if (!klineData) return;
+                    
+                    const O = klineData.open.toFixed(2);
+                    const H = klineData.high.toFixed(2);
+                    const L = klineData.low.toFixed(2);
+                    const C = klineData.close.toFixed(2);
+                    const V = volData ? volData.value.toFixed(2) : '0.00';
+                    const diff = (klineData.close - klineData.open).toFixed(2);
+                    const diffPct = (((klineData.close - klineData.open) / klineData.open) * 100).toFixed(2);
+                    const color = klineData.close >= klineData.open ? '#10b981' : '#f43f5e';
+                    const sign = klineData.close >= klineData.open ? '+' : '';
+
+                    tooltip.innerHTML = `
+                        <div style="font-weight:800;font-size:13px;margin-bottom:4px;color:var(--cyan);letter-spacing:1px;">${window.tvCurrentPair} <span style="color:var(--text-muted);font-weight:600;font-size:11px;margin-left:6px;">${window.tvInterval.toUpperCase()}</span></div>
+                        <div style="display:flex;gap:12px;color:var(--text-muted);">
+                            <div>O <span style="color:var(--text-main);font-weight:600;">${O}</span></div>
+                            <div>H <span style="color:var(--text-main);font-weight:600;">${H}</span></div>
+                            <div>L <span style="color:var(--text-main);font-weight:600;">${L}</span></div>
+                            <div>C <span style="color:${color};font-weight:600;">${C}</span></div>
+                            <div style="color:${color};font-weight:600;">${sign}${diff} (${sign}${diffPct}%)</div>
+                        </div>
+                        <div style="margin-top:6px;color:var(--text-muted);">Vol <span style="color:var(--text-main);font-weight:600;">${V}</span></div>
+                    `;
+                    tooltip.style.display = 'block';
+                });
+                
+                if (window.tvResizeObserver) {
+                    window.tvResizeObserver.disconnect();
+                }
+                window.tvResizeObserver = new ResizeObserver(entries => {
+                    if (!window.tvChart || entries.length === 0 || entries[0].target !== container) return;
+                    const newRect = entries[0].contentRect;
+                    if (newRect.width > 0 && newRect.height > 0) {
+                        window.tvChart.applyOptions({ width: newRect.width, height: newRect.height });
+                    }
+                });
+                window.tvResizeObserver.observe(container);
+            } else {
+                window.tvChart.applyOptions({ watermark: { text: pair, color: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.03)' } });
+            }
+
+            // Clear old data instantly before fetching
+            window.tvSeries.setData([]);
+            window.tvVolumeSeries.setData([]);
+
+            const IST_OFFSET = 19800; // +5:30 in seconds
+            const sourceSym = (window.cachedInstances && window.cachedInstances[pair] && window.cachedInstances[pair].diagnostics) ? window.cachedInstances[pair].diagnostics.sourceSymbol : pair;
+
+            try {
+                window.injectTerminalLog('INFO', pair, `[REST] Fetching historical ${interval} klines for ${sourceSym}...`);
+                const res = await fetch(`https://testnet-futures-mds-read.dcxstage.com/fapi/v1/klines?symbol=${sourceSym}&interval=${interval}&limit=500`);
+                const data = await res.json();
+                if (data && data.length) {
+                    const formattedKlines = [];
+                    const formattedVolume = [];
+                    
+                    data.forEach(d => {
+                        const time = (d[0] / 1000) + IST_OFFSET;
+                        const open = parseFloat(d[1]);
+                        const high = parseFloat(d[2]);
+                        const low = parseFloat(d[3]);
+                        const close = parseFloat(d[4]);
+                        const volume = parseFloat(d[5]);
+                        const color = close >= open ? 'rgba(16, 185, 129, 0.5)' : 'rgba(244, 63, 94, 0.5)';
+                        
+                        formattedKlines.push({ time, open, high, low, close });
+                        formattedVolume.push({ time, value: volume, color });
+                    });
+                    
+                    window.tvSeries.setData(formattedKlines);
+                    window.tvVolumeSeries.setData(formattedVolume);
+                    window.injectTerminalLog('SUCCESS', pair, `[REST] Loaded ${data.length} historical klines.`);
+                }
+            } catch(e) {
+                console.error('Failed to fetch historical klines', e);
+                window.injectTerminalLog('ERROR', pair, `[REST] Failed to fetch historical klines: ${e.message}`);
+            }
+            
+            try {
+                const wsUrl = `wss://testnet-futures-socket-gateway.dcxstage.com/market/ws/${sourceSym.toLowerCase()}@kline_${interval}`;
+                window.tvWs = new WebSocket(wsUrl);
+                window.tvWs.onopen = () => window.injectTerminalEvent('SUCCESS', pair, `[WS] Connected to Kline stream: ${interval}`);
+                window.tvWs.onerror = () => window.injectTerminalEvent('ERROR', pair, `[WS] Kline stream error: ${interval}`);
+                window.tvWs.onclose = () => window.injectTerminalEvent('WARN', pair, `[WS] Kline stream closed: ${interval}`);
+                window.tvWs.onmessage = (msg) => {
+                    if (!window.tvSeries || !window.tvVolumeSeries || !window.tvIsVisible) return;
+                    try {
+                        const evt = JSON.parse(msg.data);
+                        if (evt && evt.e === 'kline' && evt.k) {
+                            const k = evt.k;
+                            const time = (k.t / 1000) + IST_OFFSET;
+                            const open = parseFloat(k.o);
+                            const high = parseFloat(k.h);
+                            const low = parseFloat(k.l);
+                            const close = parseFloat(k.c);
+                            const volume = parseFloat(k.v);
+                            const color = close >= open ? 'rgba(16, 185, 129, 0.5)' : 'rgba(244, 63, 94, 0.5)';
+                            
+                            window.tvSeries.update({ time, open, high, low, close });
+                            window.tvVolumeSeries.update({ time, value: volume, color });
+                            window.injectTerminalEvent('EVENT', pair, `WS Kline Update: ${k.i} C:${k.c}`, evt);
+                        }
+                    } catch(e) {}
+                };
+            } catch(e) {
+                window.injectTerminalEvent('ERROR', pair, `[WS] Failed to start Kline stream: ${e.message}`);
+            }
+            
+            if (window.tvResizeObserver) {
+                window.tvResizeObserver.disconnect();
+            }
+            window.tvResizeObserver = new ResizeObserver(entries => {
+                if (!window.tvChart || entries.length === 0 || entries[0].target !== container) return;
+                const newRect = entries[0].contentRect;
+                if (newRect.width > 0 && newRect.height > 0) {
+                    window.tvChart.applyOptions({ width: newRect.width, height: newRect.height });
+                }
+            });
+            window.tvResizeObserver.observe(container);
+        };
+
+        window.initCustomSelects();
+        connectSSE();
+
+    } catch (e) {
+        console.error("FATAL UI INITIALIZATION ERROR: ", e);
+        const errDiv = document.getElementById('err-splash');
+        if (errDiv) {
+            errDiv.style.display = 'flex';
+            errDiv.innerHTML = '<div style="font-size:18px;font-weight:700;margin-bottom:8px;">⚠ UI Initialization Error</div><div style="color:var(--text-muted);text-align:center;max-width:600px;word-break:break-all;font-family:\'JetBrains Mono\',monospace;">' + (e && e.message ? e.message : String(e)) + '</div><div style="color:#64748b;font-size:12px;margin-top:16px;">Check browser console (F12) for details.</div>';
+        }
+        const sp = document.getElementById('splash');
+        if (sp) sp.classList.add('hidden');
+    }
+});
+</script>
+</body>
+</html>
