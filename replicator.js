@@ -659,7 +659,6 @@ class ReplicatorInstance {
                 });
             } else {
                 log.success(this.symbol, `[EXECUTION] Trade synced! Filled ${executedQty} @ ${o.ap || context.limitPrice}`);
-                pushEvent('SUCCESS', this.symbol, `Trade Executed | Filled: ${executedQty} @ ${o.ap || context.limitPrice} | Status: ${finalStatus}`, { makerOrderId: context.makerOrderId, takerOrderId: o.i, executedQty, avgPrice: o.ap || context.limitPrice, status: finalStatus }, 'order');
                 emitOrderEvent('order:fill_success', {
                     symbol: this.symbol,
                     makerOrderId: context.makerOrderId,
@@ -733,13 +732,6 @@ class ReplicatorInstance {
 
         if (res.ok) {
             log.debug(this.symbol, `[ORDER-POST] ${userLabel} placed OK. ID: ${res.data.orderId || res.data.id}`);
-            const oid = res.data.orderId || res.data.id;
-            const execQty = res.data.executedQty || '0';
-            const status = res.data.status || 'NEW';
-            pushEvent('SUCCESS', this.symbol, `Order Placed | ${side} ${orderType} | Qty: ${qty} @ ${bufferedPrice || 'MKT'} | ID: ${oid} | Status: ${status}`, { orderId: oid, side, qty, price: bufferedPrice, type: orderType, status, executedQty: execQty, user: userLabel, raw: res.data }, 'order');
-            if (parseFloat(execQty) > 0) {
-                pushEvent('EVENT', this.symbol, `Order Filled | ${side} | Filled: ${execQty} @ ${res.data.avgPrice || bufferedPrice}`, { orderId: oid, executedQty: execQty, avgPrice: res.data.avgPrice, raw: res.data }, 'order');
-            }
             emitOrderEvent('order:placed', {
                 symbol: this.symbol,
                 side,
@@ -761,7 +753,6 @@ class ReplicatorInstance {
             };
         }
         log.error(this.symbol, `[ORDER-FAIL] ${userLabel} failed: ${JSON.stringify(res.data || res.error)}`);
-        pushEvent('ERROR', this.symbol, `Order Failed | ${side} ${orderType} | Qty: ${qty} @ ${bufferedPrice || 'MKT'} | ${res.data?.msg || res.error || 'Unknown'}`, { side, qty, price: bufferedPrice, type: orderType, user: userLabel, error: res.data || res.error }, 'order');
         emitOrderEvent('order:place_failed', {
             symbol: this.symbol,
             side,
@@ -795,7 +786,6 @@ class ReplicatorInstance {
         
         if (res.ok) {
             log.debug(this.symbol, `[MODIFY-POST] Modified OK. ID: ${orderId}`);
-            pushEvent('EVENT', this.symbol, `Order Modified | ${side} | Qty: ${qty} @ ${bufferedPrice} | ID: ${orderId}`, { orderId, side, newPrice: bufferedPrice, newQty: qty, latencyMs: res.latencyMs }, 'order');
             emitOrderEvent('order:modified', {
                 symbol: this.symbol,
                 orderId,
@@ -809,7 +799,6 @@ class ReplicatorInstance {
                 log.debug(this.symbol, `[MODIFY-TERMINAL] ID: ${orderId} terminal (${res.data?.code}). Handled automatically.`);
             } else {
                 log.error(this.symbol, `[MODIFY-FAIL] ID: ${orderId} failed: ${JSON.stringify(res.data || res.error)}`);
-                pushEvent('ERROR', this.symbol, `Modify Failed | ${side} | ID: ${orderId} | ${res.data?.msg || 'Unknown'}`, { orderId, side, newPrice: bufferedPrice, newQty: qty, error: res.data || res.error }, 'order');
             }
             emitOrderEvent('order:modify_failed', {
                 symbol: this.symbol,
@@ -1058,7 +1047,6 @@ class ReplicatorInstance {
         if (res.status === 401) this.handleAuthFailure(userLabel);
         if (res.ok) {
             log.debug(this.symbol, `[CANCEL-POST] Cancelled OK. ID: ${orderId}`);
-            pushEvent('EVENT', this.symbol, `Order Cancelled | ${side || '?'} | Price: ${price || '-'} | ID: ${orderId}`, { orderId, side, price, isTaker, latencyMs: res.latencyMs }, 'order');
             emitOrderEvent('order:cancelled', {
                 symbol: this.symbol,
                 orderId,
@@ -1073,7 +1061,6 @@ class ReplicatorInstance {
                 log.warn(this.symbol, `[CANCEL-IGNORE] ID: ${orderId} message: ${res.data.msg}`);
             } else {
                 log.error(this.symbol, `[CANCEL-FAIL] ID: ${orderId} failed: ${JSON.stringify(res.data || res.error)}`);
-                pushEvent('ERROR', this.symbol, `Cancel Failed | ID: ${orderId} | ${res.data?.msg || 'Unknown'}`, { orderId, isTaker, error: res.data || res.error }, 'order');
             }
             emitOrderEvent('order:cancel_failed', {
                 symbol: this.symbol,
@@ -1719,59 +1706,10 @@ async function globalMasterLoop() {
             userKeys.forEach((k, i) => {
                 if (results[i].status === 'fulfilled') {
                     const newPort = results[i].value;
-                    const prevPort = _prevPortfolioState[k];
-                    const uLabel = globalUsers[k].label || k;
-
-                    const newWallet = parseFloat(newPort.walletBalance || 0);
-                    const newAvail = parseFloat(newPort.availableBalance || 0);
-                    const newPnl = parseFloat(newPort.unrealizedProfit || 0);
-                    const pnlSign = newPnl >= 0 ? '+' : '';
-
-                    // Always push account state on every poll
-                    pushEvent('EVENT', uLabel, `Account | Wallet: $${newWallet.toFixed(2)} | Available: $${newAvail.toFixed(2)} | PnL: ${pnlSign}$${newPnl.toFixed(2)}`, { walletBalance: newWallet, availableBalance: newAvail, unrealizedProfit: newPnl }, 'account');
-
-                    // Balance change detection (delta)
-                    if (prevPort) {
-                        const prevWallet = parseFloat(prevPort.walletBalance || 0);
-                        if (Math.abs(newWallet - prevWallet) > 0.001) {
-                            const delta = (newWallet - prevWallet).toFixed(4);
-                            const sign = newWallet > prevWallet ? '+' : '';
-                            pushEvent('EVENT', uLabel, `Balance Changed | Wallet: $${newWallet.toFixed(2)} (${sign}${delta})`, { walletBalance: newWallet, delta: parseFloat(delta) }, 'balance');
-                        }
-                    }
-
-                    // Always push position state on every poll
-                    const allPositions = (newPort.positions || []);
-                    const activePositions = allPositions.filter(p => parseFloat(p.positionAmt || p.size || 0) !== 0);
-                    if (activePositions.length > 0) {
-                        activePositions.forEach(p => {
-                            const amt = p.positionAmt || p.size || '0';
-                            const entry = p.entryPrice || p.avgPrice || '-';
-                            const upnl = parseFloat(p.unrealizedProfit || p.pnl || 0);
-                            const pSign = upnl >= 0 ? '+' : '';
-                            pushEvent('EVENT', uLabel, `Position | ${p.symbol || '?'} | Amt: ${amt} | Entry: $${parseFloat(entry).toFixed(2)} | PnL: ${pSign}$${upnl.toFixed(2)}`, p, 'position');
-                        });
-                    } else {
-                        pushEvent('EVENT', uLabel, `Position | No active positions`, { positions: [] }, 'position');
-                    }
-
                     _prevPortfolioState[k] = { walletBalance: newPort.walletBalance, availableBalance: newPort.availableBalance, unrealizedProfit: newPort.unrealizedProfit, positions: newPort.positions };
                     globalPortfolios[k] = newPort;
                 }
             });
-
-            // Track open orders via REST (since private WS listenKey is unavailable)
-            for (const [, inst] of instances.entries()) {
-                if (inst.status !== 'RUNNING') continue;
-                const bidCount = (inst.restingBids || []).length;
-                const askCount = (inst.restingAsks || []).length;
-                const totalOrders = bidCount + askCount;
-                if (totalOrders > 0) {
-                    pushEvent('EVENT', inst.symbol, `Orders | Open: ${totalOrders} (${bidCount} bids, ${askCount} asks)`, { bids: bidCount, asks: askCount, total: totalOrders }, 'order');
-                } else {
-                    pushEvent('EVENT', inst.symbol, `Orders | No open orders`, { total: 0 }, 'order');
-                }
-            }
         }
     } catch (e) { log.debug && log.debug('SYSTEM', e.message); }
     finally {
