@@ -1438,6 +1438,7 @@ startBinanceDepthWS() {
 
         this.wsBinanceDepth = new WebSocket(url);
         this.wsBinanceDepth.on('open', () => { pushEvent('SUCCESS', this.symbol, `Binance Depth WS connected`, { stream: 'depth' }); this.binanceLatency = Date.now() - startTime; });
+        this._lastBinDepthEventTs = 0;
         this.wsBinanceDepth.on('message', (raw) => {
             if (this.status === 'STOPPED') return;
             try {
@@ -1450,6 +1451,15 @@ startBinanceDepthWS() {
                     this.binanceDepth.asks = asks.slice(0, this.depthLevels);
                     this.syncGrid('BUY', this.binanceDepth.bids);
                     this.syncGrid('SELL', this.binanceDepth.asks);
+                    // Throttled depth event every 5 seconds
+                    const now = Date.now();
+                    if (now - this._lastBinDepthEventTs > 5000) {
+                        this._lastBinDepthEventTs = now;
+                        const bestBid = bids[0] ? bids[0][0] : '-';
+                        const bestAsk = asks[0] ? asks[0][0] : '-';
+                        const spread = (bestBid !== '-' && bestAsk !== '-') ? (parseFloat(bestAsk) - parseFloat(bestBid)).toFixed(2) : '-';
+                        pushEvent('EVENT', this.symbol, `Binance Depth | Bid: $${bestBid} | Ask: $${bestAsk} | Spread: $${spread} | Levels: ${bids.length}/${asks.length}`, { bestBid, bestAsk, spread, bidLevels: bids.length, askLevels: asks.length });
+                    }
                 }
             } catch (e) { log.debug && log.debug('SYSTEM', e.message); }
         });
@@ -1523,6 +1533,7 @@ startBinanceDepthWS() {
             this.testnetPingInterval = setInterval(() => { if (this.wsTestnet && this.wsTestnet.readyState === WebSocket.OPEN) this.wsTestnet.ping(); }, 30000);
         });
 
+        this._lastTestDepthEventTs = 0;
         this.wsTestnet.on('message', (raw) => {
             if (this.status === 'STOPPED') return;
             try {
@@ -1534,6 +1545,15 @@ startBinanceDepthWS() {
                     this.testnetDepth.bids = bids.slice(0, this.depthLevels);
                     this.testnetDepth.asks = asks.slice(0, this.depthLevels);
                     broadcastToUI();
+                    // Throttled depth event every 5 seconds
+                    const now = Date.now();
+                    if (now - this._lastTestDepthEventTs > 5000) {
+                        this._lastTestDepthEventTs = now;
+                        const bestBid = bids[0] ? bids[0][0] : '-';
+                        const bestAsk = asks[0] ? asks[0][0] : '-';
+                        const spread = (bestBid !== '-' && bestAsk !== '-') ? (parseFloat(bestAsk) - parseFloat(bestBid)).toFixed(2) : '-';
+                        pushEvent('EVENT', this.symbol, `Testnet Depth | Bid: $${bestBid} | Ask: $${bestAsk} | Spread: $${spread} | Levels: ${bids.length}/${asks.length}`, { bestBid, bestAsk, spread, bidLevels: bids.length, askLevels: asks.length });
+                    }
                 }
             } catch (e) { log.debug && log.debug('SYSTEM', e.message); }
         });
@@ -1681,6 +1701,7 @@ async function getUserPortfolio(userConfig) {
 }
 
 let globalPortfolios = {};
+let _prevPortfolioState = {}; // Track previous state for change detection
 
 async function globalMasterLoop() {
     try {
@@ -1700,7 +1721,44 @@ async function globalMasterLoop() {
             
             userKeys.forEach((k, i) => {
                 if (results[i].status === 'fulfilled') {
-                    globalPortfolios[k] = results[i].value;
+                    const newPort = results[i].value;
+                    const prevPort = _prevPortfolioState[k];
+                    const uLabel = globalUsers[k].label || k;
+
+                    // Detect balance changes
+                    if (prevPort) {
+                        const prevWallet = parseFloat(prevPort.walletBalance || 0);
+                        const newWallet = parseFloat(newPort.walletBalance || 0);
+                        const prevAvail = parseFloat(prevPort.availableBalance || 0);
+                        const newAvail = parseFloat(newPort.availableBalance || 0);
+                        const prevPnl = parseFloat(prevPort.unrealizedProfit || 0);
+                        const newPnl = parseFloat(newPort.unrealizedProfit || 0);
+
+                        if (Math.abs(newWallet - prevWallet) > 0.01) {
+                            const delta = (newWallet - prevWallet).toFixed(2);
+                            const sign = newWallet > prevWallet ? '+' : '';
+                            pushEvent('EVENT', uLabel, `Balance Update | Wallet: $${newWallet.toFixed(2)} (${sign}${delta}) | Available: $${newAvail.toFixed(2)}`, { walletBalance: newWallet, availableBalance: newAvail, delta: parseFloat(delta) });
+                        }
+                        if (Math.abs(newPnl - prevPnl) > 0.5) {
+                            const pnlColor = newPnl >= 0 ? '+' : '';
+                            pushEvent('EVENT', uLabel, `PnL Update | Unrealized: ${pnlColor}$${newPnl.toFixed(2)}`, { unrealizedProfit: newPnl });
+                        }
+
+                        // Detect position changes
+                        const prevPosCount = (prevPort.positions || []).filter(p => parseFloat(p.positionAmt || p.size || 0) !== 0).length;
+                        const newPosCount = (newPort.positions || []).filter(p => parseFloat(p.positionAmt || p.size || 0) !== 0).length;
+                        if (prevPosCount !== newPosCount) {
+                            const activePositions = (newPort.positions || []).filter(p => parseFloat(p.positionAmt || p.size || 0) !== 0);
+                            const posSummary = activePositions.map(p => `${p.symbol || '?'}: ${p.positionAmt || p.size}`).join(', ') || 'None';
+                            pushEvent('EVENT', uLabel, `Position Update | Active: ${newPosCount} | ${posSummary}`, { activePositions: newPosCount, positions: activePositions });
+                        }
+                    } else {
+                        // First sync — push initial state
+                        pushEvent('EVENT', uLabel, `Account Synced | Wallet: $${parseFloat(newPort.walletBalance || 0).toFixed(2)} | Available: $${parseFloat(newPort.availableBalance || 0).toFixed(2)}`, { walletBalance: newPort.walletBalance, availableBalance: newPort.availableBalance });
+                    }
+
+                    _prevPortfolioState[k] = { walletBalance: newPort.walletBalance, availableBalance: newPort.availableBalance, unrealizedProfit: newPort.unrealizedProfit, positions: newPort.positions };
+                    globalPortfolios[k] = newPort;
                 }
             });
         }
