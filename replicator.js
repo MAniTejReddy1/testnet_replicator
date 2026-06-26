@@ -2180,22 +2180,39 @@ async function startBots() {
     setInterval(loadInstruments, 6 * 60 * 60 * 1000);
 }
 
-// Start the server and the bots. We run the server even in Jenkins so we can access the UI via SSH Tunnel.
+// SSE keepalive pings to prevent browser/proxy connection drops
 setInterval(() => sseClients.forEach(c => c.write(`: keepalive\n\n`)), 15000);
 
-const UI_PORT = process.env.UI_PORT || 3000;
-server.listen(UI_PORT, async () => {
+// ENABLE_LOCAL_UI controls whether the HTTP/UI server is started.
+// Set to 'false' via env var for fully headless Jenkins runs.
+// Defaults to true so local development always has the UI.
+const ENABLE_LOCAL_UI = process.env.ENABLE_LOCAL_UI !== 'false';
+
+if (ENABLE_LOCAL_UI) {
+    const UI_PORT = process.env.UI_PORT || 3000;
+    server.listen(UI_PORT, async () => {
+        log.success('SYSTEM', '===========================================================');
+        log.success('SYSTEM', 'Replicator Active.');
+        log.success('SYSTEM', `UI available at: http://localhost:${UI_PORT}`);
+        log.success('SYSTEM', `SSH Tunnel (run on your laptop): ssh -L 3000:localhost:${UI_PORT} <jenkins-user>@<jenkins-host>`);
+        log.success('SYSTEM', 'Then open: http://localhost:3000 in your browser');
+        log.success('SYSTEM', '===========================================================');
+
+        startBots().catch(err => {
+            log.critical('SYSTEM', `A fatal error occurred during bot startup: ${err.message}`);
+            process.exit(1);
+        });
+    });
+} else {
     log.success('SYSTEM', '===========================================================');
-    log.success('SYSTEM', 'Replicator Active.');
-    log.success('SYSTEM', `UI is available on port ${UI_PORT}.`);
+    log.success('SYSTEM', 'Replicator Active — running HEADLESS (UI disabled).');
     log.success('SYSTEM', '===========================================================');
 
-    
     startBots().catch(err => {
         log.critical('SYSTEM', `A fatal error occurred during bot startup: ${err.message}`);
         process.exit(1);
     });
-});
+}
 
 
 process.on('SIGINT', async () => {

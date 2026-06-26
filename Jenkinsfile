@@ -34,8 +34,13 @@ pipeline {
         )
         choice(
             name: 'ENABLE_TRADE_SYNC',
-            choices: ['false', 'true'],
-            description: 'Mirror Binance taker trades on testnet via IOC orders'
+            choices: ['true', 'false'],
+            description: 'Mirror Binance taker trades on testnet via IOC orders (default: true)'
+        )
+        booleanParam(
+            name: 'ENABLE_LOCAL_UI',
+            defaultValue: true,
+            description: 'Start the local web UI on this executor\'s dedicated port. Disable for fully headless runs. When enabled, an SSH tunnel command is printed in the console to access the UI over VPN.'
         )
     }
 
@@ -156,7 +161,21 @@ pipeline {
                     def executorNum = env.EXECUTOR_NUMBER ?: '0'
                     def repPort = 30000 + executorNum.toInteger()
                     def uiPort = 40000 + executorNum.toInteger()
-                    def envVars = ["MARKET_CONFIGS=${config}", "REPORTER_PORT=${repPort}", "UI_PORT=${uiPort}"] + dynamicCreds
+                    def envVars = ["MARKET_CONFIGS=${config}", "REPORTER_PORT=${repPort}", "UI_PORT=${uiPort}", "ENABLE_LOCAL_UI=${params.ENABLE_LOCAL_UI}"] + dynamicCreds
+
+                    // Print UI access info so QA knows how to reach the dashboard
+                    if (params.ENABLE_LOCAL_UI) {
+                        echo "=================================================================="
+                        echo "UI started on port ${uiPort}"
+                        echo "To access over VPN, run this on your local machine:"
+                        echo "  ssh -L 3000:localhost:${uiPort} <your-jenkins-user>@<jenkins-host>"
+                        echo "Then open: http://localhost:3000"
+                        echo "=================================================================="
+                        currentBuild.description = "UI port ${uiPort} | ${env.SRC} → ${env.TGT}"
+                    } else {
+                        echo "UI is DISABLED for this run (ENABLE_LOCAL_UI=false). Running headless."
+                        currentBuild.description = "HEADLESS | ${env.SRC} → ${env.TGT}"
+                    }
 
                     withEnv(envVars) {
                         sh """
