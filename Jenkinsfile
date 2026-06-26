@@ -3,6 +3,11 @@ pipeline {
 
     parameters {
         string(
+            name: 'BRANCH_NAME',
+            defaultValue: 'fix/jenkins-ui-flag-and-bugs',
+            description: 'Git branch to check out and run (e.g. main, feature/scenario-engine, fix/jenkins-ui-flag-and-bugs)'
+        )
+        string(
             name: 'SOURCE_SYMBOL',
             defaultValue: 'XRPUSDT',
             description: 'Binance symbol to mirror  (e.g. XRPUSDT, BTCUSDT, ETHUSDT)'
@@ -92,7 +97,11 @@ pipeline {
         stage('Checkout') {
         // ─────────────────────────────────────────────────────────────────
             steps {
-                git url: 'https://github.com/MAniTejReddy1/testnet_replicator.git', branch: 'main'
+                script {
+                    echo "Checking out branch: ${params.BRANCH_NAME}"
+                    git url: 'https://github.com/MAniTejReddy1/testnet_replicator.git',
+                        branch: params.BRANCH_NAME
+                }
             }
         }
 
@@ -179,16 +188,24 @@ pipeline {
 
                     withEnv(envVars) {
                         sh """
-# 1. Start reporter
-node reporter.js --symbol=${env.SRC} > reporter.log 2>&1 &
-echo "Reporter started"
+# 1. Start reporter in background, capture PID
+node reporter.js > reporter.log 2>&1 &
+REPORTER_PID=\$!
+echo "Reporter started (PID \$REPORTER_PID)"
 
-# 2. Start replicator in background
-node replicator.js --symbol=${env.SRC} &
+# 2. Start replicator in background, capture PID
+node replicator.js &
 REPLICATOR_PID=\$!
-echo "Replicator started (PID \$REPLICATOR_PID) — running headless"
+echo "Replicator started (PID \$REPLICATOR_PID) — branch: ${params.BRANCH_NAME}"
 
-# 3. Keep pipeline alive until Jenkins aborts the build
+# 3. Write PIDs to files so the post-always block can kill them precisely
+echo \$REPORTER_PID   > reporter.pid
+echo \$REPLICATOR_PID > replicator.pid
+
+# 4. Trap SIGTERM (Jenkins abort) to relay it gracefully before wait exits
+trap 'echo "SIGTERM received — killing replicator (\$REPLICATOR_PID) and reporter (\$REPORTER_PID)"; kill -SIGTERM \$REPLICATOR_PID \$REPORTER_PID 2>/dev/null; sleep 4' TERM
+
+# 5. Keep pipeline alive until Jenkins aborts or replicator exits
 wait \$REPLICATOR_PID
 """
                     }
@@ -206,22 +223,40 @@ wait \$REPLICATOR_PID
         always {
             script {
                 echo "=== POST: Stopping all processes ==="
-                // Gracefully stop only the reporter/replicator for THIS symbol
-                sh "pkill -f 'node reporter.js --symbol=${env.SRC}' || true"
-                sh "pkill -f 'node replicator.js --symbol=${env.SRC}' || true"
-                // Stop the state poller background loop
-                sh "pkill -f 'replicator-poller' || true"
-                sleep(time: 3, unit: 'SECONDS') // Wait for files to be written
 
-                echo "=== POST: Preparing Allure results ==="
-                // Ensure the final metadata files are written
-                sh 'node reporter.js --flush || true'
+                // Prefer PID-file kill (precise) — fall back to pkill by name
+                sh '''
+                    if [ -f replicator.pid ]; then
+                        RPID=$(cat replicator.pid)
+                        echo "Sending SIGTERM to replicator PID $RPID"
+                        kill -SIGTERM $RPID 2>/dev/null || true
+                    else
+                        pkill -f "node replicator.js" || true
+                    fi
 
-                // Print reporter log for debugging, especially if results are missing
-                echo "=== Replicator log tail ==="
-                sh 'tail -50 reporter.log || true'
+                    if [ -f reporter.pid ]; then
+                        RPID=$(cat reporter.pid)
+                        echo "Sending SIGTERM to reporter PID $RPID"
+                        kill -SIGTERM $RPID 2>/dev/null || true
+                    else
+                        pkill -f "node reporter.js" || true
+                    fi
 
-                // Let the Allure Plugin handle the report generation and publishing
+                    # Belt-and-braces: free the dedicated UI/reporter ports
+                    fuser -k ${REPORTER_PORT:-3001}/tcp 2>/dev/null || true
+                    fuser -k ${UI_PORT:-3000}/tcp       2>/dev/null || true
+
+                    sleep 4
+                    rm -f replicator.pid reporter.pid
+                '''
+
+                echo "=== POST: Flushing Allure report ==="
+                // Only flush if the reporter log exists (proves reporter ran)
+                sh 'test -f reporter.log && node reporter.js --flush || true'
+
+                echo "=== Replicator log (last 60 lines) ==="
+                sh 'tail -60 reporter.log || true'
+
                 echo "Archiving Allure results..."
                 allure includeProperties: false, results: [[path: 'allure-results']]
             }
