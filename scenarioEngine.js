@@ -13,7 +13,9 @@ class ScenarioEngine {
         return {
             multiplier: state.currentMultiplier,
             spreadBias: state.config.spreadBias,
+            targetSpreadPct: state.config.targetSpreadPct,
             depthSkew: state.config.depthSkew,
+            profileSkew: state.config.profileSkew,
             jitterPct: state.config.jitterPct
         };
     }
@@ -21,7 +23,11 @@ class ScenarioEngine {
     /**
      * Triggers a new scenario. Validates the payload via safetyRail first.
      */
-    static startScenario(symbol, config) {
+    static startScenario(symbol, config, currentLtp = null) {
+        if (config.targetPrice && currentLtp) {
+            config.pct = (parseFloat(config.targetPrice) - parseFloat(currentLtp)) / parseFloat(currentLtp);
+        }
+        
         validateScenarioRequest(symbol, config);
         
         const state = {
@@ -32,7 +38,8 @@ class ScenarioEngine {
             phaseStartTime: Date.now(),
             accumulatedQty: 0,
             currentMultiplier: 1.0,
-            targetMultiplier: 1.0 + (config.pct || 0)
+            targetMultiplier: 1.0 + (config.pct || 0),
+            pingPongCycle: 0
         };
         activeScenarios.set(symbol, state);
         console.log(`[SCENARIO] 🟢 Started ${state.mode} scenario for ${symbol}. Target Pct: ${config.pct}`);
@@ -112,7 +119,23 @@ class ScenarioEngine {
             }
         } else if (state.phase === 'HOLDING') {
             const holdMs = state.config.holdMs || 0;
-            if (holdMs > 0 && elapsed >= holdMs) {
+            if (state.config.recovery === 'funding-premium') {
+                return; // Never recover, lock the premium
+            } else if (state.config.recovery === 'ping-pong') {
+                if (holdMs > 0 && elapsed >= holdMs) {
+                    if (state.pingPongCycle >= (state.config.maxCycles || 10)) {
+                        state.phase = 'RECOVERING';
+                        state.phaseStartTime = now;
+                    } else {
+                        state.phase = 'RAMPING';
+                        state.pingPongCycle++;
+                        state.phaseStartTime = now;
+                        // Flip the target multiplier
+                        const diff = state.targetMultiplier - 1.0;
+                        state.targetMultiplier = 1.0 - diff;
+                    }
+                }
+            } else if (holdMs > 0 && Math.abs(elapsed) >= holdMs) { // use absolute just in case
                 state.phase = 'RECOVERING';
                 state.phaseStartTime = now;
             }

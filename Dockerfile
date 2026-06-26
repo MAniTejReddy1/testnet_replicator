@@ -13,9 +13,7 @@ RUN npm install
 # Bundle app source
 COPY . .
 
-# Your app binds to port 8080, so let's document that
-# EXPOSE 8080
-# Note: The replicator.js doesn't seem to expose a port, but if it did, you would uncomment the line above.
+EXPOSE 3000
 
 # Define the command to run your app
 CMD ["node", "replicator.js"]

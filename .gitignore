@@ -3,3 +3,6 @@ node_modules/
 .DS_Store
 *.log
 config.json
+multi-config.json
+.env
+keys.json
