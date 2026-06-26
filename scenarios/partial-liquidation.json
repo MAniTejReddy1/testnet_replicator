@@ -1,0 +1,9 @@
+{
+  "name": "Partial Liquidation Cascade",
+  "description": "Crashes the market by 5% and halts once exactly 5 units of base asset are executed.",
+  "pct": -0.05,
+  "rampMs": 1000,
+  "targetQty": 5.0,
+  "recoverMs": 2000,
+  "recovery": "linear"
+}
