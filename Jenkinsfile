@@ -172,15 +172,15 @@ pipeline {
                     def uiPort = 40000 + executorNum.toInteger()
                     def envVars = ["MARKET_CONFIGS=${config}", "REPORTER_PORT=${repPort}", "UI_PORT=${uiPort}", "ENABLE_LOCAL_UI=${params.ENABLE_LOCAL_UI}"] + dynamicCreds
 
-                    // Print UI access info so QA knows how to reach the dashboard
+                    // Print UI access info — direct URL via nginx reverse proxy
                     if (params.ENABLE_LOCAL_UI) {
+                        def uiUrl = "https://qa-jenkins.dcxtools.com/replicator-${executorNum}/"
                         echo "=================================================================="
-                        echo "UI started on port ${uiPort}"
-                        echo "To access over VPN, run this on your local machine:"
-                        echo "  ssh -L 3000:localhost:${uiPort} <your-jenkins-user>@<jenkins-host>"
-                        echo "Then open: http://localhost:3000"
+                        echo "Replicator UI is LIVE:"
+                        echo "  ${uiUrl}"
+                        echo "Open the URL above in your browser (VPN required)"
                         echo "=================================================================="
-                        currentBuild.description = "UI port ${uiPort} | ${env.SRC} → ${env.TGT}"
+                        currentBuild.description = "<a href='${uiUrl}'>${uiUrl}</a> | ${env.SRC} → ${env.TGT}"
                     } else {
                         echo "UI is DISABLED for this run (ENABLE_LOCAL_UI=false). Running headless."
                         currentBuild.description = "HEADLESS | ${env.SRC} → ${env.TGT}"
