@@ -1534,7 +1534,7 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         };
 
-        window.fapiAction = async function(action, userId, symbol, currentSide) {
+        window.fapiAction = async function(action, userId, symbol, currentSide, extraParam) {
             let endpoint = '';
             let payload = { symbol };
             
@@ -1581,6 +1581,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 endpoint = '/fapi/v1/order';
                 payload._method = 'PUT';
                 payload.orderId = currentSide;
+                if (extraParam) payload.side = extraParam;
                 if (qty) payload.quantity = parseFloat(qty);
                 if (price) payload.price = parseFloat(price);
             } else if (action === 'close') {
@@ -2199,7 +2200,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     else if (o.status === 'PARTIALLY_FILLED') statusHtml = '<span class="badge" style="background:rgba(16,185,129,0.1);color:var(--emerald);border:1px solid rgba(16,185,129,0.3);">PARTIAL</span>';
                     else statusHtml = '<span class="badge" style="background:rgba(255,255,255,0.1);color:var(--text-muted);">'+o.status+'</span>';
 
-                    return '<tr><td><span style="font-weight:700;color:var(--text-main);font-family:\'Inter\',sans-serif;">'+o.symbol+'</span></td><td style="text-align:right;color:'+sideColor+';font-weight:700;">'+o.side+'</td><td style="text-align:right;color:var(--text-main);">'+parseFloat(o.price)+'</td><td style="text-align:right;color:var(--text-muted);">'+parseFloat(o.origQty)+'</td><td style="text-align:right;color:var(--text-muted);">'+parseFloat(o.executedQty)+'</td><td style="text-align:right;color:var(--text-muted);">'+o.type+'</td><td style="text-align:right;">'+statusHtml+'</td><td style="text-align:right;color:var(--text-muted);font-size:10px;">'+timeStr+'</td><td style="text-align:right;"><button class="act-btn act-lev" onclick="window.fapiAction(\'edit\', \''+userStr+'\', \''+o.symbol+'\', \''+o.orderId+'\')" style="margin-right:8px;">EDIT</button><button class="act-btn act-cls" onclick="window.fapiAction(\'cancel\', \''+userStr+'\', \''+o.symbol+'\', \''+o.orderId+'\')">CANCEL</button></td></tr>';
+                    return '<tr><td><span style="font-weight:700;color:var(--text-main);font-family:\'Inter\',sans-serif;">'+o.symbol+'</span></td><td style="text-align:right;color:'+sideColor+';font-weight:700;">'+o.side+'</td><td style="text-align:right;color:var(--text-main);">'+parseFloat(o.price)+'</td><td style="text-align:right;color:var(--text-muted);">'+parseFloat(o.origQty)+'</td><td style="text-align:right;color:var(--text-muted);">'+parseFloat(o.executedQty)+'</td><td style="text-align:right;color:var(--text-muted);">'+o.type+'</td><td style="text-align:right;">'+statusHtml+'</td><td style="text-align:right;color:var(--text-muted);font-size:10px;">'+timeStr+'</td><td style="text-align:right;"><button class="act-btn act-lev" onclick="window.fapiAction(\'edit\', \''+userStr+'\', \''+o.symbol+'\', \''+o.orderId+'\', \''+o.side+'\')" style="margin-right:8px;">EDIT</button><button class="act-btn act-cls" onclick="window.fapiAction(\'cancel\', \''+userStr+'\', \''+o.symbol+'\', \''+o.orderId+'\')">CANCEL</button></td></tr>';
                 }).join('');
             } else if (tab === 'hist') {
                 bodyEl.innerHTML = pageData.map(o => {
