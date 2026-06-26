@@ -1582,8 +1582,32 @@ window.addEventListener('DOMContentLoaded', () => {
                 payload._method = 'PUT';
                 payload.orderId = currentSide;
                 if (extraParam) payload.side = extraParam;
-                if (qty) payload.quantity = parseFloat(qty);
-                if (price) payload.price = parseFloat(price);
+                
+                // Fetch current order to populate missing fields (API requires both price and qty)
+                let currentOrderPrice = null;
+                let currentOrderQty = null;
+                const p1UserId = document.getElementById('sel-port-u1')?.value;
+                const p2UserId = document.getElementById('sel-port-u2')?.value;
+                let u = (userId === p1UserId) ? 'u1' : (userId === p2UserId ? 'u2' : null);
+                
+                if (u && window.fetchedOrders[u] && window.fetchedOrders[u]['open']) {
+                    const order = window.fetchedOrders[u]['open'].find(o => String(o.orderId) === String(currentSide));
+                    if (order) {
+                        currentOrderPrice = order.price;
+                        currentOrderQty = order.origQty;
+                    }
+                }
+                
+                const finalQty = qty ? parseFloat(qty) : parseFloat(currentOrderQty);
+                const finalPrice = price ? parseFloat(price) : parseFloat(currentOrderPrice);
+                
+                if (isNaN(finalQty) || isNaN(finalPrice)) {
+                    alert("Could not determine current order details. Please provide both price and quantity.");
+                    return;
+                }
+                
+                payload.quantity = finalQty;
+                payload.price = finalPrice;
             } else if (action === 'close') {
                 if (!confirm(`Are you sure you want to CLOSE the entire ${symbol} position?`)) return;
                 endpoint = '/fapi/v1/exitPosition';
