@@ -483,116 +483,111 @@
 </style>
 </head>
 <body>
-<div id="toast-container" style="position:fixed;top:24px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:12px;pointer-events:none;align-items:center;"></div>
+<div id="toast-container" style="position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column-reverse;gap:8px;pointer-events:none;align-items:flex-end;"></div>
 <script>
-    window.showFlushbar = function(msg, type = 'info') {
-        const container = document.getElementById('toast-container');
-        if (!container) return;
+    (function() {
+        const MAX_TOASTS = 3;
+        const DURATION = { error: 4500, success: 2500, info: 2500, warn: 3500 };
 
-        // Backward compatibility for old signature (msg, isErr)
-        if (type === true) type = 'error';
-        if (type === false) type = 'info';
+        window.showFlushbar = function(msg, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
 
-        // Automatically infer success messages
-        if (type === 'info' && (msg.toLowerCase().includes('success') || msg.toLowerCase().includes('resumed'))) {
-            type = 'success';
-        }
+            // Legacy boolean signature compat
+            if (type === true)  type = 'error';
+            if (type === false) type = 'info';
 
-        const toast = document.createElement('div');
-        toast.style.cssText = `
-            font-family: 'Inter', sans-serif;
-            font-size: 12px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            padding: 14px 20px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            background: var(--panel);
-            backdrop-filter: blur(12px);
-            border: 1px solid var(--border);
-            color: var(--text-main);
-            box-shadow: var(--shadow);
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            opacity: 0;
-            transform: translateY(-20px) scale(0.95);
-            pointer-events: auto;
-            position: relative;
-            overflow: hidden;
-            min-width: 280px;
-        `;
-
-        let iconStr = '';
-        let themeColor = '';
-        if (type === 'error') {
-            themeColor = 'var(--rose)';
-            iconStr = `<div style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:rgba(244,63,94,0.15);color:var(--rose);font-size:12px;border:1px solid rgba(244,63,94,0.3);">⚠</div>`;
-            toast.style.borderLeft = '4px solid var(--rose)';
-        } else if (type === 'success') {
-            themeColor = 'var(--emerald)';
-            iconStr = `<div style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:rgba(16,185,129,0.15);color:var(--emerald);font-size:12px;border:1px solid rgba(16,185,129,0.3);">✓</div>`;
-            toast.style.borderLeft = '4px solid var(--emerald)';
-        } else {
-            themeColor = 'var(--cyan)';
-            iconStr = `<div style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:rgba(6,182,212,0.15);color:var(--cyan);font-size:12px;border:1px solid rgba(6,182,212,0.3);">⚡</div>`;
-            toast.style.borderLeft = '4px solid var(--cyan)';
-        }
-
-        toast.innerHTML = `
-            ${iconStr}
-            <div style="flex:1;display:flex;flex-direction:column;gap:2px;">
-                <span style="font-weight:700;color:white;">${type === 'error' ? 'Error' : (type === 'success' ? 'Success' : 'Processing')}</span>
-                <span style="color:var(--text-muted);font-size:11px;">${msg}</span>
-            </div>
-            <div style="position:absolute;bottom:0;left:0;height:2px;background:${themeColor};width:100%;transform-origin:left;animation:toast-progress 3.5s linear forwards;box-shadow:0 0 10px ${themeColor};"></div>
-        `;
-        
-        container.appendChild(toast);
-
-        // Add keyframes if not exists
-        if (!document.getElementById('toast-keyframes')) {
-            const style = document.createElement('style');
-            style.id = 'toast-keyframes';
-            style.innerHTML = `@keyframes toast-progress { from { transform: scaleX(1); } to { transform: scaleX(0); } }`;
-            document.head.appendChild(style);
-        }
-
-        // Enter animation
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                toast.style.opacity = '1';
-                toast.style.transform = 'translateY(0) scale(1)';
-            });
-        });
-
-        // Exit animation and cleanup
-        setTimeout(() => {
-            toast.style.opacity = '0';
-            toast.style.transform = 'translateY(-20px) scale(0.9)';
-            setTimeout(() => {
-                if (toast.parentNode === container) {
-                    container.removeChild(toast);
-                }
-            }, 400); // Wait for transition
-        }, 3500);
-    };
-
-    document.addEventListener('click', function(e) {
-        const btn = e.target.closest('button');
-        if (btn && btn.textContent) {
-            const text = btn.textContent.trim().substring(0, 30);
-            if (!btn.classList.contains('tab') && !btn.classList.contains('pg-btn')) {
-                window.showFlushbar(`Action processing: ${text}`, 'info');
+            // Auto-infer type from leading emoji
+            if (type === 'info') {
+                if (typeof msg === 'string' && msg.startsWith('\u2713')) type = 'success';
+                else if (typeof msg === 'string' && msg.startsWith('\u2717')) type = 'error';
             }
-        }
-    });
 
-    // Override default alert to use our sleek flushbar
-    window.alert = function(msg) {
-        const isErr = msg.toLowerCase().includes('error') || msg.toLowerCase().includes('fail');
-        window.showFlushbar(msg, isErr ? 'error' : 'info');
-    };
+            // Cap stack — remove oldest if over limit
+            while (container.children.length >= MAX_TOASTS) {
+                const oldest = container.lastElementChild;
+                if (oldest) oldest.remove();
+            }
+
+            const palette = {
+                error:   { color: '#f43f5e', bg: 'rgba(244,63,94,0.12)',   icon: '✕', border: 'rgba(244,63,94,0.35)' },
+                success: { color: '#10b981', bg: 'rgba(16,185,129,0.12)',  icon: '✓', border: 'rgba(16,185,129,0.35)' },
+                info:    { color: '#06b6d4', bg: 'rgba(6,182,212,0.12)',   icon: '·', border: 'rgba(6,182,212,0.35)' },
+                warn:    { color: '#eab308', bg: 'rgba(234,179,8,0.12)',   icon: '!', border: 'rgba(234,179,8,0.35)' },
+            };
+            const p = palette[type] || palette.info;
+            const dur = DURATION[type] || 2500;
+
+            // Strip leading ✓/✗ emoji — already shown via icon
+            const cleanMsg = typeof msg === 'string' ? msg.replace(/^[✓✗⚡·\s]+/, '').trim() : msg;
+
+            const el = document.createElement('div');
+            el.setAttribute('role', 'alert');
+            el.style.cssText = [
+                'display:flex', 'align-items:center', 'gap:10px',
+                `background:${p.bg}`,
+                'backdrop-filter:blur(16px)',
+                '-webkit-backdrop-filter:blur(16px)',
+                `border:1px solid ${p.border}`,
+                'border-radius:10px',
+                'padding:10px 14px',
+                `box-shadow:0 4px 24px rgba(0,0,0,0.45),0 0 0 1px rgba(255,255,255,0.04),inset 0 1px 0 rgba(255,255,255,0.06)`,
+                'max-width:340px', 'min-width:220px',
+                'pointer-events:auto',
+                'cursor:pointer',
+                'user-select:none',
+                'transition:opacity 0.28s ease, transform 0.28s cubic-bezier(0.34,1.56,0.64,1)',
+                'opacity:0',
+                'transform:translateX(18px)',
+                'position:relative',
+                'overflow:hidden',
+            ].join(';');
+
+            el.innerHTML = [
+                `<div style="flex-shrink:0;width:20px;height:20px;border-radius:50%;background:${p.bg};border:1px solid ${p.border};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:${p.color};">${p.icon}</div>`,
+                `<span style="font-family:'Inter',sans-serif;font-size:11.5px;font-weight:500;color:rgba(255,255,255,0.88);line-height:1.4;flex:1;">${cleanMsg}</span>`,
+                `<div style="flex-shrink:0;font-size:13px;color:rgba(255,255,255,0.25);line-height:1;padding-left:4px;">✕</div>`,
+                // Progress bar
+                `<div style="position:absolute;bottom:0;left:0;height:1.5px;width:100%;background:${p.color};opacity:0.6;transform-origin:left;animation:fb-prog ${dur}ms linear forwards;"></div>`,
+            ].join('');
+
+            // Dismiss on click
+            el.addEventListener('click', () => dismiss(el));
+
+            container.prepend(el);
+
+            // Inject keyframes once
+            if (!document.getElementById('fb-kf')) {
+                const s = document.createElement('style');
+                s.id = 'fb-kf';
+                s.textContent = '@keyframes fb-prog{from{transform:scaleX(1)}to{transform:scaleX(0)}}';
+                document.head.appendChild(s);
+            }
+
+            // Animate in
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+                el.style.opacity = '1';
+                el.style.transform = 'translateX(0)';
+            }));
+
+            // Auto dismiss
+            const timer = setTimeout(() => dismiss(el), dur);
+            el._fbTimer = timer;
+
+            function dismiss(node) {
+                clearTimeout(node._fbTimer);
+                node.style.opacity = '0';
+                node.style.transform = 'translateX(14px)';
+                setTimeout(() => node.remove(), 280);
+            }
+        };
+
+        // Override alert()
+        window.alert = function(msg) {
+            const isErr = typeof msg === 'string' && (msg.toLowerCase().includes('error') || msg.toLowerCase().includes('fail'));
+            window.showFlushbar(msg, isErr ? 'error' : 'info');
+        };
+    })();
 </script>
 
 <div id="splash">
