@@ -2,9 +2,14 @@ pipeline {
     agent any
 
     parameters {
+        choice(
+            name: 'ACTIVE_TIER',
+            choices: ['PRODUCTION', 'JAPAN', 'STAGING'],
+            description: 'Environment tier to run the replicator on (default: PRODUCTION)'
+        )
         string(
             name: 'BRANCH_NAME',
-            defaultValue: 'fix/jenkins-ui-flag-and-bugs',
+            defaultValue: 'main',
             description: 'Git branch to check out and run (e.g. main, feature/scenario-engine, fix/jenkins-ui-flag-and-bugs)'
         )
         string(
@@ -46,11 +51,6 @@ pipeline {
             name: 'ENABLE_LOCAL_UI',
             defaultValue: true,
             description: 'Start the local web UI on this executor\'s dedicated port. Disable for fully headless runs. When enabled, an SSH tunnel command is printed in the console to access the UI over VPN.'
-        )
-        choice(
-            name: 'ACTIVE_TIER',
-            choices: ['PRODUCTION', 'JAPAN', 'STAGING'],
-            description: 'Environment tier to run the replicator on (default: PRODUCTION)'
         )
     }
 
