@@ -125,6 +125,28 @@ const TIER_URLS = {
 
 let globalActiveTier = (process.env.ACTIVE_TIER || 'PRODUCTION').toUpperCase();
 
+if (globalActiveTier && (globalActiveTier === 'JAPAN' || globalActiveTier === 'STAGING')) {
+    globalUsers[globalActiveTier] = {
+        'user1': {
+            label: 'User 1',
+            listenKey: process.env.USER1_LISTEN_KEY || "",
+            key: process.env.USER1_KEY || '',
+            secret: process.env.USER1_SECRET || '',
+            email: 'mani.reddy@coindcx.com',
+            password: 'Test@123'
+        },
+        'user2': {
+            label: 'User 2',
+            listenKey: process.env.USER2_LISTEN_KEY || "",
+            key: process.env.USER2_KEY || '',
+            secret: process.env.USER2_SECRET || '',
+            email: 'mani.reddy@coindcx.com',
+            password: 'Test@123'
+        }
+    };
+    globalRoles[globalActiveTier] = { makerId: 'user1', takerId: 'user2' };
+}
+
 const portfolios = {
     PRODUCTION: {
         user1: { walletBalance: "0.00", availableBalance: "0.00", unrealizedProfit: "0.00", positions: [], openOrdersCount: 0, error: null },
@@ -140,8 +162,8 @@ const portfolios = {
     }
 };
 
-let user1Portfolio = portfolios.PRODUCTION.user1;
-let user2Portfolio = portfolios.PRODUCTION.user2;
+let user1Portfolio = portfolios[globalActiveTier] ? portfolios[globalActiveTier].user1 : portfolios.PRODUCTION.user1;
+let user2Portfolio = portfolios[globalActiveTier] ? portfolios[globalActiveTier].user2 : portfolios.PRODUCTION.user2;
 let lastPortfolioSyncTime = 0;
 const PORTFOLIO_SYNC_INTERVAL_MS = 30000;
 
