@@ -942,7 +942,7 @@ class ReplicatorInstance {
             });
         } else {
             if (isTerminal) {
-                log.debug(this.symbol, `[MODIFY-TERMINAL] ID: ${orderId} terminal (${res.data?.code}). Handled automatically.`);
+                log.debug(this.symbol, `[MODIFY-TERMINAL] ID: ${orderId} terminal (${res.data ? res.data.code : undefined}). Handled automatically.`);
             } else {
                 log.error(this.symbol, `[MODIFY-FAIL] ID: ${orderId} failed: ${JSON.stringify(res.data || res.error)}`);
             }
@@ -1647,7 +1647,8 @@ startBinanceDepthWS() {
                 const data = JSON.parse(raw.toString());
                 if (data.e === '24hrTicker') {
                     this.testnetLtp = parseFloat(data.c);
-                    pushEvent('EVENT', this.symbol, `Ticker | LTP: $${parseFloat(data.c).toFixed(2)} | 24h Vol: ${parseFloat(data.v || 0).toFixed(0)} | Change: ${parseFloat(data.P || 0).toFixed(2)}%`, data, 'ticker');
+                    // Ticker event is spammy, don't pushEvent
+                    // pushEvent('EVENT', this.symbol, `Ticker | LTP: $${parseFloat(data.c).toFixed(2)} | 24h Vol: ${parseFloat(data.v || 0).toFixed(0)} | Change: ${parseFloat(data.P || 0).toFixed(2)}%`, data, 'ticker');
                     broadcastToUI();
                 }
             } catch(e) { log.debug && log.debug('SYSTEM', e.message); }
