@@ -735,6 +735,21 @@
     
     <div id="cfg-users-list" style="display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto;margin-bottom:12px;">
     </div>
+
+    <div style="border-top: 1px solid var(--border); margin-top: 12px; padding-top: 12px;">
+      <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:600;">Add Custom Account</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <input id="cfg-manual-id" placeholder="Account ID (e.g. user5)" style="padding:6px 8px;font-size:11px;background:var(--input-bg);border:1px solid var(--border);color:var(--text-main);border-radius:4px;outline:none;">
+        <input id="cfg-manual-label" placeholder="Display Label (e.g. Test)" style="padding:6px 8px;font-size:11px;background:var(--input-bg);border:1px solid var(--border);color:var(--text-main);border-radius:4px;outline:none;">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <input id="cfg-manual-key" placeholder="API Key" style="padding:6px 8px;font-size:11px;background:var(--input-bg);border:1px solid var(--border);color:var(--text-main);border-radius:4px;outline:none;">
+        <input id="cfg-manual-secret" type="password" placeholder="Secret Key" style="padding:6px 8px;font-size:11px;background:var(--input-bg);border:1px solid var(--border);color:var(--text-main);border-radius:4px;outline:none;">
+      </div>
+      <button onclick="window.addManualAccount()" style="width:100%;background:rgba(6,182,212,0.15);border:1px solid rgba(6,182,212,0.5);color:var(--cyan);border-radius:4px;padding:6px 12px;font-size:10px;font-weight:700;cursor:pointer;transition:all 0.2s;text-align:center;">
+        ➕ Save Account Credentials
+      </button>
+    </div>
   </div>
   
   <div class="panel" style="padding:16px;margin-bottom:16px;position:relative;z-index:30;">
@@ -1497,6 +1512,9 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (isMaker) badges += '<span style="background:rgba(16,185,129,0.2);color:#10b981;padding:2px 6px;border-radius:4px;font-size:9px;margin-left:8px;">Maker</span>';
                 if (isTaker) badges += '<span style="background:rgba(234,179,8,0.2);color:#eab308;padding:2px 6px;border-radius:4px;font-size:9px;margin-left:4px;">Taker</span>';
                 
+                const showDeleteBtn = !isMaker && !isTaker;
+                const deleteBtnHtml = showDeleteBtn ? `<button onclick="window.deleteAccount('${k}')" style="background:transparent;color:var(--rose);border:none;cursor:pointer;font-size:16px;padding:4px 8px;display:flex;align-items:center;line-height:1;">×</button>` : '';
+
                 return `
                 <div style="background:var(--input-bg);padding:10px 12px;border-radius:6px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
                     <div>
@@ -1504,6 +1522,7 @@ window.addEventListener('DOMContentLoaded', () => {
                         ${u.email ? `<div style="font-size:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;cursor:pointer;margin-top:2px;transition:color 0.2s;" onmouseover="this.style.color='var(--text-main)'" onmouseout="this.style.color='var(--text-muted)'" onclick="navigator.clipboard.writeText('${u.email}');window.showToast('Email copied!')" title="Click to copy Email">Email: ${u.email}</div>` : ''}
                         <div style="font-size:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;cursor:pointer;margin-top:2px;transition:color 0.2s;" onmouseover="this.style.color='var(--text-main)'" onmouseout="this.style.color='var(--text-muted)'" onclick="navigator.clipboard.writeText('${u.key}');window.showToast('API Key copied!')" title="Click to copy Key">Key: ${u.key ? u.key.substring(0,16)+'...' : 'None'}</div>
                     </div>
+                    ${deleteBtnHtml}
                 </div>`;
             }).join('');
             
@@ -1637,6 +1656,66 @@ window.addEventListener('DOMContentLoaded', () => {
             });
         };
 
+        window.addManualAccount = async function() {
+            const id = document.getElementById('cfg-manual-id').value.trim();
+            const label = document.getElementById('cfg-manual-label').value.trim();
+            const key = document.getElementById('cfg-manual-key').value.trim();
+            const secret = document.getElementById('cfg-manual-secret').value.trim();
+            
+            if (!id || !key || !secret) {
+                alert("Account ID, API Key, and Secret Key are required.");
+                return;
+            }
+            if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
+                alert("Account ID can only contain alphanumeric characters, underscores, and dashes.");
+                return;
+            }
+            
+            const payload = {
+                action: 'add',
+                user: { id, label: label || id, key, secret }
+            };
+            
+            try {
+                const res = await fetch(window.getApiUrl('/api/users'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('✓ Custom account saved successfully');
+                    document.getElementById('cfg-manual-id').value = '';
+                    document.getElementById('cfg-manual-label').value = '';
+                    document.getElementById('cfg-manual-key').value = '';
+                    document.getElementById('cfg-manual-secret').value = '';
+                } else {
+                    alert('✗ Failed: ' + data.error);
+                }
+            } catch (err) {
+                alert('✗ Request Failed: ' + err.message);
+            }
+        };
+
+        window.deleteAccount = async function(id) {
+            if (!confirm(`Are you sure you want to delete account "${id}"?`)) return;
+            try {
+                const res = await fetch(window.getApiUrl('/api/users'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'delete', id })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`✓ Account ${id} deleted successfully`);
+                } else {
+                    alert('✗ Failed: ' + data.error);
+                }
+            } catch (err) {
+                alert('✗ Request Failed: ' + err.message);
+            }
+        };
+
         window.saveRoles = function() {
             const makerId = document.getElementById('cfg-role-maker').value;
             const takerId = document.getElementById('cfg-role-taker').value;
@@ -1664,6 +1743,42 @@ window.addEventListener('DOMContentLoaded', () => {
                 wrap.style.display = 'none';
                 chev.style.transform = 'rotate(-90deg)';
                 if (id === 'term') panel.style.height = '48px';
+            }
+        };
+
+        window.cancelAllOpenOrders = async function(panelId) {
+            const orders = window.fetchedOrders[panelId]['open'] || [];
+            if (orders.length === 0) {
+                showToast('✗ No open orders to cancel', true);
+                return;
+            }
+            if (!confirm(`Are you sure you want to CANCEL ALL ${orders.length} open orders in parallel?`)) return;
+            
+            const userTag = panelId === 'u1' ? '1' : '2';
+            const selectedUser = document.getElementById('sel-port-' + panelId)?.value || ('user' + userTag);
+            
+            showToast(`⚡ Cancelling ${orders.length} orders...`);
+            
+            try {
+                const promises = orders.map(o => {
+                    const payload = { symbol: o.symbol, orderId: o.orderId, _method: 'DELETE' };
+                    return fetch(window.getApiUrl('/fapi/v1/order'), {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'x-replicator-user': selectedUser },
+                        body: JSON.stringify(payload)
+                    }).then(r => r.json());
+                });
+                
+                const results = await Promise.all(promises);
+                const errors = results.filter(r => r.error || r.msg || r.code < 0);
+                if (errors.length > 0) {
+                    showToast(`⚠ Cancelled with ${errors.length} errors`, true);
+                } else {
+                    showToast('✓ All open orders cancelled successfully');
+                }
+                window.fetchOrders(panelId, 'open');
+            } catch (err) {
+                showToast('✗ Cancel All failed: ' + err.message, true);
             }
         };
 
@@ -2621,7 +2736,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
             let rawData = [];
             if (tab === 'open') {
-                theadEl.innerHTML = '<tr><th>Symbol</th><th style="text-align:right;">Side</th><th style="text-align:right;">Price</th><th style="text-align:right;">Amount</th><th style="text-align:right;">Filled</th><th style="text-align:right;">Type</th><th style="text-align:right;">Status</th><th style="text-align:right;">Time</th><th style="text-align:right;">Actions</th></tr>';
+                theadEl.innerHTML = '<tr><th>Symbol</th><th style="text-align:right;">Side</th><th style="text-align:right;">Price</th><th style="text-align:right;">Amount</th><th style="text-align:right;">Filled</th><th style="text-align:right;">Type</th><th style="text-align:right;">Status</th><th style="text-align:right;">Time</th><th style="text-align:right;width:180px;"><div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;"><span>Actions</span><button class="act-btn act-cls" style="background:var(--rose);color:#fff;border-radius:4px;padding:3px 8px;font-size:10px;font-weight:700;line-height:1;" onclick="window.cancelAllOpenOrders(\''+panelId+'\')">CANCEL ALL</button></div></th></tr>';
                 rawData = window.fetchedOrders[panelId][tab] || [];
                 const countSpan = document.getElementById('count-' + panelId + '-open');
                 if (countSpan) countSpan.textContent = rawData.length ? ` (${rawData.length})` : '';
