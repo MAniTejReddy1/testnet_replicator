@@ -480,6 +480,7 @@
   .btn-sell-custom:hover { background:#e11d48; box-shadow:0 0 20px rgba(244,63,94,0.3); transform:translateY(-1px); }
   .btn-sell-custom:active { transform:translateY(1px); }
 
+  .env-tab.on { background: rgba(6,182,212,0.12) !important; color: var(--cyan) !important; border: 1px solid rgba(6,182,212,0.3) !important; }
 </style>
 </head>
 <body>
@@ -606,6 +607,13 @@
     <div>
       <span style="font-weight:700;font-size:14px;letter-spacing:1px;background: var(--title-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">MULTI-MARKET REPLICATOR</span>
       <span style="color:var(--text-muted);font-size:10px;margin-left:12px;letter-spacing:1px;font-family:'JetBrains Mono',monospace;background:rgba(255,255,255,0.1);padding:3px 8px;border-radius:99px;">v5 PRO</span>
+    </div>
+    
+    <!-- Global Environment Switcher Tabs -->
+    <div style="display:flex; gap: 4px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 3px; border-radius: 8px; margin-left: 20px;" id="env-switcher">
+      <button class="env-tab on" data-env="PRODUCTION" style="background:transparent; border:none; color:var(--text-muted); padding: 4px 10px; font-size: 9px; font-weight:700; font-family:inherit; cursor:pointer; border-radius: 5px; transition: all 0.2s;">PRODUCTION</button>
+      <button class="env-tab" data-env="JAPAN" style="background:transparent; border:none; color:var(--text-muted); padding: 4px 10px; font-size: 9px; font-weight:700; font-family:inherit; cursor:pointer; border-radius: 5px; transition: all 0.2s;">JAPAN</button>
+      <button class="env-tab" data-env="STAGING" style="background:transparent; border:none; color:var(--text-muted); padding: 4px 10px; font-size: 9px; font-weight:700; font-family:inherit; cursor:pointer; border-radius: 5px; transition: all 0.2s;">STAGING</button>
     </div>
   </div>
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;flex:0 1 auto;justify-content:center;" id="symbol-tabs"></div>
@@ -739,6 +747,13 @@
     
     <label>Target Symbol (Testnet - Optional)</label>
     <input id="cfg-target" placeholder="e.g. BNBQAUSDT (leave empty if same)" style="margin-bottom:12px;">
+    
+    <label>Select Tier / Environment</label>
+    <select id="cfg-tier" class="trade-input" style="margin-bottom:12px;">
+        <option value="PRODUCTION">PRODUCTION (Testnet Futures)</option>
+        <option value="JAPAN">JAPAN (Testnet Exchange)</option>
+        <option value="STAGING">STAGING (Staging Exchange Futures)</option>
+    </select>
     
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
       <div><label>Min Size (USDT)</label><input id="cfg-min" type="number" placeholder="100"></div>
@@ -1030,7 +1045,7 @@
     <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);flex-shrink:0;">
       <div style="display:flex;align-items:center;gap:12px;">
         <div style="width:10px;height:10px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px rgba(6,182,212,0.5);"></div>
-        <div><div class="sec-label">Portfolio View 1</div><div class="sec-title" id="u1-title" style="display:flex;align-items:center;gap:6px;">
+        <div><div class="sec-label">Portfolio View 1 <span id="u1-env-label" style="font-size:9px;opacity:0.8;font-weight:700;">[PRODUCTION]</span></div><div class="sec-title" id="u1-title" style="display:flex;align-items:center;gap:6px;">
           <select id="sel-port-u1" onchange="window.renderPortfolios(); event.stopPropagation();" style="background:transparent;color:var(--text-main);border:none;font-size:16px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;outline:none;padding:0;margin:0;"></select>
         </div></div>
       </div>
@@ -1063,7 +1078,7 @@
     <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);flex-shrink:0;">
       <div style="display:flex;align-items:center;gap:12px;">
         <div style="width:10px;height:10px;border-radius:50%;background:var(--yellow);box-shadow:0 0 10px rgba(234,179,8,0.5);"></div>
-        <div><div class="sec-label">Portfolio View 2</div><div class="sec-title" id="u2-title" style="display:flex;align-items:center;gap:6px;">
+        <div><div class="sec-label">Portfolio View 2 <span id="u2-env-label" style="font-size:9px;opacity:0.8;font-weight:700;">[PRODUCTION]</span></div><div class="sec-title" id="u2-title" style="display:flex;align-items:center;gap:6px;">
           <select id="sel-port-u2" onchange="window.renderPortfolios(); event.stopPropagation();" style="background:transparent;color:var(--text-main);border:none;font-size:16px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;outline:none;padding:0;margin:0;"></select>
         </div></div>
       </div>
@@ -1213,12 +1228,13 @@ window.addEventListener('DOMContentLoaded', () => {
             
             const endpoint = tab === 'open' ? '/fapi/v1/openOrders' : '/fapi/v1/allOrders';
             const userTag = u === 'u1' ? '1' : '2';
+            const selectedUser = document.getElementById('sel-port-' + u)?.value || ('user' + userTag);
             const reqBody = { _method: 'GET', symbol: activeTabSymbol, limit: 500 };
             
             try {
                 const res = await fetch(endpoint, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-replicator-user': 'user' + userTag },
+                    headers: { 'Content-Type': 'application/json', 'x-replicator-user': selectedUser },
                     body: JSON.stringify(reqBody)
                 });
                 const data = await res.json();
@@ -1346,6 +1362,10 @@ window.addEventListener('DOMContentLoaded', () => {
             window.payload.users = users;
             window.payload.roles = roles;
 
+            const activeTier = activeEnvFilter || 'PRODUCTION';
+            const tierUsers = users[activeTier] || {};
+            const tierRoles = roles[activeTier] || { makerId: '', takerId: '' };
+
             const uList = document.getElementById('cfg-users-list');
             const roleMaker = document.getElementById('cfg-role-maker');
             const roleTaker = document.getElementById('cfg-role-taker');
@@ -1361,10 +1381,10 @@ window.addEventListener('DOMContentLoaded', () => {
             const oldP2 = selPort2.value;
 
             // Render users list in Config Drawer
-            const uListHtml = Object.keys(users).map(k => {
-                const u = users[k];
-                const isMaker = roles.makerId === k;
-                const isTaker = roles.takerId === k;
+            const uListHtml = Object.keys(tierUsers).map(k => {
+                const u = tierUsers[k];
+                const isMaker = tierRoles.makerId === k;
+                const isTaker = tierRoles.takerId === k;
                 let badges = '';
                 if (isMaker) badges += '<span style="background:rgba(16,185,129,0.2);color:#10b981;padding:2px 6px;border-radius:4px;font-size:9px;margin-left:8px;">Maker</span>';
                 if (isTaker) badges += '<span style="background:rgba(234,179,8,0.2);color:#eab308;padding:2px 6px;border-radius:4px;font-size:9px;margin-left:4px;">Taker</span>';
@@ -1384,7 +1404,7 @@ window.addEventListener('DOMContentLoaded', () => {
             }
 
             // Helper to render <select> options
-            const optionsHtml = Object.keys(users).map(k => `<option value="${k}">${users[k].label}</option>`).join('');
+            const optionsHtml = Object.keys(tierUsers).map(k => `<option value="${k}">${tierUsers[k].label}</option>`).join('');
             let optionsChanged = false;
             if (window.lastOptionsHtml !== optionsHtml) {
                 window.lastOptionsHtml = optionsHtml;
@@ -1397,30 +1417,30 @@ window.addEventListener('DOMContentLoaded', () => {
             }
 
             // Track previous global roles to detect deliberate changes
-            const globalMakerChanged = window.lastMakerId && window.lastMakerId !== roles.makerId;
-            const globalTakerChanged = window.lastTakerId && window.lastTakerId !== roles.takerId;
+            const globalMakerChanged = window.lastMakerId && window.lastMakerId !== tierRoles.makerId;
+            const globalTakerChanged = window.lastTakerId && window.lastTakerId !== tierRoles.takerId;
 
-            window.lastMakerId = roles.makerId;
-            window.lastTakerId = roles.takerId;
+            window.lastMakerId = tierRoles.makerId;
+            window.lastTakerId = tierRoles.takerId;
 
             // Always respect the global roles if they changed from backend
-            if (roleMaker.value !== roles.makerId) roleMaker.value = roles.makerId;
-            if (roleTaker.value !== roles.takerId) roleTaker.value = roles.takerId;
+            if (roleMaker.value !== tierRoles.makerId) roleMaker.value = tierRoles.makerId;
+            if (roleTaker.value !== tierRoles.takerId) roleTaker.value = tierRoles.takerId;
             
             // For order terminal and portfolios, set default if empty or invalid
             if (optionsChanged) {
-                tradeUser.value = oldTU && users[oldTU] ? oldTU : roles.makerId;
-                selPort1.value = oldP1 && users[oldP1] ? oldP1 : roles.makerId;
-                selPort2.value = oldP2 && users[oldP2] ? oldP2 : roles.takerId;
+                tradeUser.value = oldTU && tierUsers[oldTU] ? oldTU : tierRoles.makerId;
+                selPort1.value = oldP1 && tierUsers[oldP1] ? oldP1 : tierRoles.makerId;
+                selPort2.value = oldP2 && tierUsers[oldP2] ? oldP2 : tierRoles.takerId;
             } else {
-                if (!tradeUser.value || !users[tradeUser.value]) tradeUser.value = roles.makerId;
-                if (!selPort1.value || !users[selPort1.value]) selPort1.value = roles.makerId;
-                if (!selPort2.value || !users[selPort2.value]) selPort2.value = roles.takerId;
+                if (!tradeUser.value || !tierUsers[tradeUser.value]) tradeUser.value = tierRoles.makerId;
+                if (!selPort1.value || !tierUsers[selPort1.value]) selPort1.value = tierRoles.makerId;
+                if (!selPort2.value || !tierUsers[selPort2.value]) selPort2.value = tierRoles.takerId;
             }
 
             // Snap portfolio to new maker/taker if global role was just deliberately changed
-            if (globalMakerChanged) selPort1.value = roles.makerId;
-            if (globalTakerChanged) selPort2.value = roles.takerId;
+            if (globalMakerChanged) selPort1.value = tierRoles.makerId;
+            if (globalTakerChanged) selPort2.value = tierRoles.takerId;
             
             window.tradeUser = tradeUser.value;
 
@@ -1437,8 +1457,16 @@ window.addEventListener('DOMContentLoaded', () => {
             const p2 = document.getElementById('sel-port-u2').value;
             if (!p1 || !p2 || !window.payload.portfolios) return;
             
-            const port1 = window.payload.portfolios[p1] || {};
-            const port2 = window.payload.portfolios[p2] || {};
+            const activeTier = activeEnvFilter || 'PRODUCTION';
+            const u1Env = document.getElementById('u1-env-label');
+            if (u1Env) u1Env.textContent = `[${activeTier}]`;
+            const u2Env = document.getElementById('u2-env-label');
+            if (u2Env) u2Env.textContent = `[${activeTier}]`;
+
+            const tierPortfolios = window.payload.portfolios[activeTier] || {};
+            
+            const port1 = tierPortfolios[p1] || {};
+            const port2 = tierPortfolios[p2] || {};
             
             // the second arg in fapiAction for portfolio 1 is now the exact user ID `p1`
             // same for p2. But we need to define renderPortfolio globally.
@@ -1454,7 +1482,9 @@ window.addEventListener('DOMContentLoaded', () => {
             window.isGeneratingAccount = true;
             
             // Find next available user number
-            const currentUsers = Object.keys(window.payload?.users || {});
+            const activeTier = activeEnvFilter || 'PRODUCTION';
+            const tierUsers = window.payload?.users?.[activeTier] || {};
+            const currentUsers = Object.keys(tierUsers);
             let maxNum = 0;
             for (let k of currentUsers) {
                 if (k.startsWith('user')) {
@@ -1675,8 +1705,11 @@ window.addEventListener('DOMContentLoaded', () => {
         };
 
         let activeTabSymbol = null;
+        const lastActiveSymbolByEnv = { PRODUCTION: null, JAPAN: null, STAGING: null };
         let cachedInstances = {};
         let cachedGlobalData = null;
+        let activeEnvFilter = 'PRODUCTION';
+        let lastActiveEnv = null;
         let tradeFilter = 'all';
         let showBars = true;
         let flashOn = true;
@@ -1685,6 +1718,33 @@ window.addEventListener('DOMContentLoaded', () => {
         // knownTradeIds removed — was dead code (populated but never read)
         let cancelOnStopState = true;
         let newUserState = false;
+
+        // Bind environment switcher buttons
+        document.querySelectorAll('.env-tab').forEach(btn => {
+            btn.onclick = async () => {
+                const targetEnv = btn.getAttribute('data-env');
+                showFlushbar(`Switching environment to ${targetEnv}...`, 'info');
+                try {
+                    const r = await fetch('/api/env', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ tier: targetEnv })
+                    });
+                    const res = await r.json();
+                    if (res.success) {
+                        showFlushbar(`Environment switched to ${targetEnv}`, 'success');
+                        activeEnvFilter = targetEnv;
+                        if (window.renderTerminalLogs) {
+                            window.renderTerminalLogs(window.activeTermTab === 'events' ? window.cachedTerminalEvents : window.cachedTerminalLogs);
+                        }
+                    } else {
+                        showFlushbar(`Failed to switch environment: ${res.error}`, 'error');
+                    }
+                } catch(e) {
+                    showFlushbar(`Network error: ${e.message}`, 'error');
+                }
+            };
+        });
 
         setInterval(() => {
             const now = new Date();
@@ -1792,6 +1852,7 @@ window.addEventListener('DOMContentLoaded', () => {
         document.getElementById('btn-apply').onclick = async () => {
             const sym = document.getElementById('cfg-symbol').value.trim().toUpperCase();
             const tgt = document.getElementById('cfg-target').value.trim().toUpperCase() || sym;
+            const tier = document.getElementById('cfg-tier').value;
             const minV = document.getElementById('cfg-min').value;
             const maxV = document.getElementById('cfg-max').value;
             const depV = document.getElementById('cfg-depth').value;
@@ -1804,7 +1865,7 @@ window.addEventListener('DOMContentLoaded', () => {
             if (!sym) { msg.style.color='#f43f5e'; msg.textContent='✗ Symbol required'; return; }
             if (minV && maxV && parseFloat(minV) >= parseFloat(maxV)) { msg.style.color='#f43f5e'; msg.textContent='✗ Min must be < Max'; return; }
 
-            const body = { symbol: sym, targetSymbol: tgt, cancelOnStop: cancelOnStopState, newUserFlow: newUserState, enableTradeSync: true };
+            const body = { symbol: sym, targetSymbol: tgt, tier: tier, cancelOnStop: cancelOnStopState, newUserFlow: newUserState, enableTradeSync: true };
             if (minV) body.minSize = parseFloat(minV);
             if (maxV) body.maxSize = parseFloat(maxV);
             if (depV) body.depthLevels = parseInt(depV);
@@ -1970,12 +2031,25 @@ window.addEventListener('DOMContentLoaded', () => {
 
         window.selectTab = function(sym) {
             activeTabSymbol = sym;
+            if (activeEnvFilter) {
+                lastActiveSymbolByEnv[activeEnvFilter] = sym;
+            }
             if (window.tvIsVisible) window.initTVChart(sym);
             tradeFilter = 'all';
             document.querySelectorAll('.tab').forEach(b => { if(b.hasAttribute('data-f')) b.classList.remove('on'); });
             const defaultTab = document.querySelector('.tab[data-f="all"]');
             if (defaultTab) defaultTab.classList.add('on');
             document.getElementById('trade-stream').innerHTML = '<div style="text-align:center;padding:60px 0;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Loading...</div>';
+
+            // Clear orderbooks to show loading state instantly
+            document.getElementById('bin-bids').innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted);">Loading...</div>';
+            document.getElementById('bin-asks').innerHTML = '';
+            document.getElementById('stage-bids').innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted);">Loading...</div>';
+            document.getElementById('stage-asks').innerHTML = '';
+            document.getElementById('bin-spread-mid').textContent = "Spread —";
+            document.getElementById('stage-spread-mid').textContent = "Spread —";
+            document.getElementById('bin-spread-badge').textContent = "Spread —";
+            document.getElementById('stage-spread-badge').textContent = "Spread —";
 
 
             if (cachedInstances && cachedInstances[sym] && cachedGlobalData) {
@@ -2269,7 +2343,8 @@ window.addEventListener('DOMContentLoaded', () => {
             document.getElementById('c-sync').textContent = (diag.syncRatio||'100') + '%';
             
             const srcStr = (diag.sourceSymbol && diag.sourceSymbol !== activeTabSymbol) ? ' (SRC: ' + diag.sourceSymbol + ')' : '';
-            document.getElementById('c-pair').textContent = activeTabSymbol + srcStr;
+            const activeTier = instance.tier || 'PRODUCTION';
+            document.getElementById('c-pair').textContent = activeTabSymbol + srcStr + ' [' + activeTier + ']';
 
             const tsEl = document.getElementById('flag-tradeSync');
             const csEl = document.getElementById('flag-cancelStop');
@@ -2365,10 +2440,11 @@ window.addEventListener('DOMContentLoaded', () => {
             const p1UserId = document.getElementById('sel-port-u1')?.value;
             const p2UserId = document.getElementById('sel-port-u2')?.value;
             
-            // userOrRole can be: "Maker", "Taker", "user1", "user2", "User 1", etc.
+            const activeTier = activeEnvFilter || 'PRODUCTION';
+            const tierRoles = window.payload?.roles?.[activeTier] || {};
             let resolvedUserId = userOrRole;
-            if (userOrRole === 'Maker') resolvedUserId = window.payload?.roles?.makerId;
-            else if (userOrRole === 'Taker') resolvedUserId = window.payload?.roles?.takerId;
+            if (userOrRole === 'Maker') resolvedUserId = tierRoles.makerId;
+            else if (userOrRole === 'Taker') resolvedUserId = tierRoles.takerId;
             
             let u = null;
             if (resolvedUserId === p1UserId) u = 'u1';
@@ -2443,6 +2519,82 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (window.tvWs) window.tvWs.close();
             }, { once: true });
 
+            window.clearDashboard = function() {
+                activeTabSymbol = "";
+                document.getElementById('c-pair').textContent = "—";
+                document.getElementById('t-bltp').textContent = "—";
+                document.getElementById('t-sltp').textContent = "—";
+                document.getElementById('t-drift').textContent = "—";
+                document.getElementById('t-dpct').textContent = "—";
+                document.getElementById('t-bspread').textContent = "—";
+                document.getElementById('t-bspct').textContent = "—";
+                
+                // Clear orderbooks
+                document.getElementById('bin-bids').innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted);">No active market</div>';
+                document.getElementById('bin-asks').innerHTML = '';
+                document.getElementById('stage-bids').innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted);">No active market</div>';
+                document.getElementById('stage-asks').innerHTML = '';
+                
+                document.getElementById('bin-spread-mid').textContent = "Spread —";
+                document.getElementById('stage-spread-mid').textContent = "Spread —";
+                document.getElementById('bin-spread-badge').textContent = "Spread —";
+                document.getElementById('stage-spread-badge').textContent = "Spread —";
+                
+                const tradesBody = document.getElementById('trades-body');
+                if (tradesBody) {
+                    tradesBody.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted);">No trades captured</div>';
+                }
+                
+                const chartBox = document.getElementById('tv-chart');
+                if (chartBox) chartBox.innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:12px;">No active symbol selected</div>';
+            };
+
+            window.refreshSymbolTabs = function(data) {
+                const tabContainer = document.getElementById('symbol-tabs');
+                const allSymbols = Object.keys(cachedInstances);
+                const symbols = allSymbols.filter(sym => {
+                    const inst = cachedInstances[sym];
+                    const tier = inst.tier || 'PRODUCTION';
+                    return tier === activeEnvFilter;
+                });
+
+                document.getElementById('dot').className = 'dot-live';
+
+                if (symbols.length === 0) {
+                    tabContainer.innerHTML = '<span style="color:var(--text-muted);font-size:11px;font-family:\'Inter\',sans-serif;font-weight:500;">No active markets on ' + activeEnvFilter + '</span>';
+                    document.getElementById('c-eng').innerHTML = "<span class='c-yellow fw-bold'>IDLE</span>";
+                    window.clearDashboard();
+                    return;
+                }
+
+                document.getElementById('c-eng').innerHTML = "<span class='c-emerald fw-bold'>CONNECTED</span>";
+
+                const envChanged = lastActiveEnv !== activeEnvFilter;
+                lastActiveEnv = activeEnvFilter;
+
+                const lastSavedSym = lastActiveSymbolByEnv[activeEnvFilter];
+                const targetSym = (lastSavedSym && symbols.includes(lastSavedSym)) ? lastSavedSym : symbols[0];
+
+                if (envChanged || activeTabSymbol !== targetSym) {
+                    window.selectTab(targetSym);
+                }
+
+                tabContainer.innerHTML = symbols.map(sym => {
+                    const isActive = sym === activeTabSymbol;
+                    const statColor = cachedInstances[sym].status === 'RUNNING' ? '#10b981' : cachedInstances[sym].status === 'PAUSED' ? '#eab308' : '#f43f5e';
+                    const shadow = isActive ? 'box-shadow: 0 0 10px '+statColor+';' : '';
+                    return '<div class="sym-tab '+(isActive?'on':'')+'" onclick="window.selectTab(\''+sym+'\')"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+statColor+';margin-right:8px;'+shadow+'"></span>'+sym+'</div>';
+                }).join('');
+
+                if (activeTabSymbol && cachedInstances[activeTabSymbol]) {
+                    try {
+                        renderSymbolData(cachedInstances[activeTabSymbol], data);
+                    } catch(err) {
+                        console.error('Error rendering symbol data:', err);
+                    }
+                }
+            };
+
             es.onmessage = (ev) => {
                 let data;
                 try { data = JSON.parse(ev.data); } catch(e) { return; }
@@ -2463,37 +2615,23 @@ window.addEventListener('DOMContentLoaded', () => {
                 cachedInstances = data.instances || {};
                 cachedGlobalData = data;
 
-                const tabContainer = document.getElementById('symbol-tabs');
-                const symbols = Object.keys(cachedInstances);
-
                 const sp = document.getElementById('splash');
                 if (sp) { sp.classList.add('hidden'); setTimeout(()=>sp.remove(),500); }
                 
-                document.getElementById('dot').className = 'dot-live';
-                if(symbols.length > 0) document.getElementById('c-eng').innerHTML = "<span class='c-emerald fw-bold'>CONNECTED</span>";
-
-                if (symbols.length === 0) {
-                    tabContainer.innerHTML = '<span style="color:var(--text-muted);font-size:12px;letter-spacing:1px;font-family:\'Inter\',sans-serif;font-weight:500;">Waiting for engine...</span>';
-                    document.getElementById('c-eng').innerHTML = "<span class='c-yellow4 fw-bold'>BOOTING...</span>";
-                    return;
+                if (data.activeTier) {
+                    activeEnvFilter = data.activeTier;
+                    document.querySelectorAll('.env-tab').forEach(btn => {
+                        if (btn.getAttribute('data-env') === activeEnvFilter) {
+                            btn.classList.add('on');
+                        } else {
+                            btn.classList.remove('on');
+                        }
+                    });
+                    const cfgTierSelect = document.getElementById('cfg-tier');
+                    if (cfgTierSelect) cfgTierSelect.value = activeEnvFilter;
                 }
-
-                if (!activeTabSymbol || !cachedInstances[activeTabSymbol]) window.selectTab(symbols[0]);
-
-                tabContainer.innerHTML = symbols.map(sym => {
-                    const isActive = sym === activeTabSymbol;
-                    const statColor = cachedInstances[sym].status === 'RUNNING' ? '#10b981' : cachedInstances[sym].status === 'PAUSED' ? '#eab308' : '#f43f5e';
-                    const shadow = isActive ? 'box-shadow: 0 0 10px '+statColor+';' : '';
-                    return '<div class="sym-tab '+(isActive?'on':'')+'" onclick="window.selectTab(\''+sym+'\')"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+statColor+';margin-right:8px;'+shadow+'"></span>'+sym+'</div>';
-                }).join('');
-
-                if (activeTabSymbol && cachedInstances[activeTabSymbol]) {
-                    try {
-                        renderSymbolData(cachedInstances[activeTabSymbol], data);
-                    } catch(err) {
-                        console.error('Error rendering symbol data:', err);
-                    }
-                }
+                
+                window.refreshSymbolTabs(data);
                 
                 if (data.users && data.roles) {
                     window.renderUsers(data.users, data.roles);
@@ -2538,7 +2676,9 @@ window.addEventListener('DOMContentLoaded', () => {
                     const p1UserId = document.getElementById('sel-port-u1')?.value;
                     const p2UserId = document.getElementById('sel-port-u2')?.value;
                     
-                    Object.entries(data.portfolios).forEach(([userId, port]) => {
+                    const activeTier = activeEnvFilter || 'PRODUCTION';
+                    const tierPortfolios = data.portfolios[activeTier] || {};
+                    Object.entries(tierPortfolios).forEach(([userId, port]) => {
                         if (port._realtimeOrders && port._realtimeOrders.length > 0) {
                             const u = userId === p1UserId ? 'u1' : (userId === p2UserId ? 'u2' : null);
                             if (u) {
@@ -2582,7 +2722,7 @@ window.addEventListener('DOMContentLoaded', () => {
         window.injectTerminalLog = function(level, sym, msg, meta = null) {
             const now = new Date();
             const time = now.toISOString().split('T')[1].substring(0,12); // HH:mm:ss.SSS
-            const logObj = { time, level, sym, msg, meta, ts: Date.now() };
+            const logObj = { time, level, sym, msg, meta, ts: Date.now(), tier: activeEnvFilter };
             if (!window.clientTerminalLogs) window.clientTerminalLogs = [];
             window.clientTerminalLogs.push(logObj);
             if (window.clientTerminalLogs.length > 500) window.clientTerminalLogs.shift();
@@ -2596,7 +2736,7 @@ window.addEventListener('DOMContentLoaded', () => {
         window.injectTerminalEvent = function(level, sym, msg, meta = null, cat = 'general') {
             const now = new Date();
             const time = now.toISOString().split('T')[1].substring(0,12);
-            const logObj = { time, level, sym, msg, meta, ts: Date.now(), cat };
+            const logObj = { time, level, sym, msg, meta, ts: Date.now(), cat, tier: activeEnvFilter };
             if (!window.clientTerminalEvents) window.clientTerminalEvents = [];
             window.clientTerminalEvents.push(logObj);
             if (window.clientTerminalEvents.length > 3000) window.clientTerminalEvents.shift();
@@ -2744,6 +2884,8 @@ window.addEventListener('DOMContentLoaded', () => {
             let count = 0;
             for (let i = 0; i < logs.length; i++) {
                 const l = logs[i];
+                const logTier = l.tier || 'PRODUCTION';
+                if (logTier !== activeEnvFilter) continue;
                 if (l.ts && l.ts < window.terminalClearTs) continue;
                 if (window.activeTermTab === 'err' && l.level !== 'ERROR' && l.level !== 'CRITICAL') continue;
                 if (window.activeTermTab === 'info' && l.level !== 'INFO') continue;
@@ -2778,8 +2920,11 @@ window.addEventListener('DOMContentLoaded', () => {
                     metaBadge = '<span class="log-meta-badge">▶ DETAILS</span>';
                 }
 
+                const tierColor = logTier === 'PRODUCTION' ? '#10b981' : logTier === 'JAPAN' ? '#eab308' : '#06b6d4';
+                const tierBadge = `<span style="background:rgba(255,255,255,0.04);color:${tierColor};padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;margin-right:6px;border:1px solid rgba(255,255,255,0.06);">${logTier}</span>`;
+
                 const catBadge = (window.activeTermTab === 'events' && l.cat) ? `<span class="log-cat-badge cat-${l.cat}">${l.cat}</span>` : '';
-                html += `<div id="tl-${i}" class="${rowClass}"${hasMeta ? ` data-meta-idx="${i}"` : ''}><span class="log-ts">[${l.time}]</span> <span class="log-tag ${levelClass}">[${l.level}]</span> <span class="log-sym">[${l.sym}]</span> ${catBadge}<span class="log-msg${msgClass}">${escapedMsg}</span>${metaBadge}</div>`;
+                html += `<div id="tl-${i}" class="${rowClass}"${hasMeta ? ` data-meta-idx="${i}"` : ''}><span class="log-ts">[${l.time}]</span> ${tierBadge}<span class="log-tag ${levelClass}">[${l.level}]</span> <span class="log-sym">[${l.sym}]</span> ${catBadge}<span class="log-msg${msgClass}">${escapedMsg}</span>${metaBadge}</div>`;
             }
 
             if (count === 0) {
@@ -2950,8 +3095,16 @@ window.addEventListener('DOMContentLoaded', () => {
             const sourceSym = (window.cachedInstances && window.cachedInstances[pair] && window.cachedInstances[pair].diagnostics) ? window.cachedInstances[pair].diagnostics.sourceSymbol : pair;
 
             try {
+                const TIER_MDS_READ_URLS = {
+                    PRODUCTION: "https://testnet-futures-mds-read.dcxstage.com",
+                    JAPAN: "https://testnet-exchange-mds-read.dcxstage.com",
+                    STAGING: "https://staging-exchange-futures-mds-read.dcxstage.com"
+                };
+                const activeTier = activeEnvFilter || 'PRODUCTION';
+                const mdsReadBase = TIER_MDS_READ_URLS[activeTier] || TIER_MDS_READ_URLS.PRODUCTION;
+
                 window.injectTerminalLog('INFO', pair, `[REST] Fetching historical ${interval} klines for ${sourceSym}...`);
-                const res = await fetch(`https://testnet-futures-mds-read.dcxstage.com/fapi/v1/klines?symbol=${sourceSym}&interval=${interval}&limit=500`);
+                const res = await fetch(`${mdsReadBase}/fapi/v1/klines?symbol=${sourceSym}&interval=${interval}&limit=500`);
                 const data = await res.json();
                 if (data && data.length) {
                     const formattedKlines = [];
@@ -2998,7 +3151,14 @@ window.addEventListener('DOMContentLoaded', () => {
             }
             
             try {
-                const wsUrl = `wss://testnet-futures-socket-gateway.dcxstage.com/market/ws/${sourceSym.toLowerCase()}@kline_${interval}`;
+                const TIER_WS_GATEWAYS = {
+                    PRODUCTION: "wss://testnet-futures-socket-gateway.dcxstage.com",
+                    JAPAN: "wss://testnet-exchange-futures-socket-gateway.dcxstage.com",
+                    STAGING: "wss://testnet-staging-futures-socket-gateway.dcxstage.com"
+                };
+                const activeTier = activeEnvFilter || 'PRODUCTION';
+                const gateway = TIER_WS_GATEWAYS[activeTier] || TIER_WS_GATEWAYS.PRODUCTION;
+                const wsUrl = `${gateway}/market/ws/${sourceSym.toLowerCase()}@kline_${interval}`;
                 window.tvWs = new WebSocket(wsUrl);
                 window.tvWs.onopen = () => window.injectTerminalEvent('SUCCESS', pair, `[WS] Connected to Kline stream: ${interval}`, null, 'ws');
                 window.tvWs.onerror = () => window.injectTerminalEvent('ERROR', pair, `[WS] Kline stream error: ${interval}`, null, 'ws');

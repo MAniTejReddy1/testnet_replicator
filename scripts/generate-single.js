@@ -1,9 +1,9 @@
 const fs = require('fs');
 const fetch = require('node-fetch');
 
-const apiBase = "https://testnet-api.dcxstage.com";
-const railsBase = "https://testnet-rails-api.dcxstage.com";
-const futuresUrl = "https://testnet-futures-hpo.dcxstage.com";
+const apiBase = process.env.API_BASE || "https://testnet-api.dcxstage.com";
+const railsBase = process.env.RAILS_BASE || "https://testnet-rails-api.dcxstage.com";
+const futuresUrl = process.env.FUTURES_URL || "https://testnet-futures-hpo.dcxstage.com";
 
 const wait = (ms = 200) => new Promise((r) => setTimeout(r, ms));
 const randSuffix = (len = 8) => Math.random().toString(36).substring(2, 2+len);

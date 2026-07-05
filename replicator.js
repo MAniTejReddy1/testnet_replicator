@@ -29,27 +29,32 @@ async function emitOrderEvent(type, payload) {
 // ==========================================
 
 let globalUsers = {
-    'user1': {
-        label: 'User 1',
-        listenKey: process.env.USER1_LISTEN_KEY || "",
-        key: process.env.USER1_KEY || '45cda3aac77c85a66212c1eb1ed70df06defc46e8840aa6d',
-        secret: process.env.USER1_SECRET || 'b3ebd30860c13a1bd1f44c358d746874ae52ca5396879de71366c5b2832596fd',
-        email: 'mani.reddy+k0g0zvg8@coindcx.com',
-        password: 'Test@123'
+    PRODUCTION: {
+        'user1': {
+            label: 'User 1',
+            listenKey: process.env.USER1_LISTEN_KEY || "",
+            key: process.env.USER1_KEY || '45cda3aac77c85a66212c1eb1ed70df06defc46e8840aa6d',
+            secret: process.env.USER1_SECRET || 'b3ebd30860c13a1bd1f44c358d746874ae52ca5396879de71366c5b2832596fd',
+            email: 'mani.reddy+k0g0zvg8@coindcx.com',
+            password: 'Test@123'
+        },
+        'user2': {
+            label: 'User 2',
+            listenKey: process.env.USER2_LISTEN_KEY || "",
+            key: process.env.USER2_KEY || '6e3ef60d1fcfc8fb6c527eb8218bcdfaf56c02f422846367',
+            secret: process.env.USER2_SECRET || 'ce547e76586bfe7d1fff793cb9373d04171b648f89de4706e7b9b2783715e72f',
+            email: 'mani.reddy+n1d5l3gq@coindcx.com',
+            password: 'Test@123'
+        }
     },
-    'user2': {
-        label: 'User 2',
-        listenKey: process.env.USER2_LISTEN_KEY || "",
-        key: process.env.USER2_KEY || '6e3ef60d1fcfc8fb6c527eb8218bcdfaf56c02f422846367',
-        secret: process.env.USER2_SECRET || 'ce547e76586bfe7d1fff793cb9373d04171b648f89de4706e7b9b2783715e72f',
-        email: 'mani.reddy+n1d5l3gq@coindcx.com',
-        password: 'Test@123'
-    }
+    JAPAN: {},
+    STAGING: {}
 };
 
 let globalRoles = {
-    makerId: 'user1',
-    takerId: 'user2'
+    PRODUCTION: { makerId: 'user1', takerId: 'user2' },
+    JAPAN: { makerId: '', takerId: '' },
+    STAGING: { makerId: '', takerId: '' }
 };
 
 let globalOrderUpdateCounter = 0;
@@ -89,11 +94,63 @@ const DEBUG = false;
 // Global Portfolios (Account level)
 let terminalLogs = [];
 let maxTerminalLogs = 1000;
+
+// Global Portfolios (Account level per tier)
+const TIER_URLS = {
+    PRODUCTION: {
+        HPO: "https://testnet-futures-hpo.dcxstage.com",
+        MDS_READ: "https://testnet-futures-mds-read.dcxstage.com",
+        PUBLIC_MDN: "https://testnet-public-mdn.dcxstage.com",
+        ONBOARDING: "https://testnet-api.dcxstage.com",
+        RAILS: "https://testnet-rails-api.dcxstage.com",
+        WS_GATEWAY: "wss://testnet-futures-socket-gateway.dcxstage.com"
+    },
+    JAPAN: {
+        HPO: "https://testnet-exchange-hpo.dcxstage.com",
+        MDS_READ: "https://testnet-exchange-mds-read.dcxstage.com",
+        PUBLIC_MDN: "https://testnet-exchange-public-mdn.dcxstage.com",
+        ONBOARDING: "https://testnet-exchange-api.dcxstage.com",
+        RAILS: "https://testnet-exchange-rails-api.dcxstage.com",
+        WS_GATEWAY: "wss://testnet-exchange-futures-socket-gateway.dcxstage.com"
+    },
+    STAGING: {
+        HPO: "https://staging-exchange-futures-hpo.dcxstage.com",
+        MDS_READ: "https://staging-exchange-futures-mds-read.dcxstage.com",
+        PUBLIC_MDN: "https://staging-exchange-public-mdn.dcxstage.com",
+        ONBOARDING: "https://staging-exchange-api.dcxstage.com",
+        RAILS: "https://staging-exchange-rails-api.dcxstage.com",
+        WS_GATEWAY: "wss://testnet-staging-futures-socket-gateway.dcxstage.com"
+    }
+};
+
+let globalActiveTier = 'PRODUCTION';
+
+const portfolios = {
+    PRODUCTION: {
+        user1: { walletBalance: "0.00", availableBalance: "0.00", unrealizedProfit: "0.00", positions: [], openOrdersCount: 0, error: null },
+        user2: { walletBalance: "0.00", availableBalance: "0.00", unrealizedProfit: "0.00", positions: [], openOrdersCount: 0, error: null }
+    },
+    JAPAN: {
+        user1: { walletBalance: "0.00", availableBalance: "0.00", unrealizedProfit: "0.00", positions: [], openOrdersCount: 0, error: null },
+        user2: { walletBalance: "0.00", availableBalance: "0.00", unrealizedProfit: "0.00", positions: [], openOrdersCount: 0, error: null }
+    },
+    STAGING: {
+        user1: { walletBalance: "0.00", availableBalance: "0.00", unrealizedProfit: "0.00", positions: [], openOrdersCount: 0, error: null },
+        user2: { walletBalance: "0.00", availableBalance: "0.00", unrealizedProfit: "0.00", positions: [], openOrdersCount: 0, error: null }
+    }
+};
+
+let user1Portfolio = portfolios.PRODUCTION.user1;
+let user2Portfolio = portfolios.PRODUCTION.user2;
 let lastPortfolioSyncTime = 0;
 const PORTFOLIO_SYNC_INTERVAL_MS = 30000;
 
-// Instrument Data Map (Dynamically loaded)
-const instrumentsMap = {};
+// Instrument Data Map (Dynamically loaded, keyed by tier, then symbol)
+const instrumentsMap = {
+    PRODUCTION: {},
+    JAPAN: {},
+    STAGING: {}
+};
 let sseClients = [];
 let serverTimeOffset = 0;
 
@@ -111,23 +168,41 @@ function writeStateFile(payload) {
 
 const terminalEvents = [];
 
-function pushLog(level, sym, msg, meta = null) {
-    terminalLogs.push({ time: getISTTimeString(), level, sym, msg, ts: Date.now(), meta });
+function pushLog(level, sym, msg, meta = null, tier = null) {
+    if (!tier && sym && sym !== 'SYSTEM') {
+        for (const t of ['PRODUCTION', 'JAPAN', 'STAGING']) {
+            const inst = instances[t] && instances[t].get(sym);
+            if (inst) { tier = t; break; }
+        }
+    }
+    if (!tier) tier = globalActiveTier;
+    terminalLogs.push({ time: getISTTimeString(), level, sym, msg, ts: Date.now(), meta, tier });
     if (terminalLogs.length > 200) terminalLogs.shift();
 }
 
-function pushEvent(level, sym, msg, meta = null, cat = 'general') {
-    terminalEvents.push({ time: getISTTimeString(), level, sym, msg, ts: Date.now(), meta, cat });
+function pushEvent(level, sym, msg, meta = null, cat = 'general', tier = null) {
+    if (!tier && sym && sym !== 'SYSTEM') {
+        for (const t of ['PRODUCTION', 'JAPAN', 'STAGING']) {
+            const inst = instances[t] && instances[t].get(sym);
+            if (inst) { tier = t; break; }
+        }
+    }
+    if (!tier) tier = globalActiveTier;
+    let cleanMeta = meta;
+    if (['depth', 'trade', 'ticker'].includes(cat)) {
+        cleanMeta = null;
+    }
+    terminalEvents.push({ time: getISTTimeString(), level, sym, msg, ts: Date.now(), meta: cleanMeta, cat, tier });
     if (terminalEvents.length > 2000) terminalEvents.shift();
 }
 
 const log = {
-    info:     (sym, msg, meta) => { console.log(`[\x1b[34mINFO\x1b[0m][${sym}] ${msg}`); pushLog('INFO', sym, msg, meta); },
-    success:  (sym, msg, meta) => { console.log(`[\x1b[32mSUCCESS\x1b[0m][${sym}] ${msg}`); pushLog('SUCCESS', sym, msg, meta); },
-    error:    (sym, msg, meta) => { console.error(`[\x1b[31mERROR\x1b[0m][${sym}] ${msg}`); pushLog('ERROR', sym, msg, meta); },
-    warn:     (sym, msg, meta) => { console.log(`[\x1b[33mWARN\x1b[0m][${sym}] ${msg}`); pushLog('WARN', sym, msg, meta); },
-    critical: (sym, msg, meta) => { console.log(`[\x1b[41m\x1b[37mCRITICAL\x1b[0m][${sym}] ${msg}`); pushLog('CRITICAL', sym, msg, meta); },
-    debug:    (sym, msg, meta) => { if (DEBUG) { console.log(`[\x1b[35mDEBUG\x1b[0m][${sym}] ${msg}`); pushLog('DEBUG', sym, msg, meta); } }
+    info:     (sym, msg, meta, tier) => { console.log(`[\x1b[34mINFO\x1b[0m][${sym}] ${msg}`); pushLog('INFO', sym, msg, meta, tier); },
+    success:  (sym, msg, meta, tier) => { console.log(`[\x1b[32mSUCCESS\x1b[0m][${sym}] ${msg}`); pushLog('SUCCESS', sym, msg, meta, tier); },
+    error:    (sym, msg, meta, tier) => { console.error(`[\x1b[31mERROR\x1b[0m][${sym}] ${msg}`); pushLog('ERROR', sym, msg, meta, tier); },
+    warn:     (sym, msg, meta, tier) => { console.log(`[\x1b[33mWARN\x1b[0m][${sym}] ${msg}`); pushLog('WARN', sym, msg, meta, tier); },
+    critical: (sym, msg, meta, tier) => { console.log(`[\x1b[41m\x1b[37mCRITICAL\x1b[0m][${sym}] ${msg}`); pushLog('CRITICAL', sym, msg, meta, tier); },
+    debug:    (sym, msg, meta, tier) => { if (DEBUG) { console.log(`[\x1b[35mDEBUG\x1b[0m][${sym}] ${msg}`); pushLog('DEBUG', sym, msg, meta, tier); } }
 };
 
 function getISTTimeString() {
@@ -174,7 +249,7 @@ function signAndPrepare(url, method, payloadObj, userConfig) {
     return { finalUrl: urlObj.toString(), payloadStr: isGetOrDelete ? null : payloadStr, headers };
 }
 
-async function sendSignedRequest(url, method, payload, userConfig, timeoutMs = 50000) {
+async function sendSignedRequest(url, method, payload, userConfig, timeoutMs = 50000, tier = null) {
     const { finalUrl, payloadStr, headers } = signAndPrepare(url, method, payload, userConfig);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -199,9 +274,9 @@ async function sendSignedRequest(url, method, payload, userConfig, timeoutMs = 5
             request: { method: method.toUpperCase(), url: shortUrl, payload: payload },
             response: { status: res.status, data: data }
         };
-        log.info(uLabel, `[${method.toUpperCase()}] ${shortUrl} | Status: ${res.status} | Latency: ${latencyMs}ms`, meta);
+        log.info(uLabel, `[${method.toUpperCase()}] ${shortUrl} | Status: ${res.status} | Latency: ${latencyMs}ms`, meta, tier);
 
-        if (!res.ok || DEBUG) log.debug('REST-API', `[${method.toUpperCase()}] ${finalUrl} | Status: ${res.status} | Body: ${text} | Latency: ${latencyMs}ms`);
+        if (!res.ok || DEBUG) log.debug('REST-API', `[${method.toUpperCase()}] ${finalUrl} | Status: ${res.status} | Body: ${text} | Latency: ${latencyMs}ms`, null, tier);
 
         return { ok: res.ok, status: res.status, data, latencyMs };
     } catch (err) {
@@ -209,26 +284,27 @@ async function sendSignedRequest(url, method, payload, userConfig, timeoutMs = 5
         const latencyMs = Date.now() - startTime;
         const isTimeout = err.name === 'AbortError' || err.message.includes('aborted');
         const shortUrl = new URL(finalUrl).pathname;
-        if (isTimeout) log.error(uLabel, `[TIMEOUT] ${method.toUpperCase()} to ${shortUrl} timed out after ${latencyMs}ms.`);
-        else log.error(uLabel, `[ERROR] ${method.toUpperCase()} to ${shortUrl} failed after ${latencyMs}ms: ${err.message}`);
+        if (isTimeout) log.error(uLabel, `[TIMEOUT] ${method.toUpperCase()} to ${shortUrl} timed out after ${latencyMs}ms.`, null, tier);
+        else log.error(uLabel, `[ERROR] ${method.toUpperCase()} to ${shortUrl} failed after ${latencyMs}ms: ${err.message}`, null, tier);
         return { ok: false, status: isTimeout ? 408 : 500, error: isTimeout ? 'Request Timeout' : err.message, latencyMs };
     }
 }
 
 // Seed balance helper — logs in with email/password to get bearer token, then calls seed_balance
-async function seedBalance(userCreds) {
-    const AUTH_URL = 'https://testnet-api.dcxstage.com/api/v3/authenticate';
-    const SEED_URL = 'https://testnet-futures-hpo.dcxstage.com/api/v1/derivatives/futures/wallets/seed_balance';
+async function seedBalance(userCreds, tier = 'PRODUCTION') {
+    const urls = TIER_URLS[tier] || TIER_URLS.PRODUCTION;
+    const AUTH_URL = `${urls.ONBOARDING}/api/v3/authenticate`;
+    const SEED_URL = `${urls.HPO}/api/v1/derivatives/futures/wallets/seed_balance`;
     try {
-        emitOrderEvent('seed:triggered', { user: userCreds.email });
+        emitOrderEvent('seed:triggered', { user: userCreds.email, tier });
         if (!userCreds.email || !userCreds.password) {
-            log.warn('SYSTEM', '[SEED] No email/password configured for this user — cannot seed balance.');
-            emitOrderEvent('seed:failed', { user: userCreds.email, error: 'No email/password configured' });
+            log.warn('SYSTEM', `[SEED][${tier}] No email/password configured for this user — cannot seed balance.`);
+            emitOrderEvent('seed:failed', { user: userCreds.email, tier, error: 'No email/password configured' });
             return false;
         }
 
         // Step 1: Login to get bearer token
-        log.info('SYSTEM', '[SEED] Authenticating ' + userCreds.email + ' to get bearer token...');
+        log.info('SYSTEM', `[SEED][${tier}] Authenticating ` + userCreds.email + ' to get bearer token...');
         const loginRes = await fetch(AUTH_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'User-Agent': 'PostmanRuntime/7.32.3' },
@@ -238,14 +314,14 @@ async function seedBalance(userCreds) {
         const bearerToken = loginData.auth_token || loginData.token;
 
         if (!bearerToken) {
-            log.warn('SYSTEM', '[SEED] Login failed — no auth_token in response: ' + JSON.stringify(loginData));
-            emitOrderEvent('seed:failed', { user: userCreds.email, error: 'Login failed: ' + JSON.stringify(loginData) });
+            log.warn('SYSTEM', `[SEED][${tier}] Login failed — no auth_token in response: ` + JSON.stringify(loginData));
+            emitOrderEvent('seed:failed', { user: userCreds.email, tier, error: 'Login failed: ' + JSON.stringify(loginData) });
             return false;
         }
-        log.success('SYSTEM', '[SEED] Login successful. Got bearer token.');
+        log.success('SYSTEM', `[SEED][${tier}] Login successful. Got bearer token.`);
 
         // Step 2: Call seed_balance with bearer token
-        log.info('SYSTEM', '[SEED] Calling seed_balance...');
+        log.info('SYSTEM', `[SEED][${tier}] Calling seed_balance...`);
         const seedRes = await fetch(SEED_URL, {
             method: 'POST',
             headers: {
@@ -258,16 +334,16 @@ async function seedBalance(userCreds) {
         const seedData = await seedRes.json().catch(function() { return {}; });
 
         if (seedRes.ok || seedRes.status < 400) {
-            log.success('SYSTEM', '[SEED] seed_balance succeeded — wallet topped up.');
-            emitOrderEvent('seed:success', { user: userCreds.email });
+            log.success('SYSTEM', `[SEED][${tier}] seed_balance succeeded — wallet topped up.`);
+            emitOrderEvent('seed:success', { user: userCreds.email, tier });
             return true;
         }
-        log.warn('SYSTEM', '[SEED] seed_balance returned non-OK [' + seedRes.status + ']: ' + JSON.stringify(seedData));
-        emitOrderEvent('seed:failed', { user: userCreds.email, error: JSON.stringify(seedData) });
+        log.warn('SYSTEM', `[SEED][${tier}] seed_balance returned non-OK [` + seedRes.status + ']: ' + JSON.stringify(seedData));
+        emitOrderEvent('seed:failed', { user: userCreds.email, tier, error: JSON.stringify(seedData) });
         return false;
     } catch (err) {
-        log.error('SYSTEM', '[SEED] seed_balance threw: ' + err.message);
-        emitOrderEvent('seed:failed', { user: userCreds.email, error: err.message });
+        log.error('SYSTEM', `[SEED][${tier}] seed_balance threw: ` + err.message);
+        emitOrderEvent('seed:failed', { user: userCreds.email, tier, error: err.message });
         return false;
     }
 }
@@ -276,7 +352,9 @@ async function syncServerTime() {
     const urls = [
         `https://fapi.binance.com/fapi/v1/time`,
         `https://api.binance.com/api/v3/time`,
-        `https://testnet-futures-hpo.dcxstage.com/fapi/v1/time`
+        `https://testnet-futures-hpo.dcxstage.com/fapi/v1/time`,
+        `https://testnet-exchange-hpo.dcxstage.com/fapi/v1/time`,
+        `https://staging-exchange-futures-hpo.dcxstage.com/fapi/v1/time`
     ];
     for (const url of urls) {
         try {
@@ -295,15 +373,21 @@ async function syncServerTime() {
     log.warn('SYSTEM', `Time sync failed across all endpoints. Using local system clock.`);
 }
 
-async function loadInstruments() {
+async function loadInstruments(tier = 'PRODUCTION') {
+    const urls = TIER_URLS[tier] || TIER_URLS.PRODUCTION;
+    const hpoBase = urls.HPO;
     try {
-        log.info('SYSTEM', 'Fetching Instrument parameters and Exchange Info...');
+        log.info('SYSTEM', `[${tier}] Fetching Instrument parameters and Exchange Info...`);
         
         // Fetch custom futures data
-        const resData = await fetch(`https://testnet-futures-hpo.dcxstage.com/api/v1/derivatives/futures/data`, {
+        const resData = await fetch(`${hpoBase}/api/v1/derivatives/futures/data`, {
             headers: { 'X-app-version': '6.56.0002' }
         });
         const data = await resData.json();
+
+        if (!instrumentsMap[tier]) {
+            instrumentsMap[tier] = {};
+        }
 
         if (data && data.instruments) {
             data.instruments.forEach(inst => {
@@ -312,7 +396,7 @@ async function loadInstruments() {
                 const pricePrecision = (tick > 0 && isFinite(tick)) ? Math.max(0, -Math.round(Math.log10(tick))) : 4;
                 const qtyPrecision   = (step > 0 && isFinite(step)) ? Math.max(0, -Math.round(Math.log10(step))) : 0;
 
-                instrumentsMap[inst.symbol.toUpperCase()] = {
+                instrumentsMap[tier][inst.symbol.toUpperCase()] = {
                     tickSize: tick > 0 ? tick : 0.0001,
                     qtyStep:  step > 0 ? step : 1.0,
                     minQty:   parseFloat(inst.min_quantity || inst.min_trade_size || step || 1.0),
@@ -325,36 +409,37 @@ async function loadInstruments() {
         }
 
         // Fetch official FAPI exchangeInfo to get exact limits (PERCENT_PRICE and LOT_SIZE)
-        const resInfo = await fetch(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/exchangeInfo`);
+        const resInfo = await fetch(`${hpoBase}/fapi/v1/exchangeInfo`);
         const info = await resInfo.json();
         
         if (info && info.symbols) {
             info.symbols.forEach(sym => {
                 const symbol = sym.symbol.toUpperCase();
-                if (instrumentsMap[symbol]) {
+                if (instrumentsMap[tier][symbol]) {
                     // Extract LOT_SIZE minQty
                     const lotSize = sym.filters.find(f => f.filterType === 'LOT_SIZE');
                     if (lotSize && lotSize.minQty) {
-                        instrumentsMap[symbol].minQty = parseFloat(lotSize.minQty);
-                        instrumentsMap[symbol].qtyStep = parseFloat(lotSize.stepSize);
+                        instrumentsMap[tier][symbol].minQty = parseFloat(lotSize.minQty);
+                        instrumentsMap[tier][symbol].qtyStep = parseFloat(lotSize.stepSize);
                     }
                     // Extract PERCENT_PRICE multipliers
                     const pctPrice = sym.filters.find(f => f.filterType === 'PERCENT_PRICE');
                     if (pctPrice) {
-                        instrumentsMap[symbol].multiplierUp = parseFloat(pctPrice.multiplierUp);
-                        instrumentsMap[symbol].multiplierDown = parseFloat(pctPrice.multiplierDown);
+                        instrumentsMap[tier][symbol].multiplierUp = parseFloat(pctPrice.multiplierUp);
+                        instrumentsMap[tier][symbol].multiplierDown = parseFloat(pctPrice.multiplierDown);
                     }
                 }
             });
         }
         
-        log.success('SYSTEM', `Loaded ${Object.keys(instrumentsMap).length} instruments with limit multipliers.`);
-    } catch (e) { log.error('SYSTEM', `Instrument fetch failed: ${e.message}`); }
+        log.success('SYSTEM', `[${tier}] Loaded ${Object.keys(instrumentsMap[tier]).length} instruments with limit multipliers.`);
+    } catch (e) { log.error('SYSTEM', `[${tier}] Instrument fetch failed: ${e.message}`); }
 }
 
-function calculateQty(sizeUsdt, priceStr, symbol) {
+function calculateQty(sizeUsdt, priceStr, symbol, tier = 'PRODUCTION') {
     const price = parseFloat(priceStr);
-    const inst = instrumentsMap[symbol] || { qtyStep: 1.0, minQty: 1.0, qtyPrecision: 0 };
+    const tierMap = instrumentsMap[tier] || {};
+    const inst = tierMap[symbol] || { qtyStep: 1.0, minQty: 1.0, qtyPrecision: 0 };
 
     if (isNaN(price) || price <= 0) return inst.minQty.toFixed(inst.qtyPrecision);
 
@@ -366,25 +451,27 @@ function calculateQty(sizeUsdt, priceStr, symbol) {
     return qty.toFixed(inst.qtyPrecision);
 }
 
-function formatRawQty(rawQty, symbol) {
-    const inst = instrumentsMap[symbol] || { qtyStep: 1.0, minQty: 1.0, qtyPrecision: 0 };
+function formatRawQty(rawQty, symbol, tier = 'PRODUCTION') {
+    const tierMap = instrumentsMap[tier] || {};
+    const inst = tierMap[symbol] || { qtyStep: 1.0, minQty: 1.0, qtyPrecision: 0 };
     const factor = 1 / inst.qtyStep;
     let qty = Math.round(rawQty * factor) / factor;
     return qty.toFixed(inst.qtyPrecision);
 }
 
-function formatPrice(priceStr, symbol) {
-    const inst = instrumentsMap[symbol] || { pricePrecision: 4 };
+function formatPrice(priceStr, symbol, tier = 'PRODUCTION') {
+    const tierMap = instrumentsMap[tier] || {};
+    const inst = tierMap[symbol] || { pricePrecision: 4 };
     return parseFloat(priceStr).toFixed(inst.pricePrecision);
 }
 
-function applyBuffer(priceStr, side, bufferPct, symbol) {
-    if (!bufferPct || bufferPct === 0) return formatPrice(priceStr, symbol);
+function applyBuffer(priceStr, side, bufferPct, symbol, tier = 'PRODUCTION') {
+    if (!bufferPct || bufferPct === 0) return formatPrice(priceStr, symbol, tier);
     const raw = parseFloat(priceStr);
     const multiplier = side.toUpperCase() === 'BUY'
         ? (1 - bufferPct / 100)
         : (1 + bufferPct / 100);
-    return formatPrice(String(raw * multiplier), symbol);
+    return formatPrice(String(raw * multiplier), symbol, tier);
 }
 
 // ==========================================
@@ -439,16 +526,18 @@ const globalUserWsClients = {};
 
 async function fetchListenKeys() {
     log.info('SYSTEM', 'Authenticating users for private WebSocket streams...');
-    for (const [userId, userConfig] of Object.entries(globalUsers)) {
+    const tierUsers = globalUsers[globalActiveTier] || {};
+    for (const [userId, userConfig] of Object.entries(tierUsers)) {
         // If listen key already set (from env), use it directly
         if (userConfig.listenKey) {
-            log.success('SYSTEM', `Listen key pre-configured for ${userConfig.label || userId} — connecting...`);
+            log.success('SYSTEM', `Listen key pre-configured for ${userConfig.label || userId} — connecting...`, null, globalActiveTier);
             if (!globalUserWsClients[userId]) {
                 globalUserWsClients[userId] = new PrivateWsClient(
                     userConfig.listenKey,
                     () => {},
                     userConfig.label || userId,
-                    userId
+                    userId,
+                    globalActiveTier
                 );
             }
             continue;
@@ -456,7 +545,7 @@ async function fetchListenKeys() {
 
         // Authenticate via email/password to get JWT → extract user_id as listenKey
         if (!userConfig.email || !userConfig.password) {
-            log.warn('SYSTEM', `No email/password for ${userConfig.label || userId} — skipping private WS.`);
+            log.warn('SYSTEM', `No email/password for ${userConfig.label || userId} — skipping private WS.`, null, globalActiveTier);
             continue;
         }
 
@@ -467,23 +556,36 @@ async function fetchListenKeys() {
                 listenKey,
                 () => {},
                 userConfig.label || userId,
-                userId
+                userId,
+                globalActiveTier
             );
         } else {
-            log.warn('SYSTEM', `Could not obtain listenKey for ${userConfig.label || userId} — private WS disabled.`);
+            log.warn('SYSTEM', `Could not obtain listenKey for ${userConfig.label || userId} — private WS disabled.`, null, globalActiveTier);
         }
     }
+}
+
+async function reconnectGlobalUserWs() {
+    log.info('SYSTEM', `Migrating global private WS streams to ${globalActiveTier}...`);
+    for (const [userId, client] of Object.entries(globalUserWsClients)) {
+        try {
+            client.close();
+        } catch(e) {}
+        delete globalUserWsClients[userId];
+    }
+    await fetchListenKeys();
 }
 
 // Re-authenticate every 30 minutes to keep listen keys fresh
 function startListenKeyKeepalive() {
     setInterval(async () => {
-        for (const [userId, userConfig] of Object.entries(globalUsers)) {
+        const tierUsers = globalUsers[globalActiveTier] || {};
+        for (const [userId, userConfig] of Object.entries(tierUsers)) {
             if (!userConfig.email || !userConfig.password) continue;
             try {
                 const newKey = await authenticateAndGetListenKey(userConfig.email, userConfig.password);
                 if (newKey && newKey !== userConfig.listenKey) {
-                    log.info('SYSTEM', `Listen key refreshed for ${userConfig.label || userId}. Reconnecting...`);
+                    log.info('SYSTEM', `Listen key refreshed for ${userConfig.label || userId}. Reconnecting...`, null, globalActiveTier);
                     userConfig.listenKey = newKey;
                     if (globalUserWsClients[userId]) {
                         globalUserWsClients[userId].close();
@@ -492,7 +594,8 @@ function startListenKeyKeepalive() {
                         newKey,
                         () => {},
                         userConfig.label || userId,
-                        userId
+                        userId,
+                        globalActiveTier
                     );
                 }
             } catch (e) { /* silently ignore refresh errors */ }
@@ -512,11 +615,12 @@ const PRIVATE_WS_BASE = 'wss://testnet-futures-socket-gateway.dcxstage.com/priva
 const PRIVATE_WS_EVENTS = ['ORDER_TRADE_UPDATE', 'ACCOUNT_UPDATE'];
 
 class PrivateWsClient {
-    constructor(listenKey, onMessageCb, label, userId) {
+    constructor(listenKey, onMessageCb, label, userId, tier = 'PRODUCTION') {
         this.listenKey = listenKey;
         this.onMessageCb = onMessageCb;
         this.label = label;
         this.userId = userId;    // key into globalUsers/globalPortfolios
+        this.tier = tier;
         this.sockets = {};       // keyed by event type
         this.pingIntervals = {};
         this.reconnectTimers = {};
@@ -534,14 +638,15 @@ class PrivateWsClient {
             try { this.sockets[eventType].close(); } catch (e) {}
         }
 
-        const url = `${PRIVATE_WS_BASE}?listenKey=${this.listenKey}&events=${eventType}`;
-        log.info('SYSTEM', `Connecting ${this.label} [${eventType}] → ${url.replace(this.listenKey, this.listenKey.substring(0, 8) + '...')}`);
+        const base = (TIER_URLS[this.tier] || TIER_URLS.PRODUCTION).WS_GATEWAY;
+        const url = `${base}/private/ws?listenKey=${this.listenKey}&events=${eventType}`;
+        log.info('SYSTEM', `Connecting ${this.label} [${eventType}] → ${url.replace(this.listenKey, this.listenKey.substring(0, 8) + '...')}`, null, this.tier);
         const ws = new WebSocket(url);
         this.sockets[eventType] = ws;
 
         ws.on('open', () => {
-            log.success('SYSTEM', `${this.label} [${eventType}] connected.`);
-            pushEvent('SUCCESS', this.label, `Private WS connected: ${eventType}`, { status: 'connected', event: eventType }, 'ws');
+            log.success('SYSTEM', `${this.label} [${eventType}] connected.`, null, this.tier);
+            pushEvent('SUCCESS', this.label, `Private WS connected: ${eventType}`, { status: 'connected', event: eventType }, 'ws', this.tier);
             this.pingIntervals[eventType] = setInterval(() => {
                 if (ws.readyState === WebSocket.OPEN) ws.ping();
             }, 30000);
@@ -555,16 +660,17 @@ class PrivateWsClient {
                 if (evtType === 'ORDER_TRADE_UPDATE') {
                     const o = msg.o || {};
                     const summary = `${o.S || ''} ${o.o || ''} ${o.s || ''} | Qty: ${o.q || '-'} | Price: ${o.p || '-'} | Status: ${o.X || '-'}`;
-                    pushEvent('EVENT', this.label, `Order Update: ${summary}`, msg, 'order');
+                    pushEvent('EVENT', this.label, `Order Update: ${summary}`, msg, 'order', this.tier);
                     globalOrderUpdateCounter++;
                     this.onMessageCb(o);
 
                     // Real-time portfolio update: push order data for frontend processing
-                    if (this.userId && globalPortfolios[this.userId]) {
-                        if (!globalPortfolios[this.userId]._realtimeOrders) globalPortfolios[this.userId]._realtimeOrders = [];
-                        globalPortfolios[this.userId]._realtimeOrders.push(o);
-                        if (globalPortfolios[this.userId]._realtimeOrders.length > 100) {
-                            globalPortfolios[this.userId]._realtimeOrders = globalPortfolios[this.userId]._realtimeOrders.slice(-100);
+                    if (this.userId && globalPortfolios[this.tier] && globalPortfolios[this.tier][this.userId]) {
+                        const port = globalPortfolios[this.tier][this.userId];
+                        if (!port._realtimeOrders) port._realtimeOrders = [];
+                        port._realtimeOrders.push(o);
+                        if (port._realtimeOrders.length > 100) {
+                            port._realtimeOrders = port._realtimeOrders.slice(-100);
                         }
                     }
                     broadcastToUI();
@@ -573,7 +679,7 @@ class PrivateWsClient {
                     const reason = a.m || 'unknown';
 
                     // Summary event
-                    pushEvent('EVENT', this.label, `Account Update [${reason}] | Balances: ${(a.B || []).length} | Positions: ${(a.P || []).length}`, msg, 'account');
+                    pushEvent('EVENT', this.label, `Account Update [${reason}] | Balances: ${(a.B || []).length} | Positions: ${(a.P || []).length}`, msg, 'account', this.tier);
 
                     // Individual balance events + real-time portfolio update
                     (a.B || []).forEach(b => {
@@ -581,12 +687,13 @@ class PrivateWsClient {
                         const crossWallet = b.cw || '0';
                         const locked = b.lb || '0';
                         const balChange = b.bc || '0';
-                        pushEvent('EVENT', this.label, `Balance | ${b.a || 'USDT'} | Wallet: ${wallet} | CrossWallet: ${crossWallet} | Locked: ${locked} | Change: ${balChange}`, b, 'balance');
+                        pushEvent('EVENT', this.label, `Balance | ${b.a || 'USDT'} | Wallet: ${wallet} | CrossWallet: ${crossWallet} | Locked: ${locked} | Change: ${balChange}`, b, 'balance', this.tier);
 
                         // Update globalPortfolios balance in real-time
-                        if (this.userId && globalPortfolios[this.userId] && (b.a === 'USDT' || !b.a)) {
-                            globalPortfolios[this.userId].walletBalance = parseFloat(wallet).toFixed(2);
-                            globalPortfolios[this.userId].availableBalance = (parseFloat(wallet) - parseFloat(locked)).toFixed(2);
+                        if (this.userId && globalPortfolios[this.tier] && globalPortfolios[this.tier][this.userId] && (b.a === 'USDT' || !b.a)) {
+                            const port = globalPortfolios[this.tier][this.userId];
+                            port.walletBalance = parseFloat(wallet).toFixed(2);
+                            port.availableBalance = (parseFloat(wallet) - parseFloat(locked)).toFixed(2);
                         }
                     });
 
@@ -597,11 +704,12 @@ class PrivateWsClient {
                         const upnl = p.up || '0';
                         const margin = p.mt || 'cross';
                         const side = parseFloat(amt) > 0 ? 'LONG' : parseFloat(amt) < 0 ? 'SHORT' : 'FLAT';
-                        pushEvent('EVENT', this.label, `Position | ${p.s || '?'} | ${side} ${amt} @ ${entry} | uPnL: ${upnl} | ${margin} | IsolatedWallet: ${p.iw || '0'}`, p, 'position');
+                        pushEvent('EVENT', this.label, `Position | ${p.s || '?'} | ${side} ${amt} @ ${entry} | uPnL: ${upnl} | ${margin} | IsolatedWallet: ${p.iw || '0'}`, p, 'position', this.tier);
 
                         // Update globalPortfolios positions in real-time
-                        if (this.userId && globalPortfolios[this.userId]) {
-                            const positions = globalPortfolios[this.userId].positions || [];
+                        if (this.userId && globalPortfolios[this.tier] && globalPortfolios[this.tier][this.userId]) {
+                            const port = globalPortfolios[this.tier][this.userId];
+                            const positions = port.positions || [];
                             const posSymbol = p.s || '';
                             const posAmt = parseFloat(amt);
                             const idx = positions.findIndex(pos => pos.symbol === posSymbol);
@@ -625,35 +733,35 @@ class PrivateWsClient {
                                 if (idx !== -1) positions[idx] = { ...positions[idx], ...updatedPos };
                                 else positions.push(updatedPos);
                             }
-                            globalPortfolios[this.userId].positions = positions;
+                            port.positions = positions;
 
                             // Update unrealizedProfit total
                             const totalPnl = positions.reduce((sum, pos) => sum + parseFloat(pos.unrealizedPnL || 0), 0);
-                            globalPortfolios[this.userId].unrealizedProfit = totalPnl.toFixed(2);
+                            port.unrealizedProfit = totalPnl.toFixed(2);
                         }
                     });
                     broadcastToUI();
                 } else if (evtType === 'listenKeyExpired') {
-                    pushEvent('WARN', this.label, `Listen key expired on ${eventType} — reconnecting...`, msg, 'ws');
+                    pushEvent('WARN', this.label, `Listen key expired on ${eventType} — reconnecting...`, msg, 'ws', this.tier);
                     ws.close();
                 } else {
-                    pushEvent('EVENT', this.label, `[${eventType}] ${evtType}`, msg, 'general');
+                    pushEvent('EVENT', this.label, `[${eventType}] ${evtType}`, msg, 'general', this.tier);
                 }
             } catch (e) {
-                log.error('SYSTEM', `Error parsing ${this.label} [${eventType}] WS: ${e.message}`);
+                log.error('SYSTEM', `Error parsing ${this.label} [${eventType}] WS: ${e.message}`, null, this.tier);
             }
         });
 
         ws.on('close', () => {
-            log.warn('SYSTEM', `${this.label} [${eventType}] disconnected. Reconnecting in 5s...`);
-            pushEvent('WARN', this.label, `Private WS disconnected: ${eventType}`, { status: 'disconnected', event: eventType }, 'ws');
+            log.warn('SYSTEM', `${this.label} [${eventType}] disconnected. Reconnecting in 5s...`, null, this.tier);
+            pushEvent('WARN', this.label, `Private WS disconnected: ${eventType}`, { status: 'disconnected', event: eventType }, 'ws', this.tier);
             clearInterval(this.pingIntervals[eventType]);
             this.reconnectTimers[eventType] = setTimeout(() => this.connectStream(eventType), 5000);
         });
 
         ws.on('error', (err) => {
-            log.error('SYSTEM', `${this.label} [${eventType}] WS error: ${err.message}`);
-            pushEvent('ERROR', this.label, `Private WS error [${eventType}]: ${err.message}`, { error: err.message, event: eventType }, 'ws');
+            log.error('SYSTEM', `${this.label} [${eventType}] WS error: ${err.message}`, null, this.tier);
+            pushEvent('ERROR', this.label, `Private WS error [${eventType}]: ${err.message}`, { error: err.message, event: eventType }, 'ws', this.tier);
         });
     }
 
@@ -662,14 +770,30 @@ class PrivateWsClient {
             clearInterval(this.pingIntervals[evt]);
             clearTimeout(this.reconnectTimers[evt]);
             if (this.sockets[evt]) {
-                try { this.sockets[evt].close(); } catch (e) {}
+                try {
+                    this.sockets[evt].removeAllListeners('close');
+                    this.sockets[evt].removeAllListeners('error');
+                    this.sockets[evt].removeAllListeners('message');
+                    this.sockets[evt].close();
+                } catch (e) {}
+                this.sockets[evt] = null;
             }
         });
     }
 }
 
+function reconnectAllInstancesPrivateWs(tier) {
+    const tierInstances = instances[tier] || new Map();
+    for (const [, inst] of tierInstances.entries()) {
+        inst.reconnectPrivateWs();
+    }
+}
+
 class ReplicatorInstance {
     constructor(marketConfig) {
+        this.tier = (marketConfig.tier || 'PRODUCTION').toUpperCase();
+        if (!TIER_URLS[this.tier]) this.tier = 'PRODUCTION';
+
         this.sourceSymbol = marketConfig.sourceSymbol.toUpperCase();
         this.targetSymbol = (marketConfig.targetSymbol || marketConfig.sourceSymbol).toUpperCase();
         
@@ -728,8 +852,50 @@ class ReplicatorInstance {
             }
         }, 15000);
 
-        this.makerWs = new PrivateWsClient(globalUsers[globalRoles.makerId].listenKey, this.onMakerWsEvent.bind(this), 'Maker', globalRoles.makerId);
-        this.takerWs = new PrivateWsClient(globalUsers[globalRoles.takerId].listenKey, this.onTakerWsEvent.bind(this), 'Taker', globalRoles.takerId);
+        const tierUsers = globalUsers[this.tier] || {};
+        const tierRoles = globalRoles[this.tier] || { makerId: '', takerId: '' };
+        
+        const mId = tierRoles.makerId;
+        const mUser = mId ? tierUsers[mId] : null;
+        if (mUser) {
+            this.makerWs = new PrivateWsClient(mUser.listenKey, this.onMakerWsEvent.bind(this), 'Maker', mId, this.tier);
+        } else {
+            this.makerWs = null;
+        }
+
+        const tId = tierRoles.takerId;
+        const tUser = tId ? tierUsers[tId] : null;
+        if (tUser) {
+            this.takerWs = new PrivateWsClient(tUser.listenKey, this.onTakerWsEvent.bind(this), 'Taker', tId, this.tier);
+        } else {
+            this.takerWs = null;
+        }
+    }
+
+    reconnectPrivateWs() {
+        if (this.makerWs) {
+            try { this.makerWs.close(); } catch(e) {}
+            this.makerWs = null;
+        }
+        if (this.takerWs) {
+            try { this.takerWs.close(); } catch(e) {}
+            this.takerWs = null;
+        }
+
+        const tierUsers = globalUsers[this.tier] || {};
+        const tierRoles = globalRoles[this.tier] || { makerId: '', takerId: '' };
+        
+        const mId = tierRoles.makerId;
+        const mUser = mId ? tierUsers[mId] : null;
+        if (mUser) {
+            this.makerWs = new PrivateWsClient(mUser.listenKey, this.onMakerWsEvent.bind(this), 'Maker', mId, this.tier);
+        }
+
+        const tId = tierRoles.takerId;
+        const tUser = tId ? tierUsers[tId] : null;
+        if (tUser) {
+            this.takerWs = new PrivateWsClient(tUser.listenKey, this.onTakerWsEvent.bind(this), 'Taker', tId, this.tier);
+        }
     }
 
     onMakerWsEvent(o) {
@@ -816,9 +982,14 @@ class ReplicatorInstance {
     }
 
     async placeOrder(side, qty, price = null, orderType = 'LIMIT', isTaker = false, clientOrderId = null, _isRetry = false) {
-        const userCreds = isTaker ? globalUsers[globalRoles.takerId] : globalUsers[globalRoles.makerId];
+        const tierUsers = globalUsers[this.tier] || {};
+        const tierRoles = globalRoles[this.tier] || { makerId: '', takerId: '' };
+        const userCreds = isTaker ? tierUsers[tierRoles.takerId] : tierUsers[tierRoles.makerId];
+        if (!userCreds) {
+            throw new Error(`${isTaker ? 'Taker' : 'Maker'} credentials not configured on ${this.tier}`);
+        }
         const userLabel = isTaker ? 'USER2_TAKER' : 'USER1_MAKER';
-        const bufferedPrice = price ? applyBuffer(String(price), side, this.bufferPct, this.symbol) : null;
+        const bufferedPrice = price ? applyBuffer(String(price), side, this.bufferPct, this.symbol, this.tier) : null;
 
         const payload = { symbol: this.symbol, side: side.toUpperCase(), quantity: String(qty) };
         if (clientOrderId) payload.newClientOrderId = clientOrderId;
@@ -834,8 +1005,9 @@ class ReplicatorInstance {
             payload.type = 'MARKET';
         }
 
+        const hpoBase = TIER_URLS[this.tier].HPO;
         log.debug(this.symbol, `[ORDER-PRE] ${userLabel} placing ${orderType} ${side} ${qty} @ ${bufferedPrice || 'MKT'} (raw: ${price}, buf: ${this.bufferPct}%)`);
-        const res = await sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/order`, 'POST', payload, userCreds);
+        const res = await sendSignedRequest(`${hpoBase}/fapi/v1/order`, 'POST', payload, userCreds);
 
         if (res.status === 401) { this.handleAuthFailure(userLabel); return { success: false }; }
 
@@ -844,7 +1016,7 @@ class ReplicatorInstance {
             const msgStr = JSON.stringify(res.data).toLowerCase();
             const isLimitErr = res.data.code === -1013 || res.data.code === -2011 || res.data.code === -4003 || res.data.code === -4024 ||
                                msgStr.includes('percent_price') || msgStr.includes('price less than') || 
-                               msgStr.includes('price greater than') || msgStr.includes('limit') ||
+                               msgStr.includes('price greater than') || msgStr.includes('price limit') ||
                                msgStr.includes('higher than') || msgStr.includes('lower than');
                                
             if (isLimitErr) {
@@ -867,7 +1039,7 @@ class ReplicatorInstance {
         // Auto-retry on insufficient funds: call seed_balance then retry once
         if (!res.ok && !_isRetry && res.data && res.data.code === -2018) {
             log.warn(this.symbol, `[SEED] ${userLabel} insufficient funds — calling seed_balance and retrying...`);
-            const seeded = await seedBalance(userCreds);
+            const seeded = await seedBalance(userCreds, this.tier);
             if (seeded) {
                 log.success(this.symbol, `[SEED] ${userLabel} balance topped up. Retrying order...`);
                 return this.placeOrder(side, qty, price, orderType, isTaker, clientOrderId, true);
@@ -914,7 +1086,8 @@ class ReplicatorInstance {
 
     async modifyMaker(orderId, side, rawPrice, qty) {
         if (!orderId) return false;
-        const bufferedPrice = applyBuffer(String(rawPrice), side, this.bufferPct, this.symbol);
+        const bufferedPrice = applyBuffer(String(rawPrice), side, this.bufferPct, this.symbol, this.tier);
+        const hpoBase = TIER_URLS[this.tier].HPO;
 
         const payload = {
             symbol:   this.symbol,
@@ -924,8 +1097,14 @@ class ReplicatorInstance {
             price:    String(bufferedPrice)
         };
 
-        log.debug(this.symbol, `[MODIFY-PRE] USER1_MAKER modifying ID: ${orderId} -> ${qty} @ ${bufferedPrice} (raw: ${rawPrice}, buf: ${this.bufferPct}%)`);
-        const res = await sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/order`, 'PUT', payload, globalUsers[globalRoles.makerId]);
+        const tierUsers = globalUsers[this.tier] || {};
+        const tierRoles = globalRoles[this.tier] || { makerId: '', takerId: '' };
+        const makerUser = tierUsers[tierRoles.makerId];
+        if (!makerUser) {
+            log.error(this.symbol, `[MODIFY-FAIL] Maker credentials not configured on ${this.tier}`);
+            return false;
+        }
+        const res = await sendSignedRequest(`${hpoBase}/fapi/v1/order`, 'PUT', payload, makerUser, 50000, this.tier);
 
         if (res.status === 401) this.handleAuthFailure('USER1_MAKER');
         const isTerminal = res.ok || res.status === 404 || (res.data && [-2011, -2013, -4000].includes(res.data.code));
@@ -962,7 +1141,7 @@ class ReplicatorInstance {
         if (this.isAligningLtp) return;
         this.isAligningLtp = true;
         try {
-            const inst = instrumentsMap[this.symbol];
+            const inst = instrumentsMap[this.tier] && instrumentsMap[this.tier][this.symbol];
             if (!inst || !inst.multiplierUp || !inst.multiplierDown) return;
 
             log.info(this.symbol, `[ALIGN] Checking if Testnet LTP needs alignment to ${targetPrice}...`);
@@ -1015,7 +1194,7 @@ class ReplicatorInstance {
 
             log.warn(this.symbol, `[ALIGN] LTP (${testnetLtp}) is too far from Target (${targetPrice}). Limits: [${lowerBound.toFixed(inst.pricePrecision)}, ${upperBound.toFixed(inst.pricePrecision)}].`);
 
-            const minQtyStr = calculateQty(0, '1', this.symbol); // Gets minimum formatted qty
+            const minQtyStr = calculateQty(0, '1', this.symbol, this.tier); // Gets minimum formatted qty
 
             // 3. Attempt Instant Market Alignment
             // Since syncGrid places one side of the book successfully before the other side fails,
@@ -1047,7 +1226,7 @@ class ReplicatorInstance {
                     if (nextPrice <= targetPrice) nextPrice = targetPrice;
                 }
 
-                let priceStr = formatPrice(String(nextPrice), this.symbol);
+                let priceStr = formatPrice(String(nextPrice), this.symbol, this.tier);
                 log.info(this.symbol, `[ALIGN] Step ${steps}: Moving LTP from ${testnetLtp} to ${priceStr}`);
 
                 // Place Maker - if targetPrice > testnetLtp, place BUY maker and hit with SELL taker.
@@ -1076,7 +1255,7 @@ class ReplicatorInstance {
                             nextPrice = targetPrice;
                         }
                         
-                        priceStr = formatPrice(String(nextPrice), this.symbol);
+                        priceStr = formatPrice(String(nextPrice), this.symbol, this.tier);
                         log.info(this.symbol, `[ALIGN] Retrying Maker with adjusted safe price: ${priceStr}`);
                         makerRes = await this.placeOrder(makerSide, minQtyStr, priceStr, 'LIMIT', false, true);
                     }
@@ -1124,10 +1303,11 @@ class ReplicatorInstance {
                 log.error(this.symbol, `[REDUCE-POS] Cannot determine cross price. Aborting.`);
                 return;
             }
-            const crossPriceStr = formatPrice(String(fallbackPrice), this.symbol);
+            const crossPriceStr = formatPrice(String(fallbackPrice), this.symbol, this.tier);
 
+            const hpoBase = TIER_URLS[this.tier].HPO;
             const reduceUser = async (userCreds, userLabel) => {
-                const posRes = await sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v2/positionRisk?symbol=${this.symbol}`, 'GET', null, userCreds);
+                const posRes = await sendSignedRequest(`${hpoBase}/fapi/v2/positionRisk?symbol=${this.symbol}`, 'GET', null, userCreds);
                 if (!posRes.ok || !posRes.data) return false;
 
                 const positions = Array.isArray(posRes.data) ? posRes.data : [posRes.data];
@@ -1137,7 +1317,7 @@ class ReplicatorInstance {
                 const amt = parseFloat(targetPos.positionAmt);
                 if (amt === 0) return true;
 
-                const reduceQtyStr = formatRawQty(Math.abs(amt) * 0.5, this.symbol);
+                const reduceQtyStr = formatRawQty(Math.abs(amt) * 0.5, this.symbol, this.tier);
                 if (parseFloat(reduceQtyStr) === 0) return true;
 
                 const side = amt > 0 ? 'SELL' : 'BUY';
@@ -1154,7 +1334,7 @@ class ReplicatorInstance {
                     reduceOnly: true
                 };
 
-                const closeRes = await sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/order`, 'POST', payload, userCreds);
+                const closeRes = await sendSignedRequest(`${hpoBase}/fapi/v1/order`, 'POST', payload, userCreds);
                 if (closeRes.ok) {
                     log.success(this.symbol, `[REDUCE-POS] ${userLabel} successfully placed reduction LIMIT order.`);
                     return true;
@@ -1164,9 +1344,11 @@ class ReplicatorInstance {
                 }
             };
 
+            const tierUsers = globalUsers[this.tier] || {};
+            const tierRoles = globalRoles[this.tier] || { makerId: '', takerId: '' };
             await Promise.all([
-                reduceUser(globalUsers[globalRoles.makerId], 'USER1_MAKER'),
-                reduceUser(globalUsers[globalRoles.takerId], 'USER2_TAKER')
+                reduceUser(tierUsers[tierRoles.makerId], 'USER1_MAKER'),
+                reduceUser(tierUsers[tierRoles.takerId], 'USER2_TAKER')
             ]);
         } catch (err) {
             log.error(this.symbol, `[REDUCE-POS] Exception during position reduction: ${err.message}`);
@@ -1176,7 +1358,9 @@ class ReplicatorInstance {
     }
 
     async cancelOrder(orderId, isTaker = false) {
-        const userCreds = isTaker ? globalUsers[globalRoles.takerId] : globalUsers[globalRoles.makerId];
+        const tierUsers = globalUsers[this.tier] || {};
+        const tierRoles = globalRoles[this.tier] || { makerId: '', takerId: '' };
+        const userCreds = isTaker ? tierUsers[tierRoles.takerId] : tierUsers[tierRoles.makerId];
         const userLabel = isTaker ? 'USER2_TAKER' : 'USER1_MAKER';
 
         let price = null, side = null;
@@ -1188,7 +1372,8 @@ class ReplicatorInstance {
         }
 
         log.debug(this.symbol, `[CANCEL-PRE] ${userLabel} cancelling ID: ${orderId}`);
-        const res = await sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/order`, 'DELETE', { symbol: this.symbol, orderId }, userCreds);
+        const hpoBase = TIER_URLS[this.tier].HPO;
+        const res = await sendSignedRequest(`${hpoBase}/fapi/v1/order`, 'DELETE', { symbol: this.symbol, orderId }, userCreds);
 
         if (res.status === 401) this.handleAuthFailure(userLabel);
         if (res.ok) {
@@ -1396,7 +1581,15 @@ class ReplicatorInstance {
         const startT = Date.now();
 
         try {
-            const openRes = await sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/openOrders`, 'GET', { symbol: this.symbol }, globalUsers[globalRoles.makerId]);
+            const hpoBase = TIER_URLS[this.tier].HPO;
+            const tierUsers = globalUsers[this.tier] || {};
+            const tierRoles = globalRoles[this.tier] || { makerId: '', takerId: '' };
+            const makerUser = tierUsers[tierRoles.makerId];
+            if (!makerUser) {
+                log.error(this.symbol, `[SYNC-FAIL] Maker credentials not configured on ${this.tier}`);
+                return;
+            }
+            const openRes = await sendSignedRequest(`${hpoBase}/fapi/v1/openOrders`, 'GET', { symbol: this.symbol }, makerUser, 50000, this.tier);
             if (openRes.status === 401) { this.handleAuthFailure('USER1_MAKER'); return; }
 
             if (openRes.ok && Array.isArray(openRes.data)) {
@@ -1518,14 +1711,20 @@ class ReplicatorInstance {
                     if (takerRes.status === 'CREATE_IN_PROGRESS' || takerRes.status === 'NEW') {
                         await new Promise(r => setTimeout(r, 150)); // Give matching engine time to process IOC
                         try {
-                            const checkRes = await sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/order`, 'GET', { symbol: this.symbol, orderId: takerRes.orderId }, globalUsers[globalRoles.takerId]);
-                            if (checkRes.ok && checkRes.data) {
-                                finalTakerRes = {
-                                    ...takerRes,
-                                    status: checkRes.data.status,
-                                    executedQty: checkRes.data.executedQty,
-                                    avgPrice: checkRes.data.avgPrice
-                                };
+                            const hpoBase = TIER_URLS[this.tier].HPO;
+                            const tierUsers = globalUsers[this.tier] || {};
+                            const tierRoles = globalRoles[this.tier] || { makerId: '', takerId: '' };
+                            const takerUser = tierUsers[tierRoles.takerId];
+                            if (takerUser) {
+                                const checkRes = await sendSignedRequest(`${hpoBase}/fapi/v1/order`, 'GET', { symbol: this.symbol, orderId: takerRes.orderId }, takerUser, 50000, this.tier);
+                                if (checkRes.ok && checkRes.data) {
+                                    finalTakerRes = {
+                                        ...takerRes,
+                                        status: checkRes.data.status,
+                                        executedQty: checkRes.data.executedQty,
+                                        avgPrice: checkRes.data.avgPrice
+                                    };
+                                }
                             }
                         } catch(e) { log.debug && log.debug('SYSTEM', e.message); }
                     }
@@ -1637,7 +1836,9 @@ startBinanceDepthWS() {
     startTestnetTickerWS() {
         if (this.wsTestnetTicker) return;
         const sym = this.symbol.toLowerCase();
-        const streamUrl = `wss://testnet-futures-socket-gateway.dcxstage.com/market/ws/${sym}@ticker`;
+        const urls = TIER_URLS[this.tier] || TIER_URLS.PRODUCTION;
+        const wsBase = urls.WS_GATEWAY;
+        const streamUrl = `${wsBase}/market/ws/${sym}@ticker`;
         log.info(this.symbol, `[WS] Connecting to 24h Ticker...`);
         this.wsTestnetTicker = new WebSocket(streamUrl);
         this.wsTestnetTicker.on('open', () => { pushEvent('SUCCESS', this.symbol, `Testnet Ticker WS connected`, { stream: '24hrTicker' }, 'ws'); });
@@ -1662,7 +1863,9 @@ startBinanceDepthWS() {
         clearInterval(this.testnetPingInterval);
         if (this.wsTestnet) return;
         const sym = this.symbol.toLowerCase(); // Target Symbol
-        const streamUrl = `wss://testnet-futures-socket-gateway.dcxstage.com/public/ws/${sym}@depth20`;
+        const urls = TIER_URLS[this.tier] || TIER_URLS.PRODUCTION;
+        const wsBase = urls.WS_GATEWAY;
+        const streamUrl = `${wsBase}/public/ws/${sym}@depth20`;
         this.wsTestnet = new WebSocket(streamUrl);
         this.wsTestnet.on('open', () => {
             pushEvent('SUCCESS', this.symbol, `Testnet Depth WS connected`, { stream: 'depth20' }, 'ws');
@@ -1693,10 +1896,16 @@ startBinanceDepthWS() {
 
     async wipeOrders() {
         log.info(this.symbol, 'Wiping orders (15s timeout)...');
-        const [u1Res, u2Res] = await Promise.all([
-            sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/openOrders`, 'GET', { symbol: this.symbol }, globalUsers[globalRoles.makerId], 15000),
-            sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v1/openOrders`, 'GET', { symbol: this.symbol }, globalUsers[globalRoles.takerId], 15000)
-        ]);
+        const hpoBase = TIER_URLS[this.tier].HPO;
+        const tierUsers = globalUsers[this.tier] || {};
+        const tierRoles = globalRoles[this.tier] || { makerId: '', takerId: '' };
+        const makerUser = tierUsers[tierRoles.makerId];
+        const takerUser = tierUsers[tierRoles.takerId];
+
+        const p1 = makerUser ? sendSignedRequest(`${hpoBase}/fapi/v1/openOrders`, 'GET', { symbol: this.symbol }, makerUser, 15000, this.tier) : Promise.resolve({ ok: false });
+        const p2 = takerUser ? sendSignedRequest(`${hpoBase}/fapi/v1/openOrders`, 'GET', { symbol: this.symbol }, takerUser, 15000, this.tier) : Promise.resolve({ ok: false });
+
+        const [u1Res, u2Res] = await Promise.all([p1, p2]);
 
         let toCancel = [];
         if (u1Res.ok && Array.isArray(u1Res.data)) toCancel.push(...u1Res.data.map(o => ({ id: o.orderId, isTaker: false })));
@@ -1710,18 +1919,28 @@ startBinanceDepthWS() {
     }
 
     async reloadDepth() {
+        const mdsReadBase = TIER_URLS[this.tier].MDS_READ;
         const depthEndpoints = [
-            `https://testnet-futures-hpo.dcxstage.com/fapi/v1/depth?symbol=${this.symbol}&limit=${this.depthLevels}`,
-            `https://testnet-futures-hpo.dcxstage.com/api/v1/derivatives/futures/depth?symbol=${this.symbol}&limit=${this.depthLevels}`
+            `${mdsReadBase}/fapi/v1/depth?symbol=${this.symbol}&limit=${this.depthLevels}`,
+            `${mdsReadBase}/api/v1/derivatives/futures/depth?symbol=${this.symbol}&limit=${this.depthLevels}`
         ];
+        let success = false;
         for (const endpoint of depthEndpoints) {
             try {
                 const res = await fetch(endpoint);
                 if (res.ok) {
                     const data = await res.json();
-                    if (data.bids && data.asks) { this.testnetDepth = { bids: data.bids, asks: data.asks }; broadcastToUI(); break; }
+                    if (data.bids && data.asks) { 
+                        this.testnetDepth = { bids: data.bids, asks: data.asks }; 
+                        broadcastToUI(); 
+                        success = true;
+                        break; 
+                    }
                 }
             } catch (e) { log.debug && log.debug('SYSTEM', e.message); }
+        }
+        if (!success) {
+            log.warn(this.symbol, `Failed to fetch initial depth from MDS_READ on ${this.tier}`, null, this.tier);
         }
         if (this.wsTestnet) { clearInterval(this.testnetPingInterval); this.wsTestnet.removeAllListeners('close'); this.wsTestnet.close(); this.wsTestnet = null; }
         this.startTestnetWS();
@@ -1771,17 +1990,22 @@ startBinanceDepthWS() {
     }
 }
 
-const instances = new Map();
+const instances = {
+    PRODUCTION: new Map(),
+    JAPAN: new Map(),
+    STAGING: new Map()
+};
 let manualOverride = false;
 
 // ==========================================
 // 4. Global Portfolio & Master Loop
 // ==========================================
-function autoParsePositions(data) {
+function autoParsePositions(data, tier = 'PRODUCTION') {
     if (!Array.isArray(data)) return [];
     return data.filter(pos => parseFloat(pos.positionAmt || pos.size || 0) !== 0).map(pos => {
         const amt  = parseFloat(pos.positionAmt || pos.size || 0);
-        const inst = instrumentsMap[pos.symbol] || { pricePrecision: 4, qtyPrecision: 3 };
+        const tierMap = instrumentsMap[tier] || {};
+        const inst = tierMap[pos.symbol] || { pricePrecision: 4, qtyPrecision: 3 };
         return {
             symbol:        pos.symbol,
             side:          amt > 0 ? 'LONG' : 'SHORT',
@@ -1808,14 +2032,16 @@ function autoParseAccount(data) {
     return parsed;
 }
 
-async function getUserPortfolio(userConfig) {
+async function getUserPortfolio(userConfig, tier = 'PRODUCTION') {
+    const urls = TIER_URLS[tier] || TIER_URLS.PRODUCTION;
+    const hpoBase = urls.HPO;
     let accountData = null, positionData = null, errorMsg = null;
-    let res = await sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v2/account`, 'GET', null, userConfig);
+    let res = await sendSignedRequest(`${hpoBase}/fapi/v2/account`, 'GET', null, userConfig, 50000, tier);
     if (res.ok) accountData = res.data;
     else if (res.status === 401) errorMsg = `API Failed (401 Unauthorized)`;
     else errorMsg = `API Failed (${res.status})`;
 
-    let posRes = await sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com/fapi/v2/positionRisk`, 'GET', null, userConfig);
+    let posRes = await sendSignedRequest(`${hpoBase}/fapi/v2/positionRisk`, 'GET', null, userConfig, 50000, tier);
     if (posRes.ok) positionData = posRes.data;
     else if (!errorMsg) errorMsg = `Positions API Failed (${posRes.status})`;
 
@@ -1826,36 +2052,65 @@ async function getUserPortfolio(userConfig) {
         portfolio.availableBalance = pAcc.availableBalance;
         portfolio.unrealizedProfit = pAcc.unrealizedProfit;
     }
-    if (positionData) portfolio.positions = autoParsePositions(positionData);
+    if (positionData) portfolio.positions = autoParsePositions(positionData, tier);
     return portfolio;
 }
 
-let globalPortfolios = {};
+let globalPortfolios = {
+    PRODUCTION: {},
+    JAPAN: {},
+    STAGING: {}
+};
 let _prevPortfolioState = {}; // Track previous state for change detection
+
+async function syncAllPortfolios() {
+    const activeTiers = new Set([globalActiveTier]);
+    
+    await Promise.all(Array.from(activeTiers).map(async (tier) => {
+        if (!globalPortfolios[tier]) globalPortfolios[tier] = {};
+        
+        const tierUsers = globalUsers[tier] || {};
+        const userKeys = Object.keys(tierUsers);
+        
+        await Promise.all(userKeys.map(async (k) => {
+            try {
+                const port = await getUserPortfolio(tierUsers[k], tier);
+                if (!globalPortfolios[tier][k]) {
+                    globalPortfolios[tier][k] = port;
+                } else {
+                    const prevRealtimeOrders = globalPortfolios[tier][k]._realtimeOrders;
+                    Object.assign(globalPortfolios[tier][k], port);
+                    if (prevRealtimeOrders) {
+                        globalPortfolios[tier][k]._realtimeOrders = prevRealtimeOrders;
+                    }
+                }
+            } catch (e) {
+                console.error(`[ERROR] Failed to sync portfolio for ${k} on tier ${tier}: ${e.message}`);
+            }
+        }));
+    }));
+
+    // Maintain backwards compatible globals pointing to the default active tier
+    const tierRoles = globalRoles[globalActiveTier] || { makerId: '', takerId: '' };
+    user1Portfolio = (globalPortfolios[globalActiveTier] && globalPortfolios[globalActiveTier][tierRoles.makerId]) || { walletBalance: "0.00", availableBalance: "0.00", unrealizedProfit: "0.00", positions: [], openOrdersCount: 0, error: null };
+    user2Portfolio = (globalPortfolios[globalActiveTier] && globalPortfolios[globalActiveTier][tierRoles.takerId]) || { walletBalance: "0.00", availableBalance: "0.00", unrealizedProfit: "0.00", positions: [], openOrdersCount: 0, error: null };
+}
 
 async function globalMasterLoop() {
     try {
         const syncPromises = [];
-        for (const [, inst] of instances.entries()) {
-            if (inst.status === 'RUNNING') syncPromises.push(inst.runDeltaSync());
+        for (const tier of ['PRODUCTION', 'JAPAN', 'STAGING']) {
+            const tierInstances = instances[tier] || new Map();
+            for (const inst of tierInstances.values()) {
+                if (inst.status === 'RUNNING') syncPromises.push(inst.runDeltaSync());
+            }
         }
         await Promise.allSettled(syncPromises);
 
         const now = Date.now();
         if (lastPortfolioSyncTime === 0 || now - lastPortfolioSyncTime >= PORTFOLIO_SYNC_INTERVAL_MS) {
             lastPortfolioSyncTime = now;
-            
-            const userKeys = Object.keys(globalUsers);
-            const portPromises = userKeys.map(k => getUserPortfolio(globalUsers[k]));
-            const results = await Promise.allSettled(portPromises);
-            
-            userKeys.forEach((k, i) => {
-                if (results[i].status === 'fulfilled') {
-                    const newPort = results[i].value;
-                    _prevPortfolioState[k] = { walletBalance: newPort.walletBalance, availableBalance: newPort.availableBalance, unrealizedProfit: newPort.unrealizedProfit, positions: newPort.positions };
-                    globalPortfolios[k] = newPort;
-                }
-            });
+            await syncAllPortfolios();
         }
     } catch (e) { log.debug && log.debug('SYSTEM', e.message); }
     finally {
@@ -1871,13 +2126,16 @@ async function globalMasterLoop() {
 // ==========================================
 function buildPayload(isSnapshot = true, sinceTs = 0) {
     const activeInstancesMap = {};
-    for (const [sym, inst] of instances.entries()) {
-        const pData = instrumentsMap[sym] || { pricePrecision: 4, qtyPrecision: 1 };
+    const tierInstances = instances[globalActiveTier] || new Map();
+    for (const [sym, inst] of tierInstances.entries()) {
+        const tierMap = instrumentsMap[inst.tier] || {};
+        const pData = tierMap[sym] || { pricePrecision: 4, qtyPrecision: 1 };
         activeInstancesMap[sym] = {
             status:       inst.status,
             binanceDepth: inst.binanceDepth,
             testnetDepth: inst.testnetDepth,
             syncedTrades: inst.syncedTrades,
+            tier:         inst.tier,
             diagnostics: {
                 sourceSymbol:    inst.sourceSymbol,
                 testnetLatency:  inst.testnetLatency,
@@ -1897,18 +2155,22 @@ function buildPayload(isSnapshot = true, sinceTs = 0) {
             scenarioStatus: ScenarioEngine.getStatus(sym)
         };
     }
-    
     // We send globalUsers keys (without secrets) and roles to the UI
-    const usersMetadata = Object.keys(globalUsers).reduce((acc, k) => {
-        acc[k] = { label: globalUsers[k].label, key: globalUsers[k].key, email: globalUsers[k].email };
-        return acc;
-    }, {});
+    const usersMetadata = {};
+    for (const tier of ['PRODUCTION', 'JAPAN', 'STAGING']) {
+        usersMetadata[tier] = {};
+        const tierUsers = globalUsers[tier] || {};
+        for (const [k, u] of Object.entries(tierUsers)) {
+            usersMetadata[tier][k] = { label: u.label, key: u.key, email: u.email };
+        }
+    }
     
     return JSON.stringify({ 
         instances: activeInstancesMap, 
         portfolios: globalPortfolios,
         users: usersMetadata,
         roles: globalRoles,
+        activeTier: globalActiveTier,
         terminalLogs,
         terminalEvents: isSnapshot ? terminalEvents : terminalEvents.filter(e => e.ts > sinceTs),
         orderUpdateCounter: globalOrderUpdateCounter
@@ -1965,18 +2227,20 @@ const server = http.createServer(async (req, res) => {
                 const targetSym = parsed.targetSymbol ? parsed.targetSymbol.toUpperCase() : sym;
                 
                 // Allow specific routes to omit symbol
-                if (!sym && !req.url.startsWith('/api/users') && !req.url.startsWith('/api/manual-override')) {
+                if (!sym && !req.url.startsWith('/api/users') && !req.url.startsWith('/api/manual-override') && !req.url.startsWith('/api/env')) {
                     throw new Error("Symbol is required");
                 }
                 if (req.url.startsWith('/fapi/')) {
                     const userId = req.headers['x-replicator-user'];
                     if (!userId) { res.writeHead(400); return res.end(JSON.stringify({ error: "Missing x-replicator-user header" })); }
-                    const userCreds = globalUsers[userId];
+                    const tierUsers = globalUsers[globalActiveTier] || {};
+                    const userCreds = tierUsers[userId];
                     if (!userCreds) { res.writeHead(400); return res.end(JSON.stringify({ error: "Invalid user ID" })); }
                     try {
                         const httpMethod = parsed._method || 'POST';
                         delete parsed._method;
-                        const apiRes = await sendSignedRequest(`https://testnet-futures-hpo.dcxstage.com${req.url}`, httpMethod, parsed, userCreds);
+                        const hpoBase = TIER_URLS[globalActiveTier].HPO;
+                        const apiRes = await sendSignedRequest(`${hpoBase}${req.url}`, httpMethod, parsed, userCreds, 50000, globalActiveTier);
                         if (apiRes.ok || (apiRes.status >= 200 && apiRes.status < 300)) {
                             // Force an immediate UI portfolio refresh in the global loop
                             lastPortfolioSyncTime = 0;
@@ -2014,12 +2278,54 @@ const server = http.createServer(async (req, res) => {
                     }
                 }
 
+                if (req.url === '/api/env') {
+                    const tier = (parsed.tier || 'PRODUCTION').toUpperCase();
+                    if (!TIER_URLS[tier]) {
+                        res.writeHead(400);
+                        return res.end(JSON.stringify({ error: `Invalid tier: ${tier}` }));
+                    }
+                    if (globalActiveTier !== tier) {
+                        log.info('SYSTEM', `Switching global environment view to ${tier}...`);
+                        globalActiveTier = tier;
+                        
+                        if (!instrumentsMap[tier] || Object.keys(instrumentsMap[tier]).length === 0) {
+                            await loadInstruments(tier);
+                        }
+
+                        // Broadcast switch instantly to the UI
+                        broadcastToUI();
+
+                        // Perform reconnect & sync in the background
+                        (async () => {
+                            try {
+                                await reconnectGlobalUserWs();
+                                lastPortfolioSyncTime = 0;
+                                await syncAllPortfolios();
+                                broadcastToUI();
+                                log.success('SYSTEM', `Successfully switched global environment view to ${tier}`);
+                            } catch (err) {
+                                log.error('SYSTEM', `Error finalizing switch to ${tier}: ${err.message}`);
+                            }
+                        })();
+                    }
+                    res.writeHead(200);
+                    return res.end(JSON.stringify({ success: true, tier: globalActiveTier }));
+                }
+
                 if (req.url === '/api/config') {
-                    let inst = instances.get(targetSym);
+                    const tier = (parsed.tier || 'PRODUCTION').toUpperCase();
+                    if (!instances[tier]) instances[tier] = new Map();
+                    let inst = instances[tier].get(targetSym);
+                    
+                    if (!instrumentsMap[tier] || Object.keys(instrumentsMap[tier]).length === 0) {
+                        await loadInstruments(tier);
+                    }
+
                     if (!inst) {
                         inst = new ReplicatorInstance({
                             sourceSymbol: sym,
                             targetSymbol: targetSym,
+                            tier: tier,
                             minSize: parseFloat(parsed.minSize || 100),
                             maxSize: parseFloat(parsed.maxSize || 500),
                             depthLevels: parseInt(parsed.depthLevels || 10),
@@ -2029,9 +2335,9 @@ const server = http.createServer(async (req, res) => {
                             newUserFlow: Boolean(parsed.newUserFlow),
                             enableTradeSync: parsed.enableTradeSync !== false
                         });
-                        instances.set(targetSym, inst);
-                        inst.start().catch(e => log.error(targetSym, `Start failed: ${e.message}`));
-                        log.info(targetSym, `New market mounted from UI.`);
+                        instances[tier].set(targetSym, inst);
+                        inst.start().catch(e => log.error(targetSym, `Start failed: ${e.message}`, null, tier));
+                        log.info(targetSym, `New market mounted from UI.`, null, tier);
                     } else {
                         if (parsed.minSize     !== undefined) inst.minSize     = parseFloat(parsed.minSize);
                         if (parsed.maxSize     !== undefined) inst.maxSize     = parseFloat(parsed.maxSize);
@@ -2041,9 +2347,28 @@ const server = http.createServer(async (req, res) => {
                         if (parsed.tradeDelayMs !== undefined) inst.tradeDelayMs = parseInt(parsed.tradeDelayMs);
                         if (parsed.newUserFlow !== undefined) inst.newUserFlow = Boolean(parsed.newUserFlow);
                         if (parsed.enableTradeSync !== undefined) inst.enableTradeSync = Boolean(parsed.enableTradeSync);
-                        log.info(targetSym, `Config updated for existing instance.`);
+                        log.info(targetSym, `Config updated for existing instance.`, null, tier);
                     }
 
+                    if (globalActiveTier !== tier) {
+                        log.info('SYSTEM', `Switching global environment view to ${tier} (mounted market tier)`);
+                        globalActiveTier = tier;
+                        
+                        broadcastToUI();
+                        
+                        (async () => {
+                            try {
+                                await reconnectGlobalUserWs();
+                                lastPortfolioSyncTime = 0;
+                                await syncAllPortfolios();
+                                broadcastToUI();
+                            } catch (err) {
+                                log.error('SYSTEM', `Error finalizing switch: ${err.message}`);
+                            }
+                        })();
+                    }
+                    res.writeHead(200);
+                    return res.end(JSON.stringify({ success: true }));
                 } else if (req.url === '/api/manual-override') {
                     manualOverride = Boolean(parsed.locked);
                     log.info('SYSTEM', `Manual override set to ${manualOverride}`);
@@ -2051,37 +2376,50 @@ const server = http.createServer(async (req, res) => {
                     if (parsed.action === 'add' || parsed.action === 'update') {
                         const { id, label, key, secret, listenKey } = parsed.user;
                         if (!id) throw new Error("User ID is required");
-                        globalUsers[id] = { label: label || id, key: key || '', secret: secret || '', listenKey: listenKey || '' };
+                        globalUsers[globalActiveTier] = globalUsers[globalActiveTier] || {};
+                        globalUsers[globalActiveTier][id] = { label: label || id, key: key || '', secret: secret || '', listenKey: listenKey || '' };
                         lastPortfolioSyncTime = 0;
-                        log.info('SYSTEM', `User ${id} saved.`);
+                        log.info('SYSTEM', `User ${id} saved on ${globalActiveTier}.`);
                     } else if (parsed.action === 'setRoles') {
-                        if (parsed.makerId) globalRoles.makerId = parsed.makerId;
-                        if (parsed.takerId) globalRoles.takerId = parsed.takerId;
+                        globalRoles[globalActiveTier] = globalRoles[globalActiveTier] || { makerId: '', takerId: '' };
+                        if (parsed.makerId) globalRoles[globalActiveTier].makerId = parsed.makerId;
+                        if (parsed.takerId) globalRoles[globalActiveTier].takerId = parsed.takerId;
                         lastPortfolioSyncTime = 0;
-                        log.info('SYSTEM', `Roles updated: Maker=${globalRoles.makerId}, Taker=${globalRoles.takerId}`);
+                        log.info('SYSTEM', `Roles updated on ${globalActiveTier}: Maker=${globalRoles[globalActiveTier].makerId}, Taker=${globalRoles[globalActiveTier].takerId}`);
+                        reconnectAllInstancesPrivateWs(globalActiveTier);
                     } else if (parsed.action === 'generate') {
                         const id = parsed.id;
                         if (!id) throw new Error("User ID is required for generation");
                         if (!/^[a-zA-Z0-9_-]+$/.test(id)) throw new Error('Invalid user ID format');
-                        log.info('SYSTEM', `Generating new user credentials for ${id}...`);
+                        log.info('SYSTEM', `Generating new user credentials for ${id} on ${globalActiveTier}...`);
                         const { execFile } = require('child_process');
                         const execFileAsync = require('util').promisify(execFile);
-                        const { stdout } = await execFileAsync('node', ['scripts/generate-single.js', id]);
+                        const targetUrls = TIER_URLS[globalActiveTier] || TIER_URLS.PRODUCTION;
+                        const { stdout } = await execFileAsync('node', ['scripts/generate-single.js', id], {
+                            env: {
+                                ...process.env,
+                                API_BASE: targetUrls.ONBOARDING,
+                                RAILS_BASE: targetUrls.RAILS,
+                                FUTURES_URL: targetUrls.HPO
+                            }
+                        });
                         const result = JSON.parse(stdout.trim());
-                        globalUsers[id] = { label: id, key: result.key, secret: result.secret, email: result.email, listenKey: '' };
+                        globalUsers[globalActiveTier] = globalUsers[globalActiveTier] || {};
+                        globalUsers[globalActiveTier][id] = { label: id, key: result.key, secret: result.secret, email: result.email, listenKey: '' };
                         lastPortfolioSyncTime = 0;
-                        log.info('SYSTEM', `User ${id} generated successfully.`);
+                        log.info('SYSTEM', `User ${id} generated successfully on ${globalActiveTier}.`);
                     } else if (parsed.action === 'delete') {
                         const id = parsed.id;
-                        if (globalRoles.makerId === id || globalRoles.takerId === id) {
+                        const tierRoles = globalRoles[globalActiveTier] || { makerId: '', takerId: '' };
+                        if (tierRoles.makerId === id || tierRoles.takerId === id) {
                             throw new Error("Cannot delete a user currently assigned as Maker or Taker.");
                         }
-                        delete globalUsers[id];
-                        delete globalPortfolios[id];
-                        log.info('SYSTEM', `User ${id} deleted.`);
+                        if (globalUsers[globalActiveTier]) delete globalUsers[globalActiveTier][id];
+                        if (globalPortfolios[globalActiveTier]) delete globalPortfolios[globalActiveTier][id];
+                        log.info('SYSTEM', `User ${id} deleted from ${globalActiveTier}.`);
                     }
                 } else {
-                    const inst = instances.get(targetSym);
+                    const inst = (instances[globalActiveTier] || new Map()).get(targetSym);
                     if (req.url === '/api/engine/start'  && inst) inst.start();
                     else if (req.url === '/api/engine/pause'  && inst) inst.pause();
                     else if (req.url === '/api/engine/stop'   && inst) await inst.stop();
@@ -2129,6 +2467,14 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
+    if (req.url === '/api/connections' && req.method === 'GET') {
+        res.writeHead(200, {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        }).end(JSON.stringify({ activeSSE: sseClients.length }));
+        return;
+    }
+
     if (req.url === '/' || req.url === '/index.html') {
         res.writeHead(200, { 'Content-Type': 'text/html' }).end(getHtmlUI());
         return;
@@ -2145,7 +2491,10 @@ async function startBots() {
     log.success('SYSTEM', `Starting ${marketConfigs.length} market replicator(s)...`);
     log.success('SYSTEM', '===========================================================');
 
-    await Promise.allSettled([syncServerTime(), loadInstruments()]);
+    const tiers = ['PRODUCTION', 'JAPAN', 'STAGING'];
+    const loadInstPromises = tiers.map(t => loadInstruments(t));
+
+    await Promise.allSettled([syncServerTime(), ...loadInstPromises]);
     
     // Fetch listen keys and connect user data streams for real-time events
     await fetchListenKeys();
@@ -2153,31 +2502,39 @@ async function startBots() {
     
     for (const marketConf of marketConfigs) {
         const targetSym = (marketConf.targetSymbol || marketConf.sourceSymbol).toUpperCase();
-        if (instances.has(targetSym)) {
-            log.warn(targetSym, 'Skipping duplicate market configuration.');
+        const tier = (marketConf.tier || globalActiveTier).toUpperCase();
+        if (!instances[tier]) instances[tier] = new Map();
+        if (instances[tier].has(targetSym)) {
+            log.warn(targetSym, 'Skipping duplicate market configuration.', null, tier);
             continue;
         }
-        log.info(targetSym, `Initializing market: ${marketConf.sourceSymbol} -> ${targetSym}`);
+        marketConf.tier = tier;
+        log.info(targetSym, `Initializing market: ${marketConf.sourceSymbol} -> ${targetSym} on tier ${tier}`, null, tier);
         const inst = new ReplicatorInstance(marketConf);
-        instances.set(targetSym, inst);
+        instances[tier].set(targetSym, inst);
     }
 
     const startPromises = [];
-    for (const inst of instances.values()) {
-        startPromises.push((async () => {
-            try {
-                await inst.wipeOrders();
-                await inst.start();
-            } catch (e) {
-                log.error(inst.targetSymbol, `Initial start sequence failed: ${e.message}`);
-            }
-        })());
+    for (const tier of tiers) {
+        const tierInstances = instances[tier] || new Map();
+        for (const inst of tierInstances.values()) {
+            startPromises.push((async () => {
+                try {
+                    await inst.wipeOrders();
+                    await inst.start();
+                } catch (e) {
+                    log.error(inst.targetSymbol, `Initial start sequence failed: ${e.message}`, null, inst.tier);
+                }
+            })());
+        }
     }
     await Promise.allSettled(startPromises);
 
     globalMasterLoop();
     setInterval(syncServerTime, 60 * 60 * 1000);
-    setInterval(loadInstruments, 6 * 60 * 60 * 1000);
+    setInterval(async () => {
+        await loadInstruments(globalActiveTier);
+    }, 6 * 60 * 60 * 1000);
 }
 
 // SSE keepalive pings to prevent browser/proxy connection drops
@@ -2217,8 +2574,11 @@ if (ENABLE_LOCAL_UI) {
 
 process.on('SIGINT', async () => {
     log.warn('SYSTEM', 'Termination signal caught. Stopping all engines...');
-    for (const inst of instances.values()) {
-        await inst.stop();
+    for (const tier of ['PRODUCTION', 'JAPAN', 'STAGING']) {
+        const tierInstances = instances[tier] || new Map();
+        for (const inst of tierInstances.values()) {
+            await inst.stop();
+        }
     }
     process.exit(0);
 });
