@@ -15,7 +15,9 @@ function applyPriceAxes(rawPrice, side, axes, levelIndex = 0) {
     }
 
     // 2. Volatility Jitter (adds synthetic random noise to prevent flatlines)
-    if (axes.jitterPct) {
+    if (axes.tickJitterMultiplier) {
+        price *= axes.tickJitterMultiplier;
+    } else if (axes.jitterPct) {
         const noise = (Math.random() * 2 - 1) * axes.jitterPct;
         price *= (1 + noise);
     }

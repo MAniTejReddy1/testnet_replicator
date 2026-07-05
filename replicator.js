@@ -1479,8 +1479,13 @@ class ReplicatorInstance {
         if (this[guardKey]) return;
         this[guardKey] = true;
         try {
-            ScenarioEngine.tick(this.symbol);
-        const transformer = ScenarioEngine.getTransformer(this.symbol);
+            ScenarioEngine.tick(this.symbol, this.binanceLtp);
+            const status = ScenarioEngine.getStatus(this.symbol);
+            if (status && status.reconciliationRequired) {
+                ScenarioEngine.clearReconciliationFlag(this.symbol);
+                this.wipeOrders().catch(err => log.error(this.symbol, `Scenario reconciliation error: ${err.message}`));
+            }
+            const transformer = ScenarioEngine.getTransformer(this.symbol);
 
         const isBuy         = side === 'BUY';
         const restingOrders = isBuy ? this.restingBids : this.restingAsks;
@@ -1653,7 +1658,12 @@ class ReplicatorInstance {
     async handleTrade(trade) {
         if (this.status !== 'RUNNING' || !this.enableTradeSync) return;
         
-        ScenarioEngine.tick(this.symbol);
+        ScenarioEngine.tick(this.symbol, this.binanceLtp);
+        const status = ScenarioEngine.getStatus(this.symbol);
+        if (status && status.reconciliationRequired) {
+            ScenarioEngine.clearReconciliationFlag(this.symbol);
+            this.wipeOrders().catch(err => log.error(this.symbol, `Scenario reconciliation error: ${err.message}`));
+        }
         const transformer = ScenarioEngine.getTransformer(this.symbol);
         const transformedTradePrice = PriceTransformer.applyPriceAxes(trade.p, trade.m ? 'SELL' : 'BUY', transformer, 0);
 
