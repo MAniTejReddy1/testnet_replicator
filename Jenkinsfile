@@ -47,6 +47,11 @@ pipeline {
             defaultValue: true,
             description: 'Start the local web UI on this executor\'s dedicated port. Disable for fully headless runs. When enabled, an SSH tunnel command is printed in the console to access the UI over VPN.'
         )
+        choice(
+            name: 'ACTIVE_TIER',
+            choices: ['PRODUCTION', 'JAPAN', 'STAGING'],
+            description: 'Environment tier to run the replicator on (default: PRODUCTION)'
+        )
     }
 
     stages {
@@ -121,7 +126,9 @@ pipeline {
                 script {
                     if (params.CREATE_NEW_USERS) {
                         echo "Creating new users and API keys..."
-                        sh 'node scripts/setup-creds.js'
+                        withEnv(["ACTIVE_TIER=${params.ACTIVE_TIER}"]) {
+                            sh 'node scripts/setup-creds.js'
+                        }
                         echo "New users created! Sleeping for 120 seconds to allow testnet funds and API keys to fully propagate..."
                         sleep(time: 120, unit: 'SECONDS')
                     } else {
@@ -170,7 +177,7 @@ pipeline {
                     def executorNum = env.EXECUTOR_NUMBER ?: '0'
                     def repPort = 30000 + executorNum.toInteger()
                     def uiPort = 40000 + executorNum.toInteger()
-                    def envVars = ["MARKET_CONFIGS=${config}", "REPORTER_PORT=${repPort}", "UI_PORT=${uiPort}", "ENABLE_LOCAL_UI=${params.ENABLE_LOCAL_UI}"] + dynamicCreds
+                    def envVars = ["MARKET_CONFIGS=${config}", "REPORTER_PORT=${repPort}", "UI_PORT=${uiPort}", "ENABLE_LOCAL_UI=${params.ENABLE_LOCAL_UI}", "ACTIVE_TIER=${params.ACTIVE_TIER}"] + dynamicCreds
 
                     // Print UI access info — direct URL via nginx reverse proxy
                     if (params.ENABLE_LOCAL_UI) {

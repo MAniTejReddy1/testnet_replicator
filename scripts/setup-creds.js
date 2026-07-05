@@ -1,9 +1,30 @@
 const fs = require('fs');
 const fetch = require('node-fetch');
 
-const apiBase = "https://testnet-api.dcxstage.com";
-const railsBase = "https://testnet-rails-api.dcxstage.com";
-const futuresUrl = "https://testnet-futures-hpo.dcxstage.com";
+const TIER_URLS = {
+    PRODUCTION: {
+        ONBOARDING: "https://testnet-api.dcxstage.com",
+        RAILS: "https://testnet-rails-api.dcxstage.com",
+        HPO: "https://testnet-futures-hpo.dcxstage.com"
+    },
+    JAPAN: {
+        ONBOARDING: "https://testnet-exchange-api.dcxstage.com",
+        RAILS: "https://testnet-exchange-rails-api.dcxstage.com",
+        HPO: "https://testnet-exchange-hpo.dcxstage.com"
+    },
+    STAGING: {
+        ONBOARDING: "https://staging-exchange-api.dcxstage.com",
+        RAILS: "https://staging-exchange-rails-api.dcxstage.com",
+        HPO: "https://staging-exchange-futures-hpo.dcxstage.com"
+    }
+};
+
+const activeTier = (process.env.ACTIVE_TIER || 'PRODUCTION').toUpperCase();
+const config = TIER_URLS[activeTier] || TIER_URLS.PRODUCTION;
+
+const apiBase = config.ONBOARDING;
+const railsBase = config.RAILS;
+const futuresUrl = config.HPO;
 
 const wait = (ms = 200) => new Promise((r) => setTimeout(r, ms));
 const randSuffix = (len = 8) => Math.random().toString(36).substring(2, 2+len);

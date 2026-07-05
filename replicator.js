@@ -123,7 +123,7 @@ const TIER_URLS = {
     }
 };
 
-let globalActiveTier = 'PRODUCTION';
+let globalActiveTier = (process.env.ACTIVE_TIER || 'PRODUCTION').toUpperCase();
 
 const portfolios = {
     PRODUCTION: {
