@@ -1930,6 +1930,38 @@ window.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('active'));
             const selectedCard = document.getElementById(`preset-card-${preset}`);
             if (selectedCard) selectedCard.classList.add('active');
+            
+            // Populate form fields with preset defaults
+            if (preset === 'flash-crash') {
+                document.getElementById('cfg-scen-pct-global').value = -10;
+                document.getElementById('cfg-scen-target-price-global').value = '';
+                document.getElementById('cfg-scen-qty-global').value = '';
+                document.getElementById('cfg-scen-bias-global').value = '';
+                document.getElementById('cfg-scen-spread-pct-global').value = '';
+                document.getElementById('cfg-scen-skew-global').value = '';
+                document.getElementById('cfg-scen-profile-global').value = '';
+                document.getElementById('cfg-scen-jitter-global').value = '';
+                document.getElementById('cfg-scen-ramp-global').value = 0;
+                document.getElementById('cfg-scen-hold-global').value = 3000;
+                document.getElementById('cfg-scen-rec-global').value = 0;
+                document.getElementById('cfg-scen-recovery-global').value = 'linear';
+                scenarioStepsGlobal = [];
+            } else if (preset === 'partial-liquidation') {
+                document.getElementById('cfg-scen-pct-global').value = -5;
+                document.getElementById('cfg-scen-target-price-global').value = '';
+                document.getElementById('cfg-scen-qty-global').value = 5.0;
+                document.getElementById('cfg-scen-bias-global').value = '';
+                document.getElementById('cfg-scen-spread-pct-global').value = '';
+                document.getElementById('cfg-scen-skew-global').value = '';
+                document.getElementById('cfg-scen-profile-global').value = '';
+                document.getElementById('cfg-scen-jitter-global').value = '';
+                document.getElementById('cfg-scen-ramp-global').value = 1000;
+                document.getElementById('cfg-scen-hold-global').value = 0;
+                document.getElementById('cfg-scen-rec-global').value = 2000;
+                document.getElementById('cfg-scen-recovery-global').value = 'linear';
+                scenarioStepsGlobal = [];
+            }
+            window.renderScenarioStepsGlobal();
             window.drawTrajectoryChart();
         };
 
@@ -1967,40 +1999,48 @@ window.addEventListener('DOMContentLoaded', () => {
             const canvas = document.getElementById('scen-trajectory-canvas');
             if (!canvas) return;
             const ctx = canvas.getContext('2d');
-            const w = canvas.width = canvas.parentElement.clientWidth;
-            const h = canvas.height = canvas.parentElement.clientHeight;
-            ctx.clearRect(0,0,w,h);
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.parentElement.getBoundingClientRect();
+            const w = canvas.width = rect.width * dpr;
+            const h = canvas.height = 120 * dpr;
+            canvas.style.width = rect.width + 'px';
+            canvas.style.height = '120px';
+            ctx.scale(dpr, dpr);
             
-            let points = [{x:0, y: 0.5}];
+            const width = rect.width;
+            const height = 120;
+            ctx.clearRect(0,0,width,height);
+            
+            let points = [{x:0, y: 0.0}];
             
             const isPresetTab = document.getElementById('pnl-scen-preset-global').style.display !== 'none';
             if (isPresetTab) {
                 if (activePreset === 'flash-crash') {
-                    points.push({x: 0.05, y: 0.5});
-                    points.push({x: 0.05, y: 0.85});
-                    points.push({x: 0.6, y: 0.85});
-                    points.push({x: 0.6, y: 0.5});
-                    points.push({x: 1.0, y: 0.5});
+                    points.push({x: 0.08, y: 0.0, label: 'Start'});
+                    points.push({x: 0.08, y: -0.10, label: 'Crash'});
+                    points.push({x: 0.65, y: -0.10, label: 'Hold'});
+                    points.push({x: 0.65, y: 0.0, label: 'Recover'});
+                    points.push({x: 1.0, y: 0.0});
                 } else if (activePreset === 'partial-liquidation') {
-                    points.push({x: 0.05, y: 0.5});
-                    points.push({x: 0.25, y: 0.7});
-                    points.push({x: 0.7, y: 0.7});
-                    points.push({x: 0.95, y: 0.5});
-                    points.push({x: 1.0, y: 0.5});
+                    points.push({x: 0.05, y: 0.0, label: 'Start'});
+                    points.push({x: 0.25, y: -0.05, label: 'Crash'});
+                    points.push({x: 0.75, y: -0.05, label: 'Fill'});
+                    points.push({x: 0.95, y: 0.0, label: 'Recover'});
+                    points.push({x: 1.0, y: 0.0});
                 } else {
-                    points.push({x: 1.0, y: 0.5});
+                    points.push({x: 1.0, y: 0.0});
                 }
             } else {
                 if (scenarioStepsGlobal.length > 0) {
                     let totalTime = scenarioStepsGlobal.reduce((acc, step) => acc + (step.rampMs || 0) + (step.holdMs || 0), 0) + 2000;
                     let currentTime = 0;
-                    scenarioStepsGlobal.forEach(step => {
+                    scenarioStepsGlobal.forEach((step, idx) => {
                         currentTime += (step.rampMs || 0);
-                        points.push({x: currentTime / totalTime, y: 0.5 - (step.pct || 0) * 4});
+                        points.push({x: currentTime / totalTime, y: step.pct || 0, label: `Ramp ${idx+1}`});
                         currentTime += (step.holdMs || 0);
-                        points.push({x: currentTime / totalTime, y: 0.5 - (step.pct || 0) * 4});
+                        points.push({x: currentTime / totalTime, y: step.pct || 0, label: `Hold ${idx+1}`});
                     });
-                    points.push({x: 1.0, y: 0.5});
+                    points.push({x: 1.0, y: 0.0, label: 'Recover'});
                 } else {
                     const ramp = parseFloat(document.getElementById('cfg-scen-ramp-global').value || 1000);
                     const hold = parseFloat(document.getElementById('cfg-scen-hold-global').value || 3000);
@@ -2008,40 +2048,79 @@ window.addEventListener('DOMContentLoaded', () => {
                     const pct = parseFloat(document.getElementById('cfg-scen-pct-global').value || -5) / 100.0;
                     const total = ramp + hold + rec;
                     
-                    points.push({x: ramp / total, y: 0.5 - pct * 4});
-                    points.push({x: (ramp+hold) / total, y: 0.5 - pct * 4});
-                    points.push({x: 1.0, y: 0.5});
+                    points.push({x: ramp / total, y: pct, label: 'Ramp'});
+                    points.push({x: (ramp+hold) / total, y: pct, label: 'Hold'});
+                    points.push({x: 1.0, y: 0.0, label: 'Recover'});
                 }
             }
             
-            // Baseline
-            ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+            let maxVal = 0.05;
+            points.forEach(p => {
+                if (Math.abs(p.y) > maxVal) maxVal = Math.abs(p.y);
+            });
+            maxVal *= 1.25;
+            
+            // Gridlines
+            ctx.strokeStyle = 'rgba(255,255,255,0.03)';
             ctx.lineWidth = 1;
+            ctx.font = '8px "JetBrains Mono", monospace';
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.textAlign = 'right';
+            
+            const gridLines = [-maxVal * 0.6, 0, maxVal * 0.6];
+            gridLines.forEach(val => {
+                const py = height / 2 - (val / maxVal) * (height / 2.6);
+                ctx.beginPath();
+                ctx.moveTo(10, py);
+                ctx.lineTo(width - 10, py);
+                ctx.stroke();
+                ctx.fillText((val * 100).toFixed(1) + '%', width - 15, py + 3);
+            });
+            
+            // Baseline
+            ctx.strokeStyle = 'rgba(168,85,247,0.15)';
+            ctx.setLineDash([3, 3]);
             ctx.beginPath();
-            ctx.moveTo(0, h/2);
-            ctx.lineTo(w, h/2);
+            ctx.moveTo(10, height / 2);
+            ctx.lineTo(width - 10, height / 2);
             ctx.stroke();
+            ctx.setLineDash([]);
             
             // Connection line
             ctx.strokeStyle = '#c084fc';
             ctx.lineWidth = 2.5;
             ctx.beginPath();
             points.forEach((p, idx) => {
-                const px = p.x * w;
-                const py = p.y * h;
+                const px = 20 + p.x * (width - 40);
+                const py = height / 2 - (p.y / maxVal) * (height / 2.6);
                 if (idx === 0) ctx.moveTo(px, py);
                 else ctx.lineTo(px, py);
             });
             ctx.stroke();
             
             // Dots
-            ctx.fillStyle = '#d8b4fe';
             points.forEach((p) => {
+                const px = 20 + p.x * (width - 40);
+                const py = height / 2 - (p.y / maxVal) * (height / 2.6);
+                ctx.fillStyle = '#d8b4fe';
                 ctx.beginPath();
-                ctx.arc(p.x * w, p.y * h, 3.5, 0, Math.PI*2);
+                ctx.arc(px, py, 3.5, 0, Math.PI*2);
                 ctx.fill();
+                
+                if (p.label) {
+                    ctx.font = '8px "Inter", sans-serif';
+                    ctx.fillStyle = '#a855f7';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(p.label, px, py - 8);
+                }
             });
         };
+
+        window.addEventListener('resize', () => {
+            if (document.getElementById('scen-panel-body').style.display !== 'none') {
+                window.drawTrajectoryChart();
+            }
+        });
 
         // Hook dynamic visualizer changes
         ['cfg-scen-ramp-global', 'cfg-scen-hold-global', 'cfg-scen-rec-global', 'cfg-scen-pct-global'].forEach(id => {
@@ -2068,7 +2147,9 @@ window.addEventListener('DOMContentLoaded', () => {
                 });
                 const j = await r.json();
                 if (j.error) showToast('✗ ' + j.error, true);
-                else { showToast('✓ Triggered Preset: ' + activePreset); }
+                else { 
+                    showToast('✓ Triggered Preset: ' + activePreset); 
+                }
             } catch(e) { showToast('✗ ' + e.message, true); }
         };
 
