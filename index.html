@@ -1205,6 +1205,11 @@
 </div>
 
 <script>
+const pathParts = window.location.pathname.split('/');
+const replicatorPart = pathParts.find(p => p.startsWith('replicator-'));
+const basePrefix = replicatorPart ? '/' + replicatorPart : '';
+window.getApiUrl = (path) => basePrefix + path;
+
 window.addEventListener('DOMContentLoaded', () => {
     try {
         window.payload = { users: {}, roles: { makerId: '', takerId: '' }, portfolios: {} };
@@ -1232,7 +1237,7 @@ window.addEventListener('DOMContentLoaded', () => {
             const reqBody = { _method: 'GET', symbol: activeTabSymbol, limit: 500 };
             
             try {
-                const res = await fetch(endpoint, {
+                const res = await fetch(window.getApiUrl(endpoint), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'x-replicator-user': selectedUser },
                     body: JSON.stringify(reqBody)
@@ -1502,7 +1507,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 btn.textContent = 'Generating...';
             }
             
-            fetch('/api/users', {
+            fetch(window.getApiUrl('/api/users'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'generate', id: newId })
@@ -1532,7 +1537,7 @@ window.addEventListener('DOMContentLoaded', () => {
         window.saveRoles = function() {
             const makerId = document.getElementById('cfg-role-maker').value;
             const takerId = document.getElementById('cfg-role-taker').value;
-            fetch('/api/users', {
+            fetch(window.getApiUrl('/api/users'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'setRoles', makerId, takerId })
@@ -1640,7 +1645,7 @@ window.addEventListener('DOMContentLoaded', () => {
             }
 
             try {
-                const res = await fetch(endpoint, {
+                const res = await fetch(window.getApiUrl(endpoint), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'x-replicator-user': userId },
                     body: JSON.stringify(payload)
@@ -1725,7 +1730,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 const targetEnv = btn.getAttribute('data-env');
                 showFlushbar(`Switching environment to ${targetEnv}...`, 'info');
                 try {
-                    const r = await fetch('/api/env', {
+                    const r = await fetch(window.getApiUrl('/api/env'), {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ tier: targetEnv })
@@ -1785,7 +1790,7 @@ window.addEventListener('DOMContentLoaded', () => {
             if (!sym) return showToast('✗ Select a market first', true);
             const preset = document.getElementById('cfg-scenario-preset').value;
             try {
-                const r = await fetch('/api/scenario/preset/' + preset, {
+                const r = await fetch(window.getApiUrl('/api/scenario/preset/' + preset), {
                     method: 'POST', headers:{'Content-Type':'application/json'},
                     body: JSON.stringify({ symbol: sym })
                 });
@@ -1825,7 +1830,7 @@ window.addEventListener('DOMContentLoaded', () => {
             if (jitter !== null) payload.jitterPct = jitter;
 
             try {
-                const r = await fetch('/api/scenario/custom', {
+                const r = await fetch(window.getApiUrl('/api/scenario/custom'), {
                     method: 'POST', headers:{'Content-Type':'application/json'},
                     body: JSON.stringify(payload)
                 });
@@ -1839,7 +1844,7 @@ window.addEventListener('DOMContentLoaded', () => {
             const sym = activeTabSymbol;
             if (!sym) return showToast('✗ Select a market first', true);
             try {
-                const r = await fetch('/api/scenario/active', {
+                const r = await fetch(window.getApiUrl('/api/scenario/active'), {
                     method: 'DELETE', headers:{'Content-Type':'application/json'},
                     body: JSON.stringify({ symbol: sym })
                 });
@@ -1874,7 +1879,7 @@ window.addEventListener('DOMContentLoaded', () => {
             
             msg.style.color = 'var(--cyan)'; msg.textContent = 'Sending configuration...';
             try {
-                const r = await fetch('/api/config', { method:'POST', body: JSON.stringify(body), headers:{'Content-Type':'application/json'} });
+                const r = await fetch(window.getApiUrl('/api/config'), { method:'POST', body: JSON.stringify(body), headers:{'Content-Type':'application/json'} });
                 const d = await r.json();
                 if (d.success) { msg.style.color='#34d399'; msg.textContent='✓ Market Successfully Mounted!'; window.selectTab(tgt); }
                 else { msg.style.color='#fb7185'; msg.textContent='✗ ' + d.error; }
@@ -1888,7 +1893,7 @@ window.addEventListener('DOMContentLoaded', () => {
             el.className = window.manualLockState ? 'tog on' : 'tog off';
             
             try {
-                await fetch('/api/manual-override', {
+                await fetch(window.getApiUrl('/api/manual-override'), {
                     method: 'POST', headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ locked: window.manualLockState })
                 });
@@ -1970,7 +1975,7 @@ window.addEventListener('DOMContentLoaded', () => {
             }
 
             try {
-                const res = await fetch('/fapi/v1/order', {
+                const res = await fetch(window.getApiUrl('/fapi/v1/order'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'x-replicator-user': window.tradeUser.toString() },
                     body: JSON.stringify(payload)
@@ -1989,7 +1994,7 @@ window.addEventListener('DOMContentLoaded', () => {
         window.submitClosePosition = async function() {
             if (!activeTabSymbol) return showToast('✗ Select a market first', true);
             try {
-                const res = await fetch('/fapi/v1/exitPosition', {
+                const res = await fetch(window.getApiUrl('/fapi/v1/exitPosition'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'x-replicator-user': window.tradeUser.toString() },
                     body: JSON.stringify({ symbol: activeTabSymbol, timestamp: Date.now() })
@@ -2008,7 +2013,7 @@ window.addEventListener('DOMContentLoaded', () => {
         window.sendEngineCmd = async function(cmd) {
             if (!activeTabSymbol) return showToast("Select a market tab first!", true);
             try {
-                const r = await fetch('/api/engine/'+cmd, { method:'POST', body: JSON.stringify({ symbol: activeTabSymbol }), headers:{'Content-Type':'application/json'} });
+                const r = await fetch(window.getApiUrl('/api/engine/'+cmd), { method:'POST', body: JSON.stringify({ symbol: activeTabSymbol }), headers:{'Content-Type':'application/json'} });
                 if (r.ok) showToast('✓ Command ' + cmd.toUpperCase() + ' sent');
                 else showToast('✗ Failed to send command', true);
             } catch(e) { showToast('✗ Network error', true); }
@@ -2495,7 +2500,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const SSE_MAX_DELAY = 30000;
         function connectSSE() {
             if (es) es.close();
-            es = new EventSource('/events');
+            es = new EventSource(window.getApiUrl('/events'));
 
             es.onopen = () => {
                 sseReconnectDelay = 2500; // Reset backoff on success
