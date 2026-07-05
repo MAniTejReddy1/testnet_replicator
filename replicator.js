@@ -2578,11 +2578,28 @@ const ENABLE_LOCAL_UI = process.env.ENABLE_LOCAL_UI !== 'false';
 if (ENABLE_LOCAL_UI) {
     const UI_PORT = process.env.UI_PORT || 3000;
     server.listen(UI_PORT, async () => {
+        const os = require('os');
+        const hostName = os.hostname();
+        let hostIp = 'localhost';
+        try {
+            const interfaces = os.networkInterfaces();
+            for (const name of Object.keys(interfaces)) {
+                for (const iface of interfaces[name]) {
+                    if (iface.family === 'IPv4' && !iface.internal) {
+                        hostIp = iface.address;
+                        break;
+                    }
+                }
+                if (hostIp !== 'localhost') break;
+            }
+        } catch (e) {}
+
         log.success('SYSTEM', '===========================================================');
         log.success('SYSTEM', 'Replicator Active.');
         log.success('SYSTEM', `UI available at: http://localhost:${UI_PORT}`);
-        log.success('SYSTEM', `SSH Tunnel (run on your laptop): ssh -L 3000:localhost:${UI_PORT} <jenkins-user>@<jenkins-host>`);
-        log.success('SYSTEM', 'Then open: http://localhost:3000 in your browser');
+        log.success('SYSTEM', `SSH Tunnel (run on your laptop): ssh -L 3005:localhost:${UI_PORT} <ssh-user>@${hostIp}`);
+        log.success('SYSTEM', `Alternative hostname: ssh -L 3005:localhost:${UI_PORT} <ssh-user>@${hostName}`);
+        log.success('SYSTEM', 'Then open: http://localhost:3005 in your browser');
         log.success('SYSTEM', '===========================================================');
 
         startBots().catch(err => {
