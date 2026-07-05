@@ -40,27 +40,48 @@ let globalUsers = {
         'user1': {
             label: 'User 1',
             listenKey: process.env.USER1_LISTEN_KEY || "",
-            key: process.env.USER1_KEY || '45cda3aac77c85a66212c1eb1ed70df06defc46e8840aa6d',
-            secret: process.env.USER1_SECRET || 'b3ebd30860c13a1bd1f44c358d746874ae52ca5396879de71366c5b2832596fd',
-            email: 'mani.reddy+k0g0zvg8@coindcx.com',
-            password: 'Test@123'
+            key: process.env.USER1_KEY || 'ad4e864466db984cb52acc138d98bd6c72c8e58fb910bf8f',
+            secret: process.env.USER1_SECRET || '1f8c9d0ac479a32c32959a34ce9092454a81985a8c034efc60f88408a81c1b64',
+            email: 'mani.reddy+8q1k0th9@coindcx.com',
+            password: 'Test@123',
+            bearer_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IlYyIn0.eyJjb2luZGN4X2lkIjoiNGFlNDFlMTctNGY4ZC00MWNlLTljZTMtYjZiZTE5NmYyZGQ4IiwidXNlcl9pZCI6IjRhZTQxZTE3LTRmOGQtNDFjZS05Y2UzLWI2YmUxOTZmMmRkOCIsInBvcnRmb2xpb0ZhY3RvciI6MSwic2Vzc2lvbklkIjoiMzc4MmM4NDUtZTNiYS00OGViLTg0OGItMDk2OGIwZTRiM2ZhIiwicyI6IndlYiIsInVzZXJBZ2VudCI6IlBvc3RtYW5SdW50aW1lLzcuNTQuMCIsInNpcCI6IjEzMC40MS4yMDUuMTMyIiwic2NpdHkiOiJNdW1iYWkiLCJzY291bnRyeSI6IklOIiwic3JlZ2lvbiI6Ik1IIiwiaWF0IjoxNzgzMjc2MTM1LCJleHAiOjE3ODM0MDU3MzV9.gIWLRXSTFt6TyhCc4MMo5u4FI7H48qZDI-yJOl-Ecfg'
         },
         'user2': {
             label: 'User 2',
             listenKey: process.env.USER2_LISTEN_KEY || "",
-            key: process.env.USER2_KEY || '6e3ef60d1fcfc8fb6c527eb8218bcdfaf56c02f422846367',
-            secret: process.env.USER2_SECRET || 'ce547e76586bfe7d1fff793cb9373d04171b648f89de4706e7b9b2783715e72f',
-            email: 'mani.reddy+n1d5l3gq@coindcx.com',
-            password: 'Test@123'
+            key: process.env.USER2_KEY || '5a1ffd36cdd24ea54bb1ea88744c5cd86a2a181d2c1b76a6',
+            secret: process.env.USER2_SECRET || '631eac42e852bbfc84d2693cd35a27e192825894781864022a54e04c84ba49c6',
+            email: 'mani.reddy+1c85zrk3@coindcx.com',
+            password: 'Test@123',
+            bearer_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IlYyIn0.eyJjb2luZGN4X2lkIjoiYjY0OWY0NDEtZmQ1MS00ZmIzLWFjYmMtN2I2NWFjNThlOGE4IiwidXNlcl9pZCI6ImI2NDlmNDQxLWZkNTEtNGZiMy1hY2JjLTdiNjVhYzU4ZThhOCIsInBvcnRmb2xpb0ZhY3RvciI6MSwic2Vzc2lvbklkIjoiYTM2NWM0OTktNGNmMy00OWI5LTg5MmQtMzcwNzljOGU5MTcwIiwicyI6IndlYiIsInVzZXJBZ2VudCI6IlBvc3RtYW5SdW50aW1lLzcuNTQuMCIsInNpcCI6IjEzMC40MS4yMDUuMTMyIiwic2NpdHkiOiJNdW1iYWkiLCJzY291bnRyeSI6IklOIiwic3JlZ2lvbiI6Ik1IIiwiaWF0IjoxNzgzMjc2MTM5LCJleHAiOjE3ODM0MDU3Mzl9.s7ser9rYJdshZo7vnkofWu2MmPsVo1CobQ9qvXa_bh0'
         }
     },
-    JAPAN: {},
+    JAPAN: {
+        'user1': {
+            label: 'User 1',
+            listenKey: process.env.USER1_LISTEN_KEY || "",
+            key: process.env.USER1_KEY || '5979b70cbfa08236b663d138c4a80b3dcb9abd1a53e048a6',
+            secret: process.env.USER1_SECRET || 'c40a91c7b41ba11ab3eb7f1b1e3b9eed2b5794191390be84ed504023c9af5702',
+            email: 'mani.reddy+nqc6qjii@coindcx.com',
+            password: 'Test@123',
+            bearer_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IlYyIn0.eyJjb2luZGN4X2lkIjoiOGU1MjUyZDUtYTMyMS00MGRkLTk3MjAtNzMwNzZjNmU4ZTI3IiwidXNlcl9pZCI6IjhlNTI1MmQ1LWEzMjEtNDBkZC05NzIwLTczMDc2YzZlOGUyNyIsInBvcnRmb2xpb0ZhY3RvciI6MSwic2Vzc2lvbklkIjoiNTRlZmI0NjgtZTJmZC00OTliLTk5OWUtOWZhNDQxNDY1YTA3IiwicyI6IndlYiIsInVzZXJBZ2VudCI6IlBvc3RtYW5SdW50aW1lLzcuNTQuMCIsInNpcCI6IjEzMC40MS4yMDUuMTMyIiwic2NpdHkiOiJNdW1iYWkiLCJzY291bnRyeSI6IklOIiwic3JlZ2lvbiI6Ik1IIiwiaWF0IjoxNzgzMjc2MDc0LCJleHAiOjE3ODM0MDU2NzR9.tLDnwZNv7Co6EnLosxyjcHjMh_Zqz1fR3QNsoGhUKhY'
+        },
+        'user2': {
+            label: 'User 2',
+            listenKey: process.env.USER2_LISTEN_KEY || "",
+            key: process.env.USER2_KEY || '4b61f7e097c1240aad0b74630fdcbe37ebc4f145f4b753ff',
+            secret: process.env.USER2_SECRET || '2fbe86c1dea6f4b93b9bdd7a04aa39a449e93c0f93f0de4f04c10e2ac0103bfb',
+            email: 'mani.reddy+fvxiy643@coindcx.com',
+            password: 'Test@123',
+            bearer_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IlYyIn0.eyJjb2luZGN4X2lkIjoiYyFlMjg2MjgtM2FhYi00NTdlLTg2N2QtYmFkNDUyZjdlODlhIiwidXNlcl9pZCI6ImMxZTI4NjI4LTNhYWItNDU3ZS04NjdkLWJhZDQ1MmY3ZTg5YSIsInBvcnRmb2xpb0ZhY3RvciI6MSwic2Vzc2lvbklkIjoiMjM1Y2FiNjgtYTE1MS00YTI2LThhMWQtZjQxM2Q2MDY5Nzk4IiwicyI6IndlYiIsInVzZXJBZ2VudCI6IlBvc3RtYW5SdW50aW1lLzcuNTQuMCIsInNpcCI6IjEzMC40MS4yMDUuMTMyIiwic2NpdHkiOiJNdW1iYWkiLCJzY291bnRyeSI6IklOIiwic3JlZ2lvbiI6Ik1IIiwiaWF0IjoxNzgzMjc2MDgwLCJleHAiOjE3ODM0MDU2ODB9.E7hcr10Zw_Z5-c9xfFRDuKhwQPE9ty0FFfNwI8JbVaI'
+        }
+    },
     STAGING: {}
 };
 
 let globalRoles = {
     PRODUCTION: { makerId: 'user1', takerId: 'user2' },
-    JAPAN: { makerId: '', takerId: '' },
+    JAPAN: { makerId: 'user1', takerId: 'user2' },
     STAGING: { makerId: '', takerId: '' }
 };
 
@@ -133,25 +154,27 @@ const TIER_URLS = {
 let globalActiveTier = (process.env.ACTIVE_TIER || 'PRODUCTION').toUpperCase();
 
 if (globalActiveTier && (globalActiveTier === 'JAPAN' || globalActiveTier === 'STAGING')) {
-    globalUsers[globalActiveTier] = {
-        'user1': {
-            label: 'User 1',
-            listenKey: process.env.USER1_LISTEN_KEY || "",
-            key: process.env.USER1_KEY || '',
-            secret: process.env.USER1_SECRET || '',
-            email: 'mani.reddy@coindcx.com',
-            password: 'Test@123'
-        },
-        'user2': {
-            label: 'User 2',
-            listenKey: process.env.USER2_LISTEN_KEY || "",
-            key: process.env.USER2_KEY || '',
-            secret: process.env.USER2_SECRET || '',
-            email: 'mani.reddy@coindcx.com',
-            password: 'Test@123'
-        }
-    };
-    globalRoles[globalActiveTier] = { makerId: 'user1', takerId: 'user2' };
+    if (process.env.USER1_KEY || process.env.USER2_KEY) {
+        globalUsers[globalActiveTier] = {
+            'user1': {
+                label: 'User 1',
+                listenKey: process.env.USER1_LISTEN_KEY || "",
+                key: process.env.USER1_KEY || '',
+                secret: process.env.USER1_SECRET || '',
+                email: 'mani.reddy@coindcx.com',
+                password: 'Test@123'
+            },
+            'user2': {
+                label: 'User 2',
+                listenKey: process.env.USER2_LISTEN_KEY || "",
+                key: process.env.USER2_KEY || '',
+                secret: process.env.USER2_SECRET || '',
+                email: 'mani.reddy@coindcx.com',
+                password: 'Test@123'
+            }
+        };
+        globalRoles[globalActiveTier] = { makerId: 'user1', takerId: 'user2' };
+    }
 }
 
 const portfolios = {
