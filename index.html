@@ -802,95 +802,10 @@
   
   <button id="btn-apply" class="btn-primary" style="margin-bottom:24px;padding:12px;font-size:13px;">MOUNT & UPDATE MARKET</button>
   
-  <div class="panel panel-accent" style="padding:16px;margin-bottom:16px;border-color:rgba(168,85,247,0.4);box-shadow:0 0 30px rgba(168,85,247,0.1);background:linear-gradient(180deg, var(--panel), rgba(168,85,247,0.05));">
-    <div style="font-size:12px;color:#d8b4fe;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;font-weight:700;display:flex;align-items:center;gap:8px;text-shadow:0 0 10px rgba(168,85,247,0.5);">
-      <div style="width:8px;height:8px;background:#c084fc;border-radius:50%;box-shadow:0 0 10px #c084fc;"></div>
-      Advanced Scenario Engine
-    </div>
-    
-    <div style="display:flex;background:var(--input-bg);border-radius:8px;padding:4px;margin-bottom:16px;">
-        <button id="tab-preset" class="tab on" style="flex:1;border-radius:6px;" onclick="document.getElementById('pnl-preset').style.display='block';document.getElementById('pnl-custom').style.display='none';this.classList.add('on');document.getElementById('tab-custom').classList.remove('on');">Presets</button>
-        <button id="tab-custom" class="tab" style="flex:1;border-radius:6px;" onclick="document.getElementById('pnl-custom').style.display='block';document.getElementById('pnl-preset').style.display='none';this.classList.add('on');document.getElementById('tab-preset').classList.remove('on');">Custom Pro</button>
-    </div>
-
-    <div id="pnl-preset">
-        <label>Select Condition Template</label>
-        <select id="cfg-scenario-preset" style="margin-bottom:16px;font-size:13px;padding:10px;">
-            <option value="partial-liquidation">Partial Liquidation (-5%, cap 5 Qty)</option>
-            <option value="flash-crash">Flash Crash 10%</option>
-        </select>
-        <button id="btn-scenario-run" class="btn-success" style="width:100%;padding:10px;font-size:12px;font-weight:700;">⚡ EXECUTE PRESET SCENARIO</button>
-    </div>
-
-    <div id="pnl-custom" style="display:none;">
-        <div style="background:var(--input-bg);border-radius:10px;padding:12px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.03);">
-            <div style="font-size:10px;color:#c084fc;margin-bottom:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">1. Market Mechanics</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                <div><label>Price Shift (%) <span style="color:#64748b;">(e.g. -5)</span></label><input id="cfg-scen-pct" type="number" step="0.1" placeholder="-5"></div>
-                <div><label>Exact Target Price</label><input id="cfg-scen-target-price" type="number" step="0.1" placeholder="65000"></div>
-                <div><label>Max Qty Dump</label><input id="cfg-scen-qty" type="number" step="0.1" placeholder="Infinite"></div>
-                <div><label>Spread Bias (%)</label><input id="cfg-scen-bias" type="number" step="0.1" placeholder="5.0"></div>
-                <div><label>Exact Spread (%)</label><input id="cfg-scen-spread-pct" type="number" step="0.1" placeholder="2.0"></div>
-                <div>
-                    <label>Depth Skew</label>
-                    <select id="cfg-scen-skew" style="padding:8px 12px;font-size:12px;">
-                        <option value="">None (Normal Depth)</option>
-                        <option value="thin">Thin (2 Levels)</option>
-                        <option value="drain-bids">Drain Bids (1 Level)</option>
-                        <option value="drain-asks">Drain Asks (1 Level)</option>
-                    </select>
-                </div>
-                <div>
-                    <label>Volume Profile</label>
-                    <select id="cfg-scen-profile" style="padding:8px 12px;font-size:12px;">
-                        <option value="">None (Copy Source)</option>
-                        <option value="flat">Flat (1.0 at all levels)</option>
-                        <option value="stepped">Stepped (Exp. increasing)</option>
-                        <option value="dust">Dust (0.001)</option>
-                        <option value="wall-bids">Wall Bids (10x vs 0.1x)</option>
-                        <option value="wall-asks">Wall Asks (10x vs 0.1x)</option>
-                    </select>
-                </div>
-                <div style="grid-column: 1 / -1;"><label>Jitter Noise (%)</label><input id="cfg-scen-jitter" type="number" step="0.1" placeholder="0.0" style="width:50%;"></div>
-            </div>
-        </div>
-        
-        <div style="background:var(--input-bg);border-radius:10px;padding:12px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.03);">
-            <div style="font-size:10px;color:#c084fc;margin-bottom:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;display:flex;justify-content:space-between;align-items:center;">
-                <span>2. Time Envelope & Steps</span>
-                <button type="button" id="btn-scen-add-step" class="btn-primary" style="padding:4px 8px;font-size:9px;width:auto;margin:0;">+ ADD STEP</button>
-            </div>
-            <div id="scen-single-envelope" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
-                <div><label>Ramp (ms)</label><input id="cfg-scen-ramp" type="number" placeholder="1000"></div>
-                <div><label>Hold (ms)</label><input id="cfg-scen-hold" type="number" placeholder="3000"></div>
-                <div><label>Recover (ms)</label><input id="cfg-scen-rec" type="number" placeholder="2000"></div>
-            </div>
-            
-            <div id="scen-steps-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;"></div>
-
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                <div>
-                    <label>Recovery Mode</label>
-                    <select id="cfg-scen-recovery">
-                        <option value="linear">Auto (Linear)</option>
-                        <option value="none">None (Hold Shift Forever)</option>
-                        <option value="funding-premium">Funding Premium (Lock Forever)</option>
-                        <option value="ping-pong">Ping-Pong (Oscillate via Hold ms)</option>
-                    </select>
-                </div>
-                <div>
-                    <label>Max Safety Duration (s)</label>
-                    <input id="cfg-scen-max-duration" type="number" value="300" placeholder="300">
-                </div>
-            </div>
-        </div>
-        
-        <button id="btn-scenario-custom" class="btn-purple" style="width:100%;padding:12px;font-size:12px;font-weight:700;">⚡ LAUNCH PRO SCENARIO</button>
-    </div>
-
-    <div style="margin-top:16px;border-top:1px solid rgba(244,63,94,0.2);padding-top:16px;">
-        <button id="btn-scenario-abort" class="btn-danger" style="width:100%;padding:12px;font-size:12px;font-weight:800;">🚨 PANIC ABORT & RECOVER</button>
-    </div>
+  <div class="panel" style="padding:16px;margin-bottom:16px;text-align:center;border:1px dashed var(--border);border-radius:12px;background:rgba(255,255,255,0.01);">
+    <div style="font-size:11px;color:var(--text-muted);font-weight:600;margin-bottom:8px;">SCENARIO SIMULATOR</div>
+    <div style="font-size:11px;color:var(--text-dim);margin-bottom:12px;">The Advanced Scenario Engine is now docked directly on the main dashboard for a richer visual experience.</div>
+    <button type="button" onclick="document.getElementById('drawer').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); window.scrollTo({top: document.getElementById('scen-panel-wrapper').offsetTop - 80, behavior: 'smooth'});" class="btn-primary" style="padding:8px;font-size:11px;width:100%;">👉 GO TO SCENARIO ENGINE</button>
   </div>
 
   <div id="cfg-msg" style="font-size:12px;font-weight:600;text-align:center;min-height:20px;margin-bottom:20px;"></div>
@@ -951,6 +866,182 @@
       <div id="tv-tooltip" style="position:absolute; top:8px; left:12px; z-index:50; background:transparent; border:none; padding:0; font-family:'JetBrains Mono',monospace; font-size:12px; display:none; pointer-events:none; color:var(--text-main);"></div>
       <div id="tv-chart" style="flex:1; width:100%;"></div>
     </div>
+  </div>
+</div>
+
+<style>
+  .preset-card {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      padding: 16px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.25s var(--ease);
+  }
+  .preset-card:hover {
+      border-color: #c084fc;
+      background: rgba(168, 85, 247, 0.05);
+      box-shadow: 0 0 15px rgba(168, 85, 247, 0.15);
+      transform: translateY(-2px);
+  }
+  .preset-card.active {
+      border-color: #c084fc;
+      background: rgba(168, 85, 247, 0.1);
+      box-shadow: 0 0 20px rgba(168, 85, 247, 0.25);
+  }
+</style>
+
+<div id="scen-panel-wrapper" style="padding: 0 24px 24px;">
+  <div class="panel panel-accent" style="display:flex; flex-direction:column; overflow:hidden; border-color:rgba(168,85,247,0.4); box-shadow:0 0 30px rgba(168,85,247,0.1); background:linear-gradient(180deg, var(--panel), rgba(168,85,247,0.02));">
+      <div style="padding:14px 16px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:var(--input-bg); cursor:pointer;" onclick="window.toggleScenPanel()">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div id="scen-chevron" style="color:var(--text-muted);font-size:14px;transition:transform 0.2s;transform:rotate(0deg);">▼</div>
+          <div>
+            <div class="sec-label" style="color:#d8b4fe;">Simulate Market Crashes & Liquidations</div>
+            <div class="sec-title" style="color:#c084fc;display:flex;align-items:center;gap:8px;">
+               <div style="width:8px;height:8px;background:#c084fc;border-radius:50%;box-shadow:0 0 10px #c084fc;"></div>
+               Advanced Scenario Control Panel
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;" onclick="event.stopPropagation()">
+            <button id="scen-btn-abort-global" class="btn-danger" style="padding:6px 12px;font-size:10px;width:auto;margin:0;font-weight:bold;">🚨 PANIC ABORT & RECOVER</button>
+        </div>
+      </div>
+      
+      <!-- Panel Body -->
+      <div id="scen-panel-body" style="display:flex; border-top:1px solid var(--border); height:auto; transition:all 0.3s; overflow:hidden; padding:20px; gap:20px;">
+          <!-- Left half: Form Controls -->
+          <div style="flex:1.2; display:flex; flex-direction:column; gap:16px;">
+              <div style="display:flex;background:var(--input-bg);border-radius:8px;padding:4px;">
+                  <button id="tab-scen-preset-global" class="tab on" style="flex:1;border-radius:6px;padding:8px;" onclick="window.switchScenTab('preset')">Preset Templates</button>
+                  <button id="tab-scen-custom-global" class="tab" style="flex:1;border-radius:6px;padding:8px;" onclick="window.switchScenTab('custom')">Custom Sequence Builder</button>
+              </div>
+
+              <!-- Preset Section -->
+              <div id="pnl-scen-preset-global" style="display:flex; flex-direction:column; gap:12px;">
+                  <label style="font-size:11px;color:var(--text-muted);font-weight:600;">SELECT PRESET TEMPLATE</label>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                      <div class="preset-card" onclick="window.selectPresetTemplate('flash-crash')" id="preset-card-flash-crash">
+                          <div style="font-weight:700;color:white;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">💥 Flash Crash 10%</div>
+                          <div style="font-size:11px;color:var(--text-muted);">Instantly drops market 10%, holds for 3s, instantly recovers.</div>
+                      </div>
+                      <div class="preset-card" onclick="window.selectPresetTemplate('partial-liquidation')" id="preset-card-partial-liquidation">
+                          <div style="font-weight:700;color:white;font-size:13px;margin-bottom:6px;display:flex;align-items:center;gap:6px;">⚡ Liquidation Cascade</div>
+                          <div style="font-size:11px;color:var(--text-muted);">Crashes market 5% and halts once 5.0 units executed.</div>
+                      </div>
+                  </div>
+                  <button id="btn-scenario-run-global" class="btn-success" style="width:100%;padding:12px;font-size:12px;font-weight:700;margin-top:8px;">⚡ EXECUTE SELECTED PRESET</button>
+              </div>
+
+              <!-- Custom Builder Section -->
+              <div id="pnl-scen-custom-global" style="display:none; flex-direction:column; gap:12px;">
+                  <!-- Mechanics -->
+                  <div style="background:var(--input-bg);border-radius:10px;padding:14px;border:1px solid rgba(255,255,255,0.03);">
+                      <div style="font-size:10px;color:#c084fc;margin-bottom:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">1. Market Mechanics</div>
+                      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+                          <div><label>Price Shift (%)</label><input id="cfg-scen-pct-global" type="number" step="0.1" value="-5" class="trade-input"></div>
+                          <div><label>Exact Target Price</label><input id="cfg-scen-target-price-global" type="number" step="0.1" placeholder="e.g. 65000" class="trade-input"></div>
+                          <div><label>Max Qty (Cond. Seek)</label><input id="cfg-scen-qty-global" type="number" step="0.1" placeholder="Infinite" class="trade-input"></div>
+                          <div><label>Spread Bias (%)</label><input id="cfg-scen-bias-global" type="number" step="0.1" placeholder="0.0" class="trade-input"></div>
+                          <div><label>Exact Spread (%)</label><input id="cfg-scen-spread-pct-global" type="number" step="0.1" placeholder="Normal" class="trade-input"></div>
+                          <div><label>Jitter Noise (%)</label><input id="cfg-scen-jitter-global" type="number" step="0.1" placeholder="0.0" class="trade-input"></div>
+                          <div>
+                              <label>Depth Skew</label>
+                              <select id="cfg-scen-skew-global" class="trade-input" style="padding:8px;">
+                                  <option value="">None (Normal Depth)</option>
+                                  <option value="thin">Thin (2 Levels)</option>
+                                  <option value="drain-bids">Drain Bids (1 Level)</option>
+                                  <option value="drain-asks">Drain Asks (1 Level)</option>
+                              </select>
+                          </div>
+                          <div style="grid-column: span 2;">
+                              <label>Volume Profile</label>
+                              <select id="cfg-scen-profile-global" class="trade-input" style="padding:8px;">
+                                  <option value="">None (Copy Source)</option>
+                                  <option value="flat">Flat (1.0 at all levels)</option>
+                                  <option value="stepped">Stepped (Exp. increasing)</option>
+                                  <option value="dust">Dust (0.001)</option>
+                                  <option value="wall-bids">Wall Bids (10x vs 0.1x)</option>
+                                  <option value="wall-asks">Wall Asks (10x vs 0.1x)</option>
+                              </select>
+                          </div>
+                      </div>
+                  </div>
+                  
+                  <!-- Steps & Recovery -->
+                  <div style="background:var(--input-bg);border-radius:10px;padding:14px;border:1px solid rgba(255,255,255,0.03);">
+                      <div style="font-size:10px;color:#c084fc;margin-bottom:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;display:flex;justify-content:space-between;align-items:center;">
+                          <span>2. Sequence Time Envelope & Steps</span>
+                          <button type="button" id="btn-scen-add-step-global" class="btn-primary" style="padding:4px 8px;font-size:9px;width:auto;margin:0;">+ ADD STEP TO LIST</button>
+                      </div>
+                      <div id="scen-single-envelope-global" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
+                          <div><label>Ramp (ms)</label><input id="cfg-scen-ramp-global" type="number" value="1000" class="trade-input"></div>
+                          <div><label>Hold (ms)</label><input id="cfg-scen-hold-global" type="number" value="3000" class="trade-input"></div>
+                          <div><label>Recover (ms)</label><input id="cfg-scen-rec-global" type="number" value="2000" class="trade-input"></div>
+                      </div>
+                      
+                      <div id="scen-steps-list-global" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;"></div>
+
+                      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                          <div>
+                              <label>Recovery Mode</label>
+                              <select id="cfg-scen-recovery-global" class="trade-input" style="padding:8px;">
+                                  <option value="linear">Auto (Linear)</option>
+                                  <option value="none">None (Hold Shift Forever)</option>
+                                  <option value="funding-premium">Funding Premium (Lock Forever)</option>
+                                  <option value="ping-pong">Ping-Pong (Oscillate via Hold ms)</option>
+                              </select>
+                          </div>
+                          <div>
+                              <label>Max Safety Duration (s)</label>
+                              <input id="cfg-scen-max-duration-global" type="number" value="300" class="trade-input">
+                          </div>
+                      </div>
+                  </div>
+                  <button id="btn-scenario-custom-global" class="btn-purple" style="width:100%;padding:12px;font-size:12px;font-weight:700;">⚡ LAUNCH CUSTOM SEQUENCE</button>
+              </div>
+          </div>
+
+          <!-- Right half: Visual Status Dash -->
+          <div style="flex:0.8; display:flex; flex-direction:column; background:var(--input-bg); border-radius:12px; padding:16px; border:1px solid var(--border); justify-content:space-between;">
+              <div>
+                  <div style="font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:16px;">Live Simulation Diagnostics</div>
+                  
+                  <div style="display:flex; flex-direction:column; gap:12px;">
+                      <div style="display:flex;justify-content:space-between;align-items:center;background:var(--panel);padding:10px 14px;border-radius:8px;border:1px solid var(--border);">
+                          <span style="font-size:11px;color:var(--text-muted);">Current Phase</span>
+                          <span id="scen-dash-phase" style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--text-muted);">IDLE</span>
+                      </div>
+                      <div style="display:flex;justify-content:space-between;align-items:center;background:var(--panel);padding:10px 14px;border-radius:8px;border:1px solid var(--border);">
+                          <span style="font-size:11px;color:var(--text-muted);">Current Multiplier</span>
+                          <span id="scen-dash-mult" style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--cyan);">1.0000x</span>
+                      </div>
+                      <div style="display:flex;justify-content:space-between;align-items:center;background:var(--panel);padding:10px 14px;border-radius:8px;border:1px solid var(--border);">
+                          <span style="font-size:11px;color:var(--text-muted);">Shift Mode</span>
+                          <span id="scen-dash-mode" style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--text-dim);">DETERMINISTIC</span>
+                      </div>
+                      <div id="scen-dash-qty-row" style="display:none; justify-content:space-between;align-items:center;background:var(--panel);padding:10px 14px;border-radius:8px;border:1px solid var(--border);">
+                          <span style="font-size:11px;color:var(--text-muted);">Target Qty Filled</span>
+                          <span id="scen-dash-qty" style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--yellow);">0.00 / 0.00</span>
+                      </div>
+                      <div style="display:flex;flex-direction:column;background:var(--panel);padding:10px 14px;border-radius:8px;border:1px solid var(--border);gap:6px;">
+                          <div style="display:flex;justify-content:space-between;align-items:center;">
+                              <span style="font-size:11px;color:var(--text-muted);">Execution Time</span>
+                              <span id="scen-dash-time" style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--text-dim);">0s / 300s</span>
+                          </div>
+                          <div class="hbar" style="height:6px;background:rgba(255,255,255,0.05);"><div id="scen-dash-time-bar" class="hbar-fill" style="width:0%;background:#c084fc;"></div></div>
+                      </div>
+                  </div>
+              </div>
+              
+              <!-- State visual graph -->
+              <div id="scen-dash-graph" style="height:120px; border:1px dashed var(--border); border-radius:8px; margin-top:16px; display:flex; align-items:center; justify-content:center; position:relative; background:var(--panel); overflow:hidden;">
+                  <div style="font-size:10px;color:var(--text-muted);font-weight:500;">Dynamic Trajectory Visualizer</div>
+                  <canvas id="scen-trajectory-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;"></canvas>
+              </div>
+          </div>
+      </div>
   </div>
 </div>
 
@@ -1797,80 +1888,211 @@ window.addEventListener('DOMContentLoaded', () => {
             window.showFlushbar(msgStr, isErr ? 'error' : 'info');
         }
 
-        document.getElementById('btn-scenario-run').onclick = async () => {
-            const sym = activeTabSymbol;
-            if (!sym) return showToast('✗ Select a market first', true);
-            const preset = document.getElementById('cfg-scenario-preset').value;
-            try {
-                const r = await fetch(window.getApiUrl('/api/scenario/preset/' + preset), {
-                    method: 'POST', headers:{'Content-Type':'application/json'},
-                    body: JSON.stringify({ symbol: sym })
-                });
-                const j = await r.json();
-                if (j.error) showToast('✗ ' + j.error, true);
-                else { showToast('✓ Triggered ' + preset); document.getElementById('drawer').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); }
-            } catch(e) { showToast('✗ ' + e.message, true); }
+        let activePreset = null;
+        let scenarioStepsGlobal = [];
+
+        window.toggleScenPanel = () => {
+            const body = document.getElementById('scen-panel-body');
+            const chev = document.getElementById('scen-chevron');
+            const isCollapsed = body.style.display === 'none';
+            if (isCollapsed) {
+                body.style.display = 'flex';
+                chev.style.transform = 'rotate(0deg)';
+                setTimeout(window.drawTrajectoryChart, 50);
+            } else {
+                body.style.display = 'none';
+                chev.style.transform = 'rotate(-90deg)';
+            }
         };
 
-        let scenarioSteps = [];
+        window.switchScenTab = (tab) => {
+            const presetBtn = document.getElementById('tab-scen-preset-global');
+            const customBtn = document.getElementById('tab-scen-custom-global');
+            const presetPnl = document.getElementById('pnl-scen-preset-global');
+            const customPnl = document.getElementById('pnl-scen-custom-global');
+            
+            if (tab === 'preset') {
+                presetBtn.classList.add('on');
+                customBtn.classList.remove('on');
+                presetPnl.style.display = 'flex';
+                customPnl.style.display = 'none';
+            } else {
+                presetBtn.classList.remove('on');
+                customBtn.classList.add('on');
+                presetPnl.style.display = 'none';
+                customPnl.style.display = 'flex';
+            }
+            window.drawTrajectoryChart();
+        };
 
-        window.renderScenarioSteps = () => {
-            const container = document.getElementById('scen-steps-list');
-            const singleEnv = document.getElementById('scen-single-envelope');
-            if (scenarioSteps.length > 0) {
+        window.selectPresetTemplate = (preset) => {
+            activePreset = preset;
+            document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('active'));
+            const selectedCard = document.getElementById(`preset-card-${preset}`);
+            if (selectedCard) selectedCard.classList.add('active');
+            window.drawTrajectoryChart();
+        };
+
+        window.renderScenarioStepsGlobal = () => {
+            const container = document.getElementById('scen-steps-list-global');
+            const singleEnv = document.getElementById('scen-single-envelope-global');
+            if (scenarioStepsGlobal.length > 0) {
                 singleEnv.style.display = 'none';
-                container.innerHTML = scenarioSteps.map((step, idx) => `
+                container.innerHTML = scenarioStepsGlobal.map((step, idx) => `
                     <div style="display:grid;grid-template-columns:30px 1fr 1fr 1fr 30px;gap:8px;align-items:center;background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);margin-bottom:4px;">
                         <span style="font-size:10px;font-weight:bold;color:#c084fc;text-align:center;">#${idx+1}</span>
                         <div>
                             <label style="font-size:9px;color:var(--text-muted);">Shift %</label>
-                            <input type="number" step="0.1" value="${(step.pct * 100).toFixed(1)}" onchange="scenarioSteps[${idx}].pct = parseFloat(this.value)/100" style="padding:4px 6px;font-size:11px;width:100%;background:var(--input-bg);border:1px solid var(--border);color:var(--text-main);border-radius:4px;outline:none;">
+                            <input type="number" step="0.1" value="${(step.pct * 100).toFixed(1)}" onchange="scenarioStepsGlobal[${idx}].pct = parseFloat(this.value)/100; window.drawTrajectoryChart();" style="padding:4px 6px;font-size:11px;width:100%;background:var(--input-bg);border:1px solid var(--border);color:var(--text-main);border-radius:4px;outline:none;">
                         </div>
                         <div>
                             <label style="font-size:9px;color:var(--text-muted);">Ramp (ms)</label>
-                            <input type="number" value="${step.rampMs}" onchange="scenarioSteps[${idx}].rampMs = parseInt(this.value)" style="padding:4px 6px;font-size:11px;width:100%;background:var(--input-bg);border:1px solid var(--border);color:var(--text-main);border-radius:4px;outline:none;">
+                            <input type="number" value="${step.rampMs}" onchange="scenarioStepsGlobal[${idx}].rampMs = parseInt(this.value); window.drawTrajectoryChart();" style="padding:4px 6px;font-size:11px;width:100%;background:var(--input-bg);border:1px solid var(--border);color:var(--text-main);border-radius:4px;outline:none;">
                         </div>
                         <div>
                             <label style="font-size:9px;color:var(--text-muted);">Hold (ms)</label>
-                            <input type="number" value="${step.holdMs}" onchange="scenarioSteps[${idx}].holdMs = parseInt(this.value)" style="padding:4px 6px;font-size:11px;width:100%;background:var(--input-bg);border:1px solid var(--border);color:var(--text-main);border-radius:4px;outline:none;">
+                            <input type="number" value="${step.holdMs}" onchange="scenarioStepsGlobal[${idx}].holdMs = parseInt(this.value); window.drawTrajectoryChart();" style="padding:4px 6px;font-size:11px;width:100%;background:var(--input-bg);border:1px solid var(--border);color:var(--text-main);border-radius:4px;outline:none;">
                         </div>
-                        <button type="button" onclick="scenarioSteps.splice(${idx}, 1); renderScenarioSteps();" style="background:rgba(244,63,94,0.15);color:var(--rose);border:none;border-radius:4px;font-size:14px;cursor:pointer;padding:4px 8px;margin-top:12px;display:flex;align-items:center;justify-content:center;">×</button>
+                        <button type="button" onclick="scenarioStepsGlobal.splice(${idx}, 1); renderScenarioStepsGlobal(); window.drawTrajectoryChart();" style="background:rgba(244,63,94,0.15);color:var(--rose);border:none;border-radius:4px;font-size:14px;cursor:pointer;padding:4px 8px;margin-top:12px;display:flex;align-items:center;justify-content:center;">×</button>
                     </div>
                 `).join('');
             } else {
                 singleEnv.style.display = 'grid';
                 container.innerHTML = '';
             }
+            window.drawTrajectoryChart();
         };
 
-        document.getElementById('btn-scen-add-step').onclick = () => {
-            const pctInput = parseFloat(document.getElementById('cfg-scen-pct').value || -5.0);
-            const ramp = parseInt(document.getElementById('cfg-scen-ramp').value || 1000);
-            const hold = parseInt(document.getElementById('cfg-scen-hold').value || 3000);
-            scenarioSteps.push({ pct: pctInput / 100.0, rampMs: ramp, holdMs: hold });
-            renderScenarioSteps();
+        window.drawTrajectoryChart = () => {
+            const canvas = document.getElementById('scen-trajectory-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width = canvas.parentElement.clientWidth;
+            const h = canvas.height = canvas.parentElement.clientHeight;
+            ctx.clearRect(0,0,w,h);
+            
+            let points = [{x:0, y: 0.5}];
+            
+            const isPresetTab = document.getElementById('pnl-scen-preset-global').style.display !== 'none';
+            if (isPresetTab) {
+                if (activePreset === 'flash-crash') {
+                    points.push({x: 0.05, y: 0.5});
+                    points.push({x: 0.05, y: 0.85});
+                    points.push({x: 0.6, y: 0.85});
+                    points.push({x: 0.6, y: 0.5});
+                    points.push({x: 1.0, y: 0.5});
+                } else if (activePreset === 'partial-liquidation') {
+                    points.push({x: 0.05, y: 0.5});
+                    points.push({x: 0.25, y: 0.7});
+                    points.push({x: 0.7, y: 0.7});
+                    points.push({x: 0.95, y: 0.5});
+                    points.push({x: 1.0, y: 0.5});
+                } else {
+                    points.push({x: 1.0, y: 0.5});
+                }
+            } else {
+                if (scenarioStepsGlobal.length > 0) {
+                    let totalTime = scenarioStepsGlobal.reduce((acc, step) => acc + (step.rampMs || 0) + (step.holdMs || 0), 0) + 2000;
+                    let currentTime = 0;
+                    scenarioStepsGlobal.forEach(step => {
+                        currentTime += (step.rampMs || 0);
+                        points.push({x: currentTime / totalTime, y: 0.5 - (step.pct || 0) * 4});
+                        currentTime += (step.holdMs || 0);
+                        points.push({x: currentTime / totalTime, y: 0.5 - (step.pct || 0) * 4});
+                    });
+                    points.push({x: 1.0, y: 0.5});
+                } else {
+                    const ramp = parseFloat(document.getElementById('cfg-scen-ramp-global').value || 1000);
+                    const hold = parseFloat(document.getElementById('cfg-scen-hold-global').value || 3000);
+                    const rec = parseFloat(document.getElementById('cfg-scen-rec-global').value || 2000);
+                    const pct = parseFloat(document.getElementById('cfg-scen-pct-global').value || -5) / 100.0;
+                    const total = ramp + hold + rec;
+                    
+                    points.push({x: ramp / total, y: 0.5 - pct * 4});
+                    points.push({x: (ramp+hold) / total, y: 0.5 - pct * 4});
+                    points.push({x: 1.0, y: 0.5});
+                }
+            }
+            
+            // Baseline
+            ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, h/2);
+            ctx.lineTo(w, h/2);
+            ctx.stroke();
+            
+            // Connection line
+            ctx.strokeStyle = '#c084fc';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            points.forEach((p, idx) => {
+                const px = p.x * w;
+                const py = p.y * h;
+                if (idx === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            });
+            ctx.stroke();
+            
+            // Dots
+            ctx.fillStyle = '#d8b4fe';
+            points.forEach((p) => {
+                ctx.beginPath();
+                ctx.arc(p.x * w, p.y * h, 3.5, 0, Math.PI*2);
+                ctx.fill();
+            });
         };
 
-        document.getElementById('btn-scenario-custom').onclick = async () => {
+        // Hook dynamic visualizer changes
+        ['cfg-scen-ramp-global', 'cfg-scen-hold-global', 'cfg-scen-rec-global', 'cfg-scen-pct-global'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.oninput = window.drawTrajectoryChart;
+        });
+
+        document.getElementById('btn-scen-add-step-global').onclick = () => {
+            const pctInput = parseFloat(document.getElementById('cfg-scen-pct-global').value || -5.0);
+            const ramp = parseInt(document.getElementById('cfg-scen-ramp-global').value || 1000);
+            const hold = parseInt(document.getElementById('cfg-scen-hold-global').value || 3000);
+            scenarioStepsGlobal.push({ pct: pctInput / 100.0, rampMs: ramp, holdMs: hold });
+            renderScenarioStepsGlobal();
+        };
+
+        document.getElementById('btn-scenario-run-global').onclick = async () => {
             const sym = activeTabSymbol;
             if (!sym) return showToast('✗ Select a market first', true);
-            const pctInput = parseFloat(document.getElementById('cfg-scen-pct').value || 0);
+            if (!activePreset) return showToast('✗ Select a preset template first', true);
+            try {
+                const r = await fetch(window.getApiUrl('/api/scenario/preset/' + activePreset), {
+                    method: 'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ symbol: sym })
+                });
+                const j = await r.json();
+                if (j.error) showToast('✗ ' + j.error, true);
+                else { showToast('✓ Triggered Preset: ' + activePreset); }
+            } catch(e) { showToast('✗ ' + e.message, true); }
+        };
+
+        document.getElementById('btn-scenario-custom-global').onclick = async () => {
+            const sym = activeTabSymbol;
+            if (!sym) return showToast('✗ Select a market first', true);
+            
+            const pctInput = parseFloat(document.getElementById('cfg-scen-pct-global').value || 0);
             const pct = pctInput / 100.0;
-            const targetPrice = document.getElementById('cfg-scen-target-price').value;
-            const qty = document.getElementById('cfg-scen-qty').value;
-            const biasInput = document.getElementById('cfg-scen-bias').value;
+            const targetPrice = document.getElementById('cfg-scen-target-price-global').value;
+            const qty = document.getElementById('cfg-scen-qty-global').value;
+            const biasInput = document.getElementById('cfg-scen-bias-global').value;
             const bias = biasInput ? parseFloat(biasInput) / 100.0 : null;
-            const spreadPctInput = document.getElementById('cfg-scen-spread-pct').value;
+            const spreadPctInput = document.getElementById('cfg-scen-spread-pct-global').value;
             const targetSpreadPct = spreadPctInput ? parseFloat(spreadPctInput) / 100.0 : null;
-            const skew = document.getElementById('cfg-scen-skew').value;
-            const profile = document.getElementById('cfg-scen-profile').value;
-            const jitterInput = document.getElementById('cfg-scen-jitter').value;
+            const skew = document.getElementById('cfg-scen-skew-global').value;
+            const profile = document.getElementById('cfg-scen-profile-global').value;
+            const jitterInput = document.getElementById('cfg-scen-jitter-global').value;
             const jitter = jitterInput ? (parseFloat(jitterInput) / 100.0) : null;
-            const ramp = parseInt(document.getElementById('cfg-scen-ramp').value || 0);
-            const hold = parseInt(document.getElementById('cfg-scen-hold').value || 0);
-            const rec = parseInt(document.getElementById('cfg-scen-rec').value || 2000);
-            const recoveryMode = document.getElementById('cfg-scen-recovery').value || 'linear';
-            const maxDurationSec = parseFloat(document.getElementById('cfg-scen-max-duration').value || 300);
+            const ramp = parseInt(document.getElementById('cfg-scen-ramp-global').value || 0);
+            const hold = parseInt(document.getElementById('cfg-scen-hold-global').value || 0);
+            const rec = parseInt(document.getElementById('cfg-scen-rec-global').value || 2000);
+            const recoveryMode = document.getElementById('cfg-scen-recovery-global').value || 'linear';
+            const maxDurationSec = parseFloat(document.getElementById('cfg-scen-max-duration-global').value || 300);
             
             const payload = { 
                 symbol: sym, 
@@ -1878,8 +2100,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 maxDurationMs: maxDurationSec * 1000 
             };
             
-            if (scenarioSteps.length > 0) {
-                payload.steps = scenarioSteps;
+            if (scenarioStepsGlobal.length > 0) {
+                payload.steps = scenarioStepsGlobal;
             } else {
                 payload.pct = pct;
                 payload.rampMs = ramp;
@@ -1903,16 +2125,14 @@ window.addEventListener('DOMContentLoaded', () => {
                 const j = await r.json();
                 if (j.error) showToast('✗ ' + j.error, true);
                 else { 
-                    showToast('✓ Custom Pro Scenario Triggered'); 
-                    scenarioSteps = []; 
-                    renderScenarioSteps();
-                    document.getElementById('drawer').classList.remove('open'); 
-                    document.getElementById('overlay').classList.remove('open'); 
+                    showToast('✓ Custom Sequence Started'); 
+                    scenarioStepsGlobal = []; 
+                    renderScenarioStepsGlobal();
                 }
             } catch(e) { showToast('✗ ' + e.message, true); }
         };
 
-        document.getElementById('btn-scenario-abort').onclick = async () => {
+        document.getElementById('scen-btn-abort-global').onclick = async () => {
             const sym = activeTabSymbol;
             if (!sym) return showToast('✗ Select a market first', true);
             try {
@@ -1922,9 +2142,12 @@ window.addEventListener('DOMContentLoaded', () => {
                 });
                 const j = await r.json();
                 if (j.error) showToast('✗ ' + j.error, true);
-                else { showToast('✓ Scenario Aborted'); document.getElementById('drawer').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); }
+                else { showToast('✓ Scenario Terminated & Reconciling'); }
             } catch(e) { showToast('✗ ' + e.message, true); }
         };
+
+        // Initialize active template
+        window.selectPresetTemplate('flash-crash');
 
         document.getElementById('btn-apply').onclick = async () => {
             const sym = document.getElementById('cfg-symbol').value.trim().toUpperCase();
@@ -2481,8 +2704,53 @@ window.addEventListener('DOMContentLoaded', () => {
                     scEl.style.borderColor = 'rgba(168,85,247,0.4)';
                     scEl.style.boxShadow = '0 0 15px rgba(168,85,247,0.4)';
                 }
+
+                // Update Visual Diagnostics Panel
+                document.getElementById('scen-dash-phase').textContent = instance.scenarioStatus.phase;
+                if (instance.scenarioStatus.phase === 'STEPPING') {
+                    document.getElementById('scen-dash-phase').textContent = `STEP ${instance.scenarioStatus.currentStepIndex + 1}/${instance.scenarioStatus.stepsCount} (${instance.scenarioStatus.stepPhase})`;
+                    document.getElementById('scen-dash-phase').style.color = 'var(--cyan)';
+                } else if (instance.scenarioStatus.phase === 'RAMPING') {
+                    document.getElementById('scen-dash-phase').style.color = 'var(--yellow)';
+                } else if (instance.scenarioStatus.phase === 'HOLDING') {
+                    document.getElementById('scen-dash-phase').style.color = 'var(--rose)';
+                } else if (instance.scenarioStatus.phase === 'RECOVERING') {
+                    document.getElementById('scen-dash-phase').style.color = 'var(--purple)';
+                }
+
+                document.getElementById('scen-dash-mult').textContent = parseFloat(instance.scenarioStatus.currentMultiplier).toFixed(4) + 'x';
+                
+                const isCondSeeking = instance.scenarioStatus.mode === 'CONDITION_SEEKING';
+                document.getElementById('scen-dash-mode').textContent = instance.scenarioStatus.mode;
+                document.getElementById('scen-dash-mode').style.color = isCondSeeking ? 'var(--yellow)' : 'var(--text-dim)';
+                
+                const qtyRow = document.getElementById('scen-dash-qty-row');
+                if (isCondSeeking) {
+                    qtyRow.style.display = 'flex';
+                    const targetQty = instance.scenarioStatus.config?.targetQty || 0;
+                    document.getElementById('scen-dash-qty').textContent = parseFloat(instance.scenarioStatus.accumulatedQty).toFixed(2) + ' / ' + parseFloat(targetQty).toFixed(2);
+                } else {
+                    qtyRow.style.display = 'none';
+                }
+
+                if (instance.scenarioStatus.startTime) {
+                    const elapsed = Math.floor((Date.now() - instance.scenarioStatus.startTime) / 1000);
+                    const limit = Math.floor((instance.scenarioStatus.maxDurationMs || 300000) / 1000);
+                    document.getElementById('scen-dash-time').textContent = `${elapsed}s / ${limit}s`;
+                    const pctTime = Math.min(100, (elapsed / limit) * 100);
+                    document.getElementById('scen-dash-time-bar').style.width = `${pctTime}%`;
+                }
+
             } else {
                 scEl.style.display = 'none';
+                document.getElementById('scen-dash-phase').textContent = 'IDLE';
+                document.getElementById('scen-dash-phase').style.color = 'var(--text-muted)';
+                document.getElementById('scen-dash-mult').textContent = '1.0000x';
+                document.getElementById('scen-dash-mode').textContent = 'DETERMINISTIC';
+                document.getElementById('scen-dash-mode').style.color = 'var(--text-dim)';
+                document.getElementById('scen-dash-qty-row').style.display = 'none';
+                document.getElementById('scen-dash-time').textContent = '0s / 300s';
+                document.getElementById('scen-dash-time-bar').style.width = '0%';
             }
 
             const binLtp = diag.binanceLtp || '0.0000';
