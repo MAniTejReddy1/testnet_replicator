@@ -2,6 +2,13 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const crypto = require('crypto');
+const uuidv4 = crypto.randomUUID ? crypto.randomUUID.bind(crypto) : function() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = crypto.randomBytes(1)[0] % 16;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+};
 const WebSocket = require('ws');
 const AbortController = require('abort-controller');
 const fetch = require('node-fetch');
@@ -968,7 +975,7 @@ class ReplicatorInstance {
             }
             
             this.syncedTrades.unshift({
-                id: crypto.randomUUID(),
+                id: uuidv4(),
                 time: getISTTimeString(),
                 price: context.limitPrice,
                 avgPrice: o.ap && parseFloat(o.ap) > 0 ? String(o.ap) : null,
@@ -1680,7 +1687,7 @@ class ReplicatorInstance {
 
             if (this.tradeDelayMs > 0) await new Promise(r => setTimeout(r, this.tradeDelayMs));
 
-            const clientOrderId = require('crypto').randomUUID();
+            const clientOrderId = uuidv4();
             
             // Register in flight context immediately
             this.inFlightTakerOrders.set(clientOrderId, {
@@ -1705,7 +1712,7 @@ class ReplicatorInstance {
                 // HTTP rejection (e.g. margin limit). Push failure immediately to UI
                 this.inFlightTakerOrders.delete(clientOrderId);
                 this.syncedTrades.unshift({
-                    id: crypto.randomUUID(),
+                    id: uuidv4(),
                     time: getISTTimeString(),
                     price: pStr,
                     avgPrice: null,
@@ -1754,7 +1761,7 @@ class ReplicatorInstance {
                     const executedQty = finalTakerRes.executedQty || String(scaledQty);
                     this.inFlightTakerOrders.delete(clientOrderId);
                     this.syncedTrades.unshift({
-                        id: crypto.randomUUID(),
+                        id: uuidv4(),
                         time: getISTTimeString(),
                         price: pStr,
                         avgPrice: finalTakerRes.avgPrice || null,
