@@ -1121,7 +1121,7 @@ class ReplicatorInstance {
             });
         } else {
             if (isTerminal) {
-                log.debug(this.symbol, `[MODIFY-TERMINAL] ID: ${orderId} terminal (${res.data?.code}). Handled automatically.`);
+                log.debug(this.symbol, `[MODIFY-TERMINAL] ID: ${orderId} terminal (${res.data ? res.data.code : undefined}). Handled automatically.`);
             } else {
                 log.error(this.symbol, `[MODIFY-FAIL] ID: ${orderId} failed: ${JSON.stringify(res.data || res.error)}`);
             }
