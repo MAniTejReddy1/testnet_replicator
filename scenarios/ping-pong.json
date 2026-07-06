@@ -1,0 +1,10 @@
+{
+  "name": "Ping Pong",
+  "description": "Oscillates +/- 4% continuously in ping-pong mode for 120s.",
+  "pct": -0.04,
+  "rampMs": 3000,
+  "holdMs": 5000,
+  "recoverMs": 2000,
+  "recovery": "ping-pong",
+  "maxDurationMs": 120000
+}

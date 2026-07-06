@@ -10,6 +10,8 @@ const uuidv4 = crypto.randomUUID ? crypto.randomUUID.bind(crypto) : function() {
     });
 };
 const WebSocket = require('ws');
+const { AsyncLocalStorage } = require('async_hooks');
+const tierContextStore = new AsyncLocalStorage();
 const AbortController = require('abort-controller');
 const fetch = require('node-fetch');
 const ScenarioEngine = require('./scenarioEngine');
@@ -40,27 +42,48 @@ let globalUsers = {
         'user1': {
             label: 'User 1',
             listenKey: process.env.USER1_LISTEN_KEY || "",
-            key: process.env.USER1_KEY || '45cda3aac77c85a66212c1eb1ed70df06defc46e8840aa6d',
-            secret: process.env.USER1_SECRET || 'b3ebd30860c13a1bd1f44c358d746874ae52ca5396879de71366c5b2832596fd',
-            email: 'mani.reddy+k0g0zvg8@coindcx.com',
-            password: 'Test@123'
+            key: process.env.USER1_KEY || 'ad4e864466db984cb52acc138d98bd6c72c8e58fb910bf8f',
+            secret: process.env.USER1_SECRET || '1f8c9d0ac479a32c32959a34ce9092454a81985a8c034efc60f88408a81c1b64',
+            email: 'mani.reddy+8q1k0th9@coindcx.com',
+            password: 'Test@123',
+            bearer_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IlYyIn0.eyJjb2luZGN4X2lkIjoiNGFlNDFlMTctNGY4ZC00MWNlLTljZTMtYjZiZTE5NmYyZGQ4IiwidXNlcl9pZCI6IjRhZTQxZTE3LTRmOGQtNDFjZS05Y2UzLWI2YmUxOTZmMmRkOCIsInBvcnRmb2xpb0ZhY3RvciI6MSwic2Vzc2lvbklkIjoiMzc4MmM4NDUtZTNiYS00OGViLTg0OGItMDk2OGIwZTRiM2ZhIiwicyI6IndlYiIsInVzZXJBZ2VudCI6IlBvc3RtYW5SdW50aW1lLzcuNTQuMCIsInNpcCI6IjEzMC40MS4yMDUuMTMyIiwic2NpdHkiOiJNdW1iYWkiLCJzY291bnRyeSI6IklOIiwic3JlZ2lvbiI6Ik1IIiwiaWF0IjoxNzgzMjc2MTM1LCJleHAiOjE3ODM0MDU3MzV9.gIWLRXSTFt6TyhCc4MMo5u4FI7H48qZDI-yJOl-Ecfg'
         },
         'user2': {
             label: 'User 2',
             listenKey: process.env.USER2_LISTEN_KEY || "",
-            key: process.env.USER2_KEY || '6e3ef60d1fcfc8fb6c527eb8218bcdfaf56c02f422846367',
-            secret: process.env.USER2_SECRET || 'ce547e76586bfe7d1fff793cb9373d04171b648f89de4706e7b9b2783715e72f',
-            email: 'mani.reddy+n1d5l3gq@coindcx.com',
-            password: 'Test@123'
+            key: process.env.USER2_KEY || '5a1ffd36cdd24ea54bb1ea88744c5cd86a2a181d2c1b76a6',
+            secret: process.env.USER2_SECRET || '631eac42e852bbfc84d2693cd35a27e192825894781864022a54e04c84ba49c6',
+            email: 'mani.reddy+1c85zrk3@coindcx.com',
+            password: 'Test@123',
+            bearer_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IlYyIn0.eyJjb2luZGN4X2lkIjoiYjY0OWY0NDEtZmQ1MS00ZmIzLWFjYmMtN2I2NWFjNThlOGE4IiwidXNlcl9pZCI6ImI2NDlmNDQxLWZkNTEtNGZiMy1hY2JjLTdiNjVhYzU4ZThhOCIsInBvcnRmb2xpb0ZhY3RvciI6MSwic2Vzc2lvbklkIjoiYTM2NWM0OTktNGNmMy00OWI5LTg5MmQtMzcwNzljOGU5MTcwIiwicyI6IndlYiIsInVzZXJBZ2VudCI6IlBvc3RtYW5SdW50aW1lLzcuNTQuMCIsInNpcCI6IjEzMC40MS4yMDUuMTMyIiwic2NpdHkiOiJNdW1iYWkiLCJzY291bnRyeSI6IklOIiwic3JlZ2lvbiI6Ik1IIiwiaWF0IjoxNzgzMjc2MTM5LCJleHAiOjE3ODM0MDU3Mzl9.s7ser9rYJdshZo7vnkofWu2MmPsVo1CobQ9qvXa_bh0'
         }
     },
-    JAPAN: {},
+    JAPAN: {
+        'user1': {
+            label: 'User 1',
+            listenKey: process.env.USER1_LISTEN_KEY || "",
+            key: process.env.USER1_KEY || '5979b70cbfa08236b663d138c4a80b3dcb9abd1a53e048a6',
+            secret: process.env.USER1_SECRET || 'c40a91c7b41ba11ab3eb7f1b1e3b9eed2b5794191390be84ed504023c9af5702',
+            email: 'mani.reddy+nqc6qjii@coindcx.com',
+            password: 'Test@123',
+            bearer_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IlYyIn0.eyJjb2luZGN4X2lkIjoiOGU1MjUyZDUtYTMyMS00MGRkLTk3MjAtNzMwNzZjNmU4ZTI3IiwidXNlcl9pZCI6IjhlNTI1MmQ1LWEzMjEtNDBkZC05NzIwLTczMDc2YzZlOGUyNyIsInBvcnRmb2xpb0ZhY3RvciI6MSwic2Vzc2lvbklkIjoiNTRlZmI0NjgtZTJmZC00OTliLTk5OWUtOWZhNDQxNDY1YTA3IiwicyI6IndlYiIsInVzZXJBZ2VudCI6IlBvc3RtYW5SdW50aW1lLzcuNTQuMCIsInNpcCI6IjEzMC40MS4yMDUuMTMyIiwic2NpdHkiOiJNdW1iYWkiLCJzY291bnRyeSI6IklOIiwic3JlZ2lvbiI6Ik1IIiwiaWF0IjoxNzgzMjc2MDc0LCJleHAiOjE3ODM0MDU2NzR9.tLDnwZNv7Co6EnLosxyjcHjMh_Zqz1fR3QNsoGhUKhY'
+        },
+        'user2': {
+            label: 'User 2',
+            listenKey: process.env.USER2_LISTEN_KEY || "",
+            key: process.env.USER2_KEY || '4b61f7e097c1240aad0b74630fdcbe37ebc4f145f4b753ff',
+            secret: process.env.USER2_SECRET || '2fbe86c1dea6f4b93b9bdd7a04aa39a449e93c0f93f0de4f04c10e2ac0103bfb',
+            email: 'mani.reddy+fvxiy643@coindcx.com',
+            password: 'Test@123',
+            bearer_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IlYyIn0.eyJjb2luZGN4X2lkIjoiYyFlMjg2MjgtM2FhYi00NTdlLTg2N2QtYmFkNDUyZjdlODlhIiwidXNlcl9pZCI6ImMxZTI4NjI4LTNhYWItNDU3ZS04NjdkLWJhZDQ1MmY3ZTg5YSIsInBvcnRmb2xpb0ZhY3RvciI6MSwic2Vzc2lvbklkIjoiMjM1Y2FiNjgtYTE1MS00YTI2LThhMWQtZjQxM2Q2MDY5Nzk4IiwicyI6IndlYiIsInVzZXJBZ2VudCI6IlBvc3RtYW5SdW50aW1lLzcuNTQuMCIsInNpcCI6IjEzMC40MS4yMDUuMTMyIiwic2NpdHkiOiJNdW1iYWkiLCJzY291bnRyeSI6IklOIiwic3JlZ2lvbiI6Ik1IIiwiaWF0IjoxNzgzMjc2MDgwLCJleHAiOjE3ODM0MDU2ODB9.E7hcr10Zw_Z5-c9xfFRDuKhwQPE9ty0FFfNwI8JbVaI'
+        }
+    },
     STAGING: {}
 };
 
 let globalRoles = {
     PRODUCTION: { makerId: 'user1', takerId: 'user2' },
-    JAPAN: { makerId: '', takerId: '' },
+    JAPAN: { makerId: 'user1', takerId: 'user2' },
     STAGING: { makerId: '', takerId: '' }
 };
 
@@ -133,25 +156,27 @@ const TIER_URLS = {
 let globalActiveTier = (process.env.ACTIVE_TIER || 'PRODUCTION').toUpperCase();
 
 if (globalActiveTier && (globalActiveTier === 'JAPAN' || globalActiveTier === 'STAGING')) {
-    globalUsers[globalActiveTier] = {
-        'user1': {
-            label: 'User 1',
-            listenKey: process.env.USER1_LISTEN_KEY || "",
-            key: process.env.USER1_KEY || '',
-            secret: process.env.USER1_SECRET || '',
-            email: 'mani.reddy@coindcx.com',
-            password: 'Test@123'
-        },
-        'user2': {
-            label: 'User 2',
-            listenKey: process.env.USER2_LISTEN_KEY || "",
-            key: process.env.USER2_KEY || '',
-            secret: process.env.USER2_SECRET || '',
-            email: 'mani.reddy@coindcx.com',
-            password: 'Test@123'
-        }
-    };
-    globalRoles[globalActiveTier] = { makerId: 'user1', takerId: 'user2' };
+    if (process.env.USER1_KEY || process.env.USER2_KEY) {
+        globalUsers[globalActiveTier] = {
+            'user1': {
+                label: 'User 1',
+                listenKey: process.env.USER1_LISTEN_KEY || "",
+                key: process.env.USER1_KEY || '',
+                secret: process.env.USER1_SECRET || '',
+                email: 'mani.reddy@coindcx.com',
+                password: 'Test@123'
+            },
+            'user2': {
+                label: 'User 2',
+                listenKey: process.env.USER2_LISTEN_KEY || "",
+                key: process.env.USER2_KEY || '',
+                secret: process.env.USER2_SECRET || '',
+                email: 'mani.reddy@coindcx.com',
+                password: 'Test@123'
+            }
+        };
+        globalRoles[globalActiveTier] = { makerId: 'user1', takerId: 'user2' };
+    }
 }
 
 const portfolios = {
@@ -198,6 +223,9 @@ function writeStateFile(payload) {
 const terminalEvents = [];
 
 function pushLog(level, sym, msg, meta = null, tier = null) {
+    if (!tier) {
+        tier = tierContextStore.getStore();
+    }
     if (!tier && sym && sym !== 'SYSTEM') {
         for (const t of ['PRODUCTION', 'JAPAN', 'STAGING']) {
             const inst = instances[t] && instances[t].get(sym);
@@ -210,6 +238,9 @@ function pushLog(level, sym, msg, meta = null, tier = null) {
 }
 
 function pushEvent(level, sym, msg, meta = null, cat = 'general', tier = null) {
+    if (!tier) {
+        tier = tierContextStore.getStore();
+    }
     if (!tier && sym && sym !== 'SYSTEM') {
         for (const t of ['PRODUCTION', 'JAPAN', 'STAGING']) {
             const inst = instances[t] && instances[t].get(sym);
@@ -485,6 +516,7 @@ function formatRawQty(rawQty, symbol, tier = 'PRODUCTION') {
     const inst = tierMap[symbol] || { qtyStep: 1.0, minQty: 1.0, qtyPrecision: 0 };
     const factor = 1 / inst.qtyStep;
     let qty = Math.round(rawQty * factor) / factor;
+    if (qty < inst.minQty) qty = inst.minQty;
     return qty.toFixed(inst.qtyPrecision);
 }
 
@@ -831,12 +863,14 @@ class ReplicatorInstance {
 
         this.minSize            = marketConfig.minSize            || 100;
         this.maxSize            = marketConfig.maxSize            || 500;
+        this.takerSize          = marketConfig.takerSize          || 10;
+        this.makerUseRawQty     = marketConfig.makerUseRawQty === true;
         this.depthLevels        = marketConfig.depthLevels        || 10;
         this.qtyChangeTolerance = marketConfig.qtyChangeTolerance || 0.25;
         this.enableTradeSync    = marketConfig.enableTradeSync !== false;
         this.newUserFlow        = marketConfig.newUserFlow === true;
         this.bufferPct          = marketConfig.bufferPct          || 0;
-        this.cancelOnStop       = marketConfig.cancelOnStop !== false;
+        this.cancelOnStop       = marketConfig.cancelOnStop === true;
         this.tradeDelayMs       = marketConfig.tradeDelayMs       || 0;
         
         this.inFlightEdits      = new Set();
@@ -865,10 +899,19 @@ class ReplicatorInstance {
         this.wsTestnet       = null;
         this.wsTestnetTicker = null;
         this.testnetPingInterval = null;
+        this.wsBinanceTicker = null;
+        this.binance24h = { high: 0, low: 0, volume: 0, priceChangePercent: 0 };
+        this.stage24h = { high: 0, low: 0, volume: 0, priceChangePercent: 0 };
+        this.binanceFundingRate = null;
+        this.stageFundingRate   = null;
 
         this.testnetLatency    = 0;
         this.binanceLatency    = 0;
         this.binanceLtp        = "0.0000";
+        this.testnetMarkPrice  = 0;
+        this.binanceMarkPrice  = 0;
+        this.wsTestnetMarkPrice = null;
+        this.wsBinanceMarkPrice = null;
         this.totalSyncAttempts = 0;
         this.successfulSyncs   = 0;
         this.hasLoggedAuthError = false;
@@ -1231,8 +1274,41 @@ class ReplicatorInstance {
             let marketRes = { success: false };
             const dragSide = failedSide || (targetPrice > testnetLtp ? 'BUY' : 'SELL');
             
-            log.info(this.symbol, `[ALIGN] Firing TAKER MARKET ${dragSide} to hit resting limits and drag LTP...`);
-            marketRes = await this.placeOrder(dragSide, minQtyStr, null, 'MARKET', true, true);
+            // Calculate sweep quantity from Stage orderbook asks/bids up to targetPrice to move market faster
+            let sweepQty = 0;
+            if (dragSide === 'BUY') {
+                if (this.testnetDepth && Array.isArray(this.testnetDepth.asks)) {
+                    for (const ask of this.testnetDepth.asks) {
+                        const price = parseFloat(ask[0]);
+                        const size = parseFloat(ask[1]);
+                        if (price <= targetPrice) {
+                            sweepQty += size;
+                        }
+                    }
+                }
+            } else {
+                if (this.testnetDepth && Array.isArray(this.testnetDepth.bids)) {
+                    for (const bid of this.testnetDepth.bids) {
+                        const price = parseFloat(bid[0]);
+                        const size = parseFloat(bid[1]);
+                        if (price >= targetPrice) {
+                            sweepQty += size;
+                        }
+                    }
+                }
+            }
+
+            let qtyStr = minQtyStr;
+            if (sweepQty > 0) {
+                // Add a small 1% buffer to ensure full sweep, formatted safely according to quantity precision rules
+                const formatted = calculateQty(0, String(sweepQty * 1.01), this.symbol, this.tier);
+                if (parseFloat(formatted) > 0) {
+                    qtyStr = formatted;
+                }
+            }
+
+            log.info(this.symbol, `[ALIGN] Firing TAKER MARKET ${dragSide} with sweep size ${qtyStr} (book sum: ${sweepQty}) to hit resting limits and drag LTP...`);
+            marketRes = await this.placeOrder(dragSide, qtyStr, null, 'MARKET', true, true);
 
             if (marketRes.success) {
                 log.success(this.symbol, `[ALIGN] Successfully dragged LTP instantly via MARKET order.`);
@@ -1475,12 +1551,18 @@ class ReplicatorInstance {
     }
 
     async syncGrid(side, sourceLevels) {
+        if (this.status === 'PAUSED' || this.status === 'STOPPED') return; // Respect pause/stop
         const guardKey = 'isSyncing' + side;
         if (this[guardKey]) return;
         this[guardKey] = true;
         try {
-            ScenarioEngine.tick(this.symbol);
-        const transformer = ScenarioEngine.getTransformer(this.symbol);
+            ScenarioEngine.tick(this.symbol, this.binanceLtp);
+            const status = ScenarioEngine.getStatus(this.symbol);
+            if (status && status.reconciliationRequired) {
+                ScenarioEngine.clearReconciliationFlag(this.symbol);
+                this.wipeOrders().catch(err => log.error(this.symbol, `Scenario reconciliation error: ${err.message}`));
+            }
+            const transformer = ScenarioEngine.getTransformer(this.symbol);
 
         const isBuy         = side === 'BUY';
         const restingOrders = isBuy ? this.restingBids : this.restingAsks;
@@ -1488,12 +1570,33 @@ class ReplicatorInstance {
 
         let skewedLevels = PriceTransformer.applyDepthSkew(sourceLevels, side, transformer);
 
+        // Calculate current Stage price from the top of the book
+        let stageLtp = parseFloat(this.binanceLtp || 0);
+        if (this.testnetDepth && Array.isArray(this.testnetDepth.bids) && this.testnetDepth.bids.length > 0) {
+            stageLtp = parseFloat(this.testnetDepth.bids[0][0]);
+        } else if (this.testnetDepth && Array.isArray(this.testnetDepth.asks) && this.testnetDepth.asks.length > 0) {
+            stageLtp = parseFloat(this.testnetDepth.asks[0][0]);
+        }
+        const binLtp = parseFloat(this.binanceLtp || 0);
+        const driftPct = binLtp > 0 ? Math.abs(binLtp - stageLtp) / binLtp : 0;
+        const isHugeDiff = driftPct > 0.01; // 1% price drift is considered a huge difference
+
+        // Detect active scenario - if so, bypass min/max clamp and use raw orderbook qty
+        const isScenarioActive = transformer && transformer.multiplier !== 1.0;
+        const useRawQty = isScenarioActive || isHugeDiff || this.makerUseRawQty;
+
         const targets = skewedLevels.slice(0, this.depthLevels).map((lvl, index) => {
             let rawPrice  = lvl[0];
             rawPrice = PriceTransformer.applyPriceAxes(rawPrice, side, transformer, index);
-            const notional  = parseFloat(lvl[0]) * parseFloat(lvl[1]);
-            const targetSz  = Math.max(this.minSize, Math.min(this.maxSize, notional));
-            let qty       = calculateQty(targetSz, rawPrice, this.symbol);
+            let qty;
+            if (useRawQty) {
+                // Use raw orderbook qty directly for faster market control during simulation or huge drift
+                qty = formatRawQty(parseFloat(lvl[1]), this.symbol, this.tier);
+            } else {
+                const notional  = parseFloat(lvl[0]) * parseFloat(lvl[1]);
+                const targetSz  = Math.max(this.minSize, Math.min(this.maxSize, notional));
+                qty = calculateQty(targetSz, rawPrice, this.symbol);
+            }
             qty = PriceTransformer.applyProfileSkew(qty, side, transformer, index);
             return { rawPrice, price: formatPrice(rawPrice, this.symbol), qty };
         });
@@ -1585,7 +1688,16 @@ class ReplicatorInstance {
         }
         if (cleanedUpCount > 0) this.lastExcessCancelTime = now;
 
-            await Promise.allSettled([...modifyBatch, ...placeBatch, ...cancelBatch]);
+            // Place-Before-Cancel: Place and modify new orders first
+            await Promise.allSettled([...modifyBatch, ...placeBatch]);
+            
+            // Cancel excess orders in the background so book is never flat or empty
+            if (cancelBatch.length > 0) {
+                Promise.allSettled(cancelBatch).catch(err => {
+                    log.debug && log.debug(this.symbol, 'Background excess cancel failed: ' + err.message);
+                });
+            }
+            
             if (isBuy) this.restingBids = activePool; else this.restingAsks = activePool;
         } finally { this[guardKey] = false; }
     }
@@ -1630,7 +1742,16 @@ class ReplicatorInstance {
                 this.restingAsks  = this.restingAsks.filter(retain);
 
                 const localIds = new Set([...this.restingBids.map(ro => String(ro.orderId)), ...this.restingAsks.map(ro => String(ro.orderId))]);
-                const ghosts = openRes.data.filter(o => !localIds.has(String(o.orderId || o.id)));
+                
+                // Safety: Ghost detection runs continuously, ignoring in-flight edits and orders newer than 5 seconds
+                const ghosts = openRes.data.filter(o => {
+                    const id = String(o.orderId || o.id);
+                    const orderTime = o.time || o.updateTime || now;
+                    const age = now - orderTime;
+                    return !localIds.has(id) && 
+                           !this.inFlightEdits.has(id) && 
+                           age > 5000;
+                });
                 if (ghosts.length > 0) {
                     ghosts.forEach(o => {
                         const id = o.orderId || o.id;
@@ -1653,21 +1774,42 @@ class ReplicatorInstance {
     async handleTrade(trade) {
         if (this.status !== 'RUNNING' || !this.enableTradeSync) return;
         
-        ScenarioEngine.tick(this.symbol);
+        ScenarioEngine.tick(this.symbol, this.binanceLtp);
+        const status = ScenarioEngine.getStatus(this.symbol);
+        if (status && status.reconciliationRequired) {
+            ScenarioEngine.clearReconciliationFlag(this.symbol);
+            this.wipeOrders().catch(err => log.error(this.symbol, `Scenario reconciliation error: ${err.message}`));
+        }
         const transformer = ScenarioEngine.getTransformer(this.symbol);
         const transformedTradePrice = PriceTransformer.applyPriceAxes(trade.p, trade.m ? 'SELL' : 'BUY', transformer, 0);
 
         const pStr      = formatPrice(transformedTradePrice, this.symbol);
-        const notional  = parseFloat(trade.q) * parseFloat(transformedTradePrice);
-        const targetSz  = Math.max(this.minSize, Math.min(this.maxSize, notional));
-        let scaledQty = calculateQty(targetSz, transformedTradePrice, this.symbol);
-
         const remainingScenarioQty = ScenarioEngine.getRemainingQty(this.symbol);
+        
+        let makerQty;
         if (remainingScenarioQty !== null) {
+            // Scenario CONDITION_SEEKING mode: use raw trade qty for quick market control
             if (remainingScenarioQty <= 0) return; // Freeze Taker if scenario condition is met
-            scaledQty = Math.min(scaledQty, remainingScenarioQty);
-            // Re-round to strict instrument specification to avoid LOT_SIZE rejection
-            scaledQty = formatRawQty(scaledQty, this.symbol);
+            const rawTradeQty = parseFloat(trade.q);
+            makerQty = formatRawQty(Math.min(rawTradeQty, remainingScenarioQty), this.symbol, this.tier);
+        } else if (transformer.multiplier !== 1.0) {
+            // Scenario DETERMINISTIC mode: use raw trade qty directly (no notional clamping)
+            makerQty = formatRawQty(parseFloat(trade.q), this.symbol, this.tier);
+        } else if (this.makerUseRawQty) {
+            // Maker uses raw trade qty directly
+            makerQty = formatRawQty(parseFloat(trade.q), this.symbol, this.tier);
+        } else {
+            // Normal mode: apply notional size clamp (minSize/maxSize) for maker
+            const notional  = parseFloat(trade.q) * parseFloat(transformedTradePrice);
+            const targetSz  = Math.max(this.minSize, Math.min(this.maxSize, notional));
+            makerQty = calculateQty(targetSz, transformedTradePrice, this.symbol);
+        }
+
+        // Taker size is determined from the takerSize configuration
+        let takerQty = calculateQty(this.takerSize, transformedTradePrice, this.symbol);
+        if (parseFloat(takerQty) <= 0) {
+            // Fallback to min quantity if takerSize evaluates to 0 due to precision limits
+            takerQty = calculateQty(0, '1', this.symbol, this.tier);
         }
 
         const makerSide = trade.m ? 'BUY' : 'SELL';
@@ -1680,7 +1822,7 @@ class ReplicatorInstance {
             let finalMakerId = hasRestingMaker ? hasRestingMaker.orderId : null;
 
             if (!hasRestingMaker) {
-                const makerRes = await this.placeOrder(makerSide, scaledQty, transformedTradePrice, 'LIMIT');
+                const makerRes = await this.placeOrder(makerSide, makerQty, transformedTradePrice, 'LIMIT');
                 finalMakerId = makerRes.orderId;
                 if (!makerRes.success) return; // If maker fails, we abort
             }
@@ -1693,7 +1835,7 @@ class ReplicatorInstance {
             this.inFlightTakerOrders.set(clientOrderId, {
                 makerOrderId: finalMakerId,
                 limitPrice: pStr,
-                expectedQty: String(scaledQty),
+                expectedQty: String(takerQty),
                 binanceQty: trade.q,
                 ts: Date.now()
             });
@@ -1702,11 +1844,11 @@ class ReplicatorInstance {
                 symbol: this.symbol,
                 makerOrderId: finalMakerId,
                 takerOrderId: 'pending_ws',
-                expectedQty: scaledQty,
+                expectedQty: takerQty,
                 price: transformedTradePrice
             });
 
-            const takerRes = await this.placeOrder(takerSide, scaledQty, transformedTradePrice, 'LIMIT_IOC', true, clientOrderId);
+            const takerRes = await this.placeOrder(takerSide, takerQty, transformedTradePrice, 'LIMIT_IOC', true, clientOrderId);
             
             if (!takerRes.success) {
                 // HTTP rejection (e.g. margin limit). Push failure immediately to UI
@@ -1718,7 +1860,7 @@ class ReplicatorInstance {
                     avgPrice: null,
                     side: takerSide,
                     binanceQty: trade.q,
-                    stageQty: String(scaledQty),
+                    stageQty: String(takerQty),
                     success: false,
                     status: 'FAILED',
                     makerOrderId: finalMakerId,
@@ -1758,7 +1900,7 @@ class ReplicatorInstance {
                         } catch(e) { log.debug && log.debug('SYSTEM', e.message); }
                     }
 
-                    const executedQty = finalTakerRes.executedQty || String(scaledQty);
+                    const executedQty = finalTakerRes.executedQty || String(takerQty);
                     this.inFlightTakerOrders.delete(clientOrderId);
                     this.syncedTrades.unshift({
                         id: uuidv4(),
@@ -1785,13 +1927,14 @@ class ReplicatorInstance {
                 }
             }
 
-            ScenarioEngine.reportExecution(this.symbol, scaledQty);
+            ScenarioEngine.reportExecution(this.symbol, takerQty);
 
         } finally { this.priceLocks.delete(pStr); }
     }
 
     async processTradeQueue() {
         if (manualOverride) return;
+        if (this.status === 'PAUSED') return; // PAUSED: don't process taker trades
         if (this.tradeQueue.length > 50) this.tradeQueue.splice(0, this.tradeQueue.length - 20);
         if (this.isCrossing) return;
         this.isCrossing = true;
@@ -1813,7 +1956,6 @@ startBinanceDepthWS() {
         this.wsBinanceDepth = new WebSocket(url);
         this.wsBinanceDepth.on('open', () => { pushEvent('SUCCESS', this.symbol, `Binance Depth WS connected`, { stream: 'depth' }, 'ws'); this.binanceLatency = Date.now() - startTime; });
         this.wsBinanceDepth.on('message', (raw) => {
-            if (this.status === 'STOPPED') return;
             try {
                 const data = JSON.parse(raw.toString());
                 const bids = data.bids || data.b;
@@ -1822,8 +1964,10 @@ startBinanceDepthWS() {
                 if (bids && asks) {
                     this.binanceDepth.bids = bids.slice(0, this.depthLevels);
                     this.binanceDepth.asks = asks.slice(0, this.depthLevels);
-                    this.syncGrid('BUY', this.binanceDepth.bids);
-                    this.syncGrid('SELL', this.binanceDepth.asks);
+                    if (this.status === 'RUNNING') {
+                        this.syncGrid('BUY', this.binanceDepth.bids);
+                        this.syncGrid('SELL', this.binanceDepth.asks);
+                    }
                     const bestBid = bids[0] ? bids[0][0] : '-';
                     const bestAsk = asks[0] ? asks[0][0] : '-';
                     const spread = (bestBid !== '-' && bestAsk !== '-') ? (parseFloat(bestAsk) - parseFloat(bestBid)).toFixed(2) : '-';
@@ -1832,7 +1976,7 @@ startBinanceDepthWS() {
             } catch (e) { log.debug && log.debug('SYSTEM', e.message); }
         });
         this.wsBinanceDepth.on('error', (err) => { pushEvent('ERROR', this.symbol, `Binance Depth WS error: ${err.message}`, null, 'ws'); });
-        this.wsBinanceDepth.on('close', () => { pushEvent('WARN', this.symbol, `Binance Depth WS disconnected — reconnecting...`, null, 'ws'); this.wsBinanceDepth = null; if (this.status !== 'STOPPED') setTimeout(() => this.startBinanceDepthWS(), 3000); });
+        this.wsBinanceDepth.on('close', () => { pushEvent('WARN', this.symbol, `Binance Depth WS disconnected — reconnecting...`, null, 'ws'); this.wsBinanceDepth = null; setTimeout(() => this.startBinanceDepthWS(), 3000); });
     }
 
     startBinanceTradesWS() {
@@ -1843,14 +1987,13 @@ startBinanceDepthWS() {
         this.wsBinanceTrades = new WebSocket(url);
         this.wsBinanceTrades.on('open', () => { pushEvent('SUCCESS', this.symbol, `Binance Trades WS connected`, { stream: 'aggTrade' }, 'ws'); });
         this.wsBinanceTrades.on('message', (raw) => {
-            if (this.status === 'STOPPED') return;
             try {
                 const data = JSON.parse(raw.toString());
                 if (data.e === 'aggTrade') {
                     this.binanceLtp = data.p;
                     const side = data.m ? 'SELL' : 'BUY';
-                    pushEvent('EVENT', this.symbol, `Trade | ${side} | Price: $${data.p} | Qty: ${data.q}`, data, 'trade');
-                    if (this.enableTradeSync) {
+                    pushEvent('EVENT', this.symbol, `Trade | ${side} | Price: ${data.p} | Qty: ${data.q}`, data, 'trade');
+                    if (this.status === 'RUNNING' && this.enableTradeSync) {
                         this.tradeQueue.push({ p: data.p, q: data.q, m: data.m });
                         this.processTradeQueue();
                     }
@@ -1858,9 +2001,143 @@ startBinanceDepthWS() {
             } catch (e) { log.debug && log.debug('SYSTEM', e.message); }
         });
         this.wsBinanceTrades.on('error', (err) => { pushEvent('ERROR', this.symbol, `Binance Trades WS error: ${err.message}`, null, 'ws'); });
-        this.wsBinanceTrades.on('close', () => { pushEvent('WARN', this.symbol, `Binance Trades WS disconnected — reconnecting...`, null, 'ws'); this.wsBinanceTrades = null; if (this.status !== 'STOPPED') setTimeout(() => this.startBinanceTradesWS(), 3000); });
+        this.wsBinanceTrades.on('close', () => { pushEvent('WARN', this.symbol, `Binance Trades WS disconnected — reconnecting...`, null, 'ws'); this.wsBinanceTrades = null; setTimeout(() => this.startBinanceTradesWS(), 3000); });
     }
 
+    startBinanceTickerWS() {
+        if (this.wsBinanceTicker) return;
+        const sym = this.sourceSymbol.toLowerCase();
+        const url = `wss://fstream.binance.com/market/ws/${sym}@ticker`;
+        log.info(this.symbol, `[WS] Connecting to Binance 24h Ticker...`);
+        this.wsBinanceTicker = new WebSocket(url);
+        this.wsBinanceTicker.on('open', () => { pushEvent('SUCCESS', this.symbol, `Binance Ticker WS connected`, { stream: 'binanceTicker' }, 'ws'); });
+        this.wsBinanceTicker.on('message', (raw) => {
+            try {
+                const data = JSON.parse(raw.toString());
+                if (data.e === '24hrTicker' || data.c) {
+                    this.binance24h = {
+                        high: parseFloat(data.h || 0),
+                        low: parseFloat(data.l || 0),
+                        volume: parseFloat(data.v || 0),
+                        priceChangePercent: parseFloat(data.P || 0)
+                    };
+                    broadcastToUI();
+                    
+                    if (!this.lastBinanceTickerLogTime || Date.now() - this.lastBinanceTickerLogTime > 5000) {
+                        this.lastBinanceTickerLogTime = Date.now();
+                        pushEvent('EVENT', this.symbol, `Binance 24h Ticker | High: ${this.binance24h.high.toFixed(2)} | Low: ${this.binance24h.low.toFixed(2)} | Vol: ${this.binance24h.volume.toFixed(0)}`, data, 'ticker');
+                    }
+                }
+            } catch(e) { log.debug && log.debug('SYSTEM', e.message); }
+        });
+        this.wsBinanceTicker.on('error', (err) => { pushEvent('ERROR', this.symbol, `Binance Ticker WS error: ${err.message}`, null, 'ws'); });
+        this.wsBinanceTicker.on('close', () => {
+            this.wsBinanceTicker = null;
+            setTimeout(() => this.startBinanceTickerWS(), 3000);
+        });
+    }
+
+
+    async fetchInitialMarkPrices() {
+        const mdsReadBase = TIER_URLS[this.tier]?.MDS_READ || TIER_URLS.PRODUCTION.MDS_READ;
+        try {
+            const res = await fetch(`${mdsReadBase}/fapi/v1/premiumIndex?symbol=${this.symbol}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.markPrice) {
+                    this.testnetMarkPrice = parseFloat(data.markPrice);
+                }
+            }
+        } catch (e) {
+            log.debug && log.debug('SYSTEM', `Failed to fetch Stage initial markPrice: ${e.message}`);
+        }
+
+        try {
+            const res = await fetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${this.symbol}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.markPrice) {
+                    this.binanceMarkPrice = parseFloat(data.markPrice);
+                }
+            }
+        } catch (e) {
+            log.debug && log.debug('SYSTEM', `Failed to fetch Binance initial markPrice: ${e.message}`);
+        }
+    }
+
+    startTestnetMarkPriceWS() {
+        if (this.wsTestnetMarkPrice) return;
+        const sym = this.symbol.toLowerCase();
+        const urls = TIER_URLS[this.tier] || TIER_URLS.PRODUCTION;
+        const wsBase = urls.WS_GATEWAY;
+        const streamUrl = `${wsBase}/market/ws/${sym}@markPrice`;
+        log.info(this.symbol, `[WS] Connecting to Stage Mark Price WS...`);
+        this.wsTestnetMarkPrice = new WebSocket(streamUrl);
+        this.wsTestnetMarkPrice.on('open', () => {
+            pushEvent('SUCCESS', this.symbol, `Stage Mark Price WS connected`, { stream: 'stageMarkPrice' }, 'ws');
+        });
+        this.wsTestnetMarkPrice.on('message', (raw) => {
+            try {
+                const data = JSON.parse(raw.toString());
+                if (data.e === 'markPriceUpdate' || data.p) {
+                    this.testnetMarkPrice = parseFloat(data.p || data.markPrice);
+                    if (data.r !== undefined) {
+                        this.stageFundingRate = parseFloat(data.r);
+                    }
+                    broadcastToUI();
+                    
+                    if (!this.lastTestnetMarkPriceLogTime || Date.now() - this.lastTestnetMarkPriceLogTime > 5000) {
+                        this.lastTestnetMarkPriceLogTime = Date.now();
+                        pushEvent('EVENT', this.symbol, `Stage Mark Price Update | Price: ${this.testnetMarkPrice.toFixed(2)} | Funding: ${this.stageFundingRate !== null ? this.stageFundingRate.toFixed(8) : '—'}`, data, 'markPrice');
+                    }
+                }
+            } catch(e) { log.debug && log.debug('SYSTEM', e.message); }
+        });
+        this.wsTestnetMarkPrice.on('close', () => {
+            pushEvent('WARN', this.symbol, `Stage Mark Price WS disconnected — reconnecting...`, null, 'ws');
+            this.wsTestnetMarkPrice = null;
+            setTimeout(() => this.startTestnetMarkPriceWS(), 3000);
+        });
+        this.wsTestnetMarkPrice.on('error', (err) => {
+            pushEvent('ERROR', this.symbol, `Stage Mark Price WS error: ${err.message}`, null, 'ws');
+        });
+    }
+
+    startBinanceMarkPriceWS() {
+        if (this.wsBinanceMarkPrice) return;
+        const sym = this.symbol.toLowerCase();
+        const streamUrl = `wss://fstream.binance.com/market/ws/${sym}@markPrice`;
+        log.info(this.symbol, `[WS] Connecting to Binance Mark Price WS...`);
+        this.wsBinanceMarkPrice = new WebSocket(streamUrl);
+        this.wsBinanceMarkPrice.on('open', () => {
+            pushEvent('SUCCESS', this.symbol, `Binance Mark Price WS connected`, { stream: 'binanceMarkPrice' }, 'ws');
+        });
+        this.wsBinanceMarkPrice.on('message', (raw) => {
+            try {
+                const data = JSON.parse(raw.toString());
+                if (data.e === 'markPriceUpdate' || data.p) {
+                    this.binanceMarkPrice = parseFloat(data.p || data.markPrice);
+                    if (data.r !== undefined) {
+                        this.binanceFundingRate = parseFloat(data.r);
+                    }
+                    broadcastToUI();
+                    
+                    if (!this.lastBinanceMarkPriceLogTime || Date.now() - this.lastBinanceMarkPriceLogTime > 5000) {
+                        this.lastBinanceMarkPriceLogTime = Date.now();
+                        pushEvent('EVENT', this.symbol, `Binance Mark Price Update | Price: ${this.binanceMarkPrice.toFixed(2)} | Funding: ${this.binanceFundingRate !== null ? this.binanceFundingRate.toFixed(8) : '—'}`, data, 'markPrice');
+                    }
+                }
+            } catch(e) { log.debug && log.debug('SYSTEM', e.message); }
+        });
+        this.wsBinanceMarkPrice.on('close', () => {
+            pushEvent('WARN', this.symbol, `Binance Mark Price WS disconnected — reconnecting...`, null, 'ws');
+            this.wsBinanceMarkPrice = null;
+            setTimeout(() => this.startBinanceMarkPriceWS(), 3000);
+        });
+        this.wsBinanceMarkPrice.on('error', (err) => {
+            pushEvent('ERROR', this.symbol, `Binance Mark Price WS error: ${err.message}`, null, 'ws');
+        });
+    }
 
     startTestnetTickerWS() {
         if (this.wsTestnetTicker) return;
@@ -1872,18 +2149,26 @@ startBinanceDepthWS() {
         this.wsTestnetTicker = new WebSocket(streamUrl);
         this.wsTestnetTicker.on('open', () => { pushEvent('SUCCESS', this.symbol, `Testnet Ticker WS connected`, { stream: '24hrTicker' }, 'ws'); });
         this.wsTestnetTicker.on('message', (raw) => {
-            if (this.status === 'STOPPED') return;
             try {
                 const data = JSON.parse(raw.toString());
                 if (data.e === '24hrTicker') {
                     this.testnetLtp = parseFloat(data.c);
-                    // Ticker event is spammy, don't pushEvent
-                    // pushEvent('EVENT', this.symbol, `Ticker | LTP: $${parseFloat(data.c).toFixed(2)} | 24h Vol: ${parseFloat(data.v || 0).toFixed(0)} | Change: ${parseFloat(data.P || 0).toFixed(2)}%`, data, 'ticker');
+                    this.stage24h = {
+                        high: parseFloat(data.h || 0),
+                        low: parseFloat(data.l || 0),
+                        volume: parseFloat(data.v || 0),
+                        priceChangePercent: parseFloat(data.P || 0)
+                    };
                     broadcastToUI();
+                    
+                    if (!this.lastTestnetTickerLogTime || Date.now() - this.lastTestnetTickerLogTime > 5000) {
+                        this.lastTestnetTickerLogTime = Date.now();
+                        pushEvent('EVENT', this.symbol, `Stage 24h Ticker | High: ${this.stage24h.high.toFixed(2)} | Low: ${this.stage24h.low.toFixed(2)} | Vol: ${this.stage24h.volume.toFixed(0)}`, data, 'ticker');
+                    }
                 }
             } catch(e) { log.debug && log.debug('SYSTEM', e.message); }
         });
-        this.wsTestnetTicker.on('close', () => { pushEvent('WARN', this.symbol, `Testnet Ticker WS disconnected — reconnecting...`, null, 'ws'); this.wsTestnetTicker = null; if (this.status !== 'STOPPED') setTimeout(() => this.startTestnetTickerWS(), 3000); });
+        this.wsTestnetTicker.on('close', () => { pushEvent('WARN', this.symbol, `Testnet Ticker WS disconnected — reconnecting...`, null, 'ws'); this.wsTestnetTicker = null; setTimeout(() => this.startTestnetTickerWS(), 3000); });
         this.wsTestnetTicker.on('error', (err) => { pushEvent('ERROR', this.symbol, `Testnet Ticker WS error: ${err.message}`, null, 'ws'); });
     }
 
@@ -1903,7 +2188,6 @@ startBinanceDepthWS() {
         });
 
         this.wsTestnet.on('message', (raw) => {
-            if (this.status === 'STOPPED') return;
             try {
                 const data = JSON.parse(raw.toString());
                 const bids = data.bids || data.b;
@@ -1921,7 +2205,44 @@ startBinanceDepthWS() {
             } catch (e) { log.debug && log.debug('SYSTEM', e.message); }
         });
         this.wsTestnet.on('error', (err) => { pushEvent('ERROR', this.symbol, `Testnet Depth WS error: ${err.message}`, null, 'ws'); });
-        this.wsTestnet.on('close', () => { clearInterval(this.testnetPingInterval); pushEvent('WARN', this.symbol, `Testnet Depth WS disconnected — reconnecting...`, null, 'ws'); this.wsTestnet = null; if (this.status !== 'STOPPED') setTimeout(() => this.startTestnetWS(), 3000); });
+        this.wsTestnet.on('close', () => { clearInterval(this.testnetPingInterval); pushEvent('WARN', this.symbol, `Testnet Depth WS disconnected — reconnecting...`, null, 'ws'); this.wsTestnet = null; setTimeout(() => this.startTestnetWS(), 3000); });
+    }
+
+    async cleanOpenOrders(user, tier, symbolFilter = null) {
+        if (!user) return;
+        const hpoBase = TIER_URLS[tier].HPO;
+        let offset = 0;
+        const limit = 500;
+        const seenIds = new Set();
+        while (true) {
+            const query = { limit: limit, offset: offset };
+            const res = await sendSignedRequest(`${hpoBase}/fapi/v1/openOrders`, 'GET', query, user, 60000, tier);
+            if (!res.ok || !Array.isArray(res.data) || res.data.length === 0) break;
+            
+            const chunk = res.data;
+            let newCount = 0;
+            const toCancel = [];
+            for (const o of chunk) {
+                const id = o.orderId || o.id;
+                if (!seenIds.has(id)) {
+                    seenIds.add(id);
+                    newCount++;
+                    if (!symbolFilter || o.symbol === symbolFilter) {
+                        toCancel.push({ id, symbol: o.symbol });
+                    }
+                }
+            }
+            
+            if (toCancel.length > 0) {
+                await Promise.allSettled(toCancel.map(o => {
+                    return sendSignedRequest(`${hpoBase}/fapi/v1/order`, 'DELETE', { symbol: o.symbol, orderId: o.id }, user, 10000, tier);
+                }));
+            }
+            
+            if (newCount === 0 || chunk.length < limit) break;
+            offset += limit;
+            if (offset > 10000) break;
+        }
     }
 
     async wipeOrders() {
@@ -1932,17 +2253,25 @@ startBinanceDepthWS() {
         const makerUser = tierUsers[tierRoles.makerId];
         const takerUser = tierUsers[tierRoles.takerId];
 
-        const p1 = makerUser ? sendSignedRequest(`${hpoBase}/fapi/v1/openOrders`, 'GET', { symbol: this.symbol }, makerUser, 15000, this.tier) : Promise.resolve({ ok: false });
-        const p2 = takerUser ? sendSignedRequest(`${hpoBase}/fapi/v1/openOrders`, 'GET', { symbol: this.symbol }, takerUser, 15000, this.tier) : Promise.resolve({ ok: false });
+        // Try DELETE /fapi/v1/allOpenOrders first for rapid cleansing
+        let bulkSuccess = false;
+        try {
+            const p1 = makerUser ? sendSignedRequest(`${hpoBase}/fapi/v1/allOpenOrders`, 'DELETE', { symbol: this.symbol }, makerUser, 10000, this.tier) : Promise.resolve({ ok: false });
+            const p2 = takerUser ? sendSignedRequest(`${hpoBase}/fapi/v1/allOpenOrders`, 'DELETE', { symbol: this.symbol }, takerUser, 10000, this.tier) : Promise.resolve({ ok: false });
+            const [r1, r2] = await Promise.all([p1, p2]);
+            if ((!makerUser || r1.ok) && (!takerUser || r2.ok)) {
+                bulkSuccess = true;
+                log.success(this.symbol, 'Staging book cleansed (bulk).');
+            }
+        } catch(e) {
+            log.debug && log.debug(this.symbol, 'Bulk cancel failed: ' + e.message);
+        }
 
-        const [u1Res, u2Res] = await Promise.all([p1, p2]);
-
-        let toCancel = [];
-        if (u1Res.ok && Array.isArray(u1Res.data)) toCancel.push(...u1Res.data.map(o => ({ id: o.orderId, isTaker: false })));
-        if (u2Res.ok && Array.isArray(u2Res.data)) toCancel.push(...u2Res.data.map(o => ({ id: o.orderId, isTaker: true })));
-
-        if (toCancel.length > 0) {
-            await Promise.allSettled(toCancel.map(o => this.cancelOrder(o.id, o.isTaker)));
+        if (!bulkSuccess) {
+            await Promise.all([
+                this.cleanOpenOrders(makerUser, this.tier, this.symbol),
+                this.cleanOpenOrders(takerUser, this.tier, this.symbol)
+            ]);
             log.success(this.symbol, 'Staging book cleansed.');
         }
         this.restingBids = []; this.restingAsks = [];
@@ -1973,8 +2302,10 @@ startBinanceDepthWS() {
             log.warn(this.symbol, `Failed to fetch initial depth from MDS_READ on ${this.tier}`, null, this.tier);
         }
         if (this.wsTestnet) { clearInterval(this.testnetPingInterval); this.wsTestnet.removeAllListeners('close'); this.wsTestnet.close(); this.wsTestnet = null; }
+        await this.fetchInitialMarkPrices();
         this.startTestnetWS();
         this.startTestnetTickerWS();
+        this.startTestnetMarkPriceWS();
 
     }
 
@@ -1990,6 +2321,9 @@ startBinanceDepthWS() {
         this.status = 'RUNNING'; this.hasLoggedAuthError = false;
         log.success(this.symbol, 'Engine Started.');
         
+        // Fetch initial mark prices
+        await this.fetchInitialMarkPrices();
+
         try {
             log.info(this.symbol, 'Fetching initial Binance price for LTP alignment check...');
             const res = await fetch(`https://fapi.binance.com/fapi/v1/ticker/price?symbol=${this.sourceSymbol}`);
@@ -2006,17 +2340,28 @@ startBinanceDepthWS() {
         await this.reloadDepth();
         this.startBinanceDepthWS();
         this.startBinanceTradesWS();
+        this.startBinanceMarkPriceWS();
+        this.startBinanceTickerWS();
     }
 
     pause() { this.status = 'PAUSED'; log.warn(this.symbol, 'Engine Paused.'); }
 
     async stop() {
         this.status = 'STOPPED'; log.warn(this.symbol, 'Engine Stopped.');
-        if (this.wsBinanceDepth)  { this.wsBinanceDepth.removeAllListeners('close');  this.wsBinanceDepth.close();  this.wsBinanceDepth = null; }
-        if (this.wsBinanceTrades) { this.wsBinanceTrades.removeAllListeners('close'); this.wsBinanceTrades.close(); this.wsBinanceTrades = null; }
-        if (this.wsTestnet) { clearInterval(this.testnetPingInterval); this.wsTestnet.removeAllListeners('close'); this.wsTestnet.close(); this.wsTestnet = null; }
-        if (this.wsTestnetTicker) { try { this.wsTestnetTicker.removeAllListeners('close'); this.wsTestnetTicker.close(); } catch(e) { /* intentional: WS may already be closed */ } this.wsTestnetTicker = null; }
         if (this.cancelOnStop) await this.wipeOrders(); else { this.restingBids = []; this.restingAsks = []; }
+    }
+}
+
+// Auto-wrap prototype methods of ReplicatorInstance to run in AsyncLocalStorage context of this.tier
+for (const key of Object.getOwnPropertyNames(ReplicatorInstance.prototype)) {
+    if (key === 'constructor') continue;
+    const original = ReplicatorInstance.prototype[key];
+    if (typeof original === 'function') {
+        ReplicatorInstance.prototype[key] = function(...args) {
+            return tierContextStore.run(this.tier, () => {
+                return original.apply(this, args);
+            });
+        };
     }
 }
 
@@ -2170,6 +2515,8 @@ function buildPayload(isSnapshot = true, sinceTs = 0) {
                 sourceSymbol:    inst.sourceSymbol,
                 testnetLatency:  inst.testnetLatency,
                 testnetLtp:      inst.testnetLtp,
+                testnetMarkPrice: inst.testnetMarkPrice,
+                binanceMarkPrice: inst.binanceMarkPrice,
                 testnetKline:    inst.testnetKline,
                 binanceLatency:  inst.binanceLatency,
                 binanceLtp:      inst.binanceLtp,
@@ -2177,10 +2524,18 @@ function buildPayload(isSnapshot = true, sinceTs = 0) {
                 pricePrecision:  pData.pricePrecision !== undefined ? pData.pricePrecision : 4,
                 qtyPrecision:    pData.qtyPrecision !== undefined ? pData.qtyPrecision : 1,
                 bufferPct:       inst.bufferPct,
+                minSize:         inst.minSize,
+                maxSize:         inst.maxSize,
+                takerSize:       inst.takerSize,
+                makerUseRawQty:  inst.makerUseRawQty,
                 cancelOnStop:    inst.cancelOnStop,
                 newUserFlow:     inst.newUserFlow,
                 tradeDelayMs:    inst.tradeDelayMs,
-                enableTradeSync: inst.enableTradeSync
+                enableTradeSync: inst.enableTradeSync,
+                binance24h:      inst.binance24h,
+                stage24h:        inst.stage24h,
+                binanceFundingRate: inst.binanceFundingRate,
+                stageFundingRate:   inst.stageFundingRate
             },
             scenarioStatus: ScenarioEngine.getStatus(sym)
         };
@@ -2233,6 +2588,109 @@ const server = http.createServer(async (req, res) => {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-replicator-user');
     if (req.method === 'OPTIONS') { res.writeHead(204).end(); return; }
 
+    if (req.method === 'GET' && req.url.startsWith('/api/fundingRate')) {
+        const urlObj = new URL(req.url, 'http://localhost');
+        const sym = (urlObj.searchParams.get('symbol') || '').toUpperCase();
+        const tier = (urlObj.searchParams.get('tier') || globalActiveTier).toUpperCase();
+        
+        if (!sym) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: "Symbol is required" }));
+        }
+
+        try {
+            // Lookup source symbol for Binance mapping if instance is running
+            const tierInstances = instances[tier];
+            const inst = tierInstances ? tierInstances.get(sym) : null;
+            const sourceSym = inst ? inst.sourceSymbol : sym;
+
+            // Fetch Binance funding rate with 5s timeout
+            let binanceRate = null;
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                const binRes = await fetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${sourceSym}`, { signal: controller.signal });
+                clearTimeout(timeoutId);
+                if (binRes.ok) {
+                    const binData = await binRes.json();
+                    binanceRate = parseFloat(binData.lastFundingRate || 0);
+                }
+            } catch (e) {
+                log.error(sym, `Failed to fetch Binance premiumIndex: ${e.message}`);
+            }
+
+            // Fetch Stage funding rate
+            let stageRate = null;
+            const mdsBase = TIER_URLS[tier]?.MDS_READ;
+            if (mdsBase) {
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 5000);
+                    const stageRes = await fetch(`${mdsBase}/fapi/v1/fundingRate?symbol=${sym}`, { signal: controller.signal });
+                    clearTimeout(timeoutId);
+                    if (stageRes.ok) {
+                        const stageData = await stageRes.json();
+                        if (Array.isArray(stageData) && stageData.length > 0) {
+                            const latest = stageData[stageData.length - 1];
+                            stageRate = parseFloat(latest.fundingRate || 0);
+                        }
+                    }
+                } catch (e) {
+                    log.error(sym, `Failed to fetch Stage fundingRate on ${tier}: ${e.message}`);
+                }
+            }
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+                binance: binanceRate,
+                stage: stageRate,
+                diff: (binanceRate !== null && stageRate !== null) ? (binanceRate - stageRate) : null
+            }));
+        } catch (e) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: e.message }));
+        }
+    }
+
+    if (req.method === 'DELETE' && req.url.startsWith('/api/instance')) {
+        const urlObj = new URL(req.url, 'http://localhost');
+        const sym = (urlObj.searchParams.get('symbol') || '').toUpperCase();
+        const tier = (urlObj.searchParams.get('tier') || globalActiveTier).toUpperCase();
+        
+        let body = '';
+        req.on('data', chunk => { body += chunk; });
+        req.on('end', async () => {
+            try {
+                let parsed = {};
+                try { parsed = JSON.parse(body || '{}'); } catch(e) {}
+                const targetSym = sym || (parsed.symbol ? parsed.symbol.toUpperCase() : null);
+                const targetTier = tier || (parsed.tier || globalActiveTier).toUpperCase();
+                
+                if (!targetSym) {
+                    res.writeHead(400);
+                    return res.end(JSON.stringify({ error: "Symbol is required" }));
+                }
+                const tierInstances = instances[targetTier];
+                if (tierInstances && tierInstances.has(targetSym)) {
+                    const inst = tierInstances.get(targetSym);
+                    await inst.stop();
+                    tierInstances.delete(targetSym);
+                    log.info(targetSym, `Market instance deleted/removed from UI.`, null, targetTier);
+                    broadcastToUI();
+                    res.writeHead(200);
+                    return res.end(JSON.stringify({ success: true }));
+                } else {
+                    res.writeHead(404);
+                    return res.end(JSON.stringify({ error: "Instance not found" }));
+                }
+            } catch (e) {
+                res.writeHead(500);
+                return res.end(JSON.stringify({ error: e.message }));
+            }
+        });
+        return;
+    }
+
     if (req.url === '/events') {
         res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
         res.flushHeaders();
@@ -2257,7 +2715,12 @@ const server = http.createServer(async (req, res) => {
                 const targetSym = parsed.targetSymbol ? parsed.targetSymbol.toUpperCase() : sym;
                 
                 // Allow specific routes to omit symbol
-                if (!sym && !req.url.startsWith('/api/users') && !req.url.startsWith('/api/manual-override') && !req.url.startsWith('/api/env')) {
+                if (!sym && 
+                    !req.url.startsWith('/api/users') && 
+                    !req.url.startsWith('/api/manual-override') && 
+                    !req.url.startsWith('/api/env') && 
+                    !req.url.startsWith('/fapi/v1/openOrders')
+                ) {
                     throw new Error("Symbol is required");
                 }
                 if (req.url.startsWith('/fapi/')) {
@@ -2299,7 +2762,7 @@ const server = http.createServer(async (req, res) => {
 
                 if (req.url === '/api/scenario/custom') {
                     try {
-                        const inst = instances.get(targetSym);
+                        const inst = (instances[globalActiveTier] || new Map()).get(targetSym);
                         const currentLtp = inst ? inst.binanceLtp : null;
                         const state = ScenarioEngine.startScenario(sym, parsed, currentLtp);
                         res.writeHead(200); return res.end(JSON.stringify({ success: true, state }));
@@ -2358,6 +2821,8 @@ const server = http.createServer(async (req, res) => {
                             tier: tier,
                             minSize: parseFloat(parsed.minSize || 100),
                             maxSize: parseFloat(parsed.maxSize || 500),
+                            takerSize: parseFloat(parsed.takerSize || 10),
+                            makerUseRawQty: Boolean(parsed.makerUseRawQty),
                             depthLevels: parseInt(parsed.depthLevels || 10),
                             bufferPct: parseFloat(parsed.bufferPct || 0),
                             tradeDelayMs: parseInt(parsed.tradeDelayMs || 0),
@@ -2371,6 +2836,8 @@ const server = http.createServer(async (req, res) => {
                     } else {
                         if (parsed.minSize     !== undefined) inst.minSize     = parseFloat(parsed.minSize);
                         if (parsed.maxSize     !== undefined) inst.maxSize     = parseFloat(parsed.maxSize);
+                        if (parsed.takerSize   !== undefined) inst.takerSize   = parseFloat(parsed.takerSize);
+                        if (parsed.makerUseRawQty !== undefined) inst.makerUseRawQty = Boolean(parsed.makerUseRawQty);
                         if (parsed.depthLevels !== undefined) inst.depthLevels = parseInt(parsed.depthLevels);
                         if (parsed.bufferPct   !== undefined) inst.bufferPct   = parseFloat(parsed.bufferPct);
                         if (parsed.cancelOnStop !== undefined) inst.cancelOnStop = Boolean(parsed.cancelOnStop);
@@ -2516,6 +2983,44 @@ const server = http.createServer(async (req, res) => {
 // 6. Main Execution Control
 // ==========================================
 
+async function globalStartupCleanup() {
+    log.info('SYSTEM', 'Performing startup safety cleanup of all open orders across accounts (by symbol)...');
+    const tiers = ['PRODUCTION', 'JAPAN', 'STAGING'];
+    for (const tier of tiers) {
+        const hpoBase = TIER_URLS[tier] ? TIER_URLS[tier].HPO : null;
+        if (!hpoBase) continue;
+        const tierUsers = globalUsers[tier] || {};
+        const tierRoles = globalRoles[tier] || { makerId: '', takerId: '' };
+        const makerUser = tierUsers[tierRoles.makerId];
+        const takerUser = tierUsers[tierRoles.takerId];
+        
+        // Get all loaded instruments symbols for this tier to do targeted cleanup
+        const symbols = Object.keys(instrumentsMap[tier] || {});
+        if (symbols.length === 0) {
+            log.info('SYSTEM', `No loaded instruments for ${tier}. Skipping cleanup.`);
+            continue;
+        }
+        
+        const cleanUserOrders = async (user, label) => {
+            if (!user) return;
+            try {
+                log.info('SYSTEM', `Performing startup open orders wipe for ${label} on ${tier}...`);
+                // We instantiate a dummy instance config to run cleanOpenOrders helper
+                const dummyInst = new ReplicatorInstance({ sourceSymbol: 'BTCUSDT', targetSymbol: 'BTCUSDT', tier });
+                await dummyInst.cleanOpenOrders(user, tier, null); // Cancel ALL symbols
+                log.success('SYSTEM', `Successfully cleansed startup open orders for ${label} on ${tier}.`);
+            } catch(e) {
+                log.debug && log.debug('SYSTEM', `Failed startup clean for ${label} on ${tier}: ` + e.message);
+            }
+        };
+        
+        await Promise.allSettled([
+            cleanUserOrders(makerUser, 'Maker'),
+            cleanUserOrders(takerUser, 'Taker')
+        ]);
+    }
+}
+
 async function startBots() {
     log.success('SYSTEM', '===========================================================');
     log.success('SYSTEM', `Starting ${marketConfigs.length} market replicator(s)...`);
@@ -2525,6 +3030,13 @@ async function startBots() {
     const loadInstPromises = tiers.map(t => loadInstruments(t));
 
     await Promise.allSettled([syncServerTime(), ...loadInstPromises]);
+    
+    // Wipe all orphaned open orders across accounts
+    try {
+        await globalStartupCleanup();
+    } catch (e) {
+        log.error('SYSTEM', 'Startup global cleanup failed: ' + e.message);
+    }
     
     // Fetch listen keys and connect user data streams for real-time events
     await fetchListenKeys();
