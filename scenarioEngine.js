@@ -231,6 +231,9 @@ class ScenarioEngine {
             if (state.config.recovery === 'none') {
                 return; // Stuck here forever
             }
+            if (state.recoveryStartMultiplier === undefined) {
+                state.recoveryStartMultiplier = state.currentMultiplier;
+            }
             
             const recoverMs = state.config.recoverMs || 0;
             if (recoverMs === 0 || elapsed >= recoverMs) {
@@ -238,9 +241,8 @@ class ScenarioEngine {
                 console.log(`[SCENARIO] ✅ Scenario for ${symbol} completed and fully recovered.`);
             } else {
                 const progress = elapsed / recoverMs;
-                const distToNormal = 1.0 - state.currentMultiplier;
-                // Linearly interpolate currentMultiplier to 1.0
-                state.currentMultiplier = state.currentMultiplier + (distToNormal * progress);
+                // Perfect linear interpolation: start + (1.0 - start) * progress
+                state.currentMultiplier = state.recoveryStartMultiplier + ((1.0 - state.recoveryStartMultiplier) * progress);
             }
         }
     }
@@ -259,7 +261,18 @@ class ScenarioEngine {
             stepPhase: state.stepPhase,
             startTime: state.startTime,
             phaseStartTime: state.phaseStartTime,
-            maxDurationMs: state.maxDurationMs
+            maxDurationMs: state.maxDurationMs,
+            // Expose key config fields for UI display
+            targetQty: state.config?.targetQty || null,
+            pct: state.config?.pct || null,
+            config: {
+                targetQty: state.config?.targetQty || null,
+                pct: state.config?.pct || null,
+                rampMs: state.config?.rampMs || null,
+                holdMs: state.config?.holdMs || null,
+                recoverMs: state.config?.recoverMs || null,
+                steps: state.config?.steps || []
+            }
         };
     }
 

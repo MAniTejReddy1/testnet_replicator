@@ -1,0 +1,10 @@
+{
+  "name": "Slow Bleed",
+  "description": "Gradual 3% decline over 30s, hold 10s, linear recovery in 20s.",
+  "pct": -0.03,
+  "rampMs": 30000,
+  "holdMs": 10000,
+  "recoverMs": 20000,
+  "recovery": "linear",
+  "maxDurationMs": 120000
+}

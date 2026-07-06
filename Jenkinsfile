@@ -38,6 +38,21 @@ pipeline {
             description: 'Generate fresh API keys for Maker and Taker users on this run?'
         )
         string(
+            name: 'TAKER_SIZE',
+            defaultValue: '10',
+            description: 'Taker order size in USDT (used when taker size differs from maker grid)'
+        )
+        choice(
+            name: 'MAKER_USE_RAW_QTY',
+            choices: ['false', 'true'],
+            description: 'Maker orders place directly using Binance orderbook quantities (bypassing min/max size clamp)'
+        )
+        booleanParam(
+            name: 'CANCEL_ON_STOP',
+            defaultValue: false,
+            description: 'Wipe all open orders when the replicator is stopped or paused?'
+        )
+        string(
             name: 'BUFFER_PCT',
             defaultValue: '0',
             description: 'Price buffer on all orders  (e.g. 0.01 = 0.01%)'
@@ -66,8 +81,10 @@ pipeline {
 
                     def min = params.MIN_SIZE.toFloat()
                     def max = params.MAX_SIZE.toFloat()
+                    def taker = params.TAKER_SIZE.toFloat()
                     if (min <= 0) error("MIN_SIZE must be greater than 0.")
                     if (max <= 0) error("MAX_SIZE must be greater than 0.")
+                    if (taker <= 0) error("TAKER_SIZE must be greater than 0.")
                     if (min > max) error("MIN_SIZE (${min}) cannot exceed MAX_SIZE (${max}).")
 
                     env.SRC = src
@@ -160,11 +177,13 @@ pipeline {
   "targetSymbol": "${tgt}",
   "minSize": ${params.MIN_SIZE},
   "maxSize": ${params.MAX_SIZE},
+  "takerSize": ${params.TAKER_SIZE},
+  "makerUseRawQty": ${params.MAKER_USE_RAW_QTY},
   "depthLevels": 10,
   "qtyChangeTolerance": 0.25,
   "enableTradeSync": ${params.ENABLE_TRADE_SYNC},
   "bufferPct": ${params.BUFFER_PCT},
-  "cancelOnStop": true,
+  "cancelOnStop": ${params.CANCEL_ON_STOP},
   "tradeDelayMs": 0
 }""")
                     }
