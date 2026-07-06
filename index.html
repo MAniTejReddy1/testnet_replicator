@@ -2723,6 +2723,11 @@ window.addEventListener('DOMContentLoaded', () => {
         let flashOn = localStorage.getItem('replicator_tog-flash') !== '0';
         let pPrec = 4, qPrec = 1;
         let prevBinLtp = null;
+        let prevStageLtp = null;
+        let prevBinMarkPrice = null;
+        let prevStageMarkPrice = null;
+        let prevBinFunding = null;
+        let prevStageFunding = null;
         // knownTradeIds removed — was dead code (populated but never read)
         let cancelOnStopState = localStorage.getItem('replicator_cancel_on_stop') === '1';
         let newUserState = localStorage.getItem('replicator_new_user') === '1';
@@ -4613,12 +4618,34 @@ window.addEventListener('DOMContentLoaded', () => {
 
             const sa = instance.testnetDepth.asks, sb = instance.testnetDepth.bids;
             const stageLtp = (sa&&sa[0]&&sb&&sb[0]) ? ((parseFloat(sa[0][0])+parseFloat(sb[0][0]))/2).toFixed(pPrec) : binLtp;
-            document.getElementById('t-sltp').textContent = fmt(stageLtp, pPrec);
+            const stageLtpEl = document.getElementById('t-sltp');
+            if (prevStageLtp !== null && flashOn) {
+                const d = parseFloat(stageLtp) - parseFloat(prevStageLtp);
+                if (d > 0) flash(stageLtpEl, 'fl-g');
+                else if (d < 0) flash(stageLtpEl, 'fl-r');
+            }
+            prevStageLtp = stageLtp;
+            stageLtpEl.textContent = fmt(stageLtp, pPrec);
 
             const binMarkPrice = diag.binanceMarkPrice || binLtp;
+            const binMarkPriceEl = document.getElementById('t-bmp');
+            if (prevBinMarkPrice !== null && flashOn) {
+                const d = parseFloat(binMarkPrice) - parseFloat(prevBinMarkPrice);
+                if (d > 0) flash(binMarkPriceEl, 'fl-g');
+                else if (d < 0) flash(binMarkPriceEl, 'fl-r');
+            }
+            prevBinMarkPrice = binMarkPrice;
+            binMarkPriceEl.textContent = fmt(binMarkPrice, pPrec);
+
             const stageMarkPrice = diag.testnetMarkPrice || stageLtp;
-            document.getElementById('t-bmp').textContent = fmt(binMarkPrice, pPrec);
-            document.getElementById('t-smp').textContent = fmt(stageMarkPrice, pPrec);
+            const stageMarkPriceEl = document.getElementById('t-smp');
+            if (prevStageMarkPrice !== null && flashOn) {
+                const d = parseFloat(stageMarkPrice) - parseFloat(prevStageMarkPrice);
+                if (d > 0) flash(stageMarkPriceEl, 'fl-g');
+                else if (d < 0) flash(stageMarkPriceEl, 'fl-r');
+            }
+            prevStageMarkPrice = stageMarkPrice;
+            stageMarkPriceEl.textContent = fmt(stageMarkPrice, pPrec);
 
             // LTP Drift Update
             const dAbs = Math.abs(parseFloat(binLtp)-parseFloat(stageLtp)).toFixed(pPrec);
@@ -4686,8 +4713,23 @@ window.addEventListener('DOMContentLoaded', () => {
                 return `${val.toFixed(8)} (${pct}%)`;
             };
 
-            document.getElementById('t-bin-funding').textContent = formatFunding(binFunding);
-            document.getElementById('t-stage-funding').textContent = formatFunding(stageFunding);
+            const binFundingEl = document.getElementById('t-bin-funding');
+            if (prevBinFunding !== null && binFunding !== null && flashOn) {
+                const d = parseFloat(binFunding) - parseFloat(prevBinFunding);
+                if (d > 0) flash(binFundingEl, 'fl-g');
+                else if (d < 0) flash(binFundingEl, 'fl-r');
+            }
+            prevBinFunding = binFunding;
+            binFundingEl.textContent = formatFunding(binFunding);
+
+            const stageFundingEl = document.getElementById('t-stage-funding');
+            if (prevStageFunding !== null && stageFunding !== null && flashOn) {
+                const d = parseFloat(stageFunding) - parseFloat(prevStageFunding);
+                if (d > 0) flash(stageFundingEl, 'fl-g');
+                else if (d < 0) flash(stageFundingEl, 'fl-r');
+            }
+            prevStageFunding = stageFunding;
+            stageFundingEl.textContent = formatFunding(stageFunding);
             
             if (binFunding !== null && stageFunding !== null) {
                 const diffVal = binFunding - stageFunding;
@@ -4781,6 +4823,11 @@ window.addEventListener('DOMContentLoaded', () => {
             es.onopen = () => {
                 sseReconnectDelay = 2500; // Reset backoff on success
                 prevBinLtp = null;
+                prevStageLtp = null;
+                prevBinMarkPrice = null;
+                prevStageMarkPrice = null;
+                prevBinFunding = null;
+                prevStageFunding = null;
                 const sp = document.getElementById('splash');
                 if (sp) { sp.classList.add('hidden'); setTimeout(()=>sp.remove(),500); }
                 document.getElementById('dot').className = 'dot-live';
