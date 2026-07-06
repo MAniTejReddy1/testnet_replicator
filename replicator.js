@@ -2278,6 +2278,20 @@ startBinanceDepthWS() {
     }
 
     async reloadDepth() {
+        log.info(this.symbol, 'Reloading engine streams and market depth...');
+        
+        // 1. Close all Testnet WebSockets
+        if (this.wsTestnet) { clearInterval(this.testnetPingInterval); this.wsTestnet.removeAllListeners('close'); this.wsTestnet.close(); this.wsTestnet = null; }
+        if (this.wsTestnetTicker) { try { this.wsTestnetTicker.removeAllListeners('close'); this.wsTestnetTicker.close(); } catch(e){} this.wsTestnetTicker = null; }
+        if (this.wsTestnetMarkPrice) { try { this.wsTestnetMarkPrice.removeAllListeners('close'); this.wsTestnetMarkPrice.close(); } catch(e){} this.wsTestnetMarkPrice = null; }
+
+        // 2. Close all Binance WebSockets
+        if (this.wsBinanceDepth) { this.wsBinanceDepth.removeAllListeners('close'); this.wsBinanceDepth.close(); this.wsBinanceDepth = null; }
+        if (this.wsBinanceTrades) { this.wsBinanceTrades.removeAllListeners('close'); this.wsBinanceTrades.close(); this.wsBinanceTrades = null; }
+        if (this.wsBinanceTicker) { try { this.wsBinanceTicker.removeAllListeners('close'); this.wsBinanceTicker.close(); } catch(e){} this.wsBinanceTicker = null; }
+        if (this.wsBinanceMarkPrice) { try { this.wsBinanceMarkPrice.removeAllListeners('close'); this.wsBinanceMarkPrice.close(); } catch(e){} this.wsBinanceMarkPrice = null; }
+
+        // 3. Fetch initial depth from MDS_READ
         const mdsReadBase = TIER_URLS[this.tier].MDS_READ;
         const depthEndpoints = [
             `${mdsReadBase}/fapi/v1/depth?symbol=${this.symbol}&limit=${this.depthLevels}`,
@@ -2301,12 +2315,20 @@ startBinanceDepthWS() {
         if (!success) {
             log.warn(this.symbol, `Failed to fetch initial depth from MDS_READ on ${this.tier}`, null, this.tier);
         }
-        if (this.wsTestnet) { clearInterval(this.testnetPingInterval); this.wsTestnet.removeAllListeners('close'); this.wsTestnet.close(); this.wsTestnet = null; }
+
+        // 4. Fetch initial mark prices
         await this.fetchInitialMarkPrices();
+
+        // 5. Restart all WebSockets
+        this.startBinanceDepthWS();
+        this.startBinanceTradesWS();
+        this.startBinanceTickerWS();
+        this.startBinanceMarkPriceWS();
         this.startTestnetWS();
         this.startTestnetTickerWS();
         this.startTestnetMarkPriceWS();
-
+        
+        log.success(this.symbol, 'All streams and depth successfully reloaded.');
     }
 
     async start() {
