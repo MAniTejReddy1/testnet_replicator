@@ -1305,6 +1305,19 @@ class ReplicatorInstance {
             }
         }
 
+        // Auto-recover on Open order limit exceeded (-1003)
+        if (!res.ok && !_isRetry && res.data && res.data.code === -1003) {
+            log.warn(this.symbol, `[LIMIT-EXCEEDED] ${userLabel} open order limit exceeded (-1003) — attempting auto user recovery...`);
+            const roleName = isTaker ? 'TAKER' : 'MAKER';
+            const recovered = await autoGenerateNewUserAndAssign(roleName, this.tier);
+            if (recovered) {
+                log.success(this.symbol, `[LIMIT-EXCEEDED] ${userLabel} recovered with a new user. Retrying order...`);
+                return this.placeOrder(side, qty, price, orderType, isTaker, clientOrderId, true);
+            } else {
+                log.error(this.symbol, `[LIMIT-EXCEEDED] ${userLabel} recovery failed — cannot retry.`);
+            }
+        }
+
         // Auto-retry on insufficient funds: call seed_balance then retry once
         if (!res.ok && !_isRetry && res.data && res.data.code === -2018) {
             log.warn(this.symbol, `[SEED] ${userLabel} insufficient funds — calling seed_balance and retrying...`);
