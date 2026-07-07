@@ -222,6 +222,40 @@ function writeStateFile(payload) {
 
 const terminalEvents = [];
 
+function saveConfigs() {
+    const configPath = path.resolve(__dirname, 'multi-config.json');
+    const configsToSave = [];
+    
+    for (const tier of ['PRODUCTION', 'JAPAN', 'STAGING']) {
+        const tierInstances = instances[tier] || new Map();
+        for (const [sym, inst] of tierInstances.entries()) {
+            configsToSave.push({
+                tier: inst.tier,
+                sourceSymbol: inst.sourceSymbol,
+                targetSymbol: inst.targetSymbol,
+                minSize: inst.minSize,
+                maxSize: inst.maxSize,
+                takerSize: inst.takerSize,
+                makerUseRawQty: inst.makerUseRawQty,
+                depthLevels: inst.depthLevels,
+                bufferPct: inst.bufferPct,
+                tradeDelayMs: inst.tradeDelayMs,
+                cancelOnStop: inst.cancelOnStop,
+                newUserFlow: inst.newUserFlow,
+                enableTradeSync: inst.enableTradeSync,
+                mountOnly: inst.status === 'STOPPED'
+            });
+        }
+    }
+    
+    try {
+        fs.writeFileSync(configPath, JSON.stringify(configsToSave, null, 4), 'utf8');
+        log.info('SYSTEM', 'Saved active market configurations to multi-config.json.');
+    } catch(e) {
+        log.error('SYSTEM', `Failed to write multi-config.json: ${e.message}`);
+    }
+}
+
 function pushLog(level, sym, msg, meta = null, tier = null) {
     if (!tier) {
         tier = tierContextStore.getStore();
@@ -872,6 +906,7 @@ class ReplicatorInstance {
         this.bufferPct          = marketConfig.bufferPct          || 0;
         this.cancelOnStop       = marketConfig.cancelOnStop === true;
         this.tradeDelayMs       = marketConfig.tradeDelayMs       || 0;
+        this.mountOnlyState     = marketConfig.mountOnly === true;
         
         this.inFlightEdits      = new Set();
 
@@ -2621,6 +2656,34 @@ function broadcastToUI() {
 }
 
 const server = http.createServer(async (req, res) => {
+    if (req.method === 'POST' && req.url === '/api/instance/select') {
+        let body = '';
+        req.on('data', chunk => { body += chunk; });
+        req.on('end', async () => {
+            try {
+                const parsed = JSON.parse(body || '{}');
+                const sym = (parsed.symbol || '').toUpperCase();
+                const tier = (parsed.tier || globalActiveTier).toUpperCase();
+                if (!sym) {
+                    res.writeHead(400);
+                    return res.end(JSON.stringify({ error: "Symbol is required" }));
+                }
+                const tierInstances = instances[tier];
+                const inst = tierInstances ? tierInstances.get(sym) : null;
+                if (inst) {
+                    await inst.reloadDepth();
+                    broadcastToUI();
+                }
+                res.writeHead(200);
+                return res.end(JSON.stringify({ success: true }));
+            } catch (e) {
+                res.writeHead(500);
+                return res.end(JSON.stringify({ error: e.message }));
+            }
+        });
+        return;
+    }
+
     // M7: CORS headers for all requests
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
@@ -2784,6 +2847,7 @@ const server = http.createServer(async (req, res) => {
                     await inst.stop();
                     tierInstances.delete(targetSym);
                     log.info(targetSym, `Market instance deleted/removed from UI.`, null, targetTier);
+                    saveConfigs();
                     broadcastToUI();
                     res.writeHead(200);
                     return res.end(JSON.stringify({ success: true }));
@@ -2946,6 +3010,7 @@ const server = http.createServer(async (req, res) => {
                             inst.start().catch(e => log.error(targetSym, `Start failed: ${e.message}`, null, tier));
                             log.info(targetSym, `New market mounted from UI.`, null, tier);
                         }
+                        saveConfigs();
                     } else {
                         if (parsed.minSize     !== undefined) inst.minSize     = parseFloat(parsed.minSize);
                         if (parsed.maxSize     !== undefined) inst.maxSize     = parseFloat(parsed.maxSize);
@@ -2958,6 +3023,7 @@ const server = http.createServer(async (req, res) => {
                         if (parsed.newUserFlow !== undefined) inst.newUserFlow = Boolean(parsed.newUserFlow);
                         if (parsed.enableTradeSync !== undefined) inst.enableTradeSync = Boolean(parsed.enableTradeSync);
                         log.info(targetSym, `Config updated for existing instance.`, null, tier);
+                        saveConfigs();
                     }
 
                     if (globalActiveTier !== tier) {
@@ -3176,7 +3242,11 @@ async function startBots() {
             startPromises.push((async () => {
                 try {
                     await inst.wipeOrders();
-                    await inst.start();
+                    if (inst.mountOnlyState) {
+                        await inst.mountOnly();
+                    } else {
+                        await inst.start();
+                    }
                 } catch (e) {
                     log.error(inst.targetSymbol, `Initial start sequence failed: ${e.message}`, null, inst.tier);
                 }

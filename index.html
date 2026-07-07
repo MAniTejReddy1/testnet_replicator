@@ -4188,6 +4188,13 @@ window.addEventListener('DOMContentLoaded', () => {
                 localStorage.setItem('replicator_last_active_symbols', JSON.stringify(lastActiveSymbolByEnv));
             }
             if (window.tvIsVisible) window.initTVChart(sym);
+            
+            // Force reload depth and reconnect websockets for selected market
+            fetch(window.getApiUrl('/api/instance/select'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ symbol: sym, tier: window.activeEnvFilter })
+            }).catch(e => {});
             tradeFilter = 'all';
             document.querySelectorAll('.tab').forEach(b => { if(b.hasAttribute('data-f')) b.classList.remove('on'); });
             const defaultTab = document.querySelector('.tab[data-f="all"]');
@@ -5698,6 +5705,19 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 /* Market List Module Javascript Code */
+window.marketListSortField = 'volume';
+window.marketListSortAsc = false;
+
+window.setMarketListSort = function(field) {
+    if (window.marketListSortField === field) {
+        window.marketListSortAsc = !window.marketListSortAsc;
+    } else {
+        window.marketListSortField = field;
+        window.marketListSortAsc = field === 'name';
+    }
+    window.renderMarketListTable();
+};
+
 let wsAllTickers = null;
 let activeWsUrl = '';
 window.allTickersData = {};
@@ -5959,12 +5979,44 @@ window.renderMarketListTable = function() {
         symbols = symbols.filter(s => favs.includes(s));
     }
     
-    // Sort by Volume (descending)
+    // Sort based on selected column
     symbols.sort((a, b) => {
-        const volA = window.allTickersData[a]?.volume || 0;
-        const volB = window.allTickersData[b]?.volume || 0;
-        return volB - volA;
+        let valA, valB;
+        if (window.marketListSortField === 'name') {
+            valA = a;
+            valB = b;
+            return window.marketListSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        } else if (window.marketListSortField === 'ltp') {
+            valA = window.allTickersData[a]?.ltp || 0;
+            valB = window.allTickersData[b]?.ltp || 0;
+        } else if (window.marketListSortField === 'change') {
+            valA = window.allTickersData[a]?.changePercent || 0;
+            valB = window.allTickersData[b]?.changePercent || 0;
+        } else if (window.marketListSortField === 'volume') {
+            valA = window.allTickersData[a]?.volume || 0;
+            valB = window.allTickersData[b]?.volume || 0;
+        } else if (window.marketListSortField === 'funding') {
+            valA = window.allTickersData[a]?.fundingRate || 0;
+            valB = window.allTickersData[b]?.fundingRate || 0;
+        }
+        return window.marketListSortAsc ? valA - valB : valB - valA;
     });
+    
+    // Render sort arrows in header
+    setTimeout(() => {
+        const ths = document.querySelectorAll('#market-list-table th');
+        if (ths && ths.length === 6) {
+            const arrow = (field) => {
+                if (window.marketListSortField !== field) return '';
+                return window.marketListSortAsc ? ' ▲' : ' ▼';
+            };
+            ths[1].innerHTML = 'Name' + arrow('name');
+            ths[2].innerHTML = 'LTP' + arrow('ltp');
+            ths[3].innerHTML = '24h %' + arrow('change');
+            ths[4].innerHTML = 'Volume' + arrow('volume');
+            ths[5].innerHTML = 'Next Funding' + arrow('funding');
+        }
+    }, 0);
     
     if (symbols.length === 0) {
         tbody.innerHTML = `<tr><td colspan="5" style="padding: 24px; text-align: center; color: var(--text-muted);">No markets found</td></tr>`;
@@ -6059,11 +6111,11 @@ window.renderMarketListTable = function() {
         <thead>
           <tr style="color: var(--text-muted); font-weight: 700; border-bottom: 1px solid var(--border); text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">
             <th style="padding: 10px 8px; width: 40px; text-align: center;"></th>
-            <th style="padding: 10px 8px;">Name</th>
-            <th style="padding: 10px 8px; text-align: right;">LTP</th>
-            <th style="padding: 10px 8px; text-align: right;">24h %</th>
-            <th style="padding: 10px 8px; text-align: right;">Volume</th>
-            <th style="padding: 10px 8px; text-align: right;">Next Funding</th>
+            <th style="padding: 10px 8px; cursor: pointer;" onclick="window.setMarketListSort('name')">Name</th>
+            <th style="padding: 10px 8px; text-align: right; cursor: pointer;" onclick="window.setMarketListSort('ltp')">LTP</th>
+            <th style="padding: 10px 8px; text-align: right; cursor: pointer;" onclick="window.setMarketListSort('change')">24h %</th>
+            <th style="padding: 10px 8px; text-align: right; cursor: pointer;" onclick="window.setMarketListSort('volume')">Volume</th>
+            <th style="padding: 10px 8px; text-align: right; cursor: pointer;" onclick="window.setMarketListSort('funding')">Next Funding</th>
           </tr>
         </thead>
         <tbody id="market-list-table-body">
