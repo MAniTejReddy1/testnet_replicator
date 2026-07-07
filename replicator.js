@@ -2715,12 +2715,6 @@ startBinanceDepthWS() {
 
     async start() {
         if (this.status === 'RUNNING') return;
-        
-        if (this.newUserFlow && !this.hasStartedBefore) {
-            log.info(this.symbol, `New User Flow active. Sleeping for 120 seconds before starting...`);
-            await new Promise(r => setTimeout(r, 120000));
-            this.hasStartedBefore = true;
-        }
 
         this.status = 'RUNNING'; this.hasLoggedAuthError = false;
         log.success(this.symbol, 'Engine Started.');
