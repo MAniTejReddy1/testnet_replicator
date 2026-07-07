@@ -5696,21 +5696,31 @@ window.fetchStageExchangeInfo = async function() {
 window.fetchInitialAllTickers = async function() {
     const activeTier = window.activeEnvFilter || 'PRODUCTION';
     try {
-        const res = await fetch(window.getApiUrl(`/api/stage/ticker/24hr?tier=${activeTier}`));
+        const res = await fetch(window.getApiUrl(`/api/stage/ticker/price?tier=${activeTier}`));
         if (res.ok) {
-            const data = await res.json();
-            if (Array.isArray(data)) {
-                data.forEach(t => {
-                    window.allTickersData[t.symbol] = {
-                        ltp: parseFloat(t.lastPrice || 0),
-                        changePercent: parseFloat(t.priceChangePercent || 0),
-                        volume: parseFloat(t.quoteVolume || (parseFloat(t.lastPrice || 0) * parseFloat(t.volume || 0)) || 0)
-                    };
+            const prices = await res.json();
+            if (Array.isArray(prices)) {
+                prices.forEach(p => {
+                    if (!window.allTickersData[p.symbol]) window.allTickersData[p.symbol] = {};
+                    window.allTickersData[p.symbol].ltp = parseFloat(p.price || p.lastPrice || 0);
                 });
-                if (window.isMarketListModalOpen) {
-                    window.renderMarketListTable();
-                }
             }
+        }
+        
+        // Fetch premiumIndex for markPrice / fundingRate references
+        const resPrem = await fetch(window.getApiUrl(`/api/stage/premiumIndex?tier=${activeTier}`));
+        if (resPrem.ok) {
+            const premData = await resPrem.json();
+            if (Array.isArray(premData)) {
+                premData.forEach(p => {
+                    if (!window.allTickersData[p.symbol]) window.allTickersData[p.symbol] = {};
+                    window.allTickersData[p.symbol].changePercent = parseFloat(p.lastFundingRate || 0) * 100;
+                });
+            }
+        }
+        
+        if (window.isMarketListModalOpen) {
+            window.renderMarketListTable();
         }
     } catch(e){}
 };

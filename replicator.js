@@ -2641,22 +2641,45 @@ const server = http.createServer(async (req, res) => {
         }
     }
 
-    if (req.method === 'GET' && req.url.startsWith('/api/stage/ticker/24hr')) {
+    if (req.method === 'GET' && req.url.startsWith('/api/stage/ticker/price')) {
         const urlObj = new URL(req.url, 'http://localhost');
         const tier = (urlObj.searchParams.get('tier') || globalActiveTier).toUpperCase();
         const urls = TIER_URLS[tier] || TIER_URLS.PRODUCTION;
         try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 8000);
-            const stageRes = await fetch(`${urls.HPO}/fapi/v1/ticker/24hr`, { signal: controller.signal });
+            const stageRes = await fetch(`${urls.MDS_READ}/fapi/v2/ticker/price`, { signal: controller.signal });
             clearTimeout(timeoutId);
             if (stageRes.ok) {
-                const tickers = await stageRes.json();
+                const data = await stageRes.json();
                 res.writeHead(200, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify(tickers));
+                return res.end(JSON.stringify(data));
             } else {
                 res.writeHead(stageRes.status, { 'Content-Type': 'application/json' });
-                return res.end(JSON.stringify({ error: `Stage HPO returned status ${stageRes.status}` }));
+                return res.end(JSON.stringify({ error: `Stage MDS_READ returned status ${stageRes.status}` }));
+            }
+        } catch (e) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: e.message }));
+        }
+    }
+
+    if (req.method === 'GET' && req.url.startsWith('/api/stage/premiumIndex')) {
+        const urlObj = new URL(req.url, 'http://localhost');
+        const tier = (urlObj.searchParams.get('tier') || globalActiveTier).toUpperCase();
+        const urls = TIER_URLS[tier] || TIER_URLS.PRODUCTION;
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+            const stageRes = await fetch(`${urls.MDS_READ}/fapi/v1/premiumIndex`, { signal: controller.signal });
+            clearTimeout(timeoutId);
+            if (stageRes.ok) {
+                const data = await stageRes.json();
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify(data));
+            } else {
+                res.writeHead(stageRes.status, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ error: `Stage MDS_READ returned status ${stageRes.status}` }));
             }
         } catch (e) {
             res.writeHead(500, { 'Content-Type': 'application/json' });
