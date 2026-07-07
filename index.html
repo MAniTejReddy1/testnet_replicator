@@ -2845,7 +2845,7 @@ window.addEventListener('DOMContentLoaded', () => {
                         localStorage.setItem('replicator_last_env', targetEnv);
                         
                         // Pick active symbol corresponding to the selected env automatically
-                        const sym = lastActiveSymbolByEnv[targetEnv];
+                        const sym = window.lastActiveSymbolByEnv[targetEnv];
                         if (sym && window.cachedInstances[sym] && window.cachedInstances[sym].tier === targetEnv) {
                             window.selectTab(sym);
                         } else {
@@ -6020,7 +6020,7 @@ window.selectMarketFromList = async function(symbol) {
     window.closeMarketListModal();
     document.body.style.overflow = 'auto'; // Guarantee body scrolling is unlocked
     
-    if (window.cachedInstances && window.cachedInstances[symbol]) {
+    if (window.cachedInstances && window.cachedInstances[symbol] && !window.cachedInstances[symbol].isPending) {
         window.selectTab(symbol);
         window.refreshSymbolTabs(window.cachedGlobalData);
         return;
