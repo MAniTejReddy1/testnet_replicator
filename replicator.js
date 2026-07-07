@@ -2232,6 +2232,7 @@ startBinanceDepthWS() {
             pushEvent('SUCCESS', this.symbol, `Binance Trades WS connected`, { stream: 'trade' }, 'ws');
             log.info(this.symbol, `[TRADES-WS] Connected to Binance trade stream for ${this.sourceSymbol} (status=${this.status}, tradeSync=${this.enableTradeSync})`);
         });
+        let _gatedLogged = false;
         this.wsBinanceTrades.on('message', (raw) => {
             try {
                 const data = JSON.parse(raw.toString());
@@ -2240,10 +2241,12 @@ startBinanceDepthWS() {
                     const side = data.m ? 'SELL' : 'BUY';
                     pushEvent('EVENT', this.symbol, `Trade | ${side} | Price: ${data.p} | Qty: ${data.q}`, data, 'trade');
                     if (this.status === 'RUNNING' && this.enableTradeSync) {
+                        _gatedLogged = false; // reset so we log again if it becomes gated later
                         this.tradeQueue.push({ p: data.p, q: data.q, m: data.m });
                         this.processTradeQueue();
-                    } else {
-                        log.warn(this.symbol, `[TRADES-WS] Trade received but gated: status=${this.status}, enableTradeSync=${this.enableTradeSync}`);
+                    } else if (!_gatedLogged) {
+                        _gatedLogged = true;
+                        log.warn(this.symbol, `[TRADES-WS] Trades arriving but gated (status=${this.status}, tradeSync=${this.enableTradeSync}). Will auto-activate when RUNNING.`);
                     }
                 }
             } catch (e) { log.error(this.symbol, `[TRADES-WS] Message handler error: ${e.message}`); }
