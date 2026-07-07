@@ -872,12 +872,6 @@
         <div style="background:var(--row-bg);padding:6px 12px;border-radius:8px;border:1px solid var(--border);"><span style="color:var(--text-muted);margin-right:6px;">BINANCE LATENCY</span><span id="c-bping" style="color:var(--yellow);font-weight:700;">0ms</span></div>
         <div style="background:var(--row-bg);padding:6px 12px;border-radius:8px;border:1px solid var(--border);"><span style="color:var(--text-muted);margin-right:6px;">TESTNET LATENCY</span><span id="c-sping" style="color:var(--cyan);font-weight:700;">0ms</span></div>
         <div style="background:var(--row-bg);padding:6px 12px;border-radius:8px;border:1px solid var(--border);"><span style="color:var(--text-muted);margin-right:6px;">SYNC RATIO</span><span id="c-sync" style="color:var(--bid);font-weight:700;">100%</span></div>
-        <div id="flag-tradeSync" class="flag-pill flag-off">TRADE SYNC</div>
-        <div id="flag-cancelStop" class="flag-pill flag-off">CANCEL ON STOP</div>
-        <div id="flag-buffer" class="flag-pill flag-buf">BUF 0%</div>
-        <div id="flag-delay" class="flag-pill" style="background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.2);color:var(--purple);">DELAY 0ms</div>
-        <div id="flag-makerRaw" class="flag-pill flag-off">MAKER RAW OFF</div>
-        <div id="flag-takerRaw" class="flag-pill flag-off">TAKER RAW OFF</div>
         <div id="flag-scenario" class="flag-pill" style="display:none;background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.2);color:var(--ask);box-shadow:0 0 10px rgba(244,63,94,0.1);">SCENARIO IDLE</div>
             </div>
 </div>
@@ -4661,32 +4655,6 @@ window.addEventListener('DOMContentLoaded', () => {
             const srcStr = (diag.sourceSymbol && diag.sourceSymbol !== activeTabSymbol) ? ' (SRC: ' + diag.sourceSymbol + ')' : '';
             const activeTier = instance.tier || 'PRODUCTION';
             document.getElementById('c-pair').textContent = activeTabSymbol + srcStr + ' [' + activeTier + ']';
-
-            const tsEl = document.getElementById('flag-tradeSync');
-            const csEl = document.getElementById('flag-cancelStop');
-            const bufEl = document.getElementById('flag-buffer');
-            const delEl = document.getElementById('flag-delay');
-
-            if (diag.enableTradeSync) { tsEl.textContent='TRADE SYNC ON'; tsEl.className='flag-pill flag-on'; }
-            else { tsEl.textContent='TRADE SYNC OFF'; tsEl.className='flag-pill flag-off'; }
-
-            if (diag.cancelOnStop) { csEl.textContent='CANCEL ON STOP'; csEl.className='flag-pill flag-on'; }
-            else { csEl.textContent='KEEP ON STOP'; csEl.className='flag-pill flag-off'; }
-
-            const buf = parseFloat(diag.bufferPct||0);
-            bufEl.textContent = buf > 0 ? 'BUF '+buf+'%' : 'NO BUFFER';
-
-            const delay = parseInt(diag.tradeDelayMs||0);
-            delEl.textContent = delay > 0 ? 'DELAY '+delay+'ms' : 'DELAY OFF';
-
-            const makerRawEl = document.getElementById('flag-makerRaw');
-            const takerRawEl = document.getElementById('flag-takerRaw');
-
-            if (diag.makerUseRawQty) { makerRawEl.textContent='MAKER RAW ON'; makerRawEl.className='flag-pill flag-on'; }
-            else { makerRawEl.textContent='MAKER RAW OFF'; makerRawEl.className='flag-pill flag-off'; }
-
-            if (diag.takerUseRawQty) { takerRawEl.textContent='TAKER RAW ON'; takerRawEl.className='flag-pill flag-on'; }
-            else { takerRawEl.textContent='TAKER RAW OFF'; takerRawEl.className='flag-pill flag-off'; }
 
             const scEl = document.getElementById('flag-scenario');
             if (instance.scenarioStatus && instance.scenarioStatus.phase !== 'IDLE') {
