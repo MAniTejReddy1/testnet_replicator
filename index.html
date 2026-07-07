@@ -2753,7 +2753,7 @@ window.addEventListener('DOMContentLoaded', () => {
             });
         };
 
-        let activeTabSymbol = null;
+        window.activeTabSymbol = null;
         const lastActiveSymbolByEnv = { PRODUCTION: null, JAPAN: null, STAGING: null };
         try {
             const savedSymbols = localStorage.getItem('replicator_last_active_symbols');
@@ -2761,7 +2761,7 @@ window.addEventListener('DOMContentLoaded', () => {
         } catch(e) {}
         let cachedInstances = {};
         let cachedGlobalData = null;
-        let activeEnvFilter = localStorage.getItem('replicator_last_env') || 'PRODUCTION';
+        window.activeEnvFilter = localStorage.getItem('replicator_last_env') || 'PRODUCTION';
         let lastActiveEnv = null;
         let tradeFilter = 'all';
         
@@ -5678,7 +5678,7 @@ window.isMarketListModalOpen = false;
 window.stageExchangeInfoSymbols = {};
 
 window.fetchStageExchangeInfo = async function() {
-    const activeTier = activeEnvFilter || 'PRODUCTION';
+    const activeTier = window.activeEnvFilter || 'PRODUCTION';
     try {
         const res = await fetch(window.getApiUrl(`/api/stage/exchangeInfo?tier=${activeTier}`));
         if (res.ok) {
@@ -5694,7 +5694,7 @@ window.fetchStageExchangeInfo = async function() {
 };
 
 window.fetchInitialAllTickers = async function() {
-    const activeTier = activeEnvFilter || 'PRODUCTION';
+    const activeTier = window.activeEnvFilter || 'PRODUCTION';
     try {
         const res = await fetch(window.getApiUrl(`/api/stage/ticker/24hr?tier=${activeTier}`));
         if (res.ok) {
@@ -5716,7 +5716,7 @@ window.fetchInitialAllTickers = async function() {
 };
 
 window.startAllTickersWS = function() {
-    const activeTier = activeEnvFilter || 'PRODUCTION';
+    const activeTier = window.activeEnvFilter || 'PRODUCTION';
     if (!window.payload || !window.payload.tierUrls) return;
     const urls = window.payload.tierUrls[activeTier];
     if (!urls) return;
@@ -5821,7 +5821,7 @@ window.toggleFavSymbol = function(event, sym) {
 };
 
 window.selectMarketFromList = async function(symbol) {
-    const tier = activeEnvFilter || 'PRODUCTION';
+    const tier = window.activeEnvFilter || 'PRODUCTION';
     if (cachedInstances && cachedInstances[symbol]) {
         window.selectTab(symbol);
         window.closeMarketListModal();
@@ -5870,7 +5870,7 @@ window.renderMarketListTable = function() {
     const tbody = document.getElementById('market-list-table-body');
     if (!tbody) return;
     
-    const activeTier = activeEnvFilter || 'PRODUCTION';
+    const activeTier = window.activeEnvFilter || 'PRODUCTION';
     const exchangeSymbols = window.stageExchangeInfoSymbols[activeTier] || [];
     
     let symbols = [];
@@ -5938,7 +5938,7 @@ window.renderMarketListTable = function() {
             changeText = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
         }
         
-        const isActiveSymbol = sym === activeTabSymbol;
+        const isActiveSymbol = sym === window.activeTabSymbol;
         const activeStyle = isActiveSymbol ? 'background: rgba(6, 182, 212, 0.08); border-left: 3px solid var(--cyan);' : '';
         return `
         <tr class="m-row" onclick="window.selectMarketFromList('${sym}')" style="${activeStyle}">
