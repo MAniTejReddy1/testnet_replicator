@@ -350,11 +350,38 @@ async function sendSignedRequest(url, method, payload, userConfig, timeoutMs = 5
     }
 }
 
+const cachedAuthTokens = new Map();
+const activeSeedPromises = new Map();
+
 // Seed balance helper — logs in with email/password to get bearer token, then calls seed_balance
 async function seedBalance(userCreds, tier = 'PRODUCTION') {
+    if (!userCreds || !userCreds.email) return false;
+    const cacheKey = `${userCreds.email}_${tier}`;
+    
+    // If there is already an active seeding request for this user on this tier, wait for it / return it
+    if (activeSeedPromises.has(cacheKey)) {
+        log.info('SYSTEM', `[SEED][${tier}] Seeding already in progress for ${userCreds.email}. Reusing existing promise.`);
+        return activeSeedPromises.get(cacheKey);
+    }
+    
+    const promise = (async () => {
+        try {
+            return await runSeedBalance(userCreds, tier);
+        } finally {
+            activeSeedPromises.delete(cacheKey);
+        }
+    })();
+    
+    activeSeedPromises.set(cacheKey, promise);
+    return promise;
+}
+
+async function runSeedBalance(userCreds, tier) {
     const urls = TIER_URLS[tier] || TIER_URLS.PRODUCTION;
     const AUTH_URL = `${urls.ONBOARDING}/api/v3/authenticate`;
     const SEED_URL = `${urls.HPO}/api/v1/derivatives/futures/wallets/seed_balance`;
+    const cacheKey = `${userCreds.email}_${tier}`;
+
     try {
         emitOrderEvent('seed:triggered', { user: userCreds.email, tier });
         if (!userCreds.email || !userCreds.password) {
@@ -363,22 +390,31 @@ async function seedBalance(userCreds, tier = 'PRODUCTION') {
             return false;
         }
 
-        // Step 1: Login to get bearer token
-        log.info('SYSTEM', `[SEED][${tier}] Authenticating ` + userCreds.email + ' to get bearer token...');
-        const loginRes = await fetch(AUTH_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'User-Agent': 'PostmanRuntime/7.32.3' },
-            body: JSON.stringify({ email: userCreds.email, password: userCreds.password, pe: false, piie: false })
-        });
-        const loginData = await loginRes.json();
-        const bearerToken = loginData.auth_token || loginData.token;
+        let bearerToken = null;
+        const cached = cachedAuthTokens.get(cacheKey);
+        // Reuse cached token if it's less than 5 minutes old
+        if (cached && (Date.now() - cached.ts < 5 * 60 * 1000)) {
+            bearerToken = cached.token;
+            log.info('SYSTEM', `[SEED][${tier}] Reusing cached auth token for ${userCreds.email}`);
+        } else {
+            // Step 1: Login to get bearer token
+            log.info('SYSTEM', `[SEED][${tier}] Authenticating ` + userCreds.email + ' to get bearer token...');
+            const loginRes = await fetch(AUTH_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'User-Agent': 'PostmanRuntime/7.32.3' },
+                body: JSON.stringify({ email: userCreds.email, password: userCreds.password, pe: false, piie: false })
+            });
+            const loginData = await loginRes.json();
+            bearerToken = loginData.auth_token || loginData.token;
 
-        if (!bearerToken) {
-            log.warn('SYSTEM', `[SEED][${tier}] Login failed — no auth_token in response: ` + JSON.stringify(loginData));
-            emitOrderEvent('seed:failed', { user: userCreds.email, tier, error: 'Login failed: ' + JSON.stringify(loginData) });
-            return false;
+            if (!bearerToken) {
+                log.warn('SYSTEM', `[SEED][${tier}] Login failed — no auth_token in response: ` + JSON.stringify(loginData));
+                emitOrderEvent('seed:failed', { user: userCreds.email, tier, error: 'Login failed: ' + JSON.stringify(loginData) });
+                return false;
+            }
+            log.success('SYSTEM', `[SEED][${tier}] Login successful. Got bearer token.`);
+            cachedAuthTokens.set(cacheKey, { token: bearerToken, ts: Date.now() });
         }
-        log.success('SYSTEM', `[SEED][${tier}] Login successful. Got bearer token.`);
 
         // Step 2: Call seed_balance with bearer token
         log.info('SYSTEM', `[SEED][${tier}] Calling seed_balance...`);
@@ -391,6 +427,14 @@ async function seedBalance(userCreds, tier = 'PRODUCTION') {
             },
             body: JSON.stringify({ currency_short_name: 'USDT' })
         });
+        
+        // Handle token expiration/invalid token (401/403) by clearing cache and retrying once
+        if ((seedRes.status === 401 || seedRes.status === 403) && cached) {
+            log.warn('SYSTEM', `[SEED][${tier}] Cached token rejected with status ${seedRes.status}. Clearing cache and retrying authentication...`);
+            cachedAuthTokens.delete(cacheKey);
+            return runSeedBalance(userCreds, tier); // Recursive retry with cleared cache
+        }
+        
         const seedData = await seedRes.json().catch(function() { return {}; });
 
         if (seedRes.ok || seedRes.status < 400) {
@@ -535,6 +579,86 @@ function applyBuffer(priceStr, side, bufferPct, symbol, tier = 'PRODUCTION') {
     return formatPrice(String(raw * multiplier), symbol, tier);
 }
 
+async function autoGenerateNewUserAndAssign(role, tier) {
+    const roleKey = role === 'TAKER' ? 'takerId' : 'makerId';
+    const uniqueId = 'user_' + Math.random().toString(36).substring(2, 10);
+    log.info('SYSTEM', `[RECOVERY][${tier}] Starting auto-generation of new user ${uniqueId} for role ${role}...`);
+    
+    try {
+        const { execFile } = require('child_process');
+        const execFileAsync = require('util').promisify(execFile);
+        const targetUrls = TIER_URLS[tier] || TIER_URLS.PRODUCTION;
+        
+        const { stdout } = await execFileAsync('node', ['scripts/generate-single.js', uniqueId], {
+            env: {
+                ...process.env,
+                API_BASE: targetUrls.ONBOARDING,
+                RAILS_BASE: targetUrls.RAILS,
+                FUTURES_URL: targetUrls.HPO
+            }
+        });
+        
+        const result = JSON.parse(stdout.trim());
+        
+        globalUsers[tier] = globalUsers[tier] || {};
+        globalUsers[tier][uniqueId] = {
+            label: uniqueId,
+            key: result.key,
+            secret: result.secret,
+            email: result.email,
+            password: 'Test@123',
+            listenKey: ''
+        };
+        
+        globalRoles[tier] = globalRoles[tier] || { makerId: '', takerId: '' };
+        globalRoles[tier][roleKey] = uniqueId;
+        lastPortfolioSyncTime = 0;
+        
+        log.success('SYSTEM', `[RECOVERY][${tier}] Successfully generated and assigned ${uniqueId} to ${roleKey}. Reconnecting private WS...`);
+        
+        // Reconnect WS for this tier
+        reconnectAllInstancesPrivateWs(tier);
+        
+        // Authenticate to get listenKey and spawn the PrivateWsClient
+        const listenKey = await authenticateAndGetListenKey(result.email, 'Test@123', tier);
+        if (listenKey) {
+            globalUsers[tier][uniqueId].listenKey = listenKey;
+            if (globalUserWsClients[uniqueId]) {
+                try { globalUserWsClients[uniqueId].close(); } catch(e) {}
+            }
+            globalUserWsClients[uniqueId] = new PrivateWsClient(
+                listenKey,
+                () => {},
+                uniqueId,
+                uniqueId,
+                tier
+            );
+        }
+        
+        // Update WebSocket connections on all active instances of this tier
+        const tierInstances = instances[tier] || new Map();
+        for (const [, inst] of tierInstances.entries()) {
+            if (role === 'MAKER' && inst.makerWs) {
+                try { inst.makerWs.close(); } catch (e) {}
+                if (listenKey) {
+                    inst.makerWs = new PrivateWsClient(listenKey, inst.onMakerWsEvent.bind(inst), 'Maker', uniqueId, tier);
+                }
+            } else if (role === 'TAKER' && inst.takerWs) {
+                try { inst.takerWs.close(); } catch (e) {}
+                if (listenKey) {
+                    inst.takerWs = new PrivateWsClient(listenKey, inst.onTakerWsEvent.bind(inst), 'Taker', uniqueId, tier);
+                }
+            }
+        }
+        
+        broadcastToUI();
+        return true;
+    } catch (e) {
+        log.error('SYSTEM', `[RECOVERY][${tier}] User generation for recovery failed: ${e.message}`);
+        return false;
+    }
+}
+
 // ==========================================
 // Private WebSocket: Auth + Dual-Socket Architecture
 // ==========================================
@@ -545,10 +669,12 @@ function applyBuffer(priceStr, side, bufferPct, symbol, tier = 'PRODUCTION') {
 //      - wss://...?listenKey=<user_id>&events=ORDER_TRADE_UPDATE
 //      - wss://...?listenKey=<user_id>&events=ACCOUNT_UPDATE
 
-async function authenticateAndGetListenKey(email, password) {
+async function authenticateAndGetListenKey(email, password, tier = 'PRODUCTION') {
     try {
+        const urls = TIER_URLS[tier] || TIER_URLS.PRODUCTION;
+        const authUrl = `${urls.ONBOARDING}/api/v3/authenticate`;
         const body = JSON.stringify({ email, password, pe: false, piie: false });
-        const res = await fetch('https://testnet-api.dcxstage.com/api/v3/authenticate', {
+        const res = await fetch(authUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -610,7 +736,7 @@ async function fetchListenKeys() {
             continue;
         }
 
-        const listenKey = await authenticateAndGetListenKey(userConfig.email, userConfig.password);
+        const listenKey = await authenticateAndGetListenKey(userConfig.email, userConfig.password, globalActiveTier);
         if (listenKey) {
             userConfig.listenKey = listenKey;
             globalUserWsClients[userId] = new PrivateWsClient(
@@ -621,7 +747,13 @@ async function fetchListenKeys() {
                 globalActiveTier
             );
         } else {
-            log.warn('SYSTEM', `Could not obtain listenKey for ${userConfig.label || userId} — private WS disabled.`, null, globalActiveTier);
+            log.warn('SYSTEM', `Could not obtain listenKey for ${userConfig.label || userId} — attempting auto user recovery...`, null, globalActiveTier);
+            const tierRoles = globalRoles[globalActiveTier] || { makerId: '', takerId: '' };
+            if (tierRoles.makerId === userId) {
+                await autoGenerateNewUserAndAssign('MAKER', globalActiveTier);
+            } else if (tierRoles.takerId === userId) {
+                await autoGenerateNewUserAndAssign('TAKER', globalActiveTier);
+            }
         }
     }
 }
@@ -644,7 +776,7 @@ function startListenKeyKeepalive() {
         for (const [userId, userConfig] of Object.entries(tierUsers)) {
             if (!userConfig.email || !userConfig.password) continue;
             try {
-                const newKey = await authenticateAndGetListenKey(userConfig.email, userConfig.password);
+                const newKey = await authenticateAndGetListenKey(userConfig.email, userConfig.password, globalActiveTier);
                 if (newKey && newKey !== userConfig.listenKey) {
                     log.info('SYSTEM', `Listen key refreshed for ${userConfig.label || userId}. Reconnecting...`, null, globalActiveTier);
                     userConfig.listenKey = newKey;
@@ -1081,7 +1213,19 @@ class ReplicatorInstance {
         log.debug(this.symbol, `[ORDER-PRE] ${userLabel} placing ${orderType} ${side} ${qty} @ ${bufferedPrice || 'MKT'} (raw: ${price}, buf: ${this.bufferPct}%)`);
         const res = await sendSignedRequest(`${hpoBase}/fapi/v1/order`, 'POST', payload, userCreds);
 
-        if (res.status === 401) { this.handleAuthFailure(userLabel); return { success: false }; }
+        if (res.status === 401) {
+            this.handleAuthFailure(userLabel);
+            if (!_isRetry) {
+                log.warn(this.symbol, `[AUTH-FAIL] ${userLabel} got 401 — attempting auto user recovery...`);
+                const roleName = isTaker ? 'TAKER' : 'MAKER';
+                const recovered = await autoGenerateNewUserAndAssign(roleName, this.tier);
+                if (recovered) {
+                    log.success(this.symbol, `[AUTH-FAIL] ${userLabel} recovered with a new user. Retrying order...`);
+                    return this.placeOrder(side, qty, price, orderType, isTaker, clientOrderId, true);
+                }
+            }
+            return { success: false };
+        }
 
         // Auto-retry on limit multiplier constraint: pause, align LTP, retry
         if (!res.ok && !_isRetry && res.data) {
@@ -1116,7 +1260,15 @@ class ReplicatorInstance {
                 log.success(this.symbol, `[SEED] ${userLabel} balance topped up. Retrying order...`);
                 return this.placeOrder(side, qty, price, orderType, isTaker, clientOrderId, true);
             } else {
-                log.error(this.symbol, `[SEED] ${userLabel} seed_balance failed — cannot retry.`);
+                log.error(this.symbol, `[SEED] ${userLabel} seed_balance failed — attempting auto user recovery...`);
+                const roleName = isTaker ? 'TAKER' : 'MAKER';
+                const recovered = await autoGenerateNewUserAndAssign(roleName, this.tier);
+                if (recovered) {
+                    log.success(this.symbol, `[SEED] ${userLabel} recovered with a new user. Retrying order...`);
+                    return this.placeOrder(side, qty, price, orderType, isTaker, clientOrderId, true);
+                } else {
+                    log.error(this.symbol, `[SEED] ${userLabel} recovery failed — cannot retry.`);
+                }
             }
         }
 
@@ -1178,7 +1330,15 @@ class ReplicatorInstance {
         }
         const res = await sendSignedRequest(`${hpoBase}/fapi/v1/order`, 'PUT', payload, makerUser, 50000, this.tier);
 
-        if (res.status === 401) this.handleAuthFailure('USER1_MAKER');
+        if (res.status === 401) {
+            this.handleAuthFailure('USER1_MAKER');
+            log.warn(this.symbol, `[AUTH-FAIL] Maker got 401 on modify — attempting auto user recovery...`);
+            const recovered = await autoGenerateNewUserAndAssign('MAKER', this.tier);
+            if (recovered) {
+                log.success(this.symbol, `[AUTH-FAIL] Maker recovered. Replaced with new user.`);
+            }
+            return { success: false, isTerminal: true };
+        }
         const isTerminal = res.ok || res.status === 404 || (res.data && [-2011, -2013, -4000].includes(res.data.code));
         
         if (res.ok) {
