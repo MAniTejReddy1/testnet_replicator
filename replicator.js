@@ -2349,14 +2349,6 @@ startBinanceDepthWS() {
         log.info(this.symbol, 'Mounting market in data-only mode (simulation stopped)...', null, this.tier);
         await this.fetchInitialMarkPrices();
         await this.reloadDepth();
-        this.startBinanceDepthWS();
-        this.startBinanceTradesWS();
-        this.startTestnetDepthWS();
-        this.startTestnetTradesWS();
-        this.startBinanceTickerWS();
-        this.startTestnetTickerWS();
-        this.startBinanceMarkPriceWS();
-        this.startTestnetMarkPriceWS();
     }
 
     async start() {
