@@ -2224,25 +2224,31 @@ startBinanceDepthWS() {
     startBinanceTradesWS() {
         if (this.wsBinanceTrades) return;
         const sym = this.sourceSymbol.toLowerCase(); // Using Source Symbol
-        const url = `wss://fstream.binance.com/public/ws/${sym}@aggTrade`;
+        // NOTE: aggTrade stream is regionally blocked; raw 'trade' stream works and has identical fields (p, q, m)
+        const url = `wss://fstream.binance.com/public/ws/${sym}@trade`;
 
         this.wsBinanceTrades = new WebSocket(url);
-        this.wsBinanceTrades.on('open', () => { pushEvent('SUCCESS', this.symbol, `Binance Trades WS connected`, { stream: 'aggTrade' }, 'ws'); });
+        this.wsBinanceTrades.on('open', () => {
+            pushEvent('SUCCESS', this.symbol, `Binance Trades WS connected`, { stream: 'trade' }, 'ws');
+            log.info(this.symbol, `[TRADES-WS] Connected to Binance trade stream for ${this.sourceSymbol} (status=${this.status}, tradeSync=${this.enableTradeSync})`);
+        });
         this.wsBinanceTrades.on('message', (raw) => {
             try {
                 const data = JSON.parse(raw.toString());
-                if (data.e === 'aggTrade') {
+                if (data.e === 'trade') {
                     this.binanceLtp = data.p;
                     const side = data.m ? 'SELL' : 'BUY';
                     pushEvent('EVENT', this.symbol, `Trade | ${side} | Price: ${data.p} | Qty: ${data.q}`, data, 'trade');
                     if (this.status === 'RUNNING' && this.enableTradeSync) {
                         this.tradeQueue.push({ p: data.p, q: data.q, m: data.m });
                         this.processTradeQueue();
+                    } else {
+                        log.warn(this.symbol, `[TRADES-WS] Trade received but gated: status=${this.status}, enableTradeSync=${this.enableTradeSync}`);
                     }
                 }
-            } catch (e) { log.debug && log.debug('SYSTEM', e.message); }
+            } catch (e) { log.error(this.symbol, `[TRADES-WS] Message handler error: ${e.message}`); }
         });
-        this.wsBinanceTrades.on('error', (err) => { pushEvent('ERROR', this.symbol, `Binance Trades WS error: ${err.message}`, null, 'ws'); });
+        this.wsBinanceTrades.on('error', (err) => { log.error(this.symbol, `[TRADES-WS] Error: ${err.message}`); pushEvent('ERROR', this.symbol, `Binance Trades WS error: ${err.message}`, null, 'ws'); });
         this.wsBinanceTrades.on('close', () => { pushEvent('WARN', this.symbol, `Binance Trades WS disconnected — reconnecting...`, null, 'ws'); this.wsBinanceTrades = null; setTimeout(() => this.startBinanceTradesWS(), 3000); });
     }
 
