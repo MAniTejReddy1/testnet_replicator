@@ -611,6 +611,43 @@
       font-weight: 600;
   }
 
+  /* Market List Styles */
+  .m-row {
+      cursor: pointer;
+      transition: background 0.15s ease;
+      border-bottom: 1px solid var(--border);
+  }
+  .m-row:hover {
+      background: var(--row-hover) !important;
+  }
+  .m-fav-star {
+      cursor: pointer;
+      font-size: 14px;
+      transition: color 0.15s;
+      user-select: none;
+      padding: 0 4px;
+  }
+  .m-fav-star.active {
+      color: #eab308 !important;
+  }
+  .m-badge-lev {
+      background: rgba(6, 182, 212, 0.15);
+      color: var(--cyan);
+      font-size: 9px;
+      padding: 1px 4px;
+      border-radius: 4px;
+      font-weight: 700;
+      margin-left: 6px;
+      display: inline-block;
+  }
+  .m-pct-up {
+      color: #10b981;
+      font-weight: 600;
+  }
+  .m-pct-down {
+      color: #f43f5e;
+      font-weight: 600;
+  }
 </style>
 </head>
 <body>
@@ -747,7 +784,22 @@
       <button class="env-tab" data-env="STAGING" style="background:transparent; border:none; color:var(--text-muted); padding: 4px 10px; font-size: 9px; font-weight:700; font-family:inherit; cursor:pointer; border-radius: 5px; transition: all 0.2s;">STAGING</button>
     </div>
   </div>
-  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;flex:0 1 auto;justify-content:center;" id="symbol-tabs"></div>
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;flex:0 1 auto;justify-content:center;">
+    <!-- Markets Selector Button -->
+    <button id="btn-markets-list-open" onclick="window.openMarketListModal()" style="background: rgba(6, 182, 212, 0.08); border: 1px solid rgba(6, 182, 212, 0.2); color: var(--cyan); padding: 7px 14px; font-size: 11px; font-weight: 700; font-family: inherit; cursor: pointer; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.background='rgba(6, 182, 212, 0.15)';" onmouseout="this.style.background='rgba(6, 182, 212, 0.08)';">
+      <span style="font-size: 13px;">☰</span> Markets
+    </button>
+    
+    <!-- Active Market List Dropdown -->
+    <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 4px 10px; border-radius: 8px;">
+      <span style="font-size: 10px; color: var(--text-muted); font-weight: 600;">Active:</span>
+      <select id="active-market-dropdown" onchange="window.selectTab(this.value)" style="background: transparent; border: none; color: var(--text-main); font-size: 11px; font-weight: 600; font-family: inherit; cursor: pointer; outline: none; padding-right: 4px;">
+        <option value="" style="background: var(--drawer-bg); color: var(--text-main);">No active markets</option>
+      </select>
+    </div>
+    
+    <div style="display:flex;gap:10px;align-items:center;" id="symbol-tabs"></div>
+  </div>
   <div style="display:flex;gap:12px;align-items:center;flex:1;justify-content:flex-end;">
     <div id="c-status-toast" style="display:none;"></div>
     <div class="chip"><div class="chip-label">Engine Status</div><div class="chip-val" id="c-eng"><span class="c-rose fw-bold">OFFLINE</span></div></div>
@@ -4895,6 +4947,18 @@ window.addEventListener('DOMContentLoaded', () => {
                     return tier === activeEnvFilter;
                 });
 
+                const dropdown = document.getElementById('active-market-dropdown');
+                if (dropdown) {
+                    if (symbols.length === 0) {
+                        dropdown.innerHTML = '<option value="" style="background: var(--drawer-bg); color: var(--text-muted);">No active markets</option>';
+                    } else {
+                        dropdown.innerHTML = symbols.map(sym => {
+                            const isSel = sym === activeTabSymbol ? 'selected' : '';
+                            return `<option value="${sym}" ${isSel} style="background: var(--drawer-bg); color: var(--text-main);">${sym}</option>`;
+                        }).join('');
+                    }
+                }
+
                 document.getElementById('dot').className = 'dot-live';
 
                 if (symbols.length === 0) {
@@ -5606,7 +5670,269 @@ window.addEventListener('DOMContentLoaded', () => {
         if (sp) sp.classList.add('hidden');
     }
 });
+
+/* Market List Module Javascript Code */
+let wsAllTickers = null;
+window.allTickersData = {};
+window.marketListTab = 'all';
+window.isMarketListModalOpen = false;
+
+function startAllTickersWS() {
+    if (wsAllTickers) return;
+    wsAllTickers = new WebSocket('wss://fstream.binance.com/public/ws/!ticker@arr');
+    wsAllTickers.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            if (Array.isArray(data)) {
+                data.forEach(t => {
+                    window.allTickersData[t.s] = {
+                        ltp: parseFloat(t.c || 0),
+                        changePercent: parseFloat(t.P || 0),
+                        volume: parseFloat(t.q || 0)
+                    };
+                });
+                if (window.isMarketListModalOpen) {
+                    window.renderMarketListTable();
+                }
+            }
+        } catch(e) {}
+    };
+    wsAllTickers.onclose = () => {
+        wsAllTickers = null;
+        setTimeout(startAllTickersWS, 3000);
+    };
+    wsAllTickers.onerror = () => {
+        if (wsAllTickers) wsAllTickers.close();
+    };
+}
+startAllTickersWS();
+
+window.openMarketListModal = function() {
+    window.isMarketListModalOpen = true;
+    const overlay = document.getElementById('market-list-overlay');
+    if (overlay) {
+        overlay.style.display = 'flex';
+        void overlay.offsetWidth;
+        overlay.style.opacity = '1';
+    }
+    startAllTickersWS();
+    window.renderMarketListTable();
+};
+
+window.closeMarketListModal = function() {
+    window.isMarketListModalOpen = false;
+    const overlay = document.getElementById('market-list-overlay');
+    if (overlay) {
+        overlay.style.opacity = '0';
+        setTimeout(() => { overlay.style.display = 'none'; }, 300);
+    }
+};
+
+window.setMarketListTab = function(tab) {
+    window.marketListTab = tab;
+    const btnAll = document.getElementById('m-tab-all');
+    const btnFav = document.getElementById('m-tab-fav');
+    if (btnAll && btnFav) {
+        if (tab === 'all') {
+            btnAll.style.background = 'var(--border)';
+            btnAll.style.color = 'var(--text-main)';
+            btnFav.style.background = 'transparent';
+            btnFav.style.color = 'var(--text-muted)';
+        } else {
+            btnFav.style.background = 'var(--border)';
+            btnFav.style.color = 'var(--text-main)';
+            btnAll.style.background = 'transparent';
+            btnAll.style.color = 'var(--text-muted)';
+        }
+    }
+    window.renderMarketListTable();
+};
+
+window.toggleFavSymbol = function(event, sym) {
+    event.stopPropagation();
+    let favs = [];
+    try { favs = JSON.parse(localStorage.getItem('replicator_fav_symbols')) || []; } catch(e){}
+    if (favs.includes(sym)) {
+        favs = favs.filter(f => f !== sym);
+    } else {
+        favs.push(sym);
+    }
+    localStorage.setItem('replicator_fav_symbols', JSON.stringify(favs));
+    window.renderMarketListTable();
+};
+
+window.selectMarketFromList = async function(symbol) {
+    const tier = activeEnvFilter || 'PRODUCTION';
+    if (cachedInstances && cachedInstances[symbol]) {
+        window.selectTab(symbol);
+        window.closeMarketListModal();
+        return;
+    }
+    
+    showToast(`⚡ Mounting market ${symbol} (data-only mode)...`);
+    try {
+        const reqBody = {
+            tier: tier,
+            symbol: symbol,
+            targetSymbol: symbol,
+            minSize: 100,
+            maxSize: 500,
+            takerSize: 10,
+            makerUseRawQty: false,
+            depthLevels: 10,
+            bufferPct: 0,
+            tradeDelayMs: 0,
+            cancelOnStop: false,
+            newUserFlow: false,
+            enableTradeSync: true,
+            mountOnly: true
+        };
+        
+        const res = await fetch(window.getApiUrl('/api/config'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(reqBody)
+        });
+        
+        if (res.ok) {
+            showToast(`✓ Mounted market ${symbol} successfully`);
+            window.selectTab(symbol);
+            window.closeMarketListModal();
+        } else {
+            showToast(`✗ Failed to mount market`, true);
+        }
+    } catch (err) {
+        showToast(`✗ Network error: ${err.message}`, true);
+    }
+};
+
+window.renderMarketListTable = function() {
+    const searchVal = (document.getElementById('m-list-search')?.value || '').toUpperCase();
+    const tbody = document.getElementById('market-list-table-body');
+    if (!tbody) return;
+    
+    const activeTier = activeEnvFilter || 'PRODUCTION';
+    const tierInstruments = (window.payload && window.payload.instruments && window.payload.instruments[activeTier]) || {};
+    
+    let favs = [];
+    try { favs = JSON.parse(localStorage.getItem('replicator_fav_symbols')) || []; } catch(e){}
+    
+    let symbols = Object.keys(tierInstruments);
+    
+    // Filters
+    if (searchVal) {
+        symbols = symbols.filter(s => s.includes(searchVal));
+    }
+    if (window.marketListTab === 'fav') {
+        symbols = symbols.filter(s => favs.includes(s));
+    }
+    
+    // Sort by Volume (descending)
+    symbols.sort((a, b) => {
+        const volA = window.allTickersData[a]?.volume || 0;
+        const volB = window.allTickersData[b]?.volume || 0;
+        return volB - volA;
+    });
+    
+    if (symbols.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="padding: 24px; text-align: center; color: var(--text-muted);">No markets found</td></tr>`;
+        return;
+    }
+    
+    function formatMarketVol(val) {
+        if (val === null || val === undefined || isNaN(val)) return '—';
+        if (val >= 1e9) return (val / 1e9).toFixed(2) + 'B';
+        if (val >= 1e6) return (val / 1e6).toFixed(2) + 'M';
+        if (val >= 1e3) return (val / 1e3).toFixed(1) + 'K';
+        return val.toFixed(1);
+    }
+    
+    tbody.innerHTML = symbols.map(sym => {
+        const data = window.allTickersData[sym] || {};
+        const ltp = data.ltp !== undefined ? data.ltp : null;
+        const change = data.changePercent !== undefined ? data.changePercent : null;
+        const volume = data.volume !== undefined ? data.volume : null;
+        
+        const isFav = favs.includes(sym);
+        
+        // Split symbol for dot display (e.g. BTCUSDT -> BTC•USDT)
+        let nameHtml = sym;
+        if (sym.endsWith('USDT')) {
+            nameHtml = sym.replace('USDT', '') + '•USDT';
+        }
+        
+        // Leverage badge (BTC/ETH -> 100x, others standard default 30x/50x)
+        let levBadge = '30x';
+        if (sym.startsWith('BTC') || sym.startsWith('ETH')) levBadge = '100x';
+        else if (sym.startsWith('SOL') || sym.startsWith('ADA') || sym.startsWith('XRP') || sym.startsWith('ZEC') || sym.startsWith('DOGE') || sym.startsWith('BNB')) levBadge = '100x';
+        
+        let changeClass = '';
+        let changeText = '—';
+        if (change !== null) {
+            changeClass = change >= 0 ? 'm-pct-up' : 'm-pct-down';
+            changeText = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
+        }
+        
+        return `
+        <tr class="m-row" onclick="window.selectMarketFromList('${sym}')">
+            <td style="padding: 12px 8px; text-align: center;">
+                <span class="m-fav-star ${isFav ? 'active' : ''}" onclick="window.toggleFavSymbol(event, '${sym}')">${isFav ? '★' : '☆'}</span>
+            </td>
+            <td style="padding: 12px 8px; font-weight: 600; color: var(--text-main);">
+                ${nameHtml} <span class="m-badge-lev">${levBadge}</span>
+            </td>
+            <td style="padding: 12px 8px; text-align: right; font-family: monospace; font-weight: 600; color: var(--text-main);">
+                ${ltp !== null ? ltp.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 }) : '—'}
+            </td>
+            <td style="padding: 12px 8px; text-align: right; font-family: monospace; font-weight: 600;" class="${changeClass}">
+                ${changeText}
+            </td>
+            <td style="padding: 12px 8px; text-align: right; color: var(--text-muted); font-weight: 500;">
+                ${volume !== null ? formatMarketVol(volume) + ' USDT' : '—'}
+            </td>
+        </tr>`;
+    }).join('');
+};
 </script>
+<!-- Market List Modal Screen Overlay -->
+<div id="market-list-overlay" style="position:fixed; inset:0; z-index:1500; background:rgba(0,0,0,.65); backdrop-filter: blur(5px); display:none; opacity: 0; transition: opacity .3s; align-items:center; justify-content:center; padding: 24px;" onclick="window.closeMarketListModal()">
+  <div style="background: var(--drawer-bg); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 600px; height: 80vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow-heavy);" onclick="event.stopPropagation()">
+    <!-- Header -->
+    <div style="padding: 18px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+      <div style="font-weight: 700; font-size: 16px; color: var(--text-main); display:flex; align-items:center; gap:8px;">
+        <span style="color: var(--cyan); font-size: 18px;">📊</span> Futures Markets
+      </div>
+      <button onclick="window.closeMarketListModal()" style="background: none; border: none; color: var(--text-muted); font-size: 28px; cursor: pointer; line-height: 1; outline: none;">&times;</button>
+    </div>
+    
+    <!-- Controls (Search + Filters) -->
+    <div style="padding: 16px 24px; display: flex; flex-direction: column; gap: 12px; border-bottom: 1px solid var(--border);">
+      <input type="text" id="m-list-search" placeholder="Search markets by name (e.g. BTC)..." oninput="window.renderMarketListTable()" style="width:100%; padding: 12px 16px; background: var(--input-bg); border: 1px solid var(--border); color: var(--text-main); border-radius: 10px; font-size: 13px; outline: none; font-family: inherit; box-sizing: border-box;" />
+      <div style="display: flex; gap: 8px;">
+        <button id="m-tab-all" class="ctrl-btn" onclick="window.setMarketListTab('all')" style="padding: 6px 16px; font-size: 11px; background: var(--border); border: 1px solid var(--border); color: var(--text-main); border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.2s;">All</button>
+        <button id="m-tab-fav" class="ctrl-btn" onclick="window.setMarketListTab('fav')" style="padding: 6px 16px; font-size: 11px; background: transparent; border: 1px solid var(--border); color: var(--text-muted); border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.2s;">⭐ Favorites</button>
+      </div>
+    </div>
+    
+    <!-- Table Container -->
+    <div style="flex: 1; overflow-y: auto; padding: 8px 16px;">
+      <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 12px;">
+        <thead>
+          <tr style="color: var(--text-muted); font-weight: 700; border-bottom: 1px solid var(--border); text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">
+            <th style="padding: 10px 8px; width: 40px; text-align: center;"></th>
+            <th style="padding: 10px 8px;">Name</th>
+            <th style="padding: 10px 8px; text-align: right;">LTP</th>
+            <th style="padding: 10px 8px; text-align: right;">24h %</th>
+            <th style="padding: 10px 8px; text-align: right;">Volume</th>
+          </tr>
+        </thead>
+        <tbody id="market-list-table-body">
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <!-- L2 Modal Screen Overlay -->
 <div id="l2-modal-overlay" class="l2-overlay">
     <div class="l2-modal-card" onclick="event.stopPropagation()">

@@ -2331,6 +2331,12 @@ startBinanceDepthWS() {
         log.success(this.symbol, 'All streams and depth successfully reloaded.');
     }
 
+    async mountOnly() {
+        this.status = 'STOPPED';
+        log.info(this.symbol, 'Mounting market in data-only mode (simulation stopped)...', null, this.tier);
+        await this.reloadDepth();
+    }
+
     async start() {
         if (this.status === 'RUNNING') return;
         
@@ -2578,6 +2584,7 @@ function buildPayload(isSnapshot = true, sinceTs = 0) {
         users: usersMetadata,
         roles: globalRoles,
         activeTier: globalActiveTier,
+        instruments: instrumentsMap,
         terminalLogs,
         terminalEvents: isSnapshot ? terminalEvents : terminalEvents.filter(e => e.ts > sinceTs),
         orderUpdateCounter: globalOrderUpdateCounter
@@ -2853,8 +2860,13 @@ const server = http.createServer(async (req, res) => {
                             enableTradeSync: parsed.enableTradeSync !== false
                         });
                         instances[tier].set(targetSym, inst);
-                        inst.start().catch(e => log.error(targetSym, `Start failed: ${e.message}`, null, tier));
-                        log.info(targetSym, `New market mounted from UI.`, null, tier);
+                        if (parsed.mountOnly) {
+                            inst.mountOnly().catch(e => log.error(targetSym, `Mount failed: ${e.message}`, null, tier));
+                            log.info(targetSym, `New market mounted in data-only mode.`, null, tier);
+                        } else {
+                            inst.start().catch(e => log.error(targetSym, `Start failed: ${e.message}`, null, tier));
+                            log.info(targetSym, `New market mounted from UI.`, null, tier);
+                        }
                     } else {
                         if (parsed.minSize     !== undefined) inst.minSize     = parseFloat(parsed.minSize);
                         if (parsed.maxSize     !== undefined) inst.maxSize     = parseFloat(parsed.maxSize);
