@@ -3304,12 +3304,10 @@ async function startBots() {
 
     await Promise.allSettled([syncServerTime(), ...loadInstPromises]);
     
-    // Wipe all orphaned open orders across accounts
-    try {
-        await globalStartupCleanup();
-    } catch (e) {
+    // Wipe all orphaned open orders across accounts in background
+    globalStartupCleanup().catch(e => {
         log.error('SYSTEM', 'Startup global cleanup failed: ' + e.message);
-    }
+    });
     
     // Fetch listen keys and connect user data streams for real-time events
     await fetchListenKeys();
