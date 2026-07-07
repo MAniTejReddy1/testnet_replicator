@@ -2045,14 +2045,15 @@ class ReplicatorInstance {
 
         const makerSide = trade.m ? 'BUY' : 'SELL';
         const takerSide = trade.m ? 'SELL' : 'BUY';
-        this.priceLocks.add(pStr);
 
+        // Determine if there's a resting maker order at this price BEFORE acquiring priceLock
+        const restingPool     = makerSide === 'BUY' ? this.restingBids : this.restingAsks;
+        const hasRestingMaker = restingPool.find(ro => ro && ro.price === pStr);
+        let finalMakerId      = hasRestingMaker ? hasRestingMaker.orderId : null;
+
+        this.priceLocks.add(pStr);
         log.info(this.symbol, `[TRADE-SYNC] Starting sync: makerSide=${makerSide}, makerQty=${makerQty}, takerQty=${takerQty}, price=${transformedTradePrice}, hasRestingMaker=${!!hasRestingMaker}`);
         try {
-            const restingPool   = makerSide === 'BUY' ? this.restingBids : this.restingAsks;
-            const hasRestingMaker = restingPool.find(ro => ro && ro.price === pStr);
-            let finalMakerId = hasRestingMaker ? hasRestingMaker.orderId : null;
-
             if (!hasRestingMaker) {
                 const makerRes = await this.placeOrder(makerSide, makerQty, transformedTradePrice, 'LIMIT');
                 finalMakerId = makerRes.orderId;
@@ -3329,7 +3330,8 @@ const server = http.createServer(async (req, res) => {
                         if (parsed.cancelOnStop !== undefined) inst.cancelOnStop = Boolean(parsed.cancelOnStop);
                         if (parsed.tradeDelayMs !== undefined) inst.tradeDelayMs = parseInt(parsed.tradeDelayMs);
                         if (parsed.newUserFlow !== undefined) inst.newUserFlow = Boolean(parsed.newUserFlow);
-                        if (parsed.enableTradeSync !== undefined) inst.enableTradeSync = Boolean(parsed.enableTradeSync);
+                        // Use !== false comparison so string 'false' is treated correctly
+                        if (parsed.enableTradeSync !== undefined) inst.enableTradeSync = parsed.enableTradeSync !== false && parsed.enableTradeSync !== 'false';
                         log.info(targetSym, `Config updated for existing instance.`, null, tier);
                     }
 
