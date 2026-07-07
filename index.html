@@ -2757,60 +2757,59 @@ window.addEventListener('DOMContentLoaded', () => {
         window.lastActiveSymbolByEnv = { PRODUCTION: null, JAPAN: null, STAGING: null };
         try {
             const savedSymbols = localStorage.getItem('replicator_last_active_symbols');
-            if (savedSymbols) Object.assign(lastActiveSymbolByEnv, JSON.parse(savedSymbols));
+            if (savedSymbols) Object.assign(window.lastActiveSymbolByEnv, JSON.parse(savedSymbols));
         } catch(e) {}
+        window.activeEnvFilter = localStorage.getItem('replicator_last_env') || 'PRODUCTION';
         window.cachedInstances = {};
         window.cachedGlobalData = null;
         window.localMountedSymbols = [];
         try {
-            window.localMountedSymbols = JSON.parse(localStorage.getItem('replicator_local_mounted_symbols')) || [];
+            const stored = localStorage.getItem('replicator_local_mounted_symbols');
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                if (Array.isArray(parsed)) window.localMountedSymbols = parsed;
+            }
         } catch(e){}
         
         // Register locally remembered mounted symbols immediately
         const startupTier = window.activeEnvFilter || 'PRODUCTION';
-        window.localMountedSymbols.forEach(sym => {
-            window.cachedInstances[sym] = {
-                status: 'STOPPED',
-                tier: startupTier,
-                isPending: true,
-                binanceDepth: { bids: [], asks: [] },
-                testnetDepth: { bids: [], asks: [] },
-                syncedTrades: [],
-                diagnostics: { sourceSymbol: sym }
-            };
-            
-            // Trigger backend configuration load for locally remembered symbols in background
-            const reqBody = {
-                tier: startupTier,
-                symbol: sym,
-                targetSymbol: sym,
-                minSize: 100,
-                maxSize: 500,
-                takerSize: 10,
-                makerUseRawQty: false,
-                depthLevels: 10,
-                bufferPct: 0,
-                tradeDelayMs: 0,
-                cancelOnStop: false,
-                newUserFlow: false,
-                enableTradeSync: true,
-                mountOnly: true
-            };
-            fetch(window.getApiUrl('/api/config'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(reqBody)
-            }).then(r => {
-                if (r.ok) {
-                    fetch(window.getApiUrl('/api/instance/select'), {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ symbol: sym, tier: startupTier })
-                    }).catch(e => {});
-                }
-            }).catch(e => {});
-        });
-        window.activeEnvFilter = localStorage.getItem('replicator_last_env') || 'PRODUCTION';
+        if (Array.isArray(window.localMountedSymbols)) {
+            window.localMountedSymbols.forEach(sym => {
+                window.cachedInstances[sym] = {
+                    status: 'STOPPED',
+                    tier: startupTier,
+                    isPending: true,
+                    binanceDepth: { bids: [], asks: [] },
+                    testnetDepth: { bids: [], asks: [] },
+                    syncedTrades: [],
+                    diagnostics: { sourceSymbol: sym }
+                };
+                
+                // Trigger backend configuration load for locally remembered symbols in background
+                const reqBody = {
+                    tier: startupTier,
+                    symbol: sym,
+                    targetSymbol: sym,
+                    minSize: 100,
+                    maxSize: 500,
+                    takerSize: 10,
+                    makerUseRawQty: false,
+                    depthLevels: 10,
+                    bufferPct: 0,
+                    tradeDelayMs: 0,
+                    cancelOnStop: false,
+                    newUserFlow: false,
+                    enableTradeSync: true,
+                    mountOnly: true
+                };
+                // Only post configuration mount, do not run select concurrently
+                fetch(window.getApiUrl('/api/config'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(reqBody)
+                }).catch(e => {});
+            });
+        }
         let lastActiveEnv = null;
         let tradeFilter = 'all';
         
@@ -5056,7 +5055,11 @@ window.addEventListener('DOMContentLoaded', () => {
                     if (data.error) showToast('✗ ' + data.error, true);
                     else {
                         showToast(`✓ Market ${sym} Removed Successfully`);
-                        window.localMountedSymbols = window.localMountedSymbols.filter(s => s !== sym);
+                        if (Array.isArray(window.localMountedSymbols)) {
+                            window.localMountedSymbols = window.localMountedSymbols.filter(s => s !== sym);
+                        } else {
+                            window.localMountedSymbols = [];
+                        }
                         localStorage.setItem('replicator_local_mounted_symbols', JSON.stringify(window.localMountedSymbols));
                         if (activeTabSymbol === sym) {
                             activeTabSymbol = "";
@@ -5110,19 +5113,21 @@ window.addEventListener('DOMContentLoaded', () => {
                 
                 // Merge pending proactive symbols and locally remembered symbols back in
                 const activeTier = window.activeEnvFilter || 'PRODUCTION';
-                window.localMountedSymbols.forEach(sym => {
-                    if (!window.cachedInstances[sym]) {
-                        window.cachedInstances[sym] = {
-                            status: 'STOPPED',
-                            tier: activeTier,
-                            isPending: true,
-                            binanceDepth: { bids: [], asks: [] },
-                            testnetDepth: { bids: [], asks: [] },
-                            syncedTrades: [],
-                            diagnostics: { sourceSymbol: sym }
-                        };
-                    }
-                });
+                if (Array.isArray(window.localMountedSymbols)) {
+                    window.localMountedSymbols.forEach(sym => {
+                        if (!window.cachedInstances[sym]) {
+                            window.cachedInstances[sym] = {
+                                status: 'STOPPED',
+                                tier: activeTier,
+                                isPending: true,
+                                binanceDepth: { bids: [], asks: [] },
+                                testnetDepth: { bids: [], asks: [] },
+                                syncedTrades: [],
+                                diagnostics: { sourceSymbol: sym }
+                            };
+                        }
+                    });
+                }
                 
                 for (const sym in pendingSymbols) {
                     if (!window.cachedInstances[sym]) {
@@ -6013,14 +6018,6 @@ window.selectMarketFromList = async function(symbol) {
         
         if (res.ok) {
             showToast(`✓ Mounted market ${symbol} successfully`);
-            
-            // Force reload depth & websockets on backend now that config is mounted!
-            fetch(window.getApiUrl('/api/instance/select'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ symbol: symbol, tier: tier })
-            }).catch(e => {});
-            
             window.selectTab(symbol);
             window.refreshSymbolTabs(window.cachedGlobalData);
         } else {
