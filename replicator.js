@@ -1807,10 +1807,10 @@ class ReplicatorInstance {
             } else {
                 const notional  = parseFloat(lvl[0]) * parseFloat(lvl[1]);
                 const targetSz  = Math.max(this.minSize, Math.min(this.maxSize, notional));
-                qty = calculateQty(targetSz, rawPrice, this.symbol);
+                qty = calculateQty(targetSz, rawPrice, this.symbol, this.tier);
                 qty = PriceTransformer.applyProfileSkew(qty, side, transformer, index);
             }
-            return { rawPrice, price: formatPrice(rawPrice, this.symbol), qty };
+            return { rawPrice, price: formatPrice(rawPrice, this.symbol, this.tier), qty };
         });
 
         let unmappedResting = [...restingOrders];
@@ -1995,7 +1995,7 @@ class ReplicatorInstance {
         const transformer = ScenarioEngine.getTransformer(this.symbol);
         const transformedTradePrice = PriceTransformer.applyPriceAxes(trade.p, trade.m ? 'SELL' : 'BUY', transformer, 0);
 
-        const pStr      = formatPrice(transformedTradePrice, this.symbol);
+        const pStr      = formatPrice(transformedTradePrice, this.symbol, this.tier);
         const remainingScenarioQty = ScenarioEngine.getRemainingQty(this.symbol);
         
         let makerQty;
@@ -2014,7 +2014,7 @@ class ReplicatorInstance {
             // Normal mode: apply notional size clamp (minSize/maxSize) for maker
             const notional  = parseFloat(trade.q) * parseFloat(transformedTradePrice);
             const targetSz  = Math.max(this.minSize, Math.min(this.maxSize, notional));
-            makerQty = calculateQty(targetSz, transformedTradePrice, this.symbol);
+            makerQty = calculateQty(targetSz, transformedTradePrice, this.symbol, this.tier);
         }
 
         // Taker size is determined from the takerSize configuration
@@ -2022,7 +2022,7 @@ class ReplicatorInstance {
         if (this.takerUseRawQty) {
             takerQty = formatRawQty(parseFloat(trade.q), this.symbol, this.tier);
         } else {
-            takerQty = calculateQty(this.takerSize, transformedTradePrice, this.symbol);
+            takerQty = calculateQty(this.takerSize, transformedTradePrice, this.symbol, this.tier);
             if (parseFloat(takerQty) <= 0) {
                 // Fallback to min quantity if takerSize evaluates to 0 due to precision limits
                 takerQty = calculateQty(0, '1', this.symbol, this.tier);
