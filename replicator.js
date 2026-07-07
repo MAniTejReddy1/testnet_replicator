@@ -2022,6 +2022,9 @@ startBinanceDepthWS() {
                         volume: parseFloat(data.v || 0),
                         priceChangePercent: parseFloat(data.P || 0)
                     };
+                    if (data.c) {
+                        this.binanceLtp = parseFloat(data.c);
+                    }
                     broadcastToUI();
                     
                     if (!this.lastBinanceTickerLogTime || Date.now() - this.lastBinanceTickerLogTime > 5000) {
@@ -2036,6 +2039,66 @@ startBinanceDepthWS() {
             this.wsBinanceTicker = null;
             setTimeout(() => this.startBinanceTickerWS(), 3000);
         });
+    }
+
+    startRestPollingFallback() {
+        if (this.pollingInterval) clearInterval(this.pollingInterval);
+        
+        this.pollingInterval = setInterval(async () => {
+            // 1. Fetch real-time Mark Price and Funding Rate for Binance and Stage
+            try {
+                const resB = await fetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${this.symbol}`);
+                if (resB.ok) {
+                    const dataB = await resB.json();
+                    if (dataB.markPrice) this.binanceMarkPrice = parseFloat(dataB.markPrice);
+                    if (dataB.lastFundingRate) this.binanceFundingRate = parseFloat(dataB.lastFundingRate);
+                }
+            } catch(e){}
+
+            try {
+                const mdsReadBase = TIER_URLS[this.tier]?.MDS_READ || TIER_URLS.PRODUCTION.MDS_READ;
+                const resS = await fetch(`${mdsReadBase}/fapi/v1/premiumIndex?symbol=${this.symbol}`);
+                if (resS.ok) {
+                    const dataS = await resS.json();
+                    if (dataS.markPrice) this.testnetMarkPrice = parseFloat(dataS.markPrice);
+                    if (dataS.lastFundingRate) this.stageFundingRate = parseFloat(dataS.lastFundingRate);
+                }
+            } catch(e){}
+
+            // 2. Fetch real-time LTP for Binance and Stage
+            try {
+                const resLtpB = await fetch(`https://fapi.binance.com/fapi/v1/ticker/price?symbol=${this.sourceSymbol}`);
+                if (resLtpB.ok) {
+                    const dataLtpB = await resLtpB.json();
+                    if (dataLtpB.price) this.binanceLtp = parseFloat(dataLtpB.price);
+                }
+            } catch(e){}
+
+            try {
+                const mdsReadBase = TIER_URLS[this.tier]?.MDS_READ || TIER_URLS.PRODUCTION.MDS_READ;
+                const resLtpS = await fetch(`${mdsReadBase}/fapi/v2/ticker/price?symbol=${this.symbol}`);
+                if (resLtpS.ok) {
+                    const dataLtpS = await resLtpS.json();
+                    if (dataLtpS.price) this.testnetLtp = parseFloat(dataLtpS.price);
+                }
+            } catch(e){}
+
+            // 3. Fetch real-time 24h Stats for Binance
+            try {
+                const res24B = await fetch(`https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${this.symbol}`);
+                if (res24B.ok) {
+                    const data24B = await res24B.json();
+                    this.binance24h = {
+                        high: parseFloat(data24B.highPrice || 0),
+                        low: parseFloat(data24B.lowPrice || 0),
+                        volume: parseFloat(data24B.quoteVolume || 0),
+                        priceChangePercent: parseFloat(data24B.priceChangePercent || 0)
+                    };
+                }
+            } catch(e){}
+
+            broadcastToUI();
+        }, 3000);
     }
 
 
@@ -2377,6 +2440,7 @@ startBinanceDepthWS() {
 
         await this.fetchInitialMarkPrices();
         await this.reloadDepth();
+        this.startRestPollingFallback();
     }
 
     async start() {
@@ -2412,6 +2476,7 @@ startBinanceDepthWS() {
         this.startBinanceTradesWS();
         this.startBinanceMarkPriceWS();
         this.startBinanceTickerWS();
+        this.startRestPollingFallback();
     }
 
     pause() { this.status = 'PAUSED'; log.warn(this.symbol, 'Engine Paused.'); }
@@ -2843,6 +2908,10 @@ const server = http.createServer(async (req, res) => {
                 if (tierInstances && tierInstances.has(targetSym)) {
                     const inst = tierInstances.get(targetSym);
                     await inst.stop();
+                    if (inst.pollingInterval) {
+                        clearInterval(inst.pollingInterval);
+                        inst.pollingInterval = null;
+                    }
                     tierInstances.delete(targetSym);
                     log.info(targetSym, `Market instance deleted/removed from UI.`, null, targetTier);
                     broadcastToUI();
