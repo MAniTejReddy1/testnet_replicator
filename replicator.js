@@ -2347,6 +2347,34 @@ startBinanceDepthWS() {
     async mountOnly() {
         this.status = 'STOPPED';
         log.info(this.symbol, 'Mounting market in data-only mode (simulation stopped)...', null, this.tier);
+        
+        // Fetch initial Binance LTP via REST
+        try {
+            const res = await fetch(`https://fapi.binance.com/fapi/v1/ticker/price?symbol=${this.sourceSymbol}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.price) {
+                    this.binanceLtp = parseFloat(data.price);
+                }
+            }
+        } catch (e) {
+            log.debug && log.debug('SYSTEM', `Failed to fetch initial Binance price: ${e.message}`);
+        }
+        
+        // Fetch initial Stage LTP via REST
+        try {
+            const mdsReadBase = TIER_URLS[this.tier]?.MDS_READ || TIER_URLS.PRODUCTION.MDS_READ;
+            const res = await fetch(`${mdsReadBase}/fapi/v2/ticker/price?symbol=${this.symbol}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.price) {
+                    this.testnetLtp = parseFloat(data.price);
+                }
+            }
+        } catch (e) {
+            log.debug && log.debug('SYSTEM', `Failed to fetch initial Stage price: ${e.message}`);
+        }
+
         await this.fetchInitialMarkPrices();
         await this.reloadDepth();
     }
