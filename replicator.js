@@ -2547,9 +2547,22 @@ startBinanceDepthWS() {
             }
             
             if (toCancel.length > 0) {
-                await Promise.allSettled(toCancel.map(o => {
+                const results = await Promise.allSettled(toCancel.map(o => {
                     return sendSignedRequest(`${hpoBase}/fapi/v1/order`, 'DELETE', { symbol: o.symbol, orderId: o.id }, user, 10000, tier);
                 }));
+                let editInProgressCount = 0;
+                for (const r of results) {
+                    if (r.status === 'fulfilled' && !r.value.ok && r.value.data) {
+                        const msg = String(r.value.data.msg || '').toLowerCase();
+                        if (msg.includes('edit is in progress') || msg.includes('edit_in_progress')) {
+                            editInProgressCount++;
+                        }
+                    }
+                }
+                if (editInProgressCount > 5) {
+                    log.error(symbolFilter || 'SYSTEM', `Detected ${editInProgressCount} orders stuck in EDIT_IN_PROGRESS. Aborting further cancels as these orders are un-cancellable by API.`);
+                    break;
+                }
             }
             
             if (newCount === 0 || chunk.length < limit) break;
