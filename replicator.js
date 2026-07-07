@@ -974,7 +974,7 @@ class PrivateWsClient {
                                     entryPrice: parseFloat(entry).toFixed(inst.pricePrecision),
                                     markPrice: idx !== -1 ? positions[idx].markPrice : parseFloat(entry).toFixed(inst.pricePrecision),
                                     unrealizedPnL: parseFloat(upnl).toFixed(2),
-                                    leverage: idx !== -1 ? positions[idx].leverage : '20',
+                                    leverage: idx !== -1 ? positions[idx].leverage : '5',
                                     liqPrice: idx !== -1 ? positions[idx].liqPrice : '0.00',
                                     margin: parseFloat(p.iw || 0).toFixed(2)
                                 };
@@ -2793,7 +2793,7 @@ function autoParsePositions(data, tier = 'PRODUCTION') {
             entryPrice:    parseFloat(pos.entryPrice || 0).toFixed(inst.pricePrecision),
             markPrice:     parseFloat(pos.markPrice  || 0).toFixed(inst.pricePrecision),
             unrealizedPnL: parseFloat(pos.unRealizedProfit || pos.unrealizedProfit || 0).toFixed(2),
-            leverage:      pos.leverage || "1",
+            leverage:      pos.leverage || "5",
             liqPrice:      parseFloat(pos.liquidationPrice || 0).toFixed(inst.pricePrecision),
             margin:        parseFloat(pos.isolatedWallet || pos.currentMargin || 0).toFixed(2)
         };
