@@ -3507,7 +3507,7 @@ const server = http.createServer(async (req, res) => {
 
 async function globalStartupCleanup() {
     log.info('SYSTEM', 'Performing startup safety cleanup of all open orders across accounts (by symbol)...');
-    const tiers = ['PRODUCTION', 'JAPAN', 'STAGING'];
+    const tiers = ['PRODUCTION', 'JAPAN', 'STAGING'].filter(t => t === globalActiveTier);
     for (const tier of tiers) {
         const hpoBase = TIER_URLS[tier] ? TIER_URLS[tier].HPO : null;
         if (!hpoBase) continue;
