@@ -119,7 +119,7 @@ try {
 
 
 // Global Verbose Debug Flag
-const DEBUG = false;
+const DEBUG = true;
 
 // Global Portfolios (Account level)
 let terminalLogs = [];
