@@ -1246,7 +1246,7 @@ class ReplicatorInstance {
             throw new Error(`${isTaker ? 'Taker' : 'Maker'} credentials not configured on ${this.tier}`);
         }
         const userLabel = isTaker ? 'USER2_TAKER' : 'USER1_MAKER';
-        const bufferedPrice = price ? applyBuffer(String(price), side, this.bufferPct, this.symbol, this.tier) : null;
+        const bufferedPrice = price ? applyBuffer(String(price), side, isTaker ? 0 : this.bufferPct, this.symbol, this.tier) : null;
 
         const payload = { symbol: this.symbol, side: side.toUpperCase(), quantity: String(qty) };
         if (clientOrderId) payload.newClientOrderId = clientOrderId;
@@ -2047,6 +2047,7 @@ class ReplicatorInstance {
         const takerSide = trade.m ? 'SELL' : 'BUY';
         this.priceLocks.add(pStr);
 
+        log.info(this.symbol, `[TRADE-SYNC] Starting sync: makerSide=${makerSide}, makerQty=${makerQty}, takerQty=${takerQty}, price=${transformedTradePrice}, hasRestingMaker=${!!hasRestingMaker}`);
         try {
             const restingPool   = makerSide === 'BUY' ? this.restingBids : this.restingAsks;
             const hasRestingMaker = restingPool.find(ro => ro && ro.price === pStr);
@@ -2058,6 +2059,7 @@ class ReplicatorInstance {
                 if (finalMakerId) {
                     this.tradeSyncMakerOrders.add(finalMakerId);
                 }
+                log.info(this.symbol, `[TRADE-SYNC-MAKER] Result success=${makerRes.success}, id=${finalMakerId}`);
                 if (!makerRes.success) return; // If maker fails, we abort
             }
 
@@ -2082,7 +2084,9 @@ class ReplicatorInstance {
                 price: transformedTradePrice
             });
 
+            log.info(this.symbol, `[TRADE-SYNC-TAKER-PRE] Placing Taker side=${takerSide}, qty=${takerQty}, price=${transformedTradePrice}`);
             const takerRes = await this.placeOrder(takerSide, takerQty, transformedTradePrice, 'LIMIT_IOC', true, clientOrderId);
+            log.info(this.symbol, `[TRADE-SYNC-TAKER-POST] Taker Result success=${takerRes.success}`);
             if (finalMakerId) {
                 this.tradeSyncMakerOrders.delete(finalMakerId);
             }
