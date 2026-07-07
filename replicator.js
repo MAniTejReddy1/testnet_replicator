@@ -119,7 +119,7 @@ try {
 
 
 // Global Verbose Debug Flag
-const DEBUG = true;
+const DEBUG = false;
 
 // Global Portfolios (Account level)
 let terminalLogs = [];
@@ -1068,6 +1068,7 @@ class ReplicatorInstance {
         this.tradeQueue          = [];
         this.priceLocks          = new Set();
         this.ghostCancelQueue    = new Set();
+        this.tradeSyncMakerOrders = new Set();
         this.inFlightCancels     = new Set();
         this.cancelRetries       = new Map();
         this.inFlightTakerOrders = new Map();
@@ -1888,7 +1889,7 @@ class ReplicatorInstance {
 
         for (const excess of unmappedResting) {
             const orderStatus = (excess.status || 'NEW').toUpperCase();
-            if (this.inFlightEdits.has(excess.orderId) || !tradeSync || orderStatus === 'PARTIALLY_FILLED') {
+            if (this.inFlightEdits.has(excess.orderId) || !tradeSync || orderStatus === 'PARTIALLY_FILLED' || this.tradeSyncMakerOrders.has(excess.orderId)) {
                 activePool.push(excess);
             } else if (canCleanup && cleanedUpCount < 5) {
                 this.inFlightEdits.add(excess.orderId);
@@ -2041,6 +2042,9 @@ class ReplicatorInstance {
             if (!hasRestingMaker) {
                 const makerRes = await this.placeOrder(makerSide, makerQty, transformedTradePrice, 'LIMIT');
                 finalMakerId = makerRes.orderId;
+                if (finalMakerId) {
+                    this.tradeSyncMakerOrders.add(finalMakerId);
+                }
                 if (!makerRes.success) return; // If maker fails, we abort
             }
 
@@ -2066,6 +2070,9 @@ class ReplicatorInstance {
             });
 
             const takerRes = await this.placeOrder(takerSide, takerQty, transformedTradePrice, 'LIMIT_IOC', true, clientOrderId);
+            if (finalMakerId) {
+                this.tradeSyncMakerOrders.delete(finalMakerId);
+            }
             
             if (!takerRes.success) {
                 // HTTP rejection (e.g. margin limit). Push failure immediately to UI
