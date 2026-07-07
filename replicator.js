@@ -1803,8 +1803,13 @@ class ReplicatorInstance {
             rawPrice = PriceTransformer.applyPriceAxes(rawPrice, side, transformer, index);
             let qty;
             if (useRawQty) {
-                // Use raw orderbook qty directly for faster market control during simulation or huge drift
-                qty = formatRawQty(parseFloat(lvl[1]), this.symbol, this.tier);
+                // Use raw orderbook qty directly but clamp to minSize to prevent MIN_NOTIONAL failures
+                const rawVal = parseFloat(lvl[0]) * parseFloat(lvl[1]);
+                if (rawVal < this.minSize) {
+                    qty = calculateQty(this.minSize, rawPrice, this.symbol, this.tier);
+                } else {
+                    qty = formatRawQty(parseFloat(lvl[1]), this.symbol, this.tier);
+                }
             } else {
                 const notional  = parseFloat(lvl[0]) * parseFloat(lvl[1]);
                 const targetSz  = Math.max(this.minSize, Math.min(this.maxSize, notional));
@@ -2009,8 +2014,13 @@ class ReplicatorInstance {
             // Scenario DETERMINISTIC mode: use raw trade qty directly (no notional clamping)
             makerQty = formatRawQty(parseFloat(trade.q), this.symbol, this.tier);
         } else if (this.makerUseRawQty) {
-            // Maker uses raw trade qty directly
-            makerQty = formatRawQty(parseFloat(trade.q), this.symbol, this.tier);
+            // Maker uses raw trade qty directly but clamps to minSize to prevent MIN_NOTIONAL failures
+            const rawVal = parseFloat(trade.q) * parseFloat(transformedTradePrice);
+            if (rawVal < this.minSize) {
+                makerQty = calculateQty(this.minSize, transformedTradePrice, this.symbol, this.tier);
+            } else {
+                makerQty = formatRawQty(parseFloat(trade.q), this.symbol, this.tier);
+            }
         } else {
             // Normal mode: apply notional size clamp (minSize/maxSize) for maker
             const notional  = parseFloat(trade.q) * parseFloat(transformedTradePrice);
@@ -2021,7 +2031,13 @@ class ReplicatorInstance {
         // Taker size is determined from the takerSize configuration
         let takerQty;
         if (this.takerUseRawQty) {
-            takerQty = formatRawQty(parseFloat(trade.q), this.symbol, this.tier);
+            // Taker uses raw trade qty directly but clamps to minSize to prevent MIN_NOTIONAL failures
+            const rawVal = parseFloat(trade.q) * parseFloat(transformedTradePrice);
+            if (rawVal < this.minSize) {
+                takerQty = calculateQty(this.minSize, transformedTradePrice, this.symbol, this.tier);
+            } else {
+                takerQty = formatRawQty(parseFloat(trade.q), this.symbol, this.tier);
+            }
         } else {
             takerQty = calculateQty(this.takerSize, transformedTradePrice, this.symbol, this.tier);
             if (parseFloat(takerQty) <= 0) {
