@@ -5685,6 +5685,7 @@ window.fetchStageExchangeInfo = async function() {
             const info = await res.json();
             if (info && info.symbols) {
                 window.stageExchangeInfoSymbols[activeTier] = info.symbols;
+                window.startAllTickersWS();
                 if (window.isMarketListModalOpen) {
                     window.renderMarketListTable();
                 }
@@ -5730,7 +5731,12 @@ window.startAllTickersWS = function() {
     if (!window.payload || !window.payload.tierUrls) return;
     const urls = window.payload.tierUrls[activeTier];
     if (!urls) return;
-    const targetUrl = `${urls.WS_GATEWAY}/market/ws/!ticker@arr`;
+    
+    const exchangeSymbols = window.stageExchangeInfoSymbols[activeTier] || [];
+    if (exchangeSymbols.length === 0) return;
+    
+    const streams = exchangeSymbols.map(s => `${s.symbol.toLowerCase()}@ticker`).join('/');
+    const targetUrl = `${urls.WS_GATEWAY}/market/stream?streams=${streams}`;
     
     if (wsAllTickers && activeWsUrl === targetUrl) return;
     
@@ -5743,15 +5749,15 @@ window.startAllTickersWS = function() {
     wsAllTickers = new WebSocket(targetUrl);
     wsAllTickers.onmessage = (event) => {
         try {
-            const data = JSON.parse(event.data);
-            if (Array.isArray(data)) {
-                data.forEach(t => {
-                    window.allTickersData[t.s] = {
-                        ltp: parseFloat(t.c || 0),
-                        changePercent: parseFloat(t.P || 0),
-                        volume: parseFloat(t.q || (parseFloat(t.c || 0) * parseFloat(t.v || 0)) || 0)
-                    };
-                });
+            const msg = JSON.parse(event.data);
+            const t = msg.data;
+            if (t && t.s) {
+                window.allTickersData[t.s] = {
+                    ltp: parseFloat(t.c || 0),
+                    changePercent: parseFloat(t.P || 0),
+                    volume: parseFloat(t.q || (parseFloat(t.c || 0) * parseFloat(t.v || 0)) || 0),
+                    fundingRate: window.allTickersData[t.s]?.fundingRate
+                };
                 if (window.isMarketListModalOpen) {
                     window.renderMarketListTable();
                 }
@@ -5837,6 +5843,19 @@ window.selectMarketFromList = async function(symbol) {
         window.closeMarketListModal();
         return;
     }
+    
+    // Proactively register locally for instant rendering
+    if (!cachedInstances) cachedInstances = {};
+    cachedInstances[symbol] = {
+        status: 'STOPPED',
+        tier: tier,
+        binanceDepth: { bids: [], asks: [] },
+        testnetDepth: { bids: [], asks: [] },
+        syncedTrades: [],
+        diagnostics: { sourceSymbol: symbol }
+    };
+    window.selectTab(symbol);
+    window.refreshSymbolTabs(cachedGlobalData);
     
     showToast(`⚡ Mounting market ${symbol} (data-only mode)...`);
     try {
@@ -5950,6 +5969,8 @@ window.renderMarketListTable = function() {
         
         const isActiveSymbol = sym === window.activeTabSymbol;
         const activeStyle = isActiveSymbol ? 'background: rgba(6, 182, 212, 0.08); border-left: 3px solid var(--cyan);' : '';
+        const funding = data.fundingRate !== undefined ? data.fundingRate : null;
+        const fundingText = funding !== null ? (funding * 100).toFixed(4) + '%' : '—';
         return `
         <tr class="m-row" onclick="window.selectMarketFromList('${sym}')" style="${activeStyle}">
             <td style="padding: 12px 8px; text-align: center;">
@@ -5966,6 +5987,9 @@ window.renderMarketListTable = function() {
             </td>
             <td style="padding: 12px 8px; text-align: right; color: var(--text-muted); font-weight: 500;">
                 ${volume !== null ? formatMarketVol(volume) + ' USDT' : '—'}
+            </td>
+            <td style="padding: 12px 8px; text-align: right; font-family: monospace; color: var(--purple); font-weight: 600;">
+                ${fundingText}
             </td>
         </tr>`;
     }).join('');
@@ -6001,6 +6025,7 @@ window.renderMarketListTable = function() {
             <th style="padding: 10px 8px; text-align: right;">LTP</th>
             <th style="padding: 10px 8px; text-align: right;">24h %</th>
             <th style="padding: 10px 8px; text-align: right;">Volume</th>
+            <th style="padding: 10px 8px; text-align: right;">Next Funding</th>
           </tr>
         </thead>
         <tbody id="market-list-table-body">
