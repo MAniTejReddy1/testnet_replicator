@@ -5679,11 +5679,8 @@ window.stageExchangeInfoSymbols = {};
 
 window.fetchStageExchangeInfo = async function() {
     const activeTier = activeEnvFilter || 'PRODUCTION';
-    if (!window.payload || !window.payload.tierUrls) return;
-    const urls = window.payload.tierUrls[activeTier];
-    if (!urls) return;
     try {
-        const res = await fetch(`${urls.HPO}/fapi/v1/exchangeInfo`);
+        const res = await fetch(window.getApiUrl(`/api/stage/exchangeInfo?tier=${activeTier}`));
         if (res.ok) {
             const info = await res.json();
             if (info && info.symbols) {
@@ -5698,11 +5695,8 @@ window.fetchStageExchangeInfo = async function() {
 
 window.fetchInitialAllTickers = async function() {
     const activeTier = activeEnvFilter || 'PRODUCTION';
-    if (!window.payload || !window.payload.tierUrls) return;
-    const urls = window.payload.tierUrls[activeTier];
-    if (!urls) return;
     try {
-        const res = await fetch(`${urls.HPO}/fapi/v1/ticker/24hr`);
+        const res = await fetch(window.getApiUrl(`/api/stage/ticker/24hr?tier=${activeTier}`));
         if (res.ok) {
             const data = await res.json();
             if (Array.isArray(data)) {
