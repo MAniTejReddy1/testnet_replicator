@@ -2841,7 +2841,27 @@ window.addEventListener('DOMContentLoaded', () => {
                     if (res.success) {
                         showFlushbar(`Environment switched to ${targetEnv}`, 'success');
                         activeEnvFilter = targetEnv;
+                        window.activeEnvFilter = targetEnv;
                         localStorage.setItem('replicator_last_env', targetEnv);
+                        
+                        // Pick active symbol corresponding to the selected env automatically
+                        const sym = lastActiveSymbolByEnv[targetEnv];
+                        if (sym && window.cachedInstances[sym] && window.cachedInstances[sym].tier === targetEnv) {
+                            window.selectTab(sym);
+                        } else {
+                            const remaining = window.localMountedSymbols.filter(s => {
+                                const inst = window.cachedInstances[s];
+                                return inst && (inst.tier === targetEnv);
+                            });
+                            if (remaining.length > 0) {
+                                window.selectTab(remaining[0]);
+                            } else {
+                                window.activeTabSymbol = "";
+                                window.clearDashboard();
+                            }
+                        }
+                        
+                        window.refreshSymbolTabs(window.cachedGlobalData);
                         if (window.fetchStageExchangeInfo) window.fetchStageExchangeInfo();
                         if (window.fetchInitialAllTickers) window.fetchInitialAllTickers();
                         if (window.startAllTickersWS) window.startAllTickersWS();
@@ -4235,7 +4255,14 @@ window.addEventListener('DOMContentLoaded', () => {
                 lastActiveSymbolByEnv[activeEnvFilter] = sym;
                 localStorage.setItem('replicator_last_active_symbols', JSON.stringify(lastActiveSymbolByEnv));
             }
-            if (window.tvIsVisible) window.initTVChart(sym);
+            
+            // Debounce TradingView chart loading to make tab switching instantly snappy
+            if (window.tvTimeout) clearTimeout(window.tvTimeout);
+            window.tvTimeout = setTimeout(() => {
+                if (window.tvIsVisible && activeTabSymbol === sym) {
+                    window.initTVChart(sym);
+                }
+            }, 250);
             
             // Force reload depth and reconnect websockets for selected market
             fetch(window.getApiUrl('/api/instance/select'), {
@@ -5047,27 +5074,56 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (event) event.stopPropagation();
                 if (!confirm(`Are you sure you want to stop and remove ${sym}?`)) return;
                 
+                // Optimistically update local active states for instant snappiness
+                if (Array.isArray(window.localMountedSymbols)) {
+                    window.localMountedSymbols = window.localMountedSymbols.filter(s => s !== sym);
+                } else {
+                    window.localMountedSymbols = [];
+                }
+                localStorage.setItem('replicator_local_mounted_symbols', JSON.stringify(window.localMountedSymbols));
+                
+                if (window.cachedInstances && window.cachedInstances[sym]) {
+                    delete window.cachedInstances[sym];
+                }
+                
+                const wasActive = (activeTabSymbol === sym);
+                if (wasActive) {
+                    const remaining = window.localMountedSymbols.filter(s => {
+                        const inst = window.cachedInstances[s];
+                        return inst && (inst.tier === activeEnvFilter);
+                    });
+                    if (remaining.length > 0) {
+                        activeTabSymbol = remaining[0];
+                    } else {
+                        activeTabSymbol = "";
+                    }
+                }
+                
+                // Instantly re-render tabs
+                window.refreshSymbolTabs(window.cachedGlobalData);
+                if (wasActive) {
+                    if (activeTabSymbol) window.selectTab(activeTabSymbol);
+                    else window.clearDashboard();
+                }
+                
+                showToast(`⚡ Stopping & removing ${sym}...`);
+                
                 try {
                     const res = await fetch(window.getApiUrl(`/api/instance?symbol=${sym}&tier=${activeEnvFilter}`), {
                         method: 'DELETE'
                     });
                     const data = await res.json();
-                    if (data.error) showToast('✗ ' + data.error, true);
-                    else {
-                        showToast(`✓ Market ${sym} Removed Successfully`);
-                        if (Array.isArray(window.localMountedSymbols)) {
-                            window.localMountedSymbols = window.localMountedSymbols.filter(s => s !== sym);
-                        } else {
-                            window.localMountedSymbols = [];
-                        }
+                    if (data.error) {
+                        showToast('✗ ' + data.error, true);
+                        // Re-add to local cache on error
+                        window.localMountedSymbols.push(sym);
                         localStorage.setItem('replicator_local_mounted_symbols', JSON.stringify(window.localMountedSymbols));
-                        if (activeTabSymbol === sym) {
-                            activeTabSymbol = "";
-                            window.clearDashboard();
-                        }
+                        window.refreshSymbolTabs(window.cachedGlobalData);
+                    } else {
+                        showToast(`✓ Market ${sym} Stopped & Removed`);
                     }
-                } catch(e) {
-                    showToast('✗ ' + e.message, true);
+                } catch (err) {
+                    showToast('✗ ' + err.message, true);
                 }
             };
 
