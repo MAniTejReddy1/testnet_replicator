@@ -2097,7 +2097,7 @@ startBinanceDepthWS() {
         this.pollingInterval = setInterval(async () => {
             // 1. Fetch real-time Mark Price and Funding Rate for Binance and Stage
             try {
-                const resB = await fetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${this.symbol}`);
+                const resB = await fetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${this.sourceSymbol}`);
                 if (resB.ok) {
                     const dataB = await resB.json();
                     if (dataB.markPrice) this.binanceMarkPrice = parseFloat(dataB.markPrice);
@@ -2135,7 +2135,7 @@ startBinanceDepthWS() {
 
             // 3. Fetch real-time 24h Stats for Binance
             try {
-                const res24B = await fetch(`https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${this.symbol}`);
+                const res24B = await fetch(`https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${this.sourceSymbol}`);
                 if (res24B.ok) {
                     const data24B = await res24B.json();
                     this.binance24h = {
@@ -2174,7 +2174,7 @@ startBinanceDepthWS() {
         const controller2 = new AbortController();
         const timeout2 = setTimeout(() => controller2.abort(), 5000);
         try {
-            const res = await fetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${this.symbol}`, { signal: controller2.signal });
+            const res = await fetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${this.sourceSymbol}`, { signal: controller2.signal });
             if (res.ok) {
                 const data = await res.json();
                 if (data.markPrice) {
