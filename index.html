@@ -5856,6 +5856,7 @@ window.selectMarketFromList = async function(symbol) {
     
     if (cachedInstances && cachedInstances[symbol]) {
         window.selectTab(symbol);
+        window.refreshSymbolTabs(cachedGlobalData);
         return;
     }
     
@@ -5871,9 +5872,8 @@ window.selectMarketFromList = async function(symbol) {
     };
     lastActiveSymbolByEnv[tier] = symbol;
     localStorage.setItem('replicator_last_active_symbols', JSON.stringify(lastActiveSymbolByEnv));
-    window.activeTabSymbol = symbol;
-    window.refreshSymbolTabs(cachedGlobalData);
     window.selectTab(symbol);
+    window.refreshSymbolTabs(cachedGlobalData);
     
     showToast(`⚡ Mounting market ${symbol} (data-only mode)...`);
     try {
