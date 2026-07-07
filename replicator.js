@@ -2585,6 +2585,7 @@ function buildPayload(isSnapshot = true, sinceTs = 0) {
         roles: globalRoles,
         activeTier: globalActiveTier,
         instruments: instrumentsMap,
+        tierUrls: TIER_URLS,
         terminalLogs,
         terminalEvents: isSnapshot ? terminalEvents : terminalEvents.filter(e => e.ts > sinceTs),
         orderUpdateCounter: globalOrderUpdateCounter

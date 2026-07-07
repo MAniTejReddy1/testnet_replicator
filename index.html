@@ -2794,6 +2794,9 @@ window.addEventListener('DOMContentLoaded', () => {
                         showFlushbar(`Environment switched to ${targetEnv}`, 'success');
                         activeEnvFilter = targetEnv;
                         localStorage.setItem('replicator_last_env', targetEnv);
+                        if (window.fetchStageExchangeInfo) window.fetchStageExchangeInfo();
+                        if (window.fetchInitialAllTickers) window.fetchInitialAllTickers();
+                        if (window.startAllTickersWS) window.startAllTickersWS();
                         if (window.renderTerminalLogs) {
                             window.renderTerminalLogs(window.activeTermTab === 'events' ? window.cachedTerminalEvents : window.cachedTerminalLogs);
                         }
@@ -5031,6 +5034,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (sp) { sp.classList.add('hidden'); setTimeout(()=>sp.remove(),500); }
                 
                 if (data.activeTier) {
+                    const prevTier = activeEnvFilter;
                     activeEnvFilter = data.activeTier;
                     document.querySelectorAll('.env-tab').forEach(btn => {
                         if (btn.getAttribute('data-env') === activeEnvFilter) {
@@ -5041,6 +5045,12 @@ window.addEventListener('DOMContentLoaded', () => {
                     });
                     const cfgTierSelect = document.getElementById('cfg-tier');
                     if (cfgTierSelect) cfgTierSelect.value = activeEnvFilter;
+                    
+                    if (prevTier !== activeEnvFilter) {
+                        if (window.fetchStageExchangeInfo) window.fetchStageExchangeInfo();
+                        if (window.fetchInitialAllTickers) window.fetchInitialAllTickers();
+                        if (window.startAllTickersWS) window.startAllTickersWS();
+                    }
                 }
                 
                 window.refreshSymbolTabs(data);
@@ -5661,13 +5671,38 @@ window.addEventListener('DOMContentLoaded', () => {
 
 /* Market List Module Javascript Code */
 let wsAllTickers = null;
+let activeWsUrl = '';
 window.allTickersData = {};
 window.marketListTab = 'all';
 window.isMarketListModalOpen = false;
+window.stageExchangeInfoSymbols = {};
 
-async function fetchInitialAllTickers() {
+window.fetchStageExchangeInfo = async function() {
+    const activeTier = activeEnvFilter || 'PRODUCTION';
+    if (!window.payload || !window.payload.tierUrls) return;
+    const urls = window.payload.tierUrls[activeTier];
+    if (!urls) return;
     try {
-        const res = await fetch('https://fapi.binance.com/fapi/v1/ticker/24hr');
+        const res = await fetch(`${urls.HPO}/fapi/v1/exchangeInfo`);
+        if (res.ok) {
+            const info = await res.json();
+            if (info && info.symbols) {
+                window.stageExchangeInfoSymbols[activeTier] = info.symbols;
+                if (window.isMarketListModalOpen) {
+                    window.renderMarketListTable();
+                }
+            }
+        }
+    } catch(e){}
+};
+
+window.fetchInitialAllTickers = async function() {
+    const activeTier = activeEnvFilter || 'PRODUCTION';
+    if (!window.payload || !window.payload.tierUrls) return;
+    const urls = window.payload.tierUrls[activeTier];
+    if (!urls) return;
+    try {
+        const res = await fetch(`${urls.HPO}/fapi/v1/ticker/24hr`);
         if (res.ok) {
             const data = await res.json();
             if (Array.isArray(data)) {
@@ -5675,7 +5710,7 @@ async function fetchInitialAllTickers() {
                     window.allTickersData[t.symbol] = {
                         ltp: parseFloat(t.lastPrice || 0),
                         changePercent: parseFloat(t.priceChangePercent || 0),
-                        volume: parseFloat(t.quoteVolume || 0)
+                        volume: parseFloat(t.quoteVolume || (parseFloat(t.lastPrice || 0) * parseFloat(t.volume || 0)) || 0)
                     };
                 });
                 if (window.isMarketListModalOpen) {
@@ -5684,12 +5719,24 @@ async function fetchInitialAllTickers() {
             }
         }
     } catch(e){}
-}
-fetchInitialAllTickers();
+};
 
-function startAllTickersWS() {
-    if (wsAllTickers) return;
-    wsAllTickers = new WebSocket('wss://fstream.binance.com/public/ws/!ticker@arr');
+window.startAllTickersWS = function() {
+    const activeTier = activeEnvFilter || 'PRODUCTION';
+    if (!window.payload || !window.payload.tierUrls) return;
+    const urls = window.payload.tierUrls[activeTier];
+    if (!urls) return;
+    const targetUrl = `${urls.WS_GATEWAY}/market/ws/!ticker@arr`;
+    
+    if (wsAllTickers && activeWsUrl === targetUrl) return;
+    
+    if (wsAllTickers) {
+        wsAllTickers.close();
+        wsAllTickers = null;
+    }
+    
+    activeWsUrl = targetUrl;
+    wsAllTickers = new WebSocket(targetUrl);
     wsAllTickers.onmessage = (event) => {
         try {
             const data = JSON.parse(event.data);
@@ -5698,7 +5745,7 @@ function startAllTickersWS() {
                     window.allTickersData[t.s] = {
                         ltp: parseFloat(t.c || 0),
                         changePercent: parseFloat(t.P || 0),
-                        volume: parseFloat(t.q || 0)
+                        volume: parseFloat(t.q || (parseFloat(t.c || 0) * parseFloat(t.v || 0)) || 0)
                     };
                 });
                 if (window.isMarketListModalOpen) {
@@ -5709,13 +5756,12 @@ function startAllTickersWS() {
     };
     wsAllTickers.onclose = () => {
         wsAllTickers = null;
-        setTimeout(startAllTickersWS, 3000);
+        setTimeout(window.startAllTickersWS, 3000);
     };
     wsAllTickers.onerror = () => {
         if (wsAllTickers) wsAllTickers.close();
     };
-}
-startAllTickersWS();
+};
 
 window.openMarketListModal = function() {
     window.isMarketListModalOpen = true;
@@ -5725,10 +5771,18 @@ window.openMarketListModal = function() {
         void overlay.offsetWidth;
         overlay.style.opacity = '1';
     }
-    fetchInitialAllTickers();
-    startAllTickersWS();
+    window.fetchStageExchangeInfo();
+    window.fetchInitialAllTickers();
+    window.startAllTickersWS();
     window.renderMarketListTable();
 };
+
+// Start triggers
+setTimeout(() => {
+    window.fetchStageExchangeInfo();
+    window.fetchInitialAllTickers();
+    window.startAllTickersWS();
+}, 2000);
 
 window.closeMarketListModal = function() {
     window.isMarketListModalOpen = false;
@@ -5823,12 +5877,18 @@ window.renderMarketListTable = function() {
     if (!tbody) return;
     
     const activeTier = activeEnvFilter || 'PRODUCTION';
-    const tierInstruments = (window.payload && window.payload.instruments && window.payload.instruments[activeTier]) || {};
+    const exchangeSymbols = window.stageExchangeInfoSymbols[activeTier] || [];
+    
+    let symbols = [];
+    if (exchangeSymbols.length > 0) {
+        symbols = exchangeSymbols.map(s => s.symbol.toUpperCase());
+    } else {
+        const tierInstruments = (window.payload && window.payload.instruments && window.payload.instruments[activeTier]) || {};
+        symbols = Object.keys(tierInstruments);
+    }
     
     let favs = [];
-    try { favs = JSON.parse(localStorage.getItem('replicator_fav_symbols')) || []; } catch(e){}
-    
-    let symbols = Object.keys(tierInstruments);
+    try { favs = JSON.parse(localStorage.getItem('replicator_fav_symbols')) || []; } catch(e){} (e){}
     
     // Filters
     if (searchVal) {
