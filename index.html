@@ -2754,13 +2754,13 @@ window.addEventListener('DOMContentLoaded', () => {
         };
 
         window.activeTabSymbol = null;
-        const lastActiveSymbolByEnv = { PRODUCTION: null, JAPAN: null, STAGING: null };
+        window.lastActiveSymbolByEnv = { PRODUCTION: null, JAPAN: null, STAGING: null };
         try {
             const savedSymbols = localStorage.getItem('replicator_last_active_symbols');
             if (savedSymbols) Object.assign(lastActiveSymbolByEnv, JSON.parse(savedSymbols));
         } catch(e) {}
-        let cachedInstances = {};
-        let cachedGlobalData = null;
+        window.cachedInstances = {};
+        window.cachedGlobalData = null;
         window.activeEnvFilter = localStorage.getItem('replicator_last_env') || 'PRODUCTION';
         let lastActiveEnv = null;
         let tradeFilter = 'all';
@@ -5040,23 +5040,23 @@ window.addEventListener('DOMContentLoaded', () => {
 
                 // Preserve pending proactive symbols to prevent them from disappearing
                 const pendingSymbols = {};
-                if (typeof cachedInstances === 'object') {
-                    for (const sym in cachedInstances) {
-                        if (cachedInstances[sym] && cachedInstances[sym].isPending) {
-                            pendingSymbols[sym] = cachedInstances[sym];
+                if (typeof window.cachedInstances === 'object') {
+                    for (const sym in window.cachedInstances) {
+                        if (window.cachedInstances[sym] && window.cachedInstances[sym].isPending) {
+                            pendingSymbols[sym] = window.cachedInstances[sym];
                         }
                     }
                 }
                 
-                cachedInstances = data.instances || {};
+                window.cachedInstances = data.instances || {};
                 
                 // Merge pending proactive symbols back in
                 for (const sym in pendingSymbols) {
-                    if (!cachedInstances[sym]) {
-                        cachedInstances[sym] = pendingSymbols[sym];
+                    if (!window.cachedInstances[sym]) {
+                        window.cachedInstances[sym] = pendingSymbols[sym];
                     }
                 }
-                cachedGlobalData = data;
+                window.cachedGlobalData = data;
 
                 const sp = document.getElementById('splash');
                 if (sp) { sp.classList.add('hidden'); setTimeout(()=>sp.remove(),500); }
@@ -5871,15 +5871,15 @@ window.selectMarketFromList = async function(symbol) {
     // Close modal immediately so redirection is visible instantly
     window.closeMarketListModal();
     
-    if (cachedInstances && cachedInstances[symbol]) {
+    if (window.cachedInstances && window.cachedInstances[symbol]) {
         window.selectTab(symbol);
-        window.refreshSymbolTabs(cachedGlobalData);
+        window.refreshSymbolTabs(window.cachedGlobalData);
         return;
     }
     
     // Proactively register locally for instant rendering
-    if (!cachedInstances) cachedInstances = {};
-    cachedInstances[symbol] = {
+    if (!window.cachedInstances) window.cachedInstances = {};
+    window.cachedInstances[symbol] = {
         status: 'STOPPED',
         tier: tier,
         isPending: true, // Prevent SSE overwrite from clearing it
@@ -5888,10 +5888,10 @@ window.selectMarketFromList = async function(symbol) {
         syncedTrades: [],
         diagnostics: { sourceSymbol: symbol }
     };
-    lastActiveSymbolByEnv[tier] = symbol;
-    localStorage.setItem('replicator_last_active_symbols', JSON.stringify(lastActiveSymbolByEnv));
+    window.lastActiveSymbolByEnv[tier] = symbol;
+    localStorage.setItem('replicator_last_active_symbols', JSON.stringify(window.lastActiveSymbolByEnv));
     window.selectTab(symbol);
-    window.refreshSymbolTabs(cachedGlobalData);
+    window.refreshSymbolTabs(window.cachedGlobalData);
     
     showToast(`⚡ Mounting market ${symbol} (data-only mode)...`);
     try {
