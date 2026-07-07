@@ -832,10 +832,12 @@ class PrivateWsClient {
             clearTimeout(this.reconnectTimers[evt]);
             if (this.sockets[evt]) {
                 try {
-                    this.sockets[evt].removeAllListeners('close');
-                    this.sockets[evt].removeAllListeners('error');
-                    this.sockets[evt].removeAllListeners('message');
-                    this.sockets[evt].close();
+                    const sock = this.sockets[evt];
+                    sock.removeAllListeners('close');
+                    sock.removeAllListeners('message');
+                    sock.removeAllListeners('error');
+                    sock.on('error', () => {}); // Catch-all to prevent unhandled 'error' event crashes
+                    sock.close();
                 } catch (e) {}
                 this.sockets[evt] = null;
             }
