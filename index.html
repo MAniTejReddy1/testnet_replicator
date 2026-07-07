@@ -5038,7 +5038,24 @@ window.addEventListener('DOMContentLoaded', () => {
                     });
                 }
 
+                // Preserve pending proactive symbols to prevent them from disappearing
+                const pendingSymbols = {};
+                if (typeof cachedInstances === 'object') {
+                    for (const sym in cachedInstances) {
+                        if (cachedInstances[sym] && cachedInstances[sym].isPending) {
+                            pendingSymbols[sym] = cachedInstances[sym];
+                        }
+                    }
+                }
+                
                 cachedInstances = data.instances || {};
+                
+                // Merge pending proactive symbols back in
+                for (const sym in pendingSymbols) {
+                    if (!cachedInstances[sym]) {
+                        cachedInstances[sym] = pendingSymbols[sym];
+                    }
+                }
                 cachedGlobalData = data;
 
                 const sp = document.getElementById('splash');
@@ -5865,6 +5882,7 @@ window.selectMarketFromList = async function(symbol) {
     cachedInstances[symbol] = {
         status: 'STOPPED',
         tier: tier,
+        isPending: true, // Prevent SSE overwrite from clearing it
         binanceDepth: { bids: [], asks: [] },
         testnetDepth: { bids: [], asks: [] },
         syncedTrades: [],
