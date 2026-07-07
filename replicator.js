@@ -637,6 +637,54 @@ async function reconnectGlobalUserWs() {
     await fetchListenKeys();
 }
 
+
+async function switchEnvironment(newTier) {
+    const prevTier = globalActiveTier;
+    if (prevTier === newTier) return;
+
+    log.info('SYSTEM', `Switching global environment view from ${prevTier} to ${newTier}...`);
+
+    // 1. Deactivate instances of the previous tier
+    const prevInstances = instances[prevTier];
+    if (prevInstances) {
+        for (const inst of prevInstances.values()) {
+            inst.tempPrevStatus = inst.status;
+            await inst.stop().catch(e => log.error(inst.symbol, `Stop failed during env switch: ${e.message}`, null, prevTier));
+            if (inst.pollingInterval) {
+                clearInterval(inst.pollingInterval);
+                inst.pollingInterval = null;
+            }
+        }
+    }
+
+    // 2. Change the global active tier
+    globalActiveTier = newTier;
+
+    // 3. Load instrument mapping if not loaded
+    if (!instrumentsMap[newTier] || Object.keys(instrumentsMap[newTier]).length === 0) {
+        await loadInstruments(newTier);
+    }
+
+    // 4. Activate/Resume instances of the new tier
+    const newInstances = instances[newTier];
+    if (newInstances) {
+        for (const inst of newInstances.values()) {
+            await inst.wipeOrders().catch(e => {});
+            if (inst.tempPrevStatus === 'RUNNING') {
+                await inst.start().catch(e => log.error(inst.symbol, `Start failed during env switch: ${e.message}`, null, newTier));
+            } else {
+                await inst.mountOnly().catch(e => log.error(inst.symbol, `Mount failed during env switch: ${e.message}`, null, newTier));
+            }
+        }
+    }
+
+    // 5. Reconnect global private WebSockets and sync portfolios for the new environment
+    await reconnectGlobalUserWs();
+    lastPortfolioSyncTime = 0;
+    await syncAllPortfolios();
+}
+
+
 // Re-authenticate every 30 minutes to keep listen keys fresh
 function startListenKeyKeepalive() {
     setInterval(async () => {
@@ -3018,26 +3066,13 @@ const server = http.createServer(async (req, res) => {
                         return res.end(JSON.stringify({ error: `Invalid tier: ${tier}` }));
                     }
                     if (globalActiveTier !== tier) {
-                        log.info('SYSTEM', `Switching global environment view to ${tier}...`);
-                        globalActiveTier = tier;
-                        
-                        if (!instrumentsMap[tier] || Object.keys(instrumentsMap[tier]).length === 0) {
-                            await loadInstruments(tier);
-                        }
-
-                        // Broadcast switch instantly to the UI
-                        broadcastToUI();
-
-                        // Perform reconnect & sync in the background
                         (async () => {
                             try {
-                                await reconnectGlobalUserWs();
-                                lastPortfolioSyncTime = 0;
-                                await syncAllPortfolios();
+                                await switchEnvironment(tier);
                                 broadcastToUI();
                                 log.success('SYSTEM', `Successfully switched global environment view to ${tier}`);
                             } catch (err) {
-                                log.error('SYSTEM', `Error finalizing switch to ${tier}: ${err.message}`);
+                                log.error('SYSTEM', `Error switching environment to ${tier}: ${err.message}`);
                             }
                         })();
                     }
@@ -3093,16 +3128,9 @@ const server = http.createServer(async (req, res) => {
                     }
 
                     if (globalActiveTier !== tier) {
-                        log.info('SYSTEM', `Switching global environment view to ${tier} (mounted market tier)`);
-                        globalActiveTier = tier;
-                        
-                        broadcastToUI();
-                        
                         (async () => {
                             try {
-                                await reconnectGlobalUserWs();
-                                lastPortfolioSyncTime = 0;
-                                await syncAllPortfolios();
+                                await switchEnvironment(tier);
                                 broadcastToUI();
                             } catch (err) {
                                 log.error('SYSTEM', `Error finalizing switch: ${err.message}`);
@@ -3305,6 +3333,11 @@ async function startBots() {
     for (const tier of tiers) {
         const tierInstances = instances[tier] || new Map();
         for (const inst of tierInstances.values()) {
+            if (tier !== globalActiveTier) {
+                // Initialize temporary previous state so it can be resumed when switched to
+                inst.tempPrevStatus = inst.mountOnlyState ? 'STOPPED' : 'RUNNING';
+                continue;
+            }
             startPromises.push((async () => {
                 try {
                     await inst.wipeOrders();

@@ -2759,35 +2759,55 @@ window.addEventListener('DOMContentLoaded', () => {
             const savedSymbols = localStorage.getItem('replicator_last_active_symbols');
             if (savedSymbols) Object.assign(window.lastActiveSymbolByEnv, JSON.parse(savedSymbols));
         } catch(e) {}
-        window.activeEnvFilter = localStorage.getItem('replicator_last_env') || 'PRODUCTION';
-        window.cachedInstances = {};
-        window.cachedGlobalData = null;
-        window.localMountedSymbols = [];
-        try {
-            const stored = localStorage.getItem('replicator_local_mounted_symbols');
-            if (stored) {
-                const parsed = JSON.parse(stored);
-                if (Array.isArray(parsed)) window.localMountedSymbols = parsed;
+        window.getLocalMountedSymbols = function(env) {
+            try {
+                const stored = localStorage.getItem('replicator_local_mounted_symbols_' + env);
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if (Array.isArray(parsed)) return parsed;
+                }
+            } catch(e){}
+            // Fallback migration
+            if (env === 'PRODUCTION') {
+                try {
+                    const stored = localStorage.getItem('replicator_local_mounted_symbols');
+                    if (stored) {
+                        const parsed = JSON.parse(stored);
+                        if (Array.isArray(parsed)) {
+                            localStorage.setItem('replicator_local_mounted_symbols_PRODUCTION', stored);
+                            localStorage.removeItem('replicator_local_mounted_symbols');
+                            return parsed;
+                        }
+                    }
+                } catch(e){}
             }
-        } catch(e){}
-        
-        // Register locally remembered mounted symbols immediately
-        const startupTier = window.activeEnvFilter || 'PRODUCTION';
-        if (Array.isArray(window.localMountedSymbols)) {
-            window.localMountedSymbols.forEach(sym => {
-                window.cachedInstances[sym] = {
-                    status: 'STOPPED',
-                    tier: startupTier,
-                    isPending: true,
-                    binanceDepth: { bids: [], asks: [] },
-                    testnetDepth: { bids: [], asks: [] },
-                    syncedTrades: [],
-                    diagnostics: { sourceSymbol: sym }
-                };
+            return [];
+        };
+
+        window.setLocalMountedSymbols = function(env, symbols) {
+            try {
+                localStorage.setItem('replicator_local_mounted_symbols_' + env, JSON.stringify(symbols));
+            } catch(e){}
+        };
+
+        window.mountLocalSymbolsForEnv = function(tier) {
+            const symbols = window.getLocalMountedSymbols(tier);
+            window.localMountedSymbols = symbols;
+            symbols.forEach(sym => {
+                if (!window.cachedInstances[sym]) {
+                    window.cachedInstances[sym] = {
+                        status: 'STOPPED',
+                        tier: tier,
+                        isPending: true,
+                        binanceDepth: { bids: [], asks: [] },
+                        testnetDepth: { bids: [], asks: [] },
+                        syncedTrades: [],
+                        diagnostics: { sourceSymbol: sym }
+                    };
+                }
                 
-                // Trigger backend configuration load for locally remembered symbols in background
                 const reqBody = {
-                    tier: startupTier,
+                    tier: tier,
                     symbol: sym,
                     targetSymbol: sym,
                     minSize: 100,
@@ -2802,14 +2822,21 @@ window.addEventListener('DOMContentLoaded', () => {
                     enableTradeSync: true,
                     mountOnly: true
                 };
-                // Only post configuration mount, do not run select concurrently
+                
                 fetch(window.getApiUrl('/api/config'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(reqBody)
                 }).catch(e => {});
             });
-        }
+        };
+
+        window.activeEnvFilter = localStorage.getItem('replicator_last_env') || 'PRODUCTION';
+        window.cachedInstances = {};
+        window.cachedGlobalData = null;
+        window.localMountedSymbols = [];
+        
+        window.mountLocalSymbolsForEnv(window.activeEnvFilter);
         let lastActiveEnv = null;
         let tradeFilter = 'all';
         
@@ -2843,6 +2870,9 @@ window.addEventListener('DOMContentLoaded', () => {
                         activeEnvFilter = targetEnv;
                         window.activeEnvFilter = targetEnv;
                         localStorage.setItem('replicator_last_env', targetEnv);
+                        
+                        // Mount the local symbols for the switched environment
+                        window.mountLocalSymbolsForEnv(targetEnv);
                         
                         // Pick active symbol corresponding to the selected env automatically
                         const sym = window.lastActiveSymbolByEnv[targetEnv];
@@ -5080,7 +5110,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 } else {
                     window.localMountedSymbols = [];
                 }
-                localStorage.setItem('replicator_local_mounted_symbols', JSON.stringify(window.localMountedSymbols));
+                window.setLocalMountedSymbols(activeEnvFilter, window.localMountedSymbols);
                 
                 if (window.cachedInstances && window.cachedInstances[sym]) {
                     delete window.cachedInstances[sym];
@@ -5117,7 +5147,7 @@ window.addEventListener('DOMContentLoaded', () => {
                         showToast('✗ ' + data.error, true);
                         // Re-add to local cache on error
                         window.localMountedSymbols.push(sym);
-                        localStorage.setItem('replicator_local_mounted_symbols', JSON.stringify(window.localMountedSymbols));
+                        window.setLocalMountedSymbols(activeEnvFilter, window.localMountedSymbols);
                         window.refreshSymbolTabs(window.cachedGlobalData);
                     } else {
                         showToast(`✓ Market ${sym} Stopped & Removed`);
@@ -6041,7 +6071,7 @@ window.selectMarketFromList = async function(symbol) {
     localStorage.setItem('replicator_last_active_symbols', JSON.stringify(window.lastActiveSymbolByEnv));
     if (!window.localMountedSymbols.includes(symbol)) {
         window.localMountedSymbols.push(symbol);
-        localStorage.setItem('replicator_local_mounted_symbols', JSON.stringify(window.localMountedSymbols));
+        window.setLocalMountedSymbols(tier, window.localMountedSymbols);
     }
     
     window.selectTab(symbol);
