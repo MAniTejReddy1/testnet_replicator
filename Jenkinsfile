@@ -45,7 +45,12 @@ pipeline {
         choice(
             name: 'MAKER_USE_RAW_QTY',
             choices: ['false', 'true'],
-            description: 'Maker orders place directly using Binance orderbook quantities (bypassing min/max size clamp)'
+            description: 'Maker orders use Binance orderbook raw quantities (bypasses min/max size clamp)'
+        )
+        choice(
+            name: 'TAKER_USE_RAW_QTY',
+            choices: ['false', 'true'],
+            description: 'Taker orders use raw Binance trade quantities (bypasses takerSize clamp)'
         )
         booleanParam(
             name: 'CANCEL_ON_STOP',
@@ -56,6 +61,11 @@ pipeline {
             name: 'BUFFER_PCT',
             defaultValue: '0',
             description: 'Price buffer on all orders  (e.g. 0.01 = 0.01%)'
+        )
+        string(
+            name: 'TRADE_DELAY_MS',
+            defaultValue: '0',
+            description: 'Delay (ms) between maker and taker order placement in trade-sync (0 = no delay)'
         )
         choice(
             name: 'ENABLE_TRADE_SYNC',
@@ -89,7 +99,7 @@ pipeline {
 
                     env.SRC = src
                     env.TGT = params.TARGET_SYMBOL?.trim() ?: src
-                    echo "Config: ${env.SRC} -> ${env.TGT} | ${min}-${max} USDT | buffer: ${params.BUFFER_PCT}% | tradeSync: ${params.ENABLE_TRADE_SYNC}"
+                    echo "Config: ${env.SRC} → ${env.TGT} | ${min}-${max} USDT | takerSize: ${params.TAKER_SIZE} | buffer: ${params.BUFFER_PCT}% | tradeSync: ${params.ENABLE_TRADE_SYNC} | makerRaw: ${params.MAKER_USE_RAW_QTY} | takerRaw: ${params.TAKER_USE_RAW_QTY} | tradeDelay: ${params.TRADE_DELAY_MS}ms"
                 }
             }
         }
@@ -175,16 +185,19 @@ pipeline {
                         configObjs.add("""{
   "sourceSymbol": "${src}",
   "targetSymbol": "${tgt}",
+  "tier": "${params.ACTIVE_TIER}",
   "minSize": ${params.MIN_SIZE},
   "maxSize": ${params.MAX_SIZE},
   "takerSize": ${params.TAKER_SIZE},
   "makerUseRawQty": ${params.MAKER_USE_RAW_QTY},
+  "takerUseRawQty": ${params.TAKER_USE_RAW_QTY},
   "depthLevels": 10,
   "qtyChangeTolerance": 0.25,
   "enableTradeSync": ${params.ENABLE_TRADE_SYNC},
   "bufferPct": ${params.BUFFER_PCT},
   "cancelOnStop": ${params.CANCEL_ON_STOP},
-  "tradeDelayMs": 0
+  "tradeDelayMs": ${params.TRADE_DELAY_MS},
+  "newUserFlow": ${params.CREATE_NEW_USERS}
 }""")
                     }
                     def config = "[" + configObjs.join(",") + "]"
