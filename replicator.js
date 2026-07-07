@@ -769,6 +769,54 @@ async function reconnectGlobalUserWs() {
     await fetchListenKeys();
 }
 
+
+async function switchEnvironment(newTier) {
+    const prevTier = globalActiveTier;
+    if (prevTier === newTier) return;
+
+    log.info('SYSTEM', `Switching global environment view from ${prevTier} to ${newTier}...`);
+
+    // 1. Deactivate instances of the previous tier
+    const prevInstances = instances[prevTier];
+    if (prevInstances) {
+        for (const inst of prevInstances.values()) {
+            inst.tempPrevStatus = inst.status;
+            await inst.stop().catch(e => log.error(inst.symbol, `Stop failed during env switch: ${e.message}`, null, prevTier));
+            if (inst.pollingInterval) {
+                clearInterval(inst.pollingInterval);
+                inst.pollingInterval = null;
+            }
+        }
+    }
+
+    // 2. Change the global active tier
+    globalActiveTier = newTier;
+
+    // 3. Load instrument mapping if not loaded
+    if (!instrumentsMap[newTier] || Object.keys(instrumentsMap[newTier]).length === 0) {
+        await loadInstruments(newTier);
+    }
+
+    // 4. Activate/Resume instances of the new tier
+    const newInstances = instances[newTier];
+    if (newInstances) {
+        for (const inst of newInstances.values()) {
+            await inst.wipeOrders().catch(e => {});
+            if (inst.tempPrevStatus === 'RUNNING') {
+                await inst.start().catch(e => log.error(inst.symbol, `Start failed during env switch: ${e.message}`, null, newTier));
+            } else {
+                await inst.mountOnly().catch(e => log.error(inst.symbol, `Mount failed during env switch: ${e.message}`, null, newTier));
+            }
+        }
+    }
+
+    // 5. Reconnect global private WebSockets and sync portfolios for the new environment
+    await reconnectGlobalUserWs();
+    lastPortfolioSyncTime = 0;
+    await syncAllPortfolios();
+}
+
+
 // Re-authenticate every 30 minutes to keep listen keys fresh
 function startListenKeyKeepalive() {
     setInterval(async () => {
@@ -964,10 +1012,12 @@ class PrivateWsClient {
             clearTimeout(this.reconnectTimers[evt]);
             if (this.sockets[evt]) {
                 try {
-                    this.sockets[evt].removeAllListeners('close');
-                    this.sockets[evt].removeAllListeners('error');
-                    this.sockets[evt].removeAllListeners('message');
-                    this.sockets[evt].close();
+                    const sock = this.sockets[evt];
+                    sock.removeAllListeners('close');
+                    sock.removeAllListeners('message');
+                    sock.removeAllListeners('error');
+                    sock.on('error', () => {}); // Catch-all to prevent unhandled 'error' event crashes
+                    sock.close();
                 } catch (e) {}
                 this.sockets[evt] = null;
             }
@@ -1004,6 +1054,7 @@ class ReplicatorInstance {
         this.bufferPct          = marketConfig.bufferPct          || 0;
         this.cancelOnStop       = marketConfig.cancelOnStop === true;
         this.tradeDelayMs       = marketConfig.tradeDelayMs       || 0;
+        this.mountOnlyState     = marketConfig.mountOnly === true;
         
         this.inFlightEdits      = new Set();
 
@@ -2142,7 +2193,7 @@ startBinanceDepthWS() {
     startBinanceTradesWS() {
         if (this.wsBinanceTrades) return;
         const sym = this.sourceSymbol.toLowerCase(); // Using Source Symbol
-        const url = `wss://fstream.binance.com/market/ws/${sym}@aggTrade`;
+        const url = `wss://fstream.binance.com/public/ws/${sym}@aggTrade`;
 
         this.wsBinanceTrades = new WebSocket(url);
         this.wsBinanceTrades.on('open', () => { pushEvent('SUCCESS', this.symbol, `Binance Trades WS connected`, { stream: 'aggTrade' }, 'ws'); });
@@ -2167,7 +2218,7 @@ startBinanceDepthWS() {
     startBinanceTickerWS() {
         if (this.wsBinanceTicker) return;
         const sym = this.sourceSymbol.toLowerCase();
-        const url = `wss://fstream.binance.com/market/ws/${sym}@ticker`;
+        const url = `wss://fstream.binance.com/public/ws/${sym}@ticker`;
         log.info(this.symbol, `[WS] Connecting to Binance 24h Ticker...`);
         this.wsBinanceTicker = new WebSocket(url);
         this.wsBinanceTicker.on('open', () => { pushEvent('SUCCESS', this.symbol, `Binance Ticker WS connected`, { stream: 'binanceTicker' }, 'ws'); });
@@ -2181,6 +2232,9 @@ startBinanceDepthWS() {
                         volume: parseFloat(data.v || 0),
                         priceChangePercent: parseFloat(data.P || 0)
                     };
+                    if (data.c) {
+                        this.binanceLtp = parseFloat(data.c);
+                    }
                     broadcastToUI();
                     
                     if (!this.lastBinanceTickerLogTime || Date.now() - this.lastBinanceTickerLogTime > 5000) {
@@ -2197,11 +2251,74 @@ startBinanceDepthWS() {
         });
     }
 
+    startRestPollingFallback() {
+        if (this.pollingInterval) clearInterval(this.pollingInterval);
+        
+        this.pollingInterval = setInterval(async () => {
+            // 1. Fetch real-time Mark Price and Funding Rate for Binance and Stage
+            try {
+                const resB = await fetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${this.sourceSymbol}`);
+                if (resB.ok) {
+                    const dataB = await resB.json();
+                    if (dataB.markPrice) this.binanceMarkPrice = parseFloat(dataB.markPrice);
+                    if (dataB.lastFundingRate) this.binanceFundingRate = parseFloat(dataB.lastFundingRate);
+                }
+            } catch(e){}
+
+            try {
+                const mdsReadBase = TIER_URLS[this.tier]?.MDS_READ || TIER_URLS.PRODUCTION.MDS_READ;
+                const resS = await fetch(`${mdsReadBase}/fapi/v1/premiumIndex?symbol=${this.symbol}`);
+                if (resS.ok) {
+                    const dataS = await resS.json();
+                    if (dataS.markPrice) this.testnetMarkPrice = parseFloat(dataS.markPrice);
+                    if (dataS.lastFundingRate) this.stageFundingRate = parseFloat(dataS.lastFundingRate);
+                }
+            } catch(e){}
+
+            // 2. Fetch real-time LTP for Binance and Stage
+            try {
+                const resLtpB = await fetch(`https://fapi.binance.com/fapi/v1/ticker/price?symbol=${this.sourceSymbol}`);
+                if (resLtpB.ok) {
+                    const dataLtpB = await resLtpB.json();
+                    if (dataLtpB.price) this.binanceLtp = parseFloat(dataLtpB.price);
+                }
+            } catch(e){}
+
+            try {
+                const mdsReadBase = TIER_URLS[this.tier]?.MDS_READ || TIER_URLS.PRODUCTION.MDS_READ;
+                const resLtpS = await fetch(`${mdsReadBase}/fapi/v2/ticker/price?symbol=${this.symbol}`);
+                if (resLtpS.ok) {
+                    const dataLtpS = await resLtpS.json();
+                    if (dataLtpS.price) this.testnetLtp = parseFloat(dataLtpS.price);
+                }
+            } catch(e){}
+
+            // 3. Fetch real-time 24h Stats for Binance
+            try {
+                const res24B = await fetch(`https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${this.sourceSymbol}`);
+                if (res24B.ok) {
+                    const data24B = await res24B.json();
+                    this.binance24h = {
+                        high: parseFloat(data24B.highPrice || 0),
+                        low: parseFloat(data24B.lowPrice || 0),
+                        volume: parseFloat(data24B.quoteVolume || 0),
+                        priceChangePercent: parseFloat(data24B.priceChangePercent || 0)
+                    };
+                }
+            } catch(e){}
+
+            broadcastToUI();
+        }, 3000);
+    }
+
 
     async fetchInitialMarkPrices() {
         const mdsReadBase = TIER_URLS[this.tier]?.MDS_READ || TIER_URLS.PRODUCTION.MDS_READ;
+        
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
         try {
-            const res = await fetch(`${mdsReadBase}/fapi/v1/premiumIndex?symbol=${this.symbol}`);
+            const res = await fetch(`${mdsReadBase}/fapi/v1/premiumIndex?symbol=${this.symbol}`, { signal: controller.signal });
             if (res.ok) {
                 const data = await res.json();
                 if (data.markPrice) {
@@ -2210,10 +2327,14 @@ startBinanceDepthWS() {
             }
         } catch (e) {
             log.debug && log.debug('SYSTEM', `Failed to fetch Stage initial markPrice: ${e.message}`);
+        } finally {
+            clearTimeout(timeout);
         }
 
+        const controller2 = new AbortController();
+        const timeout2 = setTimeout(() => controller2.abort(), 5000);
         try {
-            const res = await fetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${this.symbol}`);
+            const res = await fetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${this.sourceSymbol}`, { signal: controller2.signal });
             if (res.ok) {
                 const data = await res.json();
                 if (data.markPrice) {
@@ -2222,6 +2343,8 @@ startBinanceDepthWS() {
             }
         } catch (e) {
             log.debug && log.debug('SYSTEM', `Failed to fetch Binance initial markPrice: ${e.message}`);
+        } finally {
+            clearTimeout(timeout2);
         }
     }
 
@@ -2266,7 +2389,7 @@ startBinanceDepthWS() {
     startBinanceMarkPriceWS() {
         if (this.wsBinanceMarkPrice) return;
         const sym = this.symbol.toLowerCase();
-        const streamUrl = `wss://fstream.binance.com/market/ws/${sym}@markPrice`;
+        const streamUrl = `wss://fstream.binance.com/public/ws/${sym}@markPrice`;
         log.info(this.symbol, `[WS] Connecting to Binance Mark Price WS...`);
         this.wsBinanceMarkPrice = new WebSocket(streamUrl);
         this.wsBinanceMarkPrice.on('open', () => {
@@ -2438,15 +2561,31 @@ startBinanceDepthWS() {
     }
 
     async reloadDepth() {
+        log.info(this.symbol, 'Reloading engine streams and market depth...');
+        
+        // 1. Close all Testnet WebSockets
+        if (this.wsTestnet) { clearInterval(this.testnetPingInterval); this.wsTestnet.removeAllListeners('close'); this.wsTestnet.close(); this.wsTestnet = null; }
+        if (this.wsTestnetTicker) { try { this.wsTestnetTicker.removeAllListeners('close'); this.wsTestnetTicker.close(); } catch(e){} this.wsTestnetTicker = null; }
+        if (this.wsTestnetMarkPrice) { try { this.wsTestnetMarkPrice.removeAllListeners('close'); this.wsTestnetMarkPrice.close(); } catch(e){} this.wsTestnetMarkPrice = null; }
+
+        // 2. Close all Binance WebSockets
+        if (this.wsBinanceDepth) { this.wsBinanceDepth.removeAllListeners('close'); this.wsBinanceDepth.close(); this.wsBinanceDepth = null; }
+        if (this.wsBinanceTrades) { this.wsBinanceTrades.removeAllListeners('close'); this.wsBinanceTrades.close(); this.wsBinanceTrades = null; }
+        if (this.wsBinanceTicker) { try { this.wsBinanceTicker.removeAllListeners('close'); this.wsBinanceTicker.close(); } catch(e){} this.wsBinanceTicker = null; }
+        if (this.wsBinanceMarkPrice) { try { this.wsBinanceMarkPrice.removeAllListeners('close'); this.wsBinanceMarkPrice.close(); } catch(e){} this.wsBinanceMarkPrice = null; }
+
+        // 3. Fetch initial depth from MDS_READ
         const mdsReadBase = TIER_URLS[this.tier].MDS_READ;
         const depthEndpoints = [
             `${mdsReadBase}/fapi/v1/depth?symbol=${this.symbol}&limit=${this.depthLevels}`,
             `${mdsReadBase}/api/v1/derivatives/futures/depth?symbol=${this.symbol}&limit=${this.depthLevels}`
         ];
         let success = false;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
         for (const endpoint of depthEndpoints) {
             try {
-                const res = await fetch(endpoint);
+                const res = await fetch(endpoint, { signal: controller.signal });
                 if (res.ok) {
                     const data = await res.json();
                     if (data.bids && data.asks) { 
@@ -2458,15 +2597,60 @@ startBinanceDepthWS() {
                 }
             } catch (e) { log.debug && log.debug('SYSTEM', e.message); }
         }
+        clearTimeout(timeout);
         if (!success) {
             log.warn(this.symbol, `Failed to fetch initial depth from MDS_READ on ${this.tier}`, null, this.tier);
         }
-        if (this.wsTestnet) { clearInterval(this.testnetPingInterval); this.wsTestnet.removeAllListeners('close'); this.wsTestnet.close(); this.wsTestnet = null; }
+
+        // 4. Fetch initial mark prices
         await this.fetchInitialMarkPrices();
+
+        // 5. Restart all WebSockets
+        this.startBinanceDepthWS();
+        this.startBinanceTradesWS();
+        this.startBinanceTickerWS();
+        this.startBinanceMarkPriceWS();
         this.startTestnetWS();
         this.startTestnetTickerWS();
         this.startTestnetMarkPriceWS();
+        
+        log.success(this.symbol, 'All streams and depth successfully reloaded.');
+    }
 
+    async mountOnly() {
+        this.status = 'STOPPED';
+        log.info(this.symbol, 'Mounting market in data-only mode (simulation stopped)...', null, this.tier);
+        
+        // Fetch initial Binance LTP via REST
+        try {
+            const res = await fetch(`https://fapi.binance.com/fapi/v1/ticker/price?symbol=${this.sourceSymbol}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.price) {
+                    this.binanceLtp = parseFloat(data.price);
+                }
+            }
+        } catch (e) {
+            log.debug && log.debug('SYSTEM', `Failed to fetch initial Binance price: ${e.message}`);
+        }
+        
+        // Fetch initial Stage LTP via REST
+        try {
+            const mdsReadBase = TIER_URLS[this.tier]?.MDS_READ || TIER_URLS.PRODUCTION.MDS_READ;
+            const res = await fetch(`${mdsReadBase}/fapi/v2/ticker/price?symbol=${this.symbol}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.price) {
+                    this.testnetLtp = parseFloat(data.price);
+                }
+            }
+        } catch (e) {
+            log.debug && log.debug('SYSTEM', `Failed to fetch initial Stage price: ${e.message}`);
+        }
+
+        await this.fetchInitialMarkPrices();
+        await this.reloadDepth();
+        this.startRestPollingFallback();
     }
 
     async start() {
@@ -2502,6 +2686,7 @@ startBinanceDepthWS() {
         this.startBinanceTradesWS();
         this.startBinanceMarkPriceWS();
         this.startBinanceTickerWS();
+        this.startRestPollingFallback();
     }
 
     pause() { this.status = 'PAUSED'; log.warn(this.symbol, 'Engine Paused.'); }
@@ -2716,6 +2901,8 @@ function buildPayload(isSnapshot = true, sinceTs = 0) {
         users: usersMetadata,
         roles: globalRoles,
         activeTier: globalActiveTier,
+        instruments: instrumentsMap,
+        tierUrls: TIER_URLS,
         terminalLogs,
         terminalEvents: isSnapshot ? terminalEvents : terminalEvents.filter(e => e.ts > sinceTs),
         orderUpdateCounter: globalOrderUpdateCounter
@@ -2742,11 +2929,108 @@ function broadcastToUI() {
 }
 
 const server = http.createServer(async (req, res) => {
+    if (req.method === 'POST' && req.url === '/api/instance/select') {
+        let body = '';
+        req.on('data', chunk => { body += chunk; });
+        req.on('end', async () => {
+            try {
+                const parsed = JSON.parse(body || '{}');
+                const sym = (parsed.symbol || '').toUpperCase();
+                const tier = (parsed.tier || globalActiveTier).toUpperCase();
+                if (!sym) {
+                    res.writeHead(400);
+                    return res.end(JSON.stringify({ error: "Symbol is required" }));
+                }
+                const tierInstances = instances[tier];
+                const inst = tierInstances ? tierInstances.get(sym) : null;
+                if (inst) {
+                    await inst.reloadDepth();
+                    broadcastToUI();
+                }
+                res.writeHead(200);
+                return res.end(JSON.stringify({ success: true }));
+            } catch (e) {
+                res.writeHead(500);
+                return res.end(JSON.stringify({ error: e.message }));
+            }
+        });
+        return;
+    }
+
     // M7: CORS headers for all requests
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-replicator-user');
     if (req.method === 'OPTIONS') { res.writeHead(204).end(); return; }
+
+    if (req.method === 'GET' && req.url.startsWith('/api/stage/exchangeInfo')) {
+        const urlObj = new URL(req.url, 'http://localhost');
+        const tier = (urlObj.searchParams.get('tier') || globalActiveTier).toUpperCase();
+        const urls = TIER_URLS[tier] || TIER_URLS.PRODUCTION;
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+            const stageRes = await fetch(`${urls.HPO}/fapi/v1/exchangeInfo`, { signal: controller.signal });
+            clearTimeout(timeoutId);
+            if (stageRes.ok) {
+                const info = await stageRes.json();
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify(info));
+            } else {
+                res.writeHead(stageRes.status, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ error: `Stage HPO returned status ${stageRes.status}` }));
+            }
+        } catch (e) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: e.message }));
+        }
+    }
+
+    if (req.method === 'GET' && req.url.startsWith('/api/stage/ticker/price')) {
+        const urlObj = new URL(req.url, 'http://localhost');
+        const tier = (urlObj.searchParams.get('tier') || globalActiveTier).toUpperCase();
+        const urls = TIER_URLS[tier] || TIER_URLS.PRODUCTION;
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+            const stageRes = await fetch(`${urls.MDS_READ}/fapi/v2/ticker/price`, { signal: controller.signal });
+            clearTimeout(timeoutId);
+            if (stageRes.ok) {
+                const data = await stageRes.json();
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify(data));
+            } else {
+                res.writeHead(stageRes.status, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ error: `Stage MDS_READ returned status ${stageRes.status}` }));
+            }
+        } catch (e) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: e.message }));
+        }
+    }
+
+    if (req.method === 'GET' && req.url.startsWith('/api/stage/premiumIndex')) {
+        const urlObj = new URL(req.url, 'http://localhost');
+        const tier = (urlObj.searchParams.get('tier') || globalActiveTier).toUpperCase();
+        const urls = TIER_URLS[tier] || TIER_URLS.PRODUCTION;
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+            const stageRes = await fetch(`${urls.MDS_READ}/fapi/v1/premiumIndex`, { signal: controller.signal });
+            clearTimeout(timeoutId);
+            if (stageRes.ok) {
+                const data = await stageRes.json();
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify(data));
+            } else {
+                res.writeHead(stageRes.status, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ error: `Stage MDS_READ returned status ${stageRes.status}` }));
+            }
+        } catch (e) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: e.message }));
+        }
+    }
 
     if (req.method === 'GET' && req.url.startsWith('/api/fundingRate')) {
         const urlObj = new URL(req.url, 'http://localhost');
@@ -2834,6 +3118,10 @@ const server = http.createServer(async (req, res) => {
                 if (tierInstances && tierInstances.has(targetSym)) {
                     const inst = tierInstances.get(targetSym);
                     await inst.stop();
+                    if (inst.pollingInterval) {
+                        clearInterval(inst.pollingInterval);
+                        inst.pollingInterval = null;
+                    }
                     tierInstances.delete(targetSym);
                     log.info(targetSym, `Market instance deleted/removed from UI.`, null, targetTier);
                     broadcastToUI();
@@ -2938,26 +3226,13 @@ const server = http.createServer(async (req, res) => {
                         return res.end(JSON.stringify({ error: `Invalid tier: ${tier}` }));
                     }
                     if (globalActiveTier !== tier) {
-                        log.info('SYSTEM', `Switching global environment view to ${tier}...`);
-                        globalActiveTier = tier;
-                        
-                        if (!instrumentsMap[tier] || Object.keys(instrumentsMap[tier]).length === 0) {
-                            await loadInstruments(tier);
-                        }
-
-                        // Broadcast switch instantly to the UI
-                        broadcastToUI();
-
-                        // Perform reconnect & sync in the background
                         (async () => {
                             try {
-                                await reconnectGlobalUserWs();
-                                lastPortfolioSyncTime = 0;
-                                await syncAllPortfolios();
+                                await switchEnvironment(tier);
                                 broadcastToUI();
                                 log.success('SYSTEM', `Successfully switched global environment view to ${tier}`);
                             } catch (err) {
-                                log.error('SYSTEM', `Error finalizing switch to ${tier}: ${err.message}`);
+                                log.error('SYSTEM', `Error switching environment to ${tier}: ${err.message}`);
                             }
                         })();
                     }
@@ -2991,8 +3266,13 @@ const server = http.createServer(async (req, res) => {
                             enableTradeSync: parsed.enableTradeSync !== false
                         });
                         instances[tier].set(targetSym, inst);
-                        inst.start().catch(e => log.error(targetSym, `Start failed: ${e.message}`, null, tier));
-                        log.info(targetSym, `New market mounted from UI.`, null, tier);
+                        if (parsed.mountOnly) {
+                            await inst.mountOnly().catch(e => log.error(targetSym, `Mount failed: ${e.message}`, null, tier));
+                            log.info(targetSym, `New market mounted in data-only mode.`, null, tier);
+                        } else {
+                            await inst.start().catch(e => log.error(targetSym, `Start failed: ${e.message}`, null, tier));
+                            log.info(targetSym, `New market mounted from UI.`, null, tier);
+                        }
                     } else {
                         if (parsed.minSize     !== undefined) inst.minSize     = parseFloat(parsed.minSize);
                         if (parsed.maxSize     !== undefined) inst.maxSize     = parseFloat(parsed.maxSize);
@@ -3008,16 +3288,9 @@ const server = http.createServer(async (req, res) => {
                     }
 
                     if (globalActiveTier !== tier) {
-                        log.info('SYSTEM', `Switching global environment view to ${tier} (mounted market tier)`);
-                        globalActiveTier = tier;
-                        
-                        broadcastToUI();
-                        
                         (async () => {
                             try {
-                                await reconnectGlobalUserWs();
-                                lastPortfolioSyncTime = 0;
-                                await syncAllPortfolios();
+                                await switchEnvironment(tier);
                                 broadcastToUI();
                             } catch (err) {
                                 log.error('SYSTEM', `Error finalizing switch: ${err.message}`);
@@ -3191,12 +3464,10 @@ async function startBots() {
 
     await Promise.allSettled([syncServerTime(), ...loadInstPromises]);
     
-    // Wipe all orphaned open orders across accounts
-    try {
-        await globalStartupCleanup();
-    } catch (e) {
+    // Wipe all orphaned open orders across accounts in background
+    globalStartupCleanup().catch(e => {
         log.error('SYSTEM', 'Startup global cleanup failed: ' + e.message);
-    }
+    });
     
     // Fetch listen keys and connect user data streams for real-time events
     await fetchListenKeys();
@@ -3220,10 +3491,19 @@ async function startBots() {
     for (const tier of tiers) {
         const tierInstances = instances[tier] || new Map();
         for (const inst of tierInstances.values()) {
+            if (tier !== globalActiveTier) {
+                // Initialize temporary previous state so it can be resumed when switched to
+                inst.tempPrevStatus = inst.mountOnlyState ? 'STOPPED' : 'RUNNING';
+                continue;
+            }
             startPromises.push((async () => {
                 try {
                     await inst.wipeOrders();
-                    await inst.start();
+                    if (inst.mountOnlyState) {
+                        await inst.mountOnly();
+                    } else {
+                        await inst.start();
+                    }
                 } catch (e) {
                     log.error(inst.targetSymbol, `Initial start sequence failed: ${e.message}`, null, inst.tier);
                 }

@@ -611,6 +611,43 @@
       font-weight: 600;
   }
 
+  /* Market List Styles */
+  .m-row {
+      cursor: pointer;
+      transition: background 0.15s ease;
+      border-bottom: 1px solid var(--border);
+  }
+  .m-row:hover {
+      background: var(--row-hover) !important;
+  }
+  .m-fav-star {
+      cursor: pointer;
+      font-size: 14px;
+      transition: color 0.15s;
+      user-select: none;
+      padding: 0 4px;
+  }
+  .m-fav-star.active {
+      color: #eab308 !important;
+  }
+  .m-badge-lev {
+      background: rgba(6, 182, 212, 0.15);
+      color: var(--cyan);
+      font-size: 9px;
+      padding: 1px 4px;
+      border-radius: 4px;
+      font-weight: 700;
+      margin-left: 6px;
+      display: inline-block;
+  }
+  .m-pct-up {
+      color: #10b981;
+      font-weight: 600;
+  }
+  .m-pct-down {
+      color: #f43f5e;
+      font-weight: 600;
+  }
 </style>
 </head>
 <body>
@@ -747,7 +784,16 @@
       <button class="env-tab" data-env="STAGING" style="background:transparent; border:none; color:var(--text-muted); padding: 4px 10px; font-size: 9px; font-weight:700; font-family:inherit; cursor:pointer; border-radius: 5px; transition: all 0.2s;">STAGING</button>
     </div>
   </div>
-  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;flex:0 1 auto;justify-content:center;" id="symbol-tabs"></div>
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;flex:0 1 auto;justify-content:center;">
+    <!-- Markets Selector Button -->
+    <button id="btn-markets-list-open" onclick="window.openMarketListModal()" style="background: rgba(6, 182, 212, 0.08); border: 1px solid rgba(6, 182, 212, 0.2); color: var(--cyan); padding: 7px 14px; font-size: 11px; font-weight: 700; font-family: inherit; cursor: pointer; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.background='rgba(6, 182, 212, 0.15)';" onmouseout="this.style.background='rgba(6, 182, 212, 0.08)';">
+      <span style="font-size: 13px;">☰</span> Markets
+    </button>
+    
+
+    
+    <div style="display:flex;gap:10px;align-items:center;" id="symbol-tabs"></div>
+  </div>
   <div style="display:flex;gap:12px;align-items:center;flex:1;justify-content:flex-end;">
     <div id="c-status-toast" style="display:none;"></div>
     <div class="chip"><div class="chip-label">Engine Status</div><div class="chip-val" id="c-eng"><span class="c-rose fw-bold">OFFLINE</span></div></div>
@@ -2707,15 +2753,90 @@ window.addEventListener('DOMContentLoaded', () => {
             });
         };
 
-        let activeTabSymbol = null;
-        const lastActiveSymbolByEnv = { PRODUCTION: null, JAPAN: null, STAGING: null };
+        window.activeTabSymbol = null;
+        window.lastActiveSymbolByEnv = { PRODUCTION: null, JAPAN: null, STAGING: null };
         try {
             const savedSymbols = localStorage.getItem('replicator_last_active_symbols');
-            if (savedSymbols) Object.assign(lastActiveSymbolByEnv, JSON.parse(savedSymbols));
+            if (savedSymbols) Object.assign(window.lastActiveSymbolByEnv, JSON.parse(savedSymbols));
         } catch(e) {}
-        let cachedInstances = {};
-        let cachedGlobalData = null;
-        let activeEnvFilter = localStorage.getItem('replicator_last_env') || 'PRODUCTION';
+        window.getLocalMountedSymbols = function(env) {
+            try {
+                const stored = localStorage.getItem('replicator_local_mounted_symbols_' + env);
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if (Array.isArray(parsed)) return parsed;
+                }
+            } catch(e){}
+            // Fallback migration
+            if (env === 'PRODUCTION') {
+                try {
+                    const stored = localStorage.getItem('replicator_local_mounted_symbols');
+                    if (stored) {
+                        const parsed = JSON.parse(stored);
+                        if (Array.isArray(parsed)) {
+                            localStorage.setItem('replicator_local_mounted_symbols_PRODUCTION', stored);
+                            localStorage.removeItem('replicator_local_mounted_symbols');
+                            return parsed;
+                        }
+                    }
+                } catch(e){}
+            }
+            return [];
+        };
+
+        window.setLocalMountedSymbols = function(env, symbols) {
+            try {
+                localStorage.setItem('replicator_local_mounted_symbols_' + env, JSON.stringify(symbols));
+            } catch(e){}
+        };
+
+        window.mountLocalSymbolsForEnv = function(tier) {
+            const symbols = window.getLocalMountedSymbols(tier);
+            window.localMountedSymbols = symbols;
+            symbols.forEach(sym => {
+                if (!window.cachedInstances[sym]) {
+                    window.cachedInstances[sym] = {
+                        status: 'STOPPED',
+                        tier: tier,
+                        isPending: true,
+                        binanceDepth: { bids: [], asks: [] },
+                        testnetDepth: { bids: [], asks: [] },
+                        syncedTrades: [],
+                        diagnostics: { sourceSymbol: sym }
+                    };
+                }
+                
+                const reqBody = {
+                    tier: tier,
+                    symbol: sym,
+                    targetSymbol: sym,
+                    minSize: 100,
+                    maxSize: 500,
+                    takerSize: 10,
+                    makerUseRawQty: false,
+                    depthLevels: 10,
+                    bufferPct: 0,
+                    tradeDelayMs: 0,
+                    cancelOnStop: false,
+                    newUserFlow: false,
+                    enableTradeSync: true,
+                    mountOnly: true
+                };
+                
+                fetch(window.getApiUrl('/api/config'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(reqBody)
+                }).catch(e => {});
+            });
+        };
+
+        window.activeEnvFilter = localStorage.getItem('replicator_last_env') || 'PRODUCTION';
+        window.cachedInstances = {};
+        window.cachedGlobalData = null;
+        window.localMountedSymbols = [];
+        
+        window.mountLocalSymbolsForEnv(window.activeEnvFilter);
         let lastActiveEnv = null;
         let tradeFilter = 'all';
         
@@ -2723,6 +2844,11 @@ window.addEventListener('DOMContentLoaded', () => {
         let flashOn = localStorage.getItem('replicator_tog-flash') !== '0';
         let pPrec = 4, qPrec = 1;
         let prevBinLtp = null;
+        let prevStageLtp = null;
+        let prevBinMarkPrice = null;
+        let prevStageMarkPrice = null;
+        let prevBinFunding = null;
+        let prevStageFunding = null;
         // knownTradeIds removed — was dead code (populated but never read)
         let cancelOnStopState = localStorage.getItem('replicator_cancel_on_stop') === '1';
         let newUserState = localStorage.getItem('replicator_new_user') === '1';
@@ -2742,7 +2868,33 @@ window.addEventListener('DOMContentLoaded', () => {
                     if (res.success) {
                         showFlushbar(`Environment switched to ${targetEnv}`, 'success');
                         activeEnvFilter = targetEnv;
+                        window.activeEnvFilter = targetEnv;
                         localStorage.setItem('replicator_last_env', targetEnv);
+                        
+                        // Mount the local symbols for the switched environment
+                        window.mountLocalSymbolsForEnv(targetEnv);
+                        
+                        // Pick active symbol corresponding to the selected env automatically
+                        const sym = window.lastActiveSymbolByEnv[targetEnv];
+                        if (sym && window.cachedInstances[sym] && window.cachedInstances[sym].tier === targetEnv) {
+                            window.selectTab(sym);
+                        } else {
+                            const remaining = window.localMountedSymbols.filter(s => {
+                                const inst = window.cachedInstances[s];
+                                return inst && (inst.tier === targetEnv);
+                            });
+                            if (remaining.length > 0) {
+                                window.selectTab(remaining[0]);
+                            } else {
+                                window.activeTabSymbol = "";
+                                window.clearDashboard();
+                            }
+                        }
+                        
+                        window.refreshSymbolTabs(window.cachedGlobalData);
+                        if (window.fetchStageExchangeInfo) window.fetchStageExchangeInfo();
+                        if (window.fetchInitialAllTickers) window.fetchInitialAllTickers();
+                        if (window.startAllTickersWS) window.startAllTickersWS();
                         if (window.renderTerminalLogs) {
                             window.renderTerminalLogs(window.activeTermTab === 'events' ? window.cachedTerminalEvents : window.cachedTerminalLogs);
                         }
@@ -4133,7 +4285,21 @@ window.addEventListener('DOMContentLoaded', () => {
                 lastActiveSymbolByEnv[activeEnvFilter] = sym;
                 localStorage.setItem('replicator_last_active_symbols', JSON.stringify(lastActiveSymbolByEnv));
             }
-            if (window.tvIsVisible) window.initTVChart(sym);
+            
+            // Debounce TradingView chart loading to make tab switching instantly snappy
+            if (window.tvTimeout) clearTimeout(window.tvTimeout);
+            window.tvTimeout = setTimeout(() => {
+                if (window.tvIsVisible && activeTabSymbol === sym) {
+                    window.initTVChart(sym);
+                }
+            }, 250);
+            
+            // Force reload depth and reconnect websockets for selected market
+            fetch(window.getApiUrl('/api/instance/select'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ symbol: sym, tier: window.activeEnvFilter })
+            }).catch(e => {});
             tradeFilter = 'all';
             document.querySelectorAll('.tab').forEach(b => { if(b.hasAttribute('data-f')) b.classList.remove('on'); });
             const defaultTab = document.querySelector('.tab[data-f="all"]');
@@ -4613,12 +4779,34 @@ window.addEventListener('DOMContentLoaded', () => {
 
             const sa = instance.testnetDepth.asks, sb = instance.testnetDepth.bids;
             const stageLtp = (sa&&sa[0]&&sb&&sb[0]) ? ((parseFloat(sa[0][0])+parseFloat(sb[0][0]))/2).toFixed(pPrec) : binLtp;
-            document.getElementById('t-sltp').textContent = fmt(stageLtp, pPrec);
+            const stageLtpEl = document.getElementById('t-sltp');
+            if (prevStageLtp !== null && flashOn) {
+                const d = parseFloat(stageLtp) - parseFloat(prevStageLtp);
+                if (d > 0) flash(stageLtpEl, 'fl-g');
+                else if (d < 0) flash(stageLtpEl, 'fl-r');
+            }
+            prevStageLtp = stageLtp;
+            stageLtpEl.textContent = fmt(stageLtp, pPrec);
 
             const binMarkPrice = diag.binanceMarkPrice || binLtp;
+            const binMarkPriceEl = document.getElementById('t-bmp');
+            if (prevBinMarkPrice !== null && flashOn) {
+                const d = parseFloat(binMarkPrice) - parseFloat(prevBinMarkPrice);
+                if (d > 0) flash(binMarkPriceEl, 'fl-g');
+                else if (d < 0) flash(binMarkPriceEl, 'fl-r');
+            }
+            prevBinMarkPrice = binMarkPrice;
+            binMarkPriceEl.textContent = fmt(binMarkPrice, pPrec);
+
             const stageMarkPrice = diag.testnetMarkPrice || stageLtp;
-            document.getElementById('t-bmp').textContent = fmt(binMarkPrice, pPrec);
-            document.getElementById('t-smp').textContent = fmt(stageMarkPrice, pPrec);
+            const stageMarkPriceEl = document.getElementById('t-smp');
+            if (prevStageMarkPrice !== null && flashOn) {
+                const d = parseFloat(stageMarkPrice) - parseFloat(prevStageMarkPrice);
+                if (d > 0) flash(stageMarkPriceEl, 'fl-g');
+                else if (d < 0) flash(stageMarkPriceEl, 'fl-r');
+            }
+            prevStageMarkPrice = stageMarkPrice;
+            stageMarkPriceEl.textContent = fmt(stageMarkPrice, pPrec);
 
             // LTP Drift Update
             const dAbs = Math.abs(parseFloat(binLtp)-parseFloat(stageLtp)).toFixed(pPrec);
@@ -4686,8 +4874,23 @@ window.addEventListener('DOMContentLoaded', () => {
                 return `${val.toFixed(8)} (${pct}%)`;
             };
 
-            document.getElementById('t-bin-funding').textContent = formatFunding(binFunding);
-            document.getElementById('t-stage-funding').textContent = formatFunding(stageFunding);
+            const binFundingEl = document.getElementById('t-bin-funding');
+            if (prevBinFunding !== null && binFunding !== null && flashOn) {
+                const d = parseFloat(binFunding) - parseFloat(prevBinFunding);
+                if (d > 0) flash(binFundingEl, 'fl-g');
+                else if (d < 0) flash(binFundingEl, 'fl-r');
+            }
+            prevBinFunding = binFunding;
+            binFundingEl.textContent = formatFunding(binFunding);
+
+            const stageFundingEl = document.getElementById('t-stage-funding');
+            if (prevStageFunding !== null && stageFunding !== null && flashOn) {
+                const d = parseFloat(stageFunding) - parseFloat(prevStageFunding);
+                if (d > 0) flash(stageFundingEl, 'fl-g');
+                else if (d < 0) flash(stageFundingEl, 'fl-r');
+            }
+            prevStageFunding = stageFunding;
+            stageFundingEl.textContent = formatFunding(stageFunding);
             
             if (binFunding !== null && stageFunding !== null) {
                 const diffVal = binFunding - stageFunding;
@@ -4781,6 +4984,11 @@ window.addEventListener('DOMContentLoaded', () => {
             es.onopen = () => {
                 sseReconnectDelay = 2500; // Reset backoff on success
                 prevBinLtp = null;
+                prevStageLtp = null;
+                prevBinMarkPrice = null;
+                prevStageMarkPrice = null;
+                prevBinFunding = null;
+                prevStageFunding = null;
                 const sp = document.getElementById('splash');
                 if (sp) { sp.classList.add('hidden'); setTimeout(()=>sp.remove(),500); }
                 document.getElementById('dot').className = 'dot-live';
@@ -4848,6 +5056,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     return tier === activeEnvFilter;
                 });
 
+
+
                 document.getElementById('dot').className = 'dot-live';
 
                 if (symbols.length === 0) {
@@ -4894,27 +5104,73 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (event) event.stopPropagation();
                 if (!confirm(`Are you sure you want to stop and remove ${sym}?`)) return;
                 
+                // Optimistically update local active states for instant snappiness
+                if (Array.isArray(window.localMountedSymbols)) {
+                    window.localMountedSymbols = window.localMountedSymbols.filter(s => s !== sym);
+                } else {
+                    window.localMountedSymbols = [];
+                }
+                window.setLocalMountedSymbols(activeEnvFilter, window.localMountedSymbols);
+                
+                if (window.cachedInstances && window.cachedInstances[sym]) {
+                    delete window.cachedInstances[sym];
+                }
+                
+                const wasActive = (activeTabSymbol === sym);
+                if (wasActive) {
+                    const remaining = window.localMountedSymbols.filter(s => {
+                        const inst = window.cachedInstances[s];
+                        return inst && (inst.tier === activeEnvFilter);
+                    });
+                    if (remaining.length > 0) {
+                        activeTabSymbol = remaining[0];
+                    } else {
+                        activeTabSymbol = "";
+                    }
+                }
+                
+                // Instantly re-render tabs
+                window.refreshSymbolTabs(window.cachedGlobalData);
+                if (wasActive) {
+                    if (activeTabSymbol) window.selectTab(activeTabSymbol);
+                    else window.clearDashboard();
+                }
+                
+                showToast(`⚡ Stopping & removing ${sym}...`);
+                
                 try {
                     const res = await fetch(window.getApiUrl(`/api/instance?symbol=${sym}&tier=${activeEnvFilter}`), {
                         method: 'DELETE'
                     });
                     const data = await res.json();
-                    if (data.error) showToast('✗ ' + data.error, true);
-                    else {
-                        showToast(`✓ Market ${sym} Removed Successfully`);
-                        if (activeTabSymbol === sym) {
-                            activeTabSymbol = "";
-                            window.clearDashboard();
-                        }
+                    if (data.error) {
+                        showToast('✗ ' + data.error, true);
+                        // Re-add to local cache on error
+                        window.localMountedSymbols.push(sym);
+                        window.setLocalMountedSymbols(activeEnvFilter, window.localMountedSymbols);
+                        window.refreshSymbolTabs(window.cachedGlobalData);
+                    } else {
+                        showToast(`✓ Market ${sym} Stopped & Removed`);
                     }
-                } catch(e) {
-                    showToast('✗ ' + e.message, true);
+                } catch (err) {
+                    showToast('✗ ' + err.message, true);
                 }
             };
 
             es.onmessage = (ev) => {
                 let data;
                 try { data = JSON.parse(ev.data); } catch(e) { return; }
+
+                if (data.tierUrls) {
+                    if (!window.payload) window.payload = {};
+                    const hadUrls = !!window.payload.tierUrls;
+                    window.payload.tierUrls = data.tierUrls;
+                    if (!hadUrls) {
+                        if (window.fetchStageExchangeInfo) window.fetchStageExchangeInfo();
+                        if (window.fetchInitialAllTickers) window.fetchInitialAllTickers();
+                        if (window.startAllTickersWS) window.startAllTickersWS();
+                    }
+                }
 
                 if (data.terminalEvents) {
                     data.terminalEvents.forEach(evt => {
@@ -4929,13 +5185,48 @@ window.addEventListener('DOMContentLoaded', () => {
                     });
                 }
 
-                cachedInstances = data.instances || {};
-                cachedGlobalData = data;
+                // Preserve pending proactive symbols to prevent them from disappearing
+                const pendingSymbols = {};
+                if (typeof window.cachedInstances === 'object') {
+                    for (const sym in window.cachedInstances) {
+                        if (window.cachedInstances[sym] && window.cachedInstances[sym].isPending) {
+                            pendingSymbols[sym] = window.cachedInstances[sym];
+                        }
+                    }
+                }
+                
+                window.cachedInstances = data.instances || {};
+                
+                // Merge pending proactive symbols and locally remembered symbols back in
+                const activeTier = window.activeEnvFilter || 'PRODUCTION';
+                if (Array.isArray(window.localMountedSymbols)) {
+                    window.localMountedSymbols.forEach(sym => {
+                        if (!window.cachedInstances[sym]) {
+                            window.cachedInstances[sym] = {
+                                status: 'STOPPED',
+                                tier: activeTier,
+                                isPending: true,
+                                binanceDepth: { bids: [], asks: [] },
+                                testnetDepth: { bids: [], asks: [] },
+                                syncedTrades: [],
+                                diagnostics: { sourceSymbol: sym }
+                            };
+                        }
+                    });
+                }
+                
+                for (const sym in pendingSymbols) {
+                    if (!window.cachedInstances[sym]) {
+                        window.cachedInstances[sym] = pendingSymbols[sym];
+                    }
+                }
+                window.cachedGlobalData = data;
 
                 const sp = document.getElementById('splash');
                 if (sp) { sp.classList.add('hidden'); setTimeout(()=>sp.remove(),500); }
                 
                 if (data.activeTier) {
+                    const prevTier = activeEnvFilter;
                     activeEnvFilter = data.activeTier;
                     document.querySelectorAll('.env-tab').forEach(btn => {
                         if (btn.getAttribute('data-env') === activeEnvFilter) {
@@ -4946,6 +5237,12 @@ window.addEventListener('DOMContentLoaded', () => {
                     });
                     const cfgTierSelect = document.getElementById('cfg-tier');
                     if (cfgTierSelect) cfgTierSelect.value = activeEnvFilter;
+                    
+                    if (prevTier !== activeEnvFilter) {
+                        if (window.fetchStageExchangeInfo) window.fetchStageExchangeInfo();
+                        if (window.fetchInitialAllTickers) window.fetchInitialAllTickers();
+                        if (window.startAllTickersWS) window.startAllTickersWS();
+                    }
                 }
                 
                 window.refreshSymbolTabs(data);
@@ -4956,6 +5253,10 @@ window.addEventListener('DOMContentLoaded', () => {
                 
                 if (data.portfolios) {
                     window.payload.portfolios = data.portfolios;
+                }
+                if (data.instruments) {
+                    if (!window.payload) window.payload = {};
+                    window.payload.instruments = data.instruments;
                 }
                 if (data.terminalLogs) {
                     if (!window.backendTerminalLogs) window.backendTerminalLogs = [];
@@ -5559,7 +5860,433 @@ window.addEventListener('DOMContentLoaded', () => {
         if (sp) sp.classList.add('hidden');
     }
 });
+
+/* Market List Module Javascript Code */
+window.marketListSortField = 'volume';
+window.marketListSortAsc = false;
+
+window.setMarketListSort = function(field) {
+    if (window.marketListSortField === field) {
+        window.marketListSortAsc = !window.marketListSortAsc;
+    } else {
+        window.marketListSortField = field;
+        window.marketListSortAsc = field === 'name';
+    }
+    window.renderMarketListTable();
+};
+
+let wsAllTickers = null;
+let activeWsUrl = '';
+window.allTickersData = {};
+window.marketListTab = 'all';
+window.isMarketListModalOpen = false;
+window.stageExchangeInfoSymbols = {};
+
+window.fetchStageExchangeInfo = async function() {
+    const activeTier = window.activeEnvFilter || 'PRODUCTION';
+    try {
+        const res = await fetch(window.getApiUrl(`/api/stage/exchangeInfo?tier=${activeTier}`));
+        if (res.ok) {
+            const info = await res.json();
+            if (info && info.symbols) {
+                window.stageExchangeInfoSymbols[activeTier] = info.symbols;
+                window.startAllTickersWS();
+                if (window.isMarketListModalOpen) {
+                    window.renderMarketListTable();
+                }
+            }
+        }
+    } catch(e){}
+};
+
+window.fetchInitialAllTickers = async function() {
+    const activeTier = window.activeEnvFilter || 'PRODUCTION';
+    try {
+        const res = await fetch(window.getApiUrl(`/api/stage/ticker/price?tier=${activeTier}`));
+        if (res.ok) {
+            const prices = await res.json();
+            if (Array.isArray(prices)) {
+                prices.forEach(p => {
+                    if (!window.allTickersData[p.symbol]) window.allTickersData[p.symbol] = {};
+                    window.allTickersData[p.symbol].ltp = parseFloat(p.price || p.lastPrice || 0);
+                });
+            }
+        }
+        
+        // Fetch premiumIndex for markPrice / fundingRate references
+        const resPrem = await fetch(window.getApiUrl(`/api/stage/premiumIndex?tier=${activeTier}`));
+        if (resPrem.ok) {
+            const premData = await resPrem.json();
+            if (Array.isArray(premData)) {
+                premData.forEach(p => {
+                    if (!window.allTickersData[p.symbol]) window.allTickersData[p.symbol] = {};
+                    window.allTickersData[p.symbol].fundingRate = parseFloat(p.lastFundingRate || p.fundingRate || 0);
+                });
+            }
+        }
+        
+        if (window.isMarketListModalOpen) {
+            window.renderMarketListTable();
+        }
+    } catch(e){}
+};
+
+window.startAllTickersWS = function() {
+    const activeTier = window.activeEnvFilter || 'PRODUCTION';
+    if (!window.payload || !window.payload.tierUrls) return;
+    const urls = window.payload.tierUrls[activeTier];
+    if (!urls) return;
+    
+    const exchangeSymbols = window.stageExchangeInfoSymbols[activeTier] || [];
+    if (exchangeSymbols.length === 0) return;
+    
+    const streams = exchangeSymbols.map(s => `${s.symbol.toLowerCase()}@ticker`).join('/');
+    const targetUrl = `${urls.WS_GATEWAY}/market/stream?streams=${streams}`;
+    
+    if (wsAllTickers && activeWsUrl === targetUrl) return;
+    
+    if (wsAllTickers) {
+        wsAllTickers.close();
+        wsAllTickers = null;
+    }
+    
+    activeWsUrl = targetUrl;
+    wsAllTickers = new WebSocket(targetUrl);
+    wsAllTickers.onmessage = (event) => {
+        try {
+            const msg = JSON.parse(event.data);
+            const t = msg.data || msg;
+            if (t && t.s) {
+                window.allTickersData[t.s] = {
+                    ltp: parseFloat(t.c || t.price || t.lastPrice || 0),
+                    changePercent: parseFloat(t.P || t.priceChangePercent || 0),
+                    volume: parseFloat(t.q || t.quoteVolume || (parseFloat(t.c || t.price || 0) * parseFloat(t.v || t.volume || 0)) || 0),
+                    fundingRate: window.allTickersData[t.s]?.fundingRate !== undefined ? window.allTickersData[t.s].fundingRate : parseFloat(t.r || t.lastFundingRate || 0)
+                };
+                if (window.isMarketListModalOpen) {
+                    window.renderMarketListTable();
+                }
+            }
+        } catch(e) {}
+    };
+    wsAllTickers.onclose = () => {
+        wsAllTickers = null;
+        setTimeout(window.startAllTickersWS, 3000);
+    };
+    wsAllTickers.onerror = () => {
+        if (wsAllTickers) wsAllTickers.close();
+    };
+};
+
+window.openMarketListModal = function() {
+    window.isMarketListModalOpen = true;
+    document.body.style.overflow = 'hidden'; // Prevent background L1 scroll
+    const overlay = document.getElementById('market-list-overlay');
+    if (overlay) {
+        overlay.style.display = 'flex';
+        void overlay.offsetWidth;
+        overlay.style.opacity = '1';
+    }
+    window.fetchStageExchangeInfo();
+    window.fetchInitialAllTickers();
+    window.startAllTickersWS();
+    window.renderMarketListTable();
+};
+
+// Start triggers
+setTimeout(() => {
+    window.fetchStageExchangeInfo();
+    window.fetchInitialAllTickers();
+    window.startAllTickersWS();
+}, 2000);
+
+window.closeMarketListModal = function() {
+    window.isMarketListModalOpen = false;
+    document.body.style.overflow = ''; // Restore background L1 scroll
+    const overlay = document.getElementById('market-list-overlay');
+    if (overlay) {
+        overlay.style.opacity = '0';
+        setTimeout(() => { overlay.style.display = 'none'; }, 300);
+    }
+};
+
+window.setMarketListTab = function(tab) {
+    window.marketListTab = tab;
+    const btnAll = document.getElementById('m-tab-all');
+    const btnFav = document.getElementById('m-tab-fav');
+    if (btnAll && btnFav) {
+        if (tab === 'all') {
+            btnAll.style.background = 'var(--border)';
+            btnAll.style.color = 'var(--text-main)';
+            btnFav.style.background = 'transparent';
+            btnFav.style.color = 'var(--text-muted)';
+        } else {
+            btnFav.style.background = 'var(--border)';
+            btnFav.style.color = 'var(--text-main)';
+            btnAll.style.background = 'transparent';
+            btnAll.style.color = 'var(--text-muted)';
+        }
+    }
+    window.renderMarketListTable();
+};
+
+window.toggleFavSymbol = function(event, sym) {
+    event.stopPropagation();
+    let favs = [];
+    try { favs = JSON.parse(localStorage.getItem('replicator_fav_symbols')) || []; } catch(e){}
+    if (favs.includes(sym)) {
+        favs = favs.filter(f => f !== sym);
+    } else {
+        favs.push(sym);
+    }
+    localStorage.setItem('replicator_fav_symbols', JSON.stringify(favs));
+    window.renderMarketListTable();
+};
+
+window.selectMarketFromList = async function(symbol) {
+    const tier = window.activeEnvFilter || 'PRODUCTION';
+    
+    // Close modal immediately so redirection is visible instantly
+    window.closeMarketListModal();
+    document.body.style.overflow = 'auto'; // Guarantee body scrolling is unlocked
+    
+    if (window.cachedInstances && window.cachedInstances[symbol] && !window.cachedInstances[symbol].isPending) {
+        window.selectTab(symbol);
+        window.refreshSymbolTabs(window.cachedGlobalData);
+        return;
+    }
+    
+    // Proactively register locally for instant rendering
+    if (!window.cachedInstances) window.cachedInstances = {};
+    window.cachedInstances[symbol] = {
+        status: 'STOPPED',
+        tier: tier,
+        isPending: true, // Prevent SSE overwrite from clearing it
+        binanceDepth: { bids: [], asks: [] },
+        testnetDepth: { bids: [], asks: [] },
+        syncedTrades: [],
+        diagnostics: { sourceSymbol: symbol }
+    };
+    window.lastActiveSymbolByEnv[tier] = symbol;
+    localStorage.setItem('replicator_last_active_symbols', JSON.stringify(window.lastActiveSymbolByEnv));
+    if (!window.localMountedSymbols.includes(symbol)) {
+        window.localMountedSymbols.push(symbol);
+        window.setLocalMountedSymbols(tier, window.localMountedSymbols);
+    }
+    
+    window.selectTab(symbol);
+    window.refreshSymbolTabs(window.cachedGlobalData);
+    
+    showToast(`⚡ Mounting market ${symbol} (data-only mode)...`);
+    try {
+        const reqBody = {
+            tier: tier,
+            symbol: symbol,
+            targetSymbol: symbol,
+            minSize: 100,
+            maxSize: 500,
+            takerSize: 10,
+            makerUseRawQty: false,
+            depthLevels: 10,
+            bufferPct: 0,
+            tradeDelayMs: 0,
+            cancelOnStop: false,
+            newUserFlow: false,
+            enableTradeSync: true,
+            mountOnly: true
+        };
+        
+        const res = await fetch(window.getApiUrl('/api/config'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(reqBody)
+        });
+        
+        if (res.ok) {
+            showToast(`✓ Mounted market ${symbol} successfully`);
+            window.selectTab(symbol);
+            window.refreshSymbolTabs(window.cachedGlobalData);
+        } else {
+            showToast(`✗ Failed to mount market`, true);
+        }
+    } catch (err) {
+        showToast(`✗ Network error: ${err.message}`, true);
+    }
+};
+
+window.renderMarketListTable = function() {
+    const searchVal = (document.getElementById('m-list-search')?.value || '').toUpperCase();
+    const tbody = document.getElementById('market-list-table-body');
+    if (!tbody) return;
+    
+    const activeTier = window.activeEnvFilter || 'PRODUCTION';
+    const exchangeSymbols = window.stageExchangeInfoSymbols[activeTier] || [];
+    
+    let symbols = [];
+    if (exchangeSymbols.length > 0) {
+        symbols = exchangeSymbols.map(s => s.symbol.toUpperCase());
+    } else {
+        const tierInstruments = (window.payload && window.payload.instruments && window.payload.instruments[activeTier]) || {};
+        symbols = Object.keys(tierInstruments);
+    }
+    
+    let favs = [];
+    try { favs = JSON.parse(localStorage.getItem('replicator_fav_symbols')) || []; } catch(e){}
+    
+    // Filters
+    if (searchVal) {
+        symbols = symbols.filter(s => s.includes(searchVal));
+    }
+    if (window.marketListTab === 'fav') {
+        symbols = symbols.filter(s => favs.includes(s));
+    }
+    
+    // Sort based on selected column
+    symbols.sort((a, b) => {
+        let valA, valB;
+        if (window.marketListSortField === 'name') {
+            valA = a;
+            valB = b;
+            return window.marketListSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        } else if (window.marketListSortField === 'ltp') {
+            valA = window.allTickersData[a]?.ltp || 0;
+            valB = window.allTickersData[b]?.ltp || 0;
+        } else if (window.marketListSortField === 'change') {
+            valA = window.allTickersData[a]?.changePercent || 0;
+            valB = window.allTickersData[b]?.changePercent || 0;
+        } else if (window.marketListSortField === 'volume') {
+            valA = window.allTickersData[a]?.volume || 0;
+            valB = window.allTickersData[b]?.volume || 0;
+        } else if (window.marketListSortField === 'funding') {
+            valA = window.allTickersData[a]?.fundingRate || 0;
+            valB = window.allTickersData[b]?.fundingRate || 0;
+        }
+        return window.marketListSortAsc ? valA - valB : valB - valA;
+    });
+    
+    // Render sort arrows in header
+    setTimeout(() => {
+        const ths = document.querySelectorAll('#market-list-table th');
+        if (ths && ths.length === 6) {
+            const arrow = (field) => {
+                if (window.marketListSortField !== field) return '';
+                return window.marketListSortAsc ? ' ▲' : ' ▼';
+            };
+            ths[1].innerHTML = 'Name' + arrow('name');
+            ths[2].innerHTML = 'LTP' + arrow('ltp');
+            ths[3].innerHTML = '24h %' + arrow('change');
+            ths[4].innerHTML = 'Volume' + arrow('volume');
+            ths[5].innerHTML = 'Next Funding' + arrow('funding');
+        }
+    }, 0);
+    
+    if (symbols.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="padding: 24px; text-align: center; color: var(--text-muted);">No markets found</td></tr>`;
+        return;
+    }
+    
+    function formatMarketVol(val) {
+        if (val === null || val === undefined || isNaN(val)) return '—';
+        if (val >= 1e9) return (val / 1e9).toFixed(2) + 'B';
+        if (val >= 1e6) return (val / 1e6).toFixed(2) + 'M';
+        if (val >= 1e3) return (val / 1e3).toFixed(1) + 'K';
+        return val.toFixed(1);
+    }
+    
+    tbody.innerHTML = symbols.map(sym => {
+        const data = window.allTickersData[sym] || {};
+        const ltp = data.ltp !== undefined ? data.ltp : null;
+        const change = data.changePercent !== undefined ? data.changePercent : null;
+        const volume = data.volume !== undefined ? data.volume : null;
+        
+        const isFav = favs.includes(sym);
+        
+        // Split symbol for dot display (e.g. BTCUSDT -> BTC•USDT)
+        let nameHtml = sym;
+        if (sym.endsWith('USDT')) {
+            nameHtml = sym.replace('USDT', '') + '•USDT';
+        }
+        
+        // Leverage badge (BTC/ETH -> 100x, others standard default 30x/50x)
+        let levBadge = '30x';
+        if (sym.startsWith('BTC') || sym.startsWith('ETH')) levBadge = '100x';
+        else if (sym.startsWith('SOL') || sym.startsWith('ADA') || sym.startsWith('XRP') || sym.startsWith('ZEC') || sym.startsWith('DOGE') || sym.startsWith('BNB')) levBadge = '100x';
+        
+        let changeClass = '';
+        let changeText = '—';
+        if (change !== null) {
+            changeClass = change >= 0 ? 'm-pct-up' : 'm-pct-down';
+            changeText = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
+        }
+        
+        const isActiveSymbol = sym === window.activeTabSymbol;
+        const activeStyle = isActiveSymbol ? 'background: rgba(6, 182, 212, 0.08); border-left: 3px solid var(--cyan);' : '';
+        const funding = data.fundingRate !== undefined ? data.fundingRate : null;
+        const fundingText = funding !== null ? (funding * 100).toFixed(4) + '%' : '—';
+        return `
+        <tr class="m-row" onclick="window.selectMarketFromList('${sym}')" style="${activeStyle}">
+            <td style="padding: 12px 8px; text-align: center;">
+                <span class="m-fav-star ${isFav ? 'active' : ''}" onclick="window.toggleFavSymbol(event, '${sym}')">${isFav ? '★' : '☆'}</span>
+            </td>
+            <td style="padding: 12px 8px; font-weight: 600; color: var(--text-main);">
+                ${nameHtml} <span class="m-badge-lev">${levBadge}</span>
+            </td>
+            <td style="padding: 12px 8px; text-align: right; font-family: monospace; font-weight: 600; color: var(--text-main);">
+                ${ltp !== null ? ltp.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 }) : '—'}
+            </td>
+            <td style="padding: 12px 8px; text-align: right; font-family: monospace; font-weight: 600;" class="${changeClass}">
+                ${changeText}
+            </td>
+            <td style="padding: 12px 8px; text-align: right; color: var(--text-muted); font-weight: 500;">
+                ${volume !== null ? formatMarketVol(volume) + ' USDT' : '—'}
+            </td>
+            <td style="padding: 12px 8px; text-align: right; font-family: monospace; color: var(--purple); font-weight: 600;">
+                ${fundingText}
+            </td>
+        </tr>`;
+    }).join('');
+};
 </script>
+<!-- Market List Modal Screen Overlay -->
+<div id="market-list-overlay" style="position:fixed; inset:0; z-index:1500; background:rgba(0,0,0,.65); backdrop-filter: blur(5px); display:none; opacity: 0; transition: opacity .3s; align-items:center; justify-content:center; padding: 24px;" onclick="window.closeMarketListModal()">
+  <div style="background: var(--drawer-bg); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 600px; height: 80vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow-heavy);" onclick="event.stopPropagation()">
+    <!-- Header -->
+    <div style="padding: 18px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+      <div style="font-weight: 700; font-size: 16px; color: var(--text-main); display:flex; align-items:center; gap:8px;">
+        <span style="color: var(--cyan); font-size: 18px;">📊</span> Futures Markets
+      </div>
+      <button onclick="window.closeMarketListModal()" style="background: none; border: none; color: var(--text-muted); font-size: 28px; cursor: pointer; line-height: 1; outline: none;">&times;</button>
+    </div>
+    
+    <!-- Controls (Search + Filters) -->
+    <div style="padding: 16px 24px; display: flex; flex-direction: column; gap: 12px; border-bottom: 1px solid var(--border);">
+      <input type="text" id="m-list-search" placeholder="Search markets by name (e.g. BTC)..." oninput="window.renderMarketListTable()" style="width:100%; padding: 12px 16px; background: var(--input-bg); border: 1px solid var(--border); color: var(--text-main); border-radius: 10px; font-size: 13px; outline: none; font-family: inherit; box-sizing: border-box;" />
+      <div style="display: flex; gap: 8px;">
+        <button id="m-tab-all" class="ctrl-btn" onclick="window.setMarketListTab('all')" style="padding: 6px 16px; font-size: 11px; background: var(--border); border: 1px solid var(--border); color: var(--text-main); border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.2s;">All</button>
+        <button id="m-tab-fav" class="ctrl-btn" onclick="window.setMarketListTab('fav')" style="padding: 6px 16px; font-size: 11px; background: transparent; border: 1px solid var(--border); color: var(--text-muted); border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.2s;">⭐ Favorites</button>
+      </div>
+    </div>
+    
+    <!-- Table Container -->
+    <div style="flex: 1; overflow-y: auto; padding: 8px 16px;">
+      <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 12px;">
+        <thead>
+          <tr style="color: var(--text-muted); font-weight: 700; border-bottom: 1px solid var(--border); text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px;">
+            <th style="padding: 10px 8px; width: 40px; text-align: center;"></th>
+            <th style="padding: 10px 8px; cursor: pointer;" onclick="window.setMarketListSort('name')">Name</th>
+            <th style="padding: 10px 8px; text-align: right; cursor: pointer;" onclick="window.setMarketListSort('ltp')">LTP</th>
+            <th style="padding: 10px 8px; text-align: right; cursor: pointer;" onclick="window.setMarketListSort('change')">24h %</th>
+            <th style="padding: 10px 8px; text-align: right; cursor: pointer;" onclick="window.setMarketListSort('volume')">Volume</th>
+            <th style="padding: 10px 8px; text-align: right; cursor: pointer;" onclick="window.setMarketListSort('funding')">Next Funding</th>
+          </tr>
+        </thead>
+        <tbody id="market-list-table-body">
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <!-- L2 Modal Screen Overlay -->
 <div id="l2-modal-overlay" class="l2-overlay">
     <div class="l2-modal-card" onclick="event.stopPropagation()">
