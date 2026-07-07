@@ -163,7 +163,7 @@ if (globalActiveTier && (globalActiveTier === 'JAPAN' || globalActiveTier === 'S
                 listenKey: process.env.USER1_LISTEN_KEY || "",
                 key: process.env.USER1_KEY || '',
                 secret: process.env.USER1_SECRET || '',
-                email: 'mani.reddy@coindcx.com',
+                email: process.env.USER1_EMAIL || 'mani.reddy@coindcx.com',
                 password: 'Test@123'
             },
             'user2': {
@@ -171,7 +171,7 @@ if (globalActiveTier && (globalActiveTier === 'JAPAN' || globalActiveTier === 'S
                 listenKey: process.env.USER2_LISTEN_KEY || "",
                 key: process.env.USER2_KEY || '',
                 secret: process.env.USER2_SECRET || '',
-                email: 'mani.reddy@coindcx.com',
+                email: process.env.USER2_EMAIL || 'mani.reddy@coindcx.com',
                 password: 'Test@123'
             }
         };

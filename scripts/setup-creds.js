@@ -136,7 +136,7 @@ async function createUserAndKey(labelPrefix) {
   const secret = resData && (resData.secret || resData.api_secret || (resData.data && (resData.data.secret || resData.data.api_secret)));
   
   if (key && secret) {
-    return { key, secret };
+    return { key, secret, email };
   }
 
   throw new Error("Failed to create API key for " + labelPrefix);
@@ -149,7 +149,7 @@ async function createUserAndKey(labelPrefix) {
     console.log("=== Creating User 2 (Taker) ===");
     const taker = await createUserAndKey("USER2_TAKER");
     
-    const envVars = `USER1_KEY=${maker.key}\nUSER1_SECRET=${maker.secret}\nUSER2_KEY=${taker.key}\nUSER2_SECRET=${taker.secret}\n`;
+    const envVars = `USER1_KEY=${maker.key}\nUSER1_SECRET=${maker.secret}\nUSER1_EMAIL=${maker.email}\nUSER2_KEY=${taker.key}\nUSER2_SECRET=${taker.secret}\nUSER2_EMAIL=${taker.email}\n`;
     fs.writeFileSync("creds.env", envVars);
     console.log("✅ Credentials successfully written to creds.env!");
   } catch (err) {
