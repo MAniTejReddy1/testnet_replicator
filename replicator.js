@@ -1983,7 +1983,7 @@ startBinanceDepthWS() {
     startBinanceTradesWS() {
         if (this.wsBinanceTrades) return;
         const sym = this.sourceSymbol.toLowerCase(); // Using Source Symbol
-        const url = `wss://fstream.binance.com/market/ws/${sym}@aggTrade`;
+        const url = `wss://fstream.binance.com/public/ws/${sym}@aggTrade`;
 
         this.wsBinanceTrades = new WebSocket(url);
         this.wsBinanceTrades.on('open', () => { pushEvent('SUCCESS', this.symbol, `Binance Trades WS connected`, { stream: 'aggTrade' }, 'ws'); });
@@ -2008,7 +2008,7 @@ startBinanceDepthWS() {
     startBinanceTickerWS() {
         if (this.wsBinanceTicker) return;
         const sym = this.sourceSymbol.toLowerCase();
-        const url = `wss://fstream.binance.com/market/ws/${sym}@ticker`;
+        const url = `wss://fstream.binance.com/public/ws/${sym}@ticker`;
         log.info(this.symbol, `[WS] Connecting to Binance 24h Ticker...`);
         this.wsBinanceTicker = new WebSocket(url);
         this.wsBinanceTicker.on('open', () => { pushEvent('SUCCESS', this.symbol, `Binance Ticker WS connected`, { stream: 'binanceTicker' }, 'ws'); });
@@ -2116,7 +2116,7 @@ startBinanceDepthWS() {
     startBinanceMarkPriceWS() {
         if (this.wsBinanceMarkPrice) return;
         const sym = this.symbol.toLowerCase();
-        const streamUrl = `wss://fstream.binance.com/market/ws/${sym}@markPrice`;
+        const streamUrl = `wss://fstream.binance.com/public/ws/${sym}@markPrice`;
         log.info(this.symbol, `[WS] Connecting to Binance Mark Price WS...`);
         this.wsBinanceMarkPrice = new WebSocket(streamUrl);
         this.wsBinanceMarkPrice.on('open', () => {
