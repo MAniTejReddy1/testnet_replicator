@@ -2041,8 +2041,11 @@ startBinanceDepthWS() {
 
     async fetchInitialMarkPrices() {
         const mdsReadBase = TIER_URLS[this.tier]?.MDS_READ || TIER_URLS.PRODUCTION.MDS_READ;
+        
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
         try {
-            const res = await fetch(`${mdsReadBase}/fapi/v1/premiumIndex?symbol=${this.symbol}`);
+            const res = await fetch(`${mdsReadBase}/fapi/v1/premiumIndex?symbol=${this.symbol}`, { signal: controller.signal });
             if (res.ok) {
                 const data = await res.json();
                 if (data.markPrice) {
@@ -2051,10 +2054,14 @@ startBinanceDepthWS() {
             }
         } catch (e) {
             log.debug && log.debug('SYSTEM', `Failed to fetch Stage initial markPrice: ${e.message}`);
+        } finally {
+            clearTimeout(timeout);
         }
 
+        const controller2 = new AbortController();
+        const timeout2 = setTimeout(() => controller2.abort(), 5000);
         try {
-            const res = await fetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${this.symbol}`);
+            const res = await fetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${this.symbol}`, { signal: controller2.signal });
             if (res.ok) {
                 const data = await res.json();
                 if (data.markPrice) {
@@ -2063,6 +2070,8 @@ startBinanceDepthWS() {
             }
         } catch (e) {
             log.debug && log.debug('SYSTEM', `Failed to fetch Binance initial markPrice: ${e.message}`);
+        } finally {
+            clearTimeout(timeout2);
         }
     }
 
@@ -2299,9 +2308,11 @@ startBinanceDepthWS() {
             `${mdsReadBase}/api/v1/derivatives/futures/depth?symbol=${this.symbol}&limit=${this.depthLevels}`
         ];
         let success = false;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
         for (const endpoint of depthEndpoints) {
             try {
-                const res = await fetch(endpoint);
+                const res = await fetch(endpoint, { signal: controller.signal });
                 if (res.ok) {
                     const data = await res.json();
                     if (data.bids && data.asks) { 
@@ -2313,6 +2324,7 @@ startBinanceDepthWS() {
                 }
             } catch (e) { log.debug && log.debug('SYSTEM', e.message); }
         }
+        clearTimeout(timeout);
         if (!success) {
             log.warn(this.symbol, `Failed to fetch initial depth from MDS_READ on ${this.tier}`, null, this.tier);
         }
@@ -2969,10 +2981,10 @@ const server = http.createServer(async (req, res) => {
                         });
                         instances[tier].set(targetSym, inst);
                         if (parsed.mountOnly) {
-                            inst.mountOnly().catch(e => log.error(targetSym, `Mount failed: ${e.message}`, null, tier));
+                            await inst.mountOnly().catch(e => log.error(targetSym, `Mount failed: ${e.message}`, null, tier));
                             log.info(targetSym, `New market mounted in data-only mode.`, null, tier);
                         } else {
-                            inst.start().catch(e => log.error(targetSym, `Start failed: ${e.message}`, null, tier));
+                            await inst.start().catch(e => log.error(targetSym, `Start failed: ${e.message}`, null, tier));
                             log.info(targetSym, `New market mounted from UI.`, null, tier);
                         }
                     } else {
