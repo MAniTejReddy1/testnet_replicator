@@ -5825,6 +5825,7 @@ setTimeout(() => {
 
 window.closeMarketListModal = function() {
     window.isMarketListModalOpen = false;
+    document.body.style.overflow = ''; // Restore background L1 scroll
     const overlay = document.getElementById('market-list-overlay');
     if (overlay) {
         overlay.style.opacity = '0';
@@ -5870,6 +5871,7 @@ window.selectMarketFromList = async function(symbol) {
     
     // Close modal immediately so redirection is visible instantly
     window.closeMarketListModal();
+    document.body.style.overflow = 'auto'; // Guarantee body scrolling is unlocked
     
     if (window.cachedInstances && window.cachedInstances[symbol]) {
         window.selectTab(symbol);
