@@ -876,6 +876,8 @@
         <div id="flag-cancelStop" class="flag-pill flag-off">CANCEL ON STOP</div>
         <div id="flag-buffer" class="flag-pill flag-buf">BUF 0%</div>
         <div id="flag-delay" class="flag-pill" style="background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.2);color:var(--purple);">DELAY 0ms</div>
+        <div id="flag-makerRaw" class="flag-pill flag-off">MAKER RAW OFF</div>
+        <div id="flag-takerRaw" class="flag-pill flag-off">TAKER RAW OFF</div>
         <div id="flag-scenario" class="flag-pill" style="display:none;background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.2);color:var(--ask);box-shadow:0 0 10px rgba(244,63,94,0.1);">SCENARIO IDLE</div>
             </div>
 </div>
@@ -979,9 +981,13 @@
         <span style="color:var(--text-main);font-size:12px;font-weight:500;">Simulate New User <span style="color:var(--text-muted);font-size:10px;">(120s)</span></span>
         <div class="tog off" id="tog-new-user"></div>
       </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" id="tog-maker-raw-wrap">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;cursor:pointer;" id="tog-maker-raw-wrap">
         <span style="color:var(--text-main);font-size:12px;font-weight:500;">Maker Use Raw Qty</span>
         <div class="tog off" id="tog-maker-raw"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" id="tog-taker-raw-wrap">
+        <span style="color:var(--text-main);font-size:12px;font-weight:500;">Taker Use Raw Qty</span>
+        <div class="tog off" id="tog-taker-raw"></div>
       </div>
     </div>
   </div>
@@ -2913,7 +2919,43 @@ window.addEventListener('DOMContentLoaded', () => {
             if (el) el.textContent = now.toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' IST';
         }, 1000);
 
-        document.getElementById('btn-cfg').onclick = () => { document.getElementById('drawer').classList.add('open'); document.getElementById('overlay').classList.add('open'); };
+        document.getElementById('btn-cfg').onclick = () => {
+            document.getElementById('drawer').classList.add('open');
+            document.getElementById('overlay').classList.add('open');
+            
+            // Pre-fill fields with current active symbol configuration if available
+            if (activeTabSymbol && cachedInstances[activeTabSymbol]) {
+                const inst = cachedInstances[activeTabSymbol];
+                const diag = inst.diagnostics || {};
+                
+                document.getElementById('cfg-symbol').value = diag.sourceSymbol || activeTabSymbol;
+                document.getElementById('cfg-target').value = activeTabSymbol;
+                document.getElementById('cfg-tier').value = inst.tier || globalActiveTier;
+                
+                document.getElementById('cfg-min').value = diag.minSize !== undefined ? diag.minSize : '';
+                document.getElementById('cfg-max').value = diag.maxSize !== undefined ? diag.maxSize : '';
+                document.getElementById('cfg-taker-size').value = diag.takerSize !== undefined ? diag.takerSize : '';
+                document.getElementById('cfg-depth').value = diag.depthLevels !== undefined ? diag.depthLevels : '';
+                document.getElementById('cfg-buffer').value = diag.bufferPct !== undefined ? diag.bufferPct : '';
+                document.getElementById('cfg-delay').value = diag.tradeDelayMs !== undefined ? diag.tradeDelayMs : '';
+                
+                cancelOnStopState = diag.cancelOnStop !== false;
+                const csTog = document.getElementById('tog-cancel-stop');
+                if (cancelOnStopState) csTog.classList.add('on'); else csTog.classList.remove('on');
+                
+                newUserState = diag.newUserFlow === true;
+                const nuTog = document.getElementById('tog-new-user');
+                if (newUserState) nuTog.classList.add('on'); else nuTog.classList.remove('on');
+                
+                makerUseRawQtyState = diag.makerUseRawQty === true;
+                const mrTog = document.getElementById('tog-maker-raw');
+                if (makerUseRawQtyState) mrTog.classList.add('on'); else mrTog.classList.remove('on');
+
+                takerUseRawQtyState = diag.takerUseRawQty === true;
+                const trTog = document.getElementById('tog-taker-raw');
+                if (takerUseRawQtyState) trTog.classList.add('on'); else trTog.classList.remove('on');
+            }
+        };
         document.getElementById('btn-close').onclick = () => { document.getElementById('drawer').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); };
         document.getElementById('overlay').onclick = () => { document.getElementById('drawer').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); };
 
@@ -2935,6 +2977,13 @@ window.addEventListener('DOMContentLoaded', () => {
             makerUseRawQtyState = !makerUseRawQtyState;
             const el = document.getElementById('tog-maker-raw');
             if (makerUseRawQtyState) el.classList.add('on'); else el.classList.remove('on');
+        };
+
+        let takerUseRawQtyState = false;
+        document.getElementById('tog-taker-raw-wrap').onclick = () => {
+            takerUseRawQtyState = !takerUseRawQtyState;
+            const el = document.getElementById('tog-taker-raw');
+            if (takerUseRawQtyState) el.classList.add('on'); else el.classList.remove('on');
         };
 
         function bindTog(id, cb) {
@@ -4063,7 +4112,7 @@ window.addEventListener('DOMContentLoaded', () => {
             if (!sym) { msg.style.color='#f43f5e'; msg.textContent='✗ Symbol required'; return; }
             if (minV && maxV && parseFloat(minV) >= parseFloat(maxV)) { msg.style.color='#f43f5e'; msg.textContent='✗ Min must be < Max'; return; }
 
-            const body = { symbol: sym, targetSymbol: tgt, tier: tier, cancelOnStop: cancelOnStopState, newUserFlow: newUserState, makerUseRawQty: makerUseRawQtyState, enableTradeSync: true };
+            const body = { symbol: sym, targetSymbol: tgt, tier: tier, cancelOnStop: cancelOnStopState, newUserFlow: newUserState, makerUseRawQty: makerUseRawQtyState, takerUseRawQty: takerUseRawQtyState, enableTradeSync: true };
             if (minV) body.minSize = parseFloat(minV);
             if (maxV) body.maxSize = parseFloat(maxV);
             if (takerV) body.takerSize = parseFloat(takerV);
@@ -4629,6 +4678,15 @@ window.addEventListener('DOMContentLoaded', () => {
 
             const delay = parseInt(diag.tradeDelayMs||0);
             delEl.textContent = delay > 0 ? 'DELAY '+delay+'ms' : 'DELAY OFF';
+
+            const makerRawEl = document.getElementById('flag-makerRaw');
+            const takerRawEl = document.getElementById('flag-takerRaw');
+
+            if (diag.makerUseRawQty) { makerRawEl.textContent='MAKER RAW ON'; makerRawEl.className='flag-pill flag-on'; }
+            else { makerRawEl.textContent='MAKER RAW OFF'; makerRawEl.className='flag-pill flag-off'; }
+
+            if (diag.takerUseRawQty) { takerRawEl.textContent='TAKER RAW ON'; takerRawEl.className='flag-pill flag-on'; }
+            else { takerRawEl.textContent='TAKER RAW OFF'; takerRawEl.className='flag-pill flag-off'; }
 
             const scEl = document.getElementById('flag-scenario');
             if (instance.scenarioStatus && instance.scenarioStatus.phase !== 'IDLE') {

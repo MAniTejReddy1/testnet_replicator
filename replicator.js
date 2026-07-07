@@ -1047,6 +1047,7 @@ class ReplicatorInstance {
         this.maxSize            = marketConfig.maxSize            || 500;
         this.takerSize          = marketConfig.takerSize          || 10;
         this.makerUseRawQty     = marketConfig.makerUseRawQty === true;
+        this.takerUseRawQty     = marketConfig.takerUseRawQty === true;
         this.depthLevels        = marketConfig.depthLevels        || 10;
         this.qtyChangeTolerance = marketConfig.qtyChangeTolerance || 0.25;
         this.enableTradeSync    = marketConfig.enableTradeSync !== false;
@@ -1807,8 +1808,8 @@ class ReplicatorInstance {
                 const notional  = parseFloat(lvl[0]) * parseFloat(lvl[1]);
                 const targetSz  = Math.max(this.minSize, Math.min(this.maxSize, notional));
                 qty = calculateQty(targetSz, rawPrice, this.symbol);
+                qty = PriceTransformer.applyProfileSkew(qty, side, transformer, index);
             }
-            qty = PriceTransformer.applyProfileSkew(qty, side, transformer, index);
             return { rawPrice, price: formatPrice(rawPrice, this.symbol), qty };
         });
 
@@ -2017,10 +2018,15 @@ class ReplicatorInstance {
         }
 
         // Taker size is determined from the takerSize configuration
-        let takerQty = calculateQty(this.takerSize, transformedTradePrice, this.symbol);
-        if (parseFloat(takerQty) <= 0) {
-            // Fallback to min quantity if takerSize evaluates to 0 due to precision limits
-            takerQty = calculateQty(0, '1', this.symbol, this.tier);
+        let takerQty;
+        if (this.takerUseRawQty) {
+            takerQty = formatRawQty(parseFloat(trade.q), this.symbol, this.tier);
+        } else {
+            takerQty = calculateQty(this.takerSize, transformedTradePrice, this.symbol);
+            if (parseFloat(takerQty) <= 0) {
+                // Fallback to min quantity if takerSize evaluates to 0 due to precision limits
+                takerQty = calculateQty(0, '1', this.symbol, this.tier);
+            }
         }
 
         const makerSide = trade.m ? 'BUY' : 'SELL';
@@ -2873,6 +2879,7 @@ function buildPayload(isSnapshot = true, sinceTs = 0) {
                 maxSize:         inst.maxSize,
                 takerSize:       inst.takerSize,
                 makerUseRawQty:  inst.makerUseRawQty,
+                takerUseRawQty:  inst.takerUseRawQty,
                 cancelOnStop:    inst.cancelOnStop,
                 newUserFlow:     inst.newUserFlow,
                 tradeDelayMs:    inst.tradeDelayMs,
@@ -3258,6 +3265,7 @@ const server = http.createServer(async (req, res) => {
                             maxSize: parseFloat(parsed.maxSize || 500),
                             takerSize: parseFloat(parsed.takerSize || 10),
                             makerUseRawQty: Boolean(parsed.makerUseRawQty),
+                            takerUseRawQty: Boolean(parsed.takerUseRawQty),
                             depthLevels: parseInt(parsed.depthLevels || 10),
                             bufferPct: parseFloat(parsed.bufferPct || 0),
                             tradeDelayMs: parseInt(parsed.tradeDelayMs || 0),
@@ -3278,6 +3286,7 @@ const server = http.createServer(async (req, res) => {
                         if (parsed.maxSize     !== undefined) inst.maxSize     = parseFloat(parsed.maxSize);
                         if (parsed.takerSize   !== undefined) inst.takerSize   = parseFloat(parsed.takerSize);
                         if (parsed.makerUseRawQty !== undefined) inst.makerUseRawQty = Boolean(parsed.makerUseRawQty);
+                        if (parsed.takerUseRawQty !== undefined) inst.takerUseRawQty = Boolean(parsed.takerUseRawQty);
                         if (parsed.depthLevels !== undefined) inst.depthLevels = parseInt(parsed.depthLevels);
                         if (parsed.bufferPct   !== undefined) inst.bufferPct   = parseFloat(parsed.bufferPct);
                         if (parsed.cancelOnStop !== undefined) inst.cancelOnStop = Boolean(parsed.cancelOnStop);
