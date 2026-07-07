@@ -263,15 +263,15 @@ class ScenarioEngine {
             phaseStartTime: state.phaseStartTime,
             maxDurationMs: state.maxDurationMs,
             // Expose key config fields for UI display
-            targetQty: state.config?.targetQty || null,
-            pct: state.config?.pct || null,
+            targetQty: (state.config && state.config.targetQty) || null,
+            pct: (state.config && state.config.pct) || null,
             config: {
-                targetQty: state.config?.targetQty || null,
-                pct: state.config?.pct || null,
-                rampMs: state.config?.rampMs || null,
-                holdMs: state.config?.holdMs || null,
-                recoverMs: state.config?.recoverMs || null,
-                steps: state.config?.steps || []
+                targetQty: (state.config && state.config.targetQty) || null,
+                pct: (state.config && state.config.pct) || null,
+                rampMs: (state.config && state.config.rampMs) || null,
+                holdMs: (state.config && state.config.holdMs) || null,
+                recoverMs: (state.config && state.config.recoverMs) || null,
+                steps: (state.config && state.config.steps) || []
             }
         };
     }

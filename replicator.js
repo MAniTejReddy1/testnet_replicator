@@ -2272,7 +2272,7 @@ startBinanceDepthWS() {
             } catch(e){}
 
             try {
-                const mdsReadBase = TIER_URLS[this.tier]?.MDS_READ || TIER_URLS.PRODUCTION.MDS_READ;
+                const mdsReadBase = (TIER_URLS[this.tier] && TIER_URLS[this.tier].MDS_READ) || TIER_URLS.PRODUCTION.MDS_READ;
                 const resS = await fetch(`${mdsReadBase}/fapi/v1/premiumIndex?symbol=${this.symbol}`);
                 if (resS.ok) {
                     const dataS = await resS.json();
@@ -2291,7 +2291,7 @@ startBinanceDepthWS() {
             } catch(e){}
 
             try {
-                const mdsReadBase = TIER_URLS[this.tier]?.MDS_READ || TIER_URLS.PRODUCTION.MDS_READ;
+                const mdsReadBase = (TIER_URLS[this.tier] && TIER_URLS[this.tier].MDS_READ) || TIER_URLS.PRODUCTION.MDS_READ;
                 const resLtpS = await fetch(`${mdsReadBase}/fapi/v2/ticker/price?symbol=${this.symbol}`);
                 if (resLtpS.ok) {
                     const dataLtpS = await resLtpS.json();
@@ -2319,7 +2319,7 @@ startBinanceDepthWS() {
 
 
     async fetchInitialMarkPrices() {
-        const mdsReadBase = TIER_URLS[this.tier]?.MDS_READ || TIER_URLS.PRODUCTION.MDS_READ;
+        const mdsReadBase = (TIER_URLS[this.tier] && TIER_URLS[this.tier].MDS_READ) || TIER_URLS.PRODUCTION.MDS_READ;
         
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 5000);
@@ -2642,7 +2642,7 @@ startBinanceDepthWS() {
         
         // Fetch initial Stage LTP via REST
         try {
-            const mdsReadBase = TIER_URLS[this.tier]?.MDS_READ || TIER_URLS.PRODUCTION.MDS_READ;
+            const mdsReadBase = (TIER_URLS[this.tier] && TIER_URLS[this.tier].MDS_READ) || TIER_URLS.PRODUCTION.MDS_READ;
             const res = await fetch(`${mdsReadBase}/fapi/v2/ticker/price?symbol=${this.symbol}`);
             if (res.ok) {
                 const data = await res.json();
@@ -3072,7 +3072,7 @@ const server = http.createServer(async (req, res) => {
 
             // Fetch Stage funding rate
             let stageRate = null;
-            const mdsBase = TIER_URLS[tier]?.MDS_READ;
+            const mdsBase = TIER_URLS[tier] && TIER_URLS[tier].MDS_READ;
             if (mdsBase) {
                 try {
                     const controller = new AbortController();
