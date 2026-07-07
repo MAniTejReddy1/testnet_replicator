@@ -2724,7 +2724,10 @@ startBinanceDepthWS() {
 
         this.status = 'RUNNING'; this.hasLoggedAuthError = false;
         log.success(this.symbol, 'Engine Started.');
-        
+
+        // Set leverage for both maker and taker accounts on this symbol
+        await this.setLeverage();
+
         // Fetch initial mark prices
         await this.fetchInitialMarkPrices();
 
@@ -2750,6 +2753,28 @@ startBinanceDepthWS() {
     }
 
     pause() { this.status = 'PAUSED'; log.warn(this.symbol, 'Engine Paused.'); }
+
+    async setLeverage(leverage = 5) {
+        const hpoBase = TIER_URLS[this.tier].HPO;
+        const tierUsers = globalUsers[this.tier] || {};
+        const tierRoles = globalRoles[this.tier] || { makerId: '', takerId: '' };
+        const makerUser = tierUsers[tierRoles.makerId];
+        const takerUser = tierUsers[tierRoles.takerId];
+        const payload   = { symbol: this.symbol, leverage };
+
+        const calls = [];
+        if (makerUser) calls.push(
+            sendSignedRequest(`${hpoBase}/fapi/v1/leverage`, 'POST', payload, makerUser, 10000, this.tier)
+                .then(r => { if (r.ok) log.success(this.symbol, `[LEVERAGE] Maker leverage set to ${leverage}x`); else log.warn(this.symbol, `[LEVERAGE] Maker leverage update failed: ${JSON.stringify(r.data)}`); })
+                .catch(e => log.warn(this.symbol, `[LEVERAGE] Maker leverage call error: ${e.message}`))
+        );
+        if (takerUser) calls.push(
+            sendSignedRequest(`${hpoBase}/fapi/v1/leverage`, 'POST', payload, takerUser, 10000, this.tier)
+                .then(r => { if (r.ok) log.success(this.symbol, `[LEVERAGE] Taker leverage set to ${leverage}x`); else log.warn(this.symbol, `[LEVERAGE] Taker leverage update failed: ${JSON.stringify(r.data)}`); })
+                .catch(e => log.warn(this.symbol, `[LEVERAGE] Taker leverage call error: ${e.message}`))
+        );
+        await Promise.all(calls);
+    }
 
     async stop() {
         this.status = 'STOPPED'; log.warn(this.symbol, 'Engine Stopped.');
