@@ -5014,6 +5014,17 @@ window.addEventListener('DOMContentLoaded', () => {
                 let data;
                 try { data = JSON.parse(ev.data); } catch(e) { return; }
 
+                if (data.tierUrls) {
+                    if (!window.payload) window.payload = {};
+                    const hadUrls = !!window.payload.tierUrls;
+                    window.payload.tierUrls = data.tierUrls;
+                    if (!hadUrls) {
+                        if (window.fetchStageExchangeInfo) window.fetchStageExchangeInfo();
+                        if (window.fetchInitialAllTickers) window.fetchInitialAllTickers();
+                        if (window.startAllTickersWS) window.startAllTickersWS();
+                    }
+                }
+
                 if (data.terminalEvents) {
                     data.terminalEvents.forEach(evt => {
                         if (evt.ts > window.lastProcessedEventTs) {
@@ -5750,13 +5761,13 @@ window.startAllTickersWS = function() {
     wsAllTickers.onmessage = (event) => {
         try {
             const msg = JSON.parse(event.data);
-            const t = msg.data;
+            const t = msg.data || msg;
             if (t && t.s) {
                 window.allTickersData[t.s] = {
-                    ltp: parseFloat(t.c || 0),
-                    changePercent: parseFloat(t.P || 0),
-                    volume: parseFloat(t.q || (parseFloat(t.c || 0) * parseFloat(t.v || 0)) || 0),
-                    fundingRate: window.allTickersData[t.s]?.fundingRate
+                    ltp: parseFloat(t.c || t.price || t.lastPrice || 0),
+                    changePercent: parseFloat(t.P || t.priceChangePercent || 0),
+                    volume: parseFloat(t.q || t.quoteVolume || (parseFloat(t.c || t.price || 0) * parseFloat(t.v || t.volume || 0)) || 0),
+                    fundingRate: window.allTickersData[t.s]?.fundingRate || parseFloat(t.r || t.lastFundingRate || 0)
                 };
                 if (window.isMarketListModalOpen) {
                     window.renderMarketListTable();
@@ -5854,8 +5865,11 @@ window.selectMarketFromList = async function(symbol) {
         syncedTrades: [],
         diagnostics: { sourceSymbol: symbol }
     };
-    window.selectTab(symbol);
+    lastActiveSymbolByEnv[tier] = symbol;
+    localStorage.setItem('replicator_last_active_symbols', JSON.stringify(lastActiveSymbolByEnv));
+    window.activeTabSymbol = symbol;
     window.refreshSymbolTabs(cachedGlobalData);
+    window.selectTab(symbol);
     
     showToast(`⚡ Mounting market ${symbol} (data-only mode)...`);
     try {
