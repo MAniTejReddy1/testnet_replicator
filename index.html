@@ -5726,7 +5726,7 @@ window.fetchInitialAllTickers = async function() {
             if (Array.isArray(premData)) {
                 premData.forEach(p => {
                     if (!window.allTickersData[p.symbol]) window.allTickersData[p.symbol] = {};
-                    window.allTickersData[p.symbol].changePercent = parseFloat(p.lastFundingRate || 0) * 100;
+                    window.allTickersData[p.symbol].fundingRate = parseFloat(p.lastFundingRate || p.fundingRate || 0);
                 });
             }
         }
@@ -5767,7 +5767,7 @@ window.startAllTickersWS = function() {
                     ltp: parseFloat(t.c || t.price || t.lastPrice || 0),
                     changePercent: parseFloat(t.P || t.priceChangePercent || 0),
                     volume: parseFloat(t.q || t.quoteVolume || (parseFloat(t.c || t.price || 0) * parseFloat(t.v || t.volume || 0)) || 0),
-                    fundingRate: window.allTickersData[t.s]?.fundingRate || parseFloat(t.r || t.lastFundingRate || 0)
+                    fundingRate: window.allTickersData[t.s]?.fundingRate !== undefined ? window.allTickersData[t.s].fundingRate : parseFloat(t.r || t.lastFundingRate || 0)
                 };
                 if (window.isMarketListModalOpen) {
                     window.renderMarketListTable();
@@ -5786,6 +5786,7 @@ window.startAllTickersWS = function() {
 
 window.openMarketListModal = function() {
     window.isMarketListModalOpen = true;
+    document.body.style.overflow = 'hidden'; // Prevent background L1 scroll
     const overlay = document.getElementById('market-list-overlay');
     if (overlay) {
         overlay.style.display = 'flex';
@@ -5849,9 +5850,12 @@ window.toggleFavSymbol = function(event, sym) {
 
 window.selectMarketFromList = async function(symbol) {
     const tier = window.activeEnvFilter || 'PRODUCTION';
+    
+    // Close modal immediately so redirection is visible instantly
+    window.closeMarketListModal();
+    
     if (cachedInstances && cachedInstances[symbol]) {
         window.selectTab(symbol);
-        window.closeMarketListModal();
         return;
     }
     
