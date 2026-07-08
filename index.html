@@ -422,7 +422,7 @@
     position: relative;
     z-index: 5;
     display:grid;
-    grid-template-columns: minmax(0,1.15fr) 1px minmax(0,0.85fr);
+    grid-template-columns: 4fr 1px 6fr;
     height: 100vh;
     padding-top: 56px;
     box-sizing: border-box;
@@ -514,8 +514,9 @@
     grid-template-rows: 1fr 1fr;
     gap: 14px;
     margin-top: 14px;
-    flex: 1;
+    height: 60%;
     min-height: 0;
+    flex-shrink: 0;
   }
   .book-wrap {
     border: 1px solid rgba(255,255,255,0.06);
