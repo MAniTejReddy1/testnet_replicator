@@ -685,11 +685,7 @@ async function autoGenerateNewUserAndAssign(role, tier) {
         
         broadcastToUI();
 
-        // Sleep 120 seconds to allow testnet funds and API keys to fully propagate
-        // (same wait applied in Jenkins Generate Test Credentials stage)
-        log.info('SYSTEM', `[RECOVERY][${tier}] New user ${uniqueId} assigned. Sleeping 120s for funds and API keys to propagate before resuming trading...`);
-        await new Promise(r => setTimeout(r, 120000));
-        log.success('SYSTEM', `[RECOVERY][${tier}] Sleep complete. ${role} account is ready.`);
+        log.success('SYSTEM', `[RECOVERY][${tier}] ${role} account is ready.`);
 
         return true;
     } catch (e) {
