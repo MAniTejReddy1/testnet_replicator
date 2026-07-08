@@ -64,8 +64,8 @@ async function send(label, req) {
 }
 
 async function createUserAndKey(labelPrefix) {
-  const suffix = randSuffix();
-  const email = `replicator_${suffix}@coindcx.com`;
+  const timestamp = Date.now();
+  const email = `replicator_${labelPrefix.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${timestamp}@coindcx.com`;
   const password = "Test@123";
   const phone_number = randPhone();
   const first_name = "Jenkins", last_name = "Runner";
