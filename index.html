@@ -694,6 +694,25 @@
     overflow-y: auto;
     animation: fade-in-right-l 0.7s cubic-bezier(.2,.7,.3,1) both;
     box-sizing: border-box;
+    position: relative;
+  }
+  .terminal-panel::before {
+    content: '';
+    position: absolute;
+    width: 460px;
+    height: 460px;
+    background: radial-gradient(circle, rgba(0, 217, 255, 0.08) 0%, rgba(240, 185, 11, 0.03) 50%, transparent 70%);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    filter: blur(40px);
+    z-index: 0;
+    animation: pulse-glow 6s ease-in-out infinite alternate;
+  }
+  @keyframes pulse-glow {
+    0% { opacity: 0.7; transform: translate(-50%, -50%) scale(0.92); }
+    100% { opacity: 1.1; transform: translate(-50%, -50%) scale(1.08); }
   }
   @keyframes fade-in-right-l { from{ opacity:0; transform: translateX(14px);} to{ opacity:1; transform:none; } }
 
@@ -702,18 +721,25 @@
     max-width: 400px;
     border-radius: 15px;
     padding: 1px;
-    background: linear-gradient(var(--rot, 135deg), rgba(0,217,255,0.55), rgba(28,37,48,0.4) 35%, rgba(28,37,48,0.4) 65%, rgba(0,217,255,0.22));
-    box-shadow: 0 20px 60px -24px rgba(0,0,0,0.7);
-    animation: rotate-border 7s linear infinite;
+    background: linear-gradient(135deg, rgba(0,217,255,0.45), rgba(28,37,48,0.4) 35%, rgba(28,37,48,0.4) 65%, rgba(240,185,11,0.35));
+    background-size: 200% 200%;
+    box-shadow: 0 0 40px rgba(0, 217, 255, 0.08), 0 0 100px rgba(0, 217, 255, 0.04), 0 20px 60px -24px rgba(0,0,0,0.8);
+    animation: gradient-shift 6s ease infinite alternate;
+    z-index: 1;
   }
-  @keyframes rotate-border {
-    0%{ --rot: 135deg; } 100%{ --rot: 495deg; }
+  @keyframes gradient-shift {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 100% 50%; }
   }
   
   .terminal-card {
     width: 100%;
     height: 100%;
     background: rgba(15,21,30,0.88);
+    background-image: 
+      linear-gradient(rgba(0, 217, 255, 0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 217, 255, 0.015) 1px, transparent 1px);
+    background-size: 16px 16px;
     border-radius: 14px;
     padding: 28px 28px 24px;
     position: relative;
@@ -6849,10 +6875,14 @@ window.addEventListener('DOMContentLoaded', () => {
                     }
 
                     const chartData = [];
+                    const chartProdData = [];
                     let chartVal = 60;
+                    let chartProdVal = 55;
                     for (let i = 0; i < 60; i++) {
                         chartVal += (Math.random() - 0.48) * 6;
+                        chartProdVal = chartVal + (Math.random() - 0.5) * 12;
                         chartData.push(Math.max(15, Math.min(160, chartVal)));
+                        chartProdData.push(Math.max(15, Math.min(160, chartProdVal)));
                     }
                     let lastChartUpdate = Date.now();
 
@@ -6892,31 +6922,54 @@ window.addEventListener('DOMContentLoaded', () => {
 
                         if (Date.now() - lastChartUpdate > 180) {
                             lastChartUpdate = Date.now();
+                            
                             chartVal += (Math.random() - 0.47) * 9;
                             chartVal = Math.max(20, Math.min(chartHeight - 20, chartVal));
                             chartData.push(chartVal);
                             if (chartData.length > 60) chartData.shift();
+
+                            // Production line drifts similarly but slightly offset
+                            chartProdVal = chartVal + (Math.random() - 0.5) * 8 + Math.sin(Date.now() / 2000) * 12;
+                            chartProdVal = Math.max(20, Math.min(chartHeight - 20, chartProdVal));
+                            chartProdData.push(chartProdVal);
+                            if (chartProdData.length > 60) chartProdData.shift();
                         }
 
                         if (chartData.length > 1) {
-                            ctx.beginPath();
                             const step = chartWidth / (chartData.length - 1);
+
+                            // 1. Draw Production benchmark (Dashed Amber line)
+                            ctx.beginPath();
+                            for (let idx = 0; idx < chartProdData.length; idx++) {
+                                const cx = chartXStart + idx * step;
+                                const cy = chartYBase - chartProdData[idx];
+                                if (idx === 0) ctx.moveTo(cx, cy);
+                                else ctx.lineTo(cx, cy);
+                            }
+                            ctx.strokeStyle = 'rgba(240, 185, 11, 0.12)';
+                            ctx.lineWidth = 1.6;
+                            ctx.setLineDash([4, 4]);
+                            ctx.stroke();
+                            ctx.setLineDash([]); // Reset line dash
+
+                            // 2. Draw Staging Sync (Solid Cyan line)
+                            ctx.beginPath();
                             for (let idx = 0; idx < chartData.length; idx++) {
                                 const cx = chartXStart + idx * step;
                                 const cy = chartYBase - chartData[idx];
                                 if (idx === 0) ctx.moveTo(cx, cy);
                                 else ctx.lineTo(cx, cy);
                             }
-                            ctx.strokeStyle = 'rgba(0, 217, 255, 0.15)';
-                            ctx.lineWidth = 2.2;
+                            ctx.strokeStyle = 'rgba(0, 217, 255, 0.18)';
+                            ctx.lineWidth = 2.4;
                             ctx.stroke();
 
-                            // Area gradient fill below line
+                            // Area gradient fill below Staging line
                             ctx.lineTo(chartXStart + chartWidth, chartYBase);
                             ctx.lineTo(chartXStart, chartYBase);
                             ctx.closePath();
                             const chartGrad = ctx.createLinearGradient(0, chartYBase - chartHeight, 0, chartYBase);
-                            chartGrad.addColorStop(0, 'rgba(0, 217, 255, 0.035)');
+                            chartGrad.addColorStop(0, 'rgba(0, 217, 255, 0.04)');
                             chartGrad.addColorStop(1, 'rgba(0, 217, 255, 0)');
                             ctx.fillStyle = chartGrad;
                             ctx.fill();
