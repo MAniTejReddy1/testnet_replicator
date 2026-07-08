@@ -6830,7 +6830,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // 4. Mirror Book Depth and Price Drift
+            // 4. Mirror Book Depth and Price Drift (30-second loop simulation)
             const depthRows = document.getElementById('depthRows');
             const priceVal = document.getElementById('bookPriceVal');
             const bookDelta = document.getElementById('bookDelta');
@@ -6839,7 +6839,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
             if (depthRows && priceVal && bookDelta) {
                 depthRows.innerHTML = '';
-                let basePrice = 67234.10;
+                const startPrice = 67227.46;
                 const rows = { ask: [], bid: [] };
 
                 const makeRow = (kind) => {
@@ -6858,32 +6858,61 @@ window.addEventListener('DOMContentLoaded', () => {
                 for (let i = 0; i < 6; i++) rows.ask.push(makeRow('ask'));
                 for (let i = 0; i < 6; i++) rows.bid.push(makeRow('bid'));
 
-                const renderBook = () => {
-                    rows.ask.forEach((r, i) => {
-                        r.bar.style.width = (18 + Math.random() * 72).toFixed(0) + '%';
-                        r.priceSpan.textContent = (basePrice + (i + 1) * 1.4).toFixed(2);
-                        r.qtySpan.textContent = (Math.random() * 2 + 0.1).toFixed(3);
-                    });
-                    rows.bid.forEach((r, i) => {
-                        r.bar.style.width = (18 + Math.random() * 72).toFixed(0) + '%';
-                        r.priceSpan.textContent = (basePrice - (i + 1) * 1.4).toFixed(2);
-                        r.qtySpan.textContent = (Math.random() * 2 + 0.1).toFixed(3);
-                    });
-                };
-                renderBook();
+                const updateSimulation = () => {
+                    const t = (Date.now() % 30000) / 30000; // 0.0 to 1.0 representing the 30s cycle
+                    
+                    // Determine priceOffset based on 30s cycle stage
+                    let priceOffset = 0;
+                    if (t < 0.4) {
+                        // 0s to 12s: Price ascends
+                        priceOffset = Math.sin((t / 0.4) * (Math.PI / 2)) * 18.5;
+                    } else if (t < 0.8) {
+                        // 12s to 24s: Price descends
+                        priceOffset = 18.5 - Math.sin(((t - 0.4) / 0.4) * (Math.PI / 2)) * 37.0;
+                    } else {
+                        // 24s to 30s: Price ascends back to starting point
+                        priceOffset = -18.5 + Math.sin(((t - 0.8) / 0.2) * (Math.PI / 2)) * 18.5;
+                    }
 
-                bookDriftIntervalId = setInterval(() => {
-                    const drift = (Math.random() - 0.48) * 6;
-                    basePrice += drift;
-                    const pct = (drift / basePrice * 100);
-                    priceVal.textContent = basePrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    const currentPrice = startPrice + priceOffset;
+                    const pct = (priceOffset / startPrice * 100);
+
+                    // Update UI elements
+                    priceVal.textContent = currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                     bookDelta.textContent = (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%';
                     bookDelta.classList.toggle('up', pct >= 0);
                     bookDelta.classList.toggle('down', pct < 0);
-                    renderBook();
-                    if (latencyStat) latencyStat.textContent = 'sync latency: ' + (28 + Math.floor(Math.random() * 30)) + 'ms';
-                    if (depthStat) depthStat.textContent = 'depth mirrored: ' + (96 + Math.random() * 3).toFixed(1) + '%';
-                }, 2200);
+
+                    // Render depth bars and values smoothly
+                    rows.ask.forEach((r, i) => {
+                        const phase = t * Math.PI * 2 + i * 0.7;
+                        const barWidth = 20 + Math.abs(Math.sin(phase)) * 65;
+                        r.bar.style.width = barWidth.toFixed(1) + '%';
+                        r.priceSpan.textContent = (currentPrice + (i + 1) * 1.35).toFixed(2);
+                        r.qtySpan.textContent = (0.15 + Math.abs(Math.cos(phase * 1.3)) * 1.65).toFixed(3);
+                    });
+
+                    rows.bid.forEach((r, i) => {
+                        const phase = t * Math.PI * 2 - i * 0.7;
+                        const barWidth = 20 + Math.abs(Math.cos(phase)) * 65;
+                        r.bar.style.width = barWidth.toFixed(1) + '%';
+                        r.priceSpan.textContent = (currentPrice - (i + 1) * 1.35).toFixed(2);
+                        r.qtySpan.textContent = (0.15 + Math.abs(Math.sin(phase * 1.3)) * 1.65).toFixed(3);
+                    });
+
+                    if (latencyStat) {
+                        const latVal = 28 + Math.floor(Math.abs(Math.sin(t * Math.PI * 4)) * 25);
+                        latencyStat.textContent = 'sync latency: ' + latVal + 'ms';
+                    }
+                    if (depthStat) {
+                        const depthVal = 96.2 + Math.abs(Math.cos(t * Math.PI * 2)) * 3.1;
+                        depthStat.textContent = 'depth mirrored: ' + depthVal.toFixed(1) + '%';
+                    }
+                };
+
+                // Run immediately and start high-frequency updates (every 100ms)
+                updateSimulation();
+                bookDriftIntervalId = setInterval(updateSimulation, 100);
             }
         };
 

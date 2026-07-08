@@ -3105,8 +3105,38 @@ function broadcastToUI() {
     writeStateFile(payload);
 }
 
-// Authentication Sessions Map
+// Authentication Sessions Map and Persistence
+const SESSIONS_FILE = path.join(__dirname, 'sessions.json');
 const activeSessions = new Map();
+
+function loadSessions() {
+    try {
+        if (fs.existsSync(SESSIONS_FILE)) {
+            const data = JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8'));
+            for (const [sid, sess] of Object.entries(data)) {
+                activeSessions.set(sid, sess);
+            }
+            log.info('SYSTEM', `Loaded ${activeSessions.size} active sessions from disk.`);
+        }
+    } catch (e) {
+        log.error('SYSTEM', 'Failed to load sessions: ' + e.message);
+    }
+}
+
+function saveSessions() {
+    try {
+        const obj = {};
+        for (const [sid, sess] of activeSessions.entries()) {
+            obj[sid] = sess;
+        }
+        fs.writeFileSync(SESSIONS_FILE, JSON.stringify(obj, null, 2), 'utf8');
+    } catch (e) {
+        log.error('SYSTEM', 'Failed to save sessions: ' + e.message);
+    }
+}
+
+loadSessions();
+
 
 function parseCookies(cookieHeader) {
     const list = {};
@@ -3158,6 +3188,7 @@ const server = http.createServer(async (req, res) => {
                 if (matchedUser) {
                     const sid = uuidv4();
                     activeSessions.set(sid, { id: matchedId, email: matchedUser.email, label: matchedUser.label, tier: globalActiveTier });
+                    saveSessions();
                     res.writeHead(200, {
                         'Set-Cookie': `replicator_sid=${sid}; Path=/; HttpOnly; SameSite=Strict`,
                         'Content-Type': 'application/json'
@@ -3244,6 +3275,7 @@ const server = http.createServer(async (req, res) => {
         const cookies = parseCookies(req.headers.cookie);
         if (cookies.replicator_sid) {
             activeSessions.delete(cookies.replicator_sid);
+            saveSessions();
         }
         res.writeHead(200, {
             'Set-Cookie': 'replicator_sid=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly',
