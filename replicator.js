@@ -1190,9 +1190,10 @@ class ReplicatorInstance {
         if (mUser) {
             log.info(this.symbol, `[RECONNECT] Fetching fresh Maker authentication listenKey...`);
             const newKey = await authenticateAndGetListenKey(mUser.email, mUser.password || 'Test@123', this.tier);
-            if (newKey) {
-                mUser.listenKey = newKey;
-                this.makerWs = new PrivateWsClient(newKey, this.onMakerWsEvent.bind(this), 'Maker', mId, this.tier);
+            const listenKey = newKey || mUser.listenKey;
+            if (listenKey) {
+                mUser.listenKey = listenKey;
+                this.makerWs = new PrivateWsClient(listenKey, this.onMakerWsEvent.bind(this), 'Maker', mId, this.tier);
             }
         }
 
@@ -1201,9 +1202,10 @@ class ReplicatorInstance {
         if (tUser) {
             log.info(this.symbol, `[RECONNECT] Fetching fresh Taker authentication listenKey...`);
             const newKey = await authenticateAndGetListenKey(tUser.email, tUser.password || 'Test@123', this.tier);
-            if (newKey) {
-                tUser.listenKey = newKey;
-                this.takerWs = new PrivateWsClient(newKey, this.onTakerWsEvent.bind(this), 'Taker', tId, this.tier);
+            const listenKey = newKey || tUser.listenKey;
+            if (listenKey) {
+                tUser.listenKey = listenKey;
+                this.takerWs = new PrivateWsClient(listenKey, this.onTakerWsEvent.bind(this), 'Taker', tId, this.tier);
             }
         }
     }
@@ -2886,17 +2888,17 @@ startBinanceDepthWS() {
             // 1. Refresh exchange parameters and instrument limits
             await loadInstruments(this.tier);
 
-            // 2. Refresh open positions clean-up/wiping
-            await this.wipeOrders();
-
-            // 3. Set default leverage for the current accounts
+            // 2. Set default leverage for the current accounts
             await this.setLeverage();
 
-            // 4. Reconnect to private User streams with fresh authentication listenKeys
+            // 3. Reconnect to private User streams with fresh authentication listenKeys (with existing fallback)
             await this.reconnectPrivateWs();
 
-            // 5. Reconnect to public orderbook depth, trade, ticker, and mark price streams
+            // 4. Reconnect to public orderbook depth, trade, ticker, and mark price streams
             await this.reloadDepth();
+
+            // 5. Clean up old orders in the background (does not block sockets)
+            this.wipeOrders().catch(e => log.error(this.symbol, `[RELOAD-WIPE] Background orders cleanse failed: ${e.message}`));
 
             log.success(this.symbol, '⚡ [RELOAD-ENGINE] Comprehensive reload completed successfully!');
         } catch (err) {
