@@ -3570,6 +3570,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
             // ── CANCEL: Cancel Order ──────────────────────────────────────────
             } else if (action === 'cancel') {
+                const p1UserId = document.getElementById('sel-port-u1')?.value;
+                const p2UserId = document.getElementById('sel-port-u2')?.value;
+                const u = (userId === p1UserId) ? 'u1' : (userId === p2UserId ? 'u2' : null);
                 window.openL2Modal(
                     'Cancel Order',
                     symbol, subheaderHtml,
@@ -3991,7 +3994,11 @@ window.addEventListener('DOMContentLoaded', () => {
             confirmBtn.onclick = async () => {
                 try {
                     confirmBtn.disabled = true;
-                    confirmBtn.textContent = 'Launching...';
+                    if (title === 'Cancel Order' || confirmText.toLowerCase().includes('cancel')) {
+                        confirmBtn.textContent = 'Cancelling...';
+                    } else {
+                        confirmBtn.textContent = 'Launching...';
+                    }
                     await onConfirmCallback();
                     window.closeL2Modal();
                 } catch (e) {
