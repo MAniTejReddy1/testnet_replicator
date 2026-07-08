@@ -42,48 +42,31 @@ async function send(label, req) {
 
 async function createUserAndKey(labelPrefix) {
   const suffix = randSuffix();
-  const email = `mani.reddy+${suffix}@coindcx.com`;
+  const email = `replicator_${suffix}@coindcx.com`;
   const password = "Test@123";
   const phone_number = randPhone();
   const first_name = "Replicator", last_name = "User";
 
-  let step;
-  try {
-    step = await send(`${labelPrefix}_1_Register`, {
-      url: `${apiBase}/api/v4/registration`, method: "POST", header: { "Content-Type": "application/json" },
-      body: { raw: JSON.stringify({ user: { email, first_name, last_name, referral: "", password, pe: false, purpose: "email_verification" } }) }
-    });
-    const authToken = (step.bodyJson && step.bodyJson.token) ? step.bodyJson.token : "";
+  let step = await send(`${labelPrefix}_1_Register`, {
+    url: `${apiBase}/api/v4/registration`, method: "POST", header: { "Content-Type": "application/json" },
+    body: { raw: JSON.stringify({ user: { email, first_name, last_name, referral: "", password, pe: false, purpose: "email_verification" } }) }
+  });
+  const authToken = (step.bodyJson && step.bodyJson.token) ? step.bodyJson.token : "";
 
-    await send(`${labelPrefix}_2_EmailOtpVerify`, {
-      url: `${apiBase}/api/v4/registration`, method: "POST", header: { "Content-Type": "application/json" },
-      body: { raw: JSON.stringify({ user: { email, token: authToken, first_name, last_name, referral: "", password, email_otp: "123456", purpose: "email_otp_verification", pe: false } }) }
-    });
+  await send(`${labelPrefix}_2_EmailOtpVerify`, {
+    url: `${apiBase}/api/v4/registration`, method: "POST", header: { "Content-Type": "application/json" },
+    body: { raw: JSON.stringify({ user: { email, token: authToken, first_name, last_name, referral: "", password, email_otp: "123456", purpose: "email_otp_verification", pe: false } }) }
+  });
 
-    await send(`${labelPrefix}_3_AddPhone`, {
-      url: `${apiBase}/api/v4/registration`, method: "POST", header: { "Content-Type": "application/json" },
-      body: { raw: JSON.stringify({ user: { email, token: authToken, phone_number, first_name, last_name, referral: "", password, country_short_name: "IN", phone_country_short_name: "IN", purpose: "phone_verification", pe: false } }) }
-    });
+  await send(`${labelPrefix}_3_AddPhone`, {
+    url: `${apiBase}/api/v4/registration`, method: "POST", header: { "Content-Type": "application/json" },
+    body: { raw: JSON.stringify({ user: { email, token: authToken, phone_number, first_name, last_name, referral: "", password, country_short_name: "IN", phone_country_short_name: "IN", purpose: "phone_verification", pe: false } }) }
+  });
 
-    await send(`${labelPrefix}_4_PhoneOtpVerify`, {
-      url: `${apiBase}/api/v4/registration`, method: "POST", header: { "Content-Type": "application/json" },
-      body: { raw: JSON.stringify({ user: { email, token: authToken, phone_number, first_name, last_name, referral: "", password, country_short_name: "IN", phone_country_short_name: "IN", phone_otp: "123456", purpose: "phone_otp_verification", pe: false } }) }
-    });
-  } catch (err) {
-    const errMsg = err.message.toLowerCase();
-    const isAlreadyExists = errMsg.includes("already have an account") || 
-                            errMsg.includes("already exists") || 
-                            errMsg.includes("exist") || 
-                            errMsg.includes("login") || 
-                            errMsg.includes("credentials") || 
-                            errMsg.includes("otp couldn't delivered") ||
-                            errMsg.includes("otp couldn't be delivered");
-    if (!isAlreadyExists) {
-      throw err;
-    }
-    // Log warning and proceed directly to login (step 5)
-    console.warn(`[REGISTRATION] Account ${email} already exists or was registered on a timed-out attempt. Proceeding straight to login...`);
-  }
+  await send(`${labelPrefix}_4_PhoneOtpVerify`, {
+    url: `${apiBase}/api/v4/registration`, method: "POST", header: { "Content-Type": "application/json" },
+    body: { raw: JSON.stringify({ user: { email, token: authToken, phone_number, first_name, last_name, referral: "", password, country_short_name: "IN", phone_country_short_name: "IN", phone_otp: "123456", purpose: "phone_otp_verification", pe: false } }) }
+  });
 
   step = await send(`${labelPrefix}_5_Login`, {
     url: `${apiBase}/api/v3/authenticate`, method: "POST", header: { "Content-Type": "application/json" },
