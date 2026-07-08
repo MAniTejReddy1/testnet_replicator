@@ -896,7 +896,7 @@
 </script>
 
 <!-- Auth Landing Page Overlay -->
-<div id="auth-overlay">
+<div id="auth-overlay" style="display:none;">
   <div class="auth-card">
     <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
       <div style="font-size:24px; color:var(--cyan); text-shadow:0 0 15px rgba(6,182,212,0.4);">📊</div>
@@ -6148,6 +6148,9 @@ window.addEventListener('DOMContentLoaded', () => {
                     if (data.authenticated) {
                         document.getElementById('auth-overlay').style.display = 'none';
                         window.initializeTerminalAfterAuth();
+                        // Hide splash immediately since we are logged in
+                        const sp = document.getElementById('splash');
+                        if (sp) { sp.classList.add('hidden'); setTimeout(()=>sp.remove(), 500); }
                     } else {
                         document.getElementById('auth-overlay').style.display = 'flex';
                         const sp = document.getElementById('splash');
@@ -6155,9 +6158,13 @@ window.addEventListener('DOMContentLoaded', () => {
                     }
                 } else {
                     document.getElementById('auth-overlay').style.display = 'flex';
+                    const sp = document.getElementById('splash');
+                    if (sp) { sp.classList.add('hidden'); setTimeout(()=>sp.remove(), 500); }
                 }
             } catch (err) {
                 document.getElementById('auth-overlay').style.display = 'flex';
+                const sp = document.getElementById('splash');
+                if (sp) { sp.classList.add('hidden'); setTimeout(()=>sp.remove(), 500); }
             }
         };
 
