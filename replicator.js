@@ -3210,7 +3210,11 @@ function getSessionUser(req) {
 
 const server = http.createServer(async (req, res) => {
     // Set CORS headers for all requests (including preflights and auth routes)
-    const origin = req.headers.origin;
+    let origin = req.headers.origin;
+    if (!origin && req.headers.host) {
+        const protocol = req.socket.encrypted ? 'https' : 'http';
+        origin = `${protocol}://${req.headers.host}`;
+    }
     if (origin) {
         res.setHeader('Access-Control-Allow-Origin', origin);
         res.setHeader('Access-Control-Allow-Credentials', 'true');

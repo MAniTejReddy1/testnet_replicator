@@ -422,7 +422,7 @@
     position: relative;
     z-index: 5;
     display:grid;
-    grid-template-columns: 4fr 1px 6fr;
+    grid-template-columns: 1fr 1px 1fr;
     height: 100vh;
     padding-top: 56px;
     box-sizing: border-box;
@@ -7586,25 +7586,33 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (res.ok) {
                     const data = await res.json();
                     if (data.authenticated) {
+                        console.log("Session authenticated successfully, loading dashboard...");
                         document.getElementById('auth-overlay').style.display = 'none';
                         window.stopAuthCanvasAnimation();
-                        window.initializeTerminalAfterAuth();
+                        try {
+                            window.initializeTerminalAfterAuth();
+                        } catch (initErr) {
+                            console.error("Error during post-auth terminal initialization:", initErr);
+                        }
                         // Hide splash immediately since we are logged in
                         const sp = document.getElementById('splash');
                         if (sp) { sp.classList.add('hidden'); setTimeout(()=>sp.remove(), 500); }
                     } else {
+                        console.log("No active session found.");
                         document.getElementById('auth-overlay').style.display = 'flex';
                         window.startAuthCanvasAnimation();
                         const sp = document.getElementById('splash');
                         if (sp) { sp.classList.add('hidden'); setTimeout(()=>sp.remove(), 500); }
                     }
                 } else {
+                    console.error("Session check API failed with status:", res.status);
                     document.getElementById('auth-overlay').style.display = 'flex';
                     window.startAuthCanvasAnimation();
                     const sp = document.getElementById('splash');
                     if (sp) { sp.classList.add('hidden'); setTimeout(()=>sp.remove(), 500); }
                 }
             } catch (err) {
+                console.error("Error during session check fetch:", err);
                 document.getElementById('auth-overlay').style.display = 'flex';
                 window.startAuthCanvasAnimation();
                 const sp = document.getElementById('splash');
