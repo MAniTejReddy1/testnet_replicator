@@ -2668,6 +2668,61 @@
 </div>
 
 <script>
+// Setup on-screen debug log viewer
+const debugLogs = [];
+const origLog = console.log;
+const origError = console.error;
+const origWarn = console.warn;
+
+function showOnScreenLog(type, args) {
+    const msg = Array.from(args).map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
+    debugLogs.push(`[${type}] ${msg}`);
+    
+    let container = document.getElementById('debug-console-log');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'debug-console-log';
+        container.style.position = 'fixed';
+        container.style.bottom = '10px';
+        container.style.left = '10px';
+        container.style.right = '10px';
+        container.style.height = '180px';
+        container.style.background = 'rgba(0,0,0,0.9)';
+        container.style.border = '1px solid #10b981';
+        container.style.borderRadius = '6px';
+        container.style.color = '#34d399';
+        container.style.fontFamily = 'monospace';
+        container.style.fontSize = '10px';
+        container.style.padding = '8px';
+        container.style.overflowY = 'auto';
+        container.style.zIndex = '99999';
+        container.style.whiteSpace = 'pre-wrap';
+        document.body.appendChild(container);
+    }
+    container.textContent = debugLogs.join('\n');
+    container.scrollTop = container.scrollHeight;
+}
+
+console.log = function() {
+    origLog.apply(console, arguments);
+    showOnScreenLog('LOG', arguments);
+};
+console.error = function() {
+    origError.apply(console, arguments);
+    showOnScreenLog('ERR', arguments);
+};
+console.warn = function() {
+    origWarn.apply(console, arguments);
+    showOnScreenLog('WARN', arguments);
+};
+
+window.addEventListener('error', function(e) {
+    showOnScreenLog('UNCAUGHT-ERR', [e.message, 'at', e.filename, ':', e.lineno]);
+});
+window.addEventListener('unhandledrejection', function(e) {
+    showOnScreenLog('UNHANDLED-REJ', [e.reason]);
+});
+
 const pathParts = window.location.pathname.split('/');
 const replicatorPart = pathParts.find(p => p.startsWith('replicator-'));
 const basePrefix = replicatorPart ? '/' + replicatorPart : '';
