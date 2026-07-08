@@ -547,7 +547,10 @@ function calculateQty(sizeUsdt, priceStr, symbol, tier = 'PRODUCTION') {
 
     if (isNaN(price) || price <= 0) return inst.minQty.toFixed(inst.qtyPrecision);
 
-    let rawQty = sizeUsdt / price;
+    const minNotional = (tier === 'JAPAN') ? 70.0 : 10.0;
+    const finalSizeUsdt = Math.max(sizeUsdt, minNotional);
+
+    let rawQty = finalSizeUsdt / price;
     const factor = 1 / inst.qtyStep;
     let qty = Math.round(rawQty * factor) / factor;
     if (qty < inst.minQty) qty = inst.minQty;
