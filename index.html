@@ -2459,7 +2459,7 @@
   </div>
 </div>
 
-<div style="display:grid;grid-template-columns:1fr 1fr 380px;gap:16px;padding:24px;">
+<div style="display:grid;grid-template-columns:35% 35% 30%;gap:16px;padding:24px;">
   <div class="panel" style="display:flex;flex-direction:column;height:550px;overflow:hidden;">
     <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);">
       <div><div class="sec-label">Source</div><div class="sec-title" style="color:var(--yellow)">Binance Perpetual</div></div>
@@ -5388,6 +5388,11 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (priceSpan.textContent !== priceStr) {
                     priceSpan.textContent = priceStr;
                     priceSpan.style.color = col;
+                    priceSpan.style.background = isAsk ? 'rgba(244, 63, 94, 0.08)' : 'rgba(16, 185, 129, 0.08)';
+                    priceSpan.style.padding = '2px 8px';
+                    priceSpan.style.borderRadius = '4px';
+                    priceSpan.style.display = 'inline-block';
+                    priceSpan.style.border = isAsk ? '1px solid rgba(244, 63, 94, 0.15)' : '1px solid rgba(16, 185, 129, 0.15)';
                 }
 
                 if (sizeSpan.textContent !== sizeStr) {
@@ -5408,7 +5413,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
                 if (totalSpan.textContent !== totalStr) {
                     totalSpan.textContent = totalStr;
-                    totalSpan.style.color = '#64748b';
+                    totalSpan.style.color = 'var(--text-main)';
+                    totalSpan.style.fontWeight = '600';
+                    totalSpan.style.opacity = '0.95';
                 }
 
                 if (showBars) {
