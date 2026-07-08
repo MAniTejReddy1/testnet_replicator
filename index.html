@@ -6699,7 +6699,7 @@ window.addEventListener('DOMContentLoaded', () => {
                             vx: (Math.random() - 0.5) * 0.8,
                             vy: (Math.random() - 0.5) * 0.8,
                             radius: Math.random() * 2 + 1,
-                            color: Math.random() > 0.5 ? 'rgba(6, 182, 212, 0.4)' : 'rgba(168, 85, 247, 0.4)'
+                            color: Math.random() > 0.5 ? 'rgba(6, 182, 212, 0.4)' : 'rgba(240, 185, 11, 0.4)'
                         });
                     }
 
@@ -6718,6 +6718,33 @@ window.addEventListener('DOMContentLoaded', () => {
 
                     const loop = () => {
                         ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                        // A. Draw 3D Perspective Grid converging at horizon
+                        const horizon = canvas.height * 0.45;
+                        const gridTime = (Date.now() * 0.0003) % 1;
+                        ctx.lineWidth = 0.8;
+
+                        // Perspective vertical lines
+                        for (let x = -canvas.width; x < canvas.width * 2; x += 140) {
+                            ctx.beginPath();
+                            ctx.moveTo(canvas.width / 2, horizon);
+                            ctx.lineTo(x, canvas.height);
+                            ctx.strokeStyle = 'rgba(0, 217, 255, 0.035)';
+                            ctx.stroke();
+                        }
+                        // Perspective horizontal lines
+                        for (let y = horizon; y < canvas.height; y += 24) {
+                            const progress = (y - horizon) / (canvas.height - horizon);
+                            const speeded = progress * progress;
+                            const dynamicY = horizon + (canvas.height - horizon) * ((speeded + gridTime) % 1);
+                            ctx.beginPath();
+                            ctx.moveTo(0, dynamicY);
+                            ctx.lineTo(canvas.width, dynamicY);
+                            ctx.strokeStyle = `rgba(0, 217, 255, ${0.015 + progress * 0.045})`;
+                            ctx.stroke();
+                        }
+
+                        // B. Render constellation nodes & links
                         for (let i = 0; i < particles.length; i++) {
                             const p = particles[i];
                             p.x += p.vx;
@@ -6748,11 +6775,14 @@ window.addEventListener('DOMContentLoaded', () => {
                                 const dist = Math.hypot(dx, dy);
 
                                 if (dist < maxDistance) {
-                                    const alpha = (1 - (dist / maxDistance)) * 0.15;
+                                    const alpha = (1 - (dist / maxDistance)) * 0.18;
                                     ctx.beginPath();
                                     ctx.moveTo(p.x, p.y);
                                     ctx.lineTo(p2.x, p2.y);
-                                    ctx.strokeStyle = `rgba(34, 211, 238, ${alpha})`;
+                                    const lineGrad = ctx.createLinearGradient(p.x, p.y, p2.x, p2.y);
+                                    lineGrad.addColorStop(0, p.color.replace('0.4', String(alpha)));
+                                    lineGrad.addColorStop(1, p2.color.replace('0.4', String(alpha)));
+                                    ctx.strokeStyle = lineGrad;
                                     ctx.lineWidth = 0.8;
                                     ctx.stroke();
                                 }
@@ -6764,7 +6794,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // 2. Seam Canvas Flowing Dots
+            // 2. Seam Canvas Flowing Dots and Data Packets
             const seamCanvas = document.getElementById('seam-canvas');
             if (seamCanvas) {
                 const sctx = seamCanvas.getContext('2d');
@@ -6787,12 +6817,30 @@ window.addEventListener('DOMContentLoaded', () => {
                         if (ch > 0) {
                             sctx.clearRect(0, 0, cw, ch);
                             const cx = 60;
+                            // Draw ambient line path
+                            sctx.beginPath();
+                            sctx.moveTo(cx, 0);
+                            sctx.lineTo(cx, ch);
+                            sctx.strokeStyle = 'rgba(255,255,255,0.03)';
+                            sctx.lineWidth = 1;
+                            sctx.stroke();
+
+                            // Draw slow pulsing tick marks
                             for (let y = 20; y < ch; y += 46) {
                                 const phase = (y / 46) + t;
                                 const glow = 0.4 + Math.sin(phase) * 0.35;
                                 sctx.beginPath();
                                 sctx.arc(cx, y, 2, 0, Math.PI * 2);
-                                sctx.fillStyle = `rgba(0, 217, 255, ${0.25 + glow * 0.3})`;
+                                sctx.fillStyle = `rgba(0, 217, 255, ${0.2 + glow * 0.25})`;
+                                sctx.fill();
+                            }
+
+                            // Draw flowing high-speed data packet glows
+                            for (let i = 0; i < 4; i++) {
+                                const py = ((t * 80 + i * (ch / 4)) % ch);
+                                sctx.beginPath();
+                                sctx.arc(cx, py, 3, 0, Math.PI * 2);
+                                sctx.fillStyle = 'rgba(0, 217, 255, 0.75)';
                                 sctx.fill();
                             }
                             t += 0.02;
@@ -6945,16 +6993,19 @@ window.addEventListener('DOMContentLoaded', () => {
                         if (sp) { sp.classList.add('hidden'); setTimeout(()=>sp.remove(), 500); }
                     } else {
                         document.getElementById('auth-overlay').style.display = 'flex';
+                        window.startAuthCanvasAnimation();
                         const sp = document.getElementById('splash');
                         if (sp) { sp.classList.add('hidden'); setTimeout(()=>sp.remove(), 500); }
                     }
                 } else {
                     document.getElementById('auth-overlay').style.display = 'flex';
+                    window.startAuthCanvasAnimation();
                     const sp = document.getElementById('splash');
                     if (sp) { sp.classList.add('hidden'); setTimeout(()=>sp.remove(), 500); }
                 }
             } catch (err) {
                 document.getElementById('auth-overlay').style.display = 'flex';
+                window.startAuthCanvasAnimation();
                 const sp = document.getElementById('splash');
                 if (sp) { sp.classList.add('hidden'); setTimeout(()=>sp.remove(), 500); }
             }
