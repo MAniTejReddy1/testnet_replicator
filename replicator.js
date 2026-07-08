@@ -2310,6 +2310,7 @@ startBinanceDepthWS() {
                         this.syncGrid('BUY', this.binanceDepth.bids);
                         this.syncGrid('SELL', this.binanceDepth.asks);
                     }
+                    broadcastToUI();
                     const bestBid = bids[0] ? bids[0][0] : '-';
                     const bestAsk = asks[0] ? asks[0][0] : '-';
                     const spread = (bestBid !== '-' && bestAsk !== '-') ? (parseFloat(bestAsk) - parseFloat(bestBid)).toFixed(2) : '-';
@@ -3100,9 +3101,9 @@ function buildPayload(isSnapshot = true, sinceTs = 0) {
 
 let lastBroadcastTime = 0;
 let lastBroadcastEventsTs = 0;
-function broadcastToUI() {
+function broadcastToUI(force = false) {
     const now = Date.now();
-    if (now - lastBroadcastTime < 1000) return;
+    if (!force && (now - lastBroadcastTime < 1000)) return;
     const sinceTs = lastBroadcastTime;
     lastBroadcastTime = now;
     const payload = buildPayload(false, sinceTs);
@@ -3405,7 +3406,7 @@ const server = http.createServer(async (req, res) => {
                 const inst = tierInstances ? tierInstances.get(sym) : null;
                 if (inst) {
                     await inst.reloadDepth();
-                    broadcastToUI();
+                    broadcastToUI(true);
                 }
                 res.writeHead(200);
                 return res.end(JSON.stringify({ success: true }));
@@ -3715,7 +3716,7 @@ const server = http.createServer(async (req, res) => {
                         (async () => {
                             try {
                                 await switchEnvironment(tier);
-                                broadcastToUI();
+                                broadcastToUI(true);
                                 log.success('SYSTEM', `Successfully switched global environment view to ${tier}`);
                             } catch (err) {
                                 log.error('SYSTEM', `Error switching environment to ${tier}: ${err.message}`);
@@ -3780,7 +3781,7 @@ const server = http.createServer(async (req, res) => {
                         (async () => {
                             try {
                                 await switchEnvironment(tier);
-                                broadcastToUI();
+                                broadcastToUI(true);
                             } catch (err) {
                                 log.error('SYSTEM', `Error finalizing switch: ${err.message}`);
                             }
