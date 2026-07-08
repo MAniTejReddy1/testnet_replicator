@@ -1906,6 +1906,38 @@
       </div>
     </div>
   </div>
+  <div class="ticker-card" style="border-color:rgba(16,185,129,0.3); box-shadow:0 0 20px rgba(16,185,129,0.05); display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px; min-width: 180px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2px;">
+      <div class="ticker-label">Best Bid</div>
+      <div id="bid-drift-badge" style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600; color:var(--text-muted); background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">Drift: —</div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:4px;">
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <span style="font-size:10.5px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Binance</span>
+        <span class="ticker-val" id="t-bbid" style="color:var(--yellow); font-size:19px; font-weight:800; margin-top:0; font-family:'JetBrains Mono',monospace;">—</span>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <span style="font-size:10.5px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Stage</span>
+        <span class="ticker-val" id="t-sbid" style="color:var(--cyan); font-size:19px; font-weight:800; margin-top:0; font-family:'JetBrains Mono',monospace;">—</span>
+      </div>
+    </div>
+  </div>
+  <div class="ticker-card" style="border-color:rgba(239,68,68,0.3); box-shadow:0 0 20px rgba(239,68,68,0.05); display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px; min-width: 180px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2px;">
+      <div class="ticker-label">Best Ask</div>
+      <div id="ask-drift-badge" style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600; color:var(--text-muted); background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">Drift: —</div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:4px;">
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <span style="font-size:10.5px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Binance</span>
+        <span class="ticker-val" id="t-bask" style="color:var(--yellow); font-size:19px; font-weight:800; margin-top:0; font-family:'JetBrains Mono',monospace;">—</span>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <span style="font-size:10.5px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Stage</span>
+        <span class="ticker-val" id="t-sask" style="color:var(--cyan); font-size:19px; font-weight:800; margin-top:0; font-family:'JetBrains Mono',monospace;">—</span>
+      </div>
+    </div>
+  </div>
   <div class="ticker-card" style="border-color:rgba(168,85,247,0.3); box-shadow:0 0 20px rgba(168,85,247,0.05); display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2px;">
       <div class="ticker-label">Mark Price</div>
@@ -3783,6 +3815,10 @@ window.addEventListener('DOMContentLoaded', () => {
         let prevStageIndexPrice = null;
         let prevBinFunding = null;
         let prevStageFunding = null;
+        let prevBinBestBid = null;
+        let prevStageBestBid = null;
+        let prevBinBestAsk = null;
+        let prevStageBestAsk = null;
         // knownTradeIds removed — was dead code (populated but never read)
         let cancelOnStopState = localStorage.getItem('replicator_cancel_on_stop') === '1';
         let newUserState = localStorage.getItem('replicator_new_user') === '1';
@@ -5846,6 +5882,104 @@ window.addEventListener('DOMContentLoaded', () => {
             prevStageIndexPrice = stageIndexPrice;
             stageIndexPriceEl.textContent = fmt(stageIndexPrice, pPrec);
 
+            // Best Bid Update
+            const bBids = instance.binanceDepth ? instance.binanceDepth.bids : [];
+            const bAsks = instance.binanceDepth ? instance.binanceDepth.asks : [];
+            const sBids = instance.testnetDepth ? instance.testnetDepth.bids : [];
+            const sAsks = instance.testnetDepth ? instance.testnetDepth.asks : [];
+
+            const binBestBid = (bBids && bBids[0]) ? parseFloat(bBids[0][0]) : 0;
+            const binBestAsk = (bAsks && bAsks[0]) ? parseFloat(bAsks[0][0]) : 0;
+            const stageBestBid = (sBids && sBids[0]) ? parseFloat(sBids[0][0]) : 0;
+            const stageBestAsk = (sAsks && sAsks[0]) ? parseFloat(sAsks[0][0]) : 0;
+
+            const binBestBidEl = document.getElementById('t-bbid');
+            if (binBestBidEl) {
+                if (prevBinBestBid !== null && flashOn) {
+                    const d = binBestBid - prevBinBestBid;
+                    if (d > 0) flash(binBestBidEl, 'fl-g');
+                    else if (d < 0) flash(binBestBidEl, 'fl-r');
+                }
+                prevBinBestBid = binBestBid;
+                binBestBidEl.textContent = binBestBid > 0 ? fmt(binBestBid, pPrec) : '—';
+            }
+
+            const stageBestBidEl = document.getElementById('t-sbid');
+            if (stageBestBidEl) {
+                if (prevStageBestBid !== null && flashOn) {
+                    const d = stageBestBid - prevStageBestBid;
+                    if (d > 0) flash(stageBestBidEl, 'fl-g');
+                    else if (d < 0) flash(stageBestBidEl, 'fl-r');
+                }
+                prevStageBestBid = stageBestBid;
+                stageBestBidEl.textContent = stageBestBid > 0 ? fmt(stageBestBid, pPrec) : '—';
+            }
+
+            const bidDriftAbs = Math.abs(binBestBid - stageBestBid).toFixed(pPrec);
+            const bidDriftPct = binBestBid > 0 ? ((bidDriftAbs / binBestBid) * 100).toFixed(3) : '0.000';
+            const bdp = parseFloat(bidDriftPct);
+            const bidDriftEl = document.getElementById('bid-drift-badge');
+            if (bidDriftEl) {
+                bidDriftEl.textContent = `Drift: ${bidDriftAbs} (${bidDriftPct}%)`;
+                if (bdp > 0.05) {
+                    bidDriftEl.style.color = 'var(--rose)';
+                    bidDriftEl.style.borderColor = 'rgba(244,63,94,0.3)';
+                    bidDriftEl.style.background = 'rgba(244,63,94,0.05)';
+                } else if (bdp > 0.02) {
+                    bidDriftEl.style.color = 'var(--yellow)';
+                    bidDriftEl.style.borderColor = 'rgba(250,204,21,0.3)';
+                    bidDriftEl.style.background = 'rgba(250,204,21,0.05)';
+                } else {
+                    bidDriftEl.style.color = 'var(--text-muted)';
+                    bidDriftEl.style.borderColor = 'var(--border)';
+                    bidDriftEl.style.background = 'rgba(255,255,255,0.02)';
+                }
+            }
+
+            // Best Ask Update
+            const binBestAskEl = document.getElementById('t-bask');
+            if (binBestAskEl) {
+                if (prevBinBestAsk !== null && flashOn) {
+                    const d = binBestAsk - prevBinBestAsk;
+                    if (d > 0) flash(binBestAskEl, 'fl-g');
+                    else if (d < 0) flash(binBestAskEl, 'fl-r');
+                }
+                prevBinBestAsk = binBestAsk;
+                binBestAskEl.textContent = binBestAsk > 0 ? fmt(binBestAsk, pPrec) : '—';
+            }
+
+            const stageBestAskEl = document.getElementById('t-sask');
+            if (stageBestAskEl) {
+                if (prevStageBestAsk !== null && flashOn) {
+                    const d = stageBestAsk - prevStageBestAsk;
+                    if (d > 0) flash(stageBestAskEl, 'fl-g');
+                    else if (d < 0) flash(stageBestAskEl, 'fl-r');
+                }
+                prevStageBestAsk = stageBestAsk;
+                stageBestAskEl.textContent = stageBestAsk > 0 ? fmt(stageBestAsk, pPrec) : '—';
+            }
+
+            const askDriftAbs = Math.abs(binBestAsk - stageBestAsk).toFixed(pPrec);
+            const askDriftPct = binBestAsk > 0 ? ((askDriftAbs / binBestAsk) * 100).toFixed(3) : '0.000';
+            const adp = parseFloat(askDriftPct);
+            const askDriftEl = document.getElementById('ask-drift-badge');
+            if (askDriftEl) {
+                askDriftEl.textContent = `Drift: ${askDriftAbs} (${askDriftPct}%)`;
+                if (adp > 0.05) {
+                    askDriftEl.style.color = 'var(--rose)';
+                    askDriftEl.style.borderColor = 'rgba(244,63,94,0.3)';
+                    askDriftEl.style.background = 'rgba(244,63,94,0.05)';
+                } else if (adp > 0.02) {
+                    askDriftEl.style.color = 'var(--yellow)';
+                    askDriftEl.style.borderColor = 'rgba(250,204,21,0.3)';
+                    askDriftEl.style.background = 'rgba(250,204,21,0.05)';
+                } else {
+                    askDriftEl.style.color = 'var(--text-muted)';
+                    askDriftEl.style.borderColor = 'var(--border)';
+                    askDriftEl.style.background = 'rgba(255,255,255,0.02)';
+                }
+            }
+
             // LTP Drift Update
             const dAbs = Math.abs(parseFloat(binLtp)-parseFloat(stageLtp)).toFixed(pPrec);
             const dPct = parseFloat(binLtp)>0 ? ((dAbs/parseFloat(binLtp))*100).toFixed(3) : '0.000';
@@ -6074,6 +6208,10 @@ window.addEventListener('DOMContentLoaded', () => {
                 prevStageIndexPrice = null;
                 prevBinFunding = null;
                 prevStageFunding = null;
+                prevBinBestBid = null;
+                prevStageBestBid = null;
+                prevBinBestAsk = null;
+                prevStageBestAsk = null;
                 const sp = document.getElementById('splash');
                 if (sp) { sp.classList.add('hidden'); setTimeout(()=>sp.remove(),500); }
                 document.getElementById('dot').className = 'dot-live';
