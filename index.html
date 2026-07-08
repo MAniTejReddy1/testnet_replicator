@@ -1634,6 +1634,7 @@
   <div class="splash-dot"></div>
   <div style="color:var(--cyan);font-size:14px;letter-spacing:4px;text-transform:uppercase;font-weight:700;text-shadow: 0 0 15px rgba(6,182,212,0.5);">REPLICATOR UI</div>
   <div style="color:var(--text-muted);font-size:12px;font-family:'JetBrains Mono',monospace;">Establishing secure SSE stream...</div>
+  <div id="splash-status" style="color:#64748b;font-size:10px;font-family:'JetBrains Mono',monospace;margin-top:10px;text-align:center;max-width:80%;word-break:break-all;">Loading assets...</div>
 </div>
 <div id="err-splash"></div>
 
@@ -2703,8 +2704,15 @@ window.fetch = function(input, init) {
     return originalFetch(input, init);
 };
 
+window.updateSplash = function(msg) {
+    console.log("[Splash Status]:", msg);
+    const el = document.getElementById('splash-status');
+    if (el) el.textContent = msg;
+};
+
 window.addEventListener('DOMContentLoaded', () => {
     try {
+        window.updateSplash("Initializing payload and components...");
         window.payload = { users: {}, roles: { makerId: '', takerId: '' }, portfolios: {} };
         window.tradeUser = ''; // Active trade user ID
         window.u1Tab = 'pos';
@@ -5911,9 +5919,11 @@ window.addEventListener('DOMContentLoaded', () => {
             if (es) es.close();
             const sid = localStorage.getItem('replicator_sid');
             const url = window.getApiUrl('/events') + (sid ? '?sid=' + encodeURIComponent(sid) : '');
+            window.updateSplash("EventSource connecting to: " + url);
             es = new EventSource(url, { withCredentials: true });
 
             es.onopen = () => {
+                window.updateSplash("EventSource connection established!");
                 sseReconnectDelay = 2500; // Reset backoff on success
                 prevBinLtp = null;
                 prevStageLtp = null;
@@ -5927,7 +5937,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('c-eng').innerHTML = "<span class='c-emerald fw-bold'>CONNECTED</span>";
             };
 
-            es.onerror = () => {
+            es.onerror = (err) => {
+                window.updateSplash("EventSource connection error! Retrying in " + sseReconnectDelay + "ms...");
                 document.getElementById('dot').className = 'dot-dead';
                 document.getElementById('c-eng').innerHTML = "<span class='c-rose fw-bold'>DISCONNECTED</span>";
                 es.close();
@@ -7584,50 +7595,53 @@ window.addEventListener('DOMContentLoaded', () => {
 
         window.checkAuthSession = async function() {
             if (!ENABLE_AUTH) {
-                console.log("Authentication is disabled by ENABLE_AUTH flag. Bypassing login page.");
+                window.updateSplash("Authentication disabled. Bypassing login overlay...");
                 document.getElementById('auth-overlay').style.display = 'none';
                 window.stopAuthCanvasAnimation();
                 try {
                     window.initializeTerminalAfterAuth();
                 } catch (initErr) {
                     console.error("Error during post-auth terminal initialization:", initErr);
+                    window.updateSplash("Error in post-auth init: " + initErr.message);
                 }
                 const sp = document.getElementById('splash');
                 if (sp) { sp.classList.add('hidden'); setTimeout(()=>sp.remove(), 500); }
                 return;
             }
             try {
+                window.updateSplash("Verifying session status with server...");
                 const res = await fetch(window.getApiUrl('/api/auth/session'));
                 if (res.ok) {
                     const data = await res.json();
                     if (data.authenticated) {
-                        console.log("Session authenticated successfully, loading dashboard...");
+                        window.updateSplash("Session validated! Mount dashboard...");
                         document.getElementById('auth-overlay').style.display = 'none';
                         window.stopAuthCanvasAnimation();
                         try {
                             window.initializeTerminalAfterAuth();
                         } catch (initErr) {
                             console.error("Error during post-auth terminal initialization:", initErr);
+                            window.updateSplash("Error in post-auth init: " + initErr.message);
                         }
                         // Hide splash immediately since we are logged in
                         const sp = document.getElementById('splash');
                         if (sp) { sp.classList.add('hidden'); setTimeout(()=>sp.remove(), 500); }
                     } else {
-                        console.log("No active session found.");
+                        window.updateSplash("No active session. Redirecting to login...");
                         document.getElementById('auth-overlay').style.display = 'flex';
                         window.startAuthCanvasAnimation();
                         const sp = document.getElementById('splash');
                         if (sp) { sp.classList.add('hidden'); setTimeout(()=>sp.remove(), 500); }
                     }
                 } else {
-                    console.error("Session check API failed with status:", res.status);
+                    window.updateSplash("Server session check failed. Redirecting to login...");
                     document.getElementById('auth-overlay').style.display = 'flex';
                     window.startAuthCanvasAnimation();
                     const sp = document.getElementById('splash');
                     if (sp) { sp.classList.add('hidden'); setTimeout(()=>sp.remove(), 500); }
                 }
             } catch (err) {
-                console.error("Error during session check fetch:", err);
+                window.updateSplash("Network failure verifying session. Redirecting to login...");
                 document.getElementById('auth-overlay').style.display = 'flex';
                 window.startAuthCanvasAnimation();
                 const sp = document.getElementById('splash');
@@ -7636,6 +7650,7 @@ window.addEventListener('DOMContentLoaded', () => {
         };
 
         window.initializeTerminalAfterAuth = function() {
+            window.updateSplash("Initializing custom UI selects...");
             window.initCustomSelects();
             // Synchronize default HTML classes with loaded localStorage states
             if (!cancelOnStopState) document.getElementById('tog-cancel-stop')?.classList.remove('on');
@@ -7644,18 +7659,22 @@ window.addEventListener('DOMContentLoaded', () => {
             if (!flashOn) document.getElementById('tog-flash')?.classList.remove('on');
 
             // Apply saved trend, preset, and terminal tab preferences
+            window.updateSplash("Restoring user trend preferences...");
             const savedTrend = localStorage.getItem('replicator_last_trend') || 'dump';
             window.setScenarioTrend(savedTrend);
 
+            window.updateSplash("Restoring user preset card preferences...");
             const savedPreset = localStorage.getItem('replicator_last_preset') || 'flash-crash';
             window.selectPresetTemplateL1(savedPreset, true);
 
+            window.updateSplash("Restoring terminal tab preferences...");
             const savedTermTab = localStorage.getItem('replicator_last_term_tab') || 'live';
             window.setTermTab(savedTermTab);
 
             // Env restore on backend prior to starting SSE stream
             const savedEnv = localStorage.getItem('replicator_last_env');
             if (savedEnv && savedEnv !== 'PRODUCTION') {
+                window.updateSplash("Synchronizing active environment to: " + savedEnv + "...");
                 fetch(window.getApiUrl('/api/env'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
