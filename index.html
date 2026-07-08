@@ -431,11 +431,13 @@
 
   /* -------- Left: live feed ambient panel -------- */
   .feed-panel {
-    padding: clamp(24px,4vh,40px) clamp(20px,4vw,44px) 28px;
+    padding: clamp(20px,3.5vh,32px) clamp(20px,3.5vw,40px) 24px;
     display:flex;
     flex-direction: column;
     min-width: 0;
     min-height: 0;
+    height: calc(100vh - 56px);
+    overflow: hidden;
     animation: fade-in-left-l 0.7s cubic-bezier(.2,.7,.3,1) both;
     box-sizing: border-box;
   }
@@ -446,13 +448,13 @@
     align-items:center;
     gap:8px;
     font-family:'JetBrains Mono', monospace;
-    font-size: 10.5px;
+    font-size: 10px;
     letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--yellow);
     border: 1px solid rgba(250, 204, 21, 0.2);
     background: rgba(250, 204, 21, 0.06);
-    padding: 5px 10px;
+    padding: 4px 8px;
     border-radius: 100px;
     width: fit-content;
     line-height: 1.4;
@@ -461,30 +463,30 @@
   .feed-title {
     font-family:'Space Grotesk', sans-serif;
     font-weight: 700;
-    font-size: clamp(24px, 2.6vw, 38px);
-    line-height: 1.12;
-    margin-top: 18px;
+    font-size: clamp(22px, 2.2vw, 34px);
+    line-height: 1.15;
+    margin-top: 12px;
     letter-spacing: -0.01em;
     max-width: 560px;
     text-align: left;
   }
   .feed-sub {
-    margin-top: 12px;
+    margin-top: 8px;
     color: var(--text-muted);
-    font-size: 13.5px;
-    line-height: 1.6;
+    font-size: 12.5px;
+    line-height: 1.5;
     max-width: 460px;
     text-align: left;
   }
 
   .ticker-tape {
-    margin-top: 22px;
+    margin-top: 14px;
     border: 1px solid rgba(255,255,255,0.06);
     border-radius: 10px;
     background: #0D1219;
     overflow: hidden;
     position: relative;
-    height: 34px;
+    height: 30px;
     flex-shrink: 0;
     -webkit-mask-image: linear-gradient(90deg, transparent, #000 24px, #000 calc(100% - 24px), transparent);
     mask-image: linear-gradient(90deg, transparent, #000 24px, #000 calc(100% - 24px), transparent);
@@ -499,7 +501,7 @@
     will-change: transform;
     padding-left: 20px;
     font-family:'JetBrains Mono', monospace;
-    font-size: 12px;
+    font-size: 11px;
   }
   .tick { display:flex; align-items:center; gap:8px; color: var(--text-muted); line-height:1; }
   .tick b { color: #E6EDF3; font-weight:500; }
@@ -518,19 +520,23 @@
     border: 1px solid rgba(255,255,255,0.06);
     border-radius: 10px;
     background: #0D1219;
-    padding: 16px 18px 18px;
+    padding: 14px 16px;
     display:flex;
     flex-direction: column;
     min-height: 0;
+    flex: 1;
+    overflow: hidden;
   }
   .sync-feed-wrap {
     border: 1px solid rgba(255,255,255,0.06);
     border-radius: 10px;
     background: #0D1219;
-    padding: 16px 18px 18px;
+    padding: 14px 16px;
     display:flex;
     flex-direction: column;
     min-height: 0;
+    flex: 1;
+    overflow: hidden;
   }
   .sync-list {
     margin-top: 12px;
@@ -566,45 +572,45 @@
   .book-head {
     display:flex; justify-content: space-between; align-items:baseline;
     font-family:'JetBrains Mono', monospace;
-    font-size: 11px;
+    font-size: 10px;
     color: var(--text-muted);
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    margin-bottom: 10px;
+    margin-bottom: 6px;
     line-height: 1;
   }
-  .book-head .pair { color: #E6EDF3; font-size: 13px; font-weight: 600; letter-spacing:0; text-transform:none; }
+  .book-head .pair { color: #E6EDF3; font-size: 12px; font-weight: 600; letter-spacing:0; text-transform:none; }
   .book-price {
     font-family:'JetBrains Mono', monospace;
-    font-size: 25px;
+    font-size: 22px;
     font-weight: 700;
     color: var(--yellow);
-    display:flex; align-items:baseline; gap: 10px;
+    display:flex; align-items:baseline; gap: 8px;
     line-height: 1.2;
-    min-height: 30px;
+    min-height: 26px;
     text-align: left;
   }
-  .book-price .val { min-width: 128px; display:inline-block; }
-  .book-price .delta { font-size: 13px; font-weight:500; min-width: 66px; display:inline-block; transition: color 0.3s ease; }
+  .book-price .val { min-width: 110px; display:inline-block; }
+  .book-price .delta { font-size: 12px; font-weight:500; min-width: 58px; display:inline-block; transition: color 0.3s ease; }
   .book-price .delta.up { color: #10b981; }
   .book-price .delta.down { color: #f43f5e; }
 
-  .depth-rows { margin-top: 12px; display:flex; flex-direction:column; gap: 5px; flex:1; overflow:hidden; }
-  .depth-row { position:relative; display:flex; align-items:center; height: 17px; font-family:'JetBrains Mono', monospace; font-size: 11.5px; line-height:1; border-radius: 2px; overflow:hidden; }
+  .depth-rows { margin-top: 8px; display:flex; flex-direction:column; gap: 3px; flex:1; overflow:hidden; justify-content: space-between; }
+  .depth-row { position:relative; display:flex; align-items:center; height: 15px; font-family:'JetBrains Mono', monospace; font-size: 10.5px; line-height:1; border-radius: 2px; overflow:hidden; }
   .depth-row .bar { position:absolute; top:0; bottom:0; right:0; border-radius: 2px; opacity: 0.16; transition: width 0.6s cubic-bezier(.4,0,.2,1); will-change: width; }
   .depth-row.ask .bar { background: #f43f5e; left:0; right:auto; }
   .depth-row.bid .bar { background: #10b981; }
-  .depth-row .vals { position:relative; display:flex; width:100%; justify-content:space-between; padding: 0 8px; z-index:1; }
+  .depth-row .vals { position:relative; display:flex; width:100%; justify-content:space-between; padding: 0 6px; z-index:1; }
   .depth-row.ask .vals span:first-child { color: #f43f5e; }
   .depth-row.bid .vals span:first-child { color: #10b981; }
   .depth-row .vals span:last-child { color: rgba(255,255,255,0.4); }
 
   .book-foot {
-    margin-top: 12px;
+    margin-top: 8px;
     display:flex;
-    gap: 18px;
+    gap: 14px;
     font-family:'JetBrains Mono', monospace;
-    font-size: 10.5px;
+    font-size: 10px;
     color: var(--text-muted);
     line-height:1;
     text-align: left;
@@ -6774,6 +6780,14 @@ window.addEventListener('DOMContentLoaded', () => {
                         });
                     }
 
+                    const chartData = [];
+                    let chartVal = 60;
+                    for (let i = 0; i < 60; i++) {
+                        chartVal += (Math.random() - 0.48) * 6;
+                        chartData.push(Math.max(15, Math.min(160, chartVal)));
+                    }
+                    let lastChartUpdate = Date.now();
+
                     const loop = () => {
                         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -6800,6 +6814,44 @@ window.addEventListener('DOMContentLoaded', () => {
                             ctx.lineTo(canvas.width, dynamicY);
                             ctx.strokeStyle = `rgba(0, 217, 255, ${0.015 + progress * 0.045})`;
                             ctx.stroke();
+                        }
+
+                        // A2. Draw background line chart on the right side behind access terminal card
+                        const chartXStart = canvas.width * 0.58;
+                        const chartWidth = canvas.width * 0.38;
+                        const chartYBase = canvas.height * 0.82;
+                        const chartHeight = canvas.height * 0.45;
+
+                        if (Date.now() - lastChartUpdate > 180) {
+                            lastChartUpdate = Date.now();
+                            chartVal += (Math.random() - 0.47) * 9;
+                            chartVal = Math.max(20, Math.min(chartHeight - 20, chartVal));
+                            chartData.push(chartVal);
+                            if (chartData.length > 60) chartData.shift();
+                        }
+
+                        if (chartData.length > 1) {
+                            ctx.beginPath();
+                            const step = chartWidth / (chartData.length - 1);
+                            for (let idx = 0; idx < chartData.length; idx++) {
+                                const cx = chartXStart + idx * step;
+                                const cy = chartYBase - chartData[idx];
+                                if (idx === 0) ctx.moveTo(cx, cy);
+                                else ctx.lineTo(cx, cy);
+                            }
+                            ctx.strokeStyle = 'rgba(0, 217, 255, 0.15)';
+                            ctx.lineWidth = 2.2;
+                            ctx.stroke();
+
+                            // Area gradient fill below line
+                            ctx.lineTo(chartXStart + chartWidth, chartYBase);
+                            ctx.lineTo(chartXStart, chartYBase);
+                            ctx.closePath();
+                            const chartGrad = ctx.createLinearGradient(0, chartYBase - chartHeight, 0, chartYBase);
+                            chartGrad.addColorStop(0, 'rgba(0, 217, 255, 0.035)');
+                            chartGrad.addColorStop(1, 'rgba(0, 217, 255, 0)');
+                            ctx.fillStyle = chartGrad;
+                            ctx.fill();
                         }
 
                         // B. Render constellation nodes & links
