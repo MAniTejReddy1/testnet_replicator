@@ -163,7 +163,7 @@ if (globalActiveTier && (globalActiveTier === 'JAPAN' || globalActiveTier === 'S
                 listenKey: process.env.USER1_LISTEN_KEY || "",
                 key: process.env.USER1_KEY || '',
                 secret: process.env.USER1_SECRET || '',
-                email: 'mani.reddy@coindcx.com',
+                email: process.env.USER1_EMAIL || 'mani.reddy@coindcx.com',
                 password: 'Test@123'
             },
             'user2': {
@@ -171,7 +171,7 @@ if (globalActiveTier && (globalActiveTier === 'JAPAN' || globalActiveTier === 'S
                 listenKey: process.env.USER2_LISTEN_KEY || "",
                 key: process.env.USER2_KEY || '',
                 secret: process.env.USER2_SECRET || '',
-                email: 'mani.reddy@coindcx.com',
+                email: process.env.USER2_EMAIL || 'mani.reddy@coindcx.com',
                 password: 'Test@123'
             }
         };
@@ -652,6 +652,13 @@ async function autoGenerateNewUserAndAssign(role, tier) {
         }
         
         broadcastToUI();
+
+        // Sleep 120 seconds to allow testnet funds and API keys to fully propagate
+        // (same wait applied in Jenkins Generate Test Credentials stage)
+        log.info('SYSTEM', `[RECOVERY][${tier}] New user ${uniqueId} assigned. Sleeping 120s for funds and API keys to propagate before resuming trading...`);
+        await new Promise(r => setTimeout(r, 120000));
+        log.success('SYSTEM', `[RECOVERY][${tier}] Sleep complete. ${role} account is ready.`);
+
         return true;
     } catch (e) {
         log.error('SYSTEM', `[RECOVERY][${tier}] User generation for recovery failed: ${e.message}`);
@@ -967,7 +974,7 @@ class PrivateWsClient {
                                     entryPrice: parseFloat(entry).toFixed(inst.pricePrecision),
                                     markPrice: idx !== -1 ? positions[idx].markPrice : parseFloat(entry).toFixed(inst.pricePrecision),
                                     unrealizedPnL: parseFloat(upnl).toFixed(2),
-                                    leverage: idx !== -1 ? positions[idx].leverage : '20',
+                                    leverage: idx !== -1 ? positions[idx].leverage : '5',
                                     liqPrice: idx !== -1 ? positions[idx].liqPrice : '0.00',
                                     margin: parseFloat(p.iw || 0).toFixed(2)
                                 };
@@ -1068,6 +1075,7 @@ class ReplicatorInstance {
         this.tradeQueue          = [];
         this.priceLocks          = new Set();
         this.ghostCancelQueue    = new Set();
+        this.tradeSyncMakerOrders = new Set();
         this.inFlightCancels     = new Set();
         this.cancelRetries       = new Map();
         this.inFlightTakerOrders = new Map();
@@ -1247,7 +1255,7 @@ class ReplicatorInstance {
             throw new Error(`${isTaker ? 'Taker' : 'Maker'} credentials not configured on ${this.tier}`);
         }
         const userLabel = isTaker ? 'USER2_TAKER' : 'USER1_MAKER';
-        const bufferedPrice = price ? applyBuffer(String(price), side, this.bufferPct, this.symbol, this.tier) : null;
+        const bufferedPrice = price ? applyBuffer(String(price), side, isTaker ? 0 : this.bufferPct, this.symbol, this.tier) : null;
 
         const payload = { symbol: this.symbol, side: side.toUpperCase(), quantity: String(qty) };
         if (options.reduceOnly) payload.reduceOnly = "true";
@@ -1304,6 +1312,19 @@ class ReplicatorInstance {
                 await this.reducePositions();
                 log.success(this.symbol, `[POSITION-LIMIT] Reduction process finished. Retrying original order...`);
                 return this.placeOrder(side, qty, price, orderType, isTaker, clientOrderId, true);
+            }
+        }
+
+        // Auto-recover on Open order limit exceeded (-1003)
+        if (!res.ok && !_isRetry && res.data && res.data.code === -1003) {
+            log.warn(this.symbol, `[LIMIT-EXCEEDED] ${userLabel} open order limit exceeded (-1003) — attempting auto user recovery...`);
+            const roleName = isTaker ? 'TAKER' : 'MAKER';
+            const recovered = await autoGenerateNewUserAndAssign(roleName, this.tier);
+            if (recovered) {
+                log.success(this.symbol, `[LIMIT-EXCEEDED] ${userLabel} recovered with a new user. Retrying order...`);
+                return this.placeOrder(side, qty, price, orderType, isTaker, clientOrderId, true);
+            } else {
+                log.error(this.symbol, `[LIMIT-EXCEEDED] ${userLabel} recovery failed — cannot retry.`);
             }
         }
 
@@ -1854,15 +1875,15 @@ class ReplicatorInstance {
             rawPrice = PriceTransformer.applyPriceAxes(rawPrice, side, transformer, index);
             let qty;
             if (useRawQty) {
-                // Use raw orderbook qty directly for faster market control during simulation or huge drift
+                // Use raw orderbook qty directly
                 qty = formatRawQty(parseFloat(lvl[1]), this.symbol, this.tier);
             } else {
                 const notional  = parseFloat(lvl[0]) * parseFloat(lvl[1]);
                 const targetSz  = Math.max(this.minSize, Math.min(this.maxSize, notional));
-                qty = calculateQty(targetSz, rawPrice, this.symbol);
+                qty = calculateQty(targetSz, rawPrice, this.symbol, this.tier);
                 qty = PriceTransformer.applyProfileSkew(qty, side, transformer, index);
             }
-            return { rawPrice, price: formatPrice(rawPrice, this.symbol), qty };
+            return { rawPrice, price: formatPrice(rawPrice, this.symbol, this.tier), qty };
         });
 
         let unmappedResting = [...restingOrders];
@@ -1940,7 +1961,7 @@ class ReplicatorInstance {
 
         for (const excess of unmappedResting) {
             const orderStatus = (excess.status || 'NEW').toUpperCase();
-            if (this.inFlightEdits.has(excess.orderId) || !tradeSync || orderStatus === 'PARTIALLY_FILLED') {
+            if (this.inFlightEdits.has(excess.orderId) || !tradeSync || orderStatus === 'PARTIALLY_FILLED' || this.tradeSyncMakerOrders.has(excess.orderId)) {
                 activePool.push(excess);
             } else if (canCleanup && cleanedUpCount < 5) {
                 this.inFlightEdits.add(excess.orderId);
@@ -2047,7 +2068,7 @@ class ReplicatorInstance {
         const transformer = ScenarioEngine.getTransformer(this.symbol);
         const transformedTradePrice = PriceTransformer.applyPriceAxes(trade.p, trade.m ? 'SELL' : 'BUY', transformer, 0);
 
-        const pStr      = formatPrice(transformedTradePrice, this.symbol);
+        const pStr      = formatPrice(transformedTradePrice, this.symbol, this.tier);
         const remainingScenarioQty = ScenarioEngine.getRemainingQty(this.symbol);
         
         let makerQty;
@@ -2066,7 +2087,7 @@ class ReplicatorInstance {
             // Normal mode: apply notional size clamp (minSize/maxSize) for maker
             const notional  = parseFloat(trade.q) * parseFloat(transformedTradePrice);
             const targetSz  = Math.max(this.minSize, Math.min(this.maxSize, notional));
-            makerQty = calculateQty(targetSz, transformedTradePrice, this.symbol);
+            makerQty = calculateQty(targetSz, transformedTradePrice, this.symbol, this.tier);
         }
 
         // Taker size is determined from the takerSize configuration
@@ -2074,7 +2095,7 @@ class ReplicatorInstance {
         if (this.takerUseRawQty) {
             takerQty = formatRawQty(parseFloat(trade.q), this.symbol, this.tier);
         } else {
-            takerQty = calculateQty(this.takerSize, transformedTradePrice, this.symbol);
+            takerQty = calculateQty(this.takerSize, transformedTradePrice, this.symbol, this.tier);
             if (parseFloat(takerQty) <= 0) {
                 // Fallback to min quantity if takerSize evaluates to 0 due to precision limits
                 takerQty = calculateQty(0, '1', this.symbol, this.tier);
@@ -2083,16 +2104,22 @@ class ReplicatorInstance {
 
         const makerSide = trade.m ? 'BUY' : 'SELL';
         const takerSide = trade.m ? 'SELL' : 'BUY';
+
+        // Determine if there's a resting maker order at this price BEFORE acquiring priceLock
+        const restingPool     = makerSide === 'BUY' ? this.restingBids : this.restingAsks;
+        const hasRestingMaker = restingPool.find(ro => ro && ro.price === pStr);
+        let finalMakerId      = hasRestingMaker ? hasRestingMaker.orderId : null;
+
         this.priceLocks.add(pStr);
-
+        log.info(this.symbol, `[TRADE-SYNC] Starting sync: makerSide=${makerSide}, makerQty=${makerQty}, takerQty=${takerQty}, price=${transformedTradePrice}, hasRestingMaker=${!!hasRestingMaker}`);
         try {
-            const restingPool   = makerSide === 'BUY' ? this.restingBids : this.restingAsks;
-            const hasRestingMaker = restingPool.find(ro => ro && ro.price === pStr);
-            let finalMakerId = hasRestingMaker ? hasRestingMaker.orderId : null;
-
             if (!hasRestingMaker) {
                 const makerRes = await this.placeOrder(makerSide, makerQty, transformedTradePrice, 'LIMIT');
                 finalMakerId = makerRes.orderId;
+                if (finalMakerId) {
+                    this.tradeSyncMakerOrders.add(finalMakerId);
+                }
+                log.info(this.symbol, `[TRADE-SYNC-MAKER] Result success=${makerRes.success}, id=${finalMakerId}`);
                 if (!makerRes.success) return; // If maker fails, we abort
             }
 
@@ -2117,7 +2144,12 @@ class ReplicatorInstance {
                 price: transformedTradePrice
             });
 
+            log.info(this.symbol, `[TRADE-SYNC-TAKER-PRE] Placing Taker side=${takerSide}, qty=${takerQty}, price=${transformedTradePrice}`);
             const takerRes = await this.placeOrder(takerSide, takerQty, transformedTradePrice, 'LIMIT_IOC', true, clientOrderId);
+            log.info(this.symbol, `[TRADE-SYNC-TAKER-POST] Taker Result success=${takerRes.success}`);
+            if (finalMakerId) {
+                this.tradeSyncMakerOrders.delete(finalMakerId);
+            }
             
             if (!takerRes.success) {
                 // HTTP rejection (e.g. margin limit). Push failure immediately to UI
@@ -2252,25 +2284,34 @@ startBinanceDepthWS() {
     startBinanceTradesWS() {
         if (this.wsBinanceTrades) return;
         const sym = this.sourceSymbol.toLowerCase(); // Using Source Symbol
-        const url = `wss://fstream.binance.com/public/ws/${sym}@aggTrade`;
+        // NOTE: aggTrade stream is regionally blocked; raw 'trade' stream works and has identical fields (p, q, m)
+        const url = `wss://fstream.binance.com/public/ws/${sym}@trade`;
 
         this.wsBinanceTrades = new WebSocket(url);
-        this.wsBinanceTrades.on('open', () => { pushEvent('SUCCESS', this.symbol, `Binance Trades WS connected`, { stream: 'aggTrade' }, 'ws'); });
+        this.wsBinanceTrades.on('open', () => {
+            pushEvent('SUCCESS', this.symbol, `Binance Trades WS connected`, { stream: 'trade' }, 'ws');
+            log.info(this.symbol, `[TRADES-WS] Connected to Binance trade stream for ${this.sourceSymbol} (status=${this.status}, tradeSync=${this.enableTradeSync})`);
+        });
+        let _gatedLogged = false;
         this.wsBinanceTrades.on('message', (raw) => {
             try {
                 const data = JSON.parse(raw.toString());
-                if (data.e === 'aggTrade') {
+                if (data.e === 'trade') {
                     this.binanceLtp = data.p;
                     const side = data.m ? 'SELL' : 'BUY';
                     pushEvent('EVENT', this.symbol, `Trade | ${side} | Price: ${data.p} | Qty: ${data.q}`, data, 'trade');
                     if (this.status === 'RUNNING' && this.enableTradeSync) {
+                        _gatedLogged = false; // reset so we log again if it becomes gated later
                         this.tradeQueue.push({ p: data.p, q: data.q, m: data.m });
                         this.processTradeQueue();
+                    } else if (!_gatedLogged) {
+                        _gatedLogged = true;
+                        log.warn(this.symbol, `[TRADES-WS] Trades arriving but gated (status=${this.status}, tradeSync=${this.enableTradeSync}). Will auto-activate when RUNNING.`);
                     }
                 }
-            } catch (e) { log.debug && log.debug('SYSTEM', e.message); }
+            } catch (e) { log.error(this.symbol, `[TRADES-WS] Message handler error: ${e.message}`); }
         });
-        this.wsBinanceTrades.on('error', (err) => { pushEvent('ERROR', this.symbol, `Binance Trades WS error: ${err.message}`, null, 'ws'); });
+        this.wsBinanceTrades.on('error', (err) => { log.error(this.symbol, `[TRADES-WS] Error: ${err.message}`); pushEvent('ERROR', this.symbol, `Binance Trades WS error: ${err.message}`, null, 'ws'); });
         this.wsBinanceTrades.on('close', () => { pushEvent('WARN', this.symbol, `Binance Trades WS disconnected — reconnecting...`, null, 'ws'); this.wsBinanceTrades = null; setTimeout(() => this.startBinanceTradesWS(), 3000); });
     }
 
@@ -2576,9 +2617,22 @@ startBinanceDepthWS() {
             }
             
             if (toCancel.length > 0) {
-                await Promise.allSettled(toCancel.map(o => {
+                const results = await Promise.allSettled(toCancel.map(o => {
                     return sendSignedRequest(`${hpoBase}/fapi/v1/order`, 'DELETE', { symbol: o.symbol, orderId: o.id }, user, 10000, tier);
                 }));
+                let editInProgressCount = 0;
+                for (const r of results) {
+                    if (r.status === 'fulfilled' && !r.value.ok && r.value.data) {
+                        const msg = String(r.value.data.msg || '').toLowerCase();
+                        if (msg.includes('edit is in progress') || msg.includes('edit_in_progress')) {
+                            editInProgressCount++;
+                        }
+                    }
+                }
+                if (editInProgressCount > 5) {
+                    log.error(symbolFilter || 'SYSTEM', `Detected ${editInProgressCount} orders stuck in EDIT_IN_PROGRESS. Aborting further cancels as these orders are un-cancellable by API.`);
+                    break;
+                }
             }
             
             if (newCount === 0 || chunk.length < limit) break;
@@ -2714,16 +2768,13 @@ startBinanceDepthWS() {
 
     async start() {
         if (this.status === 'RUNNING') return;
-        
-        if (this.newUserFlow && !this.hasStartedBefore) {
-            log.info(this.symbol, `New User Flow active. Sleeping for 120 seconds before starting...`);
-            await new Promise(r => setTimeout(r, 120000));
-            this.hasStartedBefore = true;
-        }
 
         this.status = 'RUNNING'; this.hasLoggedAuthError = false;
         log.success(this.symbol, 'Engine Started.');
-        
+
+        // Set leverage for both maker and taker accounts on this symbol
+        await this.setLeverage();
+
         // Fetch initial mark prices
         await this.fetchInitialMarkPrices();
 
@@ -2749,6 +2800,28 @@ startBinanceDepthWS() {
     }
 
     pause() { this.status = 'PAUSED'; log.warn(this.symbol, 'Engine Paused.'); }
+
+    async setLeverage(leverage = 5) {
+        const hpoBase = TIER_URLS[this.tier].HPO;
+        const tierUsers = globalUsers[this.tier] || {};
+        const tierRoles = globalRoles[this.tier] || { makerId: '', takerId: '' };
+        const makerUser = tierUsers[tierRoles.makerId];
+        const takerUser = tierUsers[tierRoles.takerId];
+        const payload   = { symbol: this.symbol, leverage };
+
+        const calls = [];
+        if (makerUser) calls.push(
+            sendSignedRequest(`${hpoBase}/fapi/v1/leverage`, 'POST', payload, makerUser, 10000, this.tier)
+                .then(r => { if (r.ok) log.success(this.symbol, `[LEVERAGE] Maker leverage set to ${leverage}x`); else log.warn(this.symbol, `[LEVERAGE] Maker leverage update failed: ${JSON.stringify(r.data)}`); })
+                .catch(e => log.warn(this.symbol, `[LEVERAGE] Maker leverage call error: ${e.message}`))
+        );
+        if (takerUser) calls.push(
+            sendSignedRequest(`${hpoBase}/fapi/v1/leverage`, 'POST', payload, takerUser, 10000, this.tier)
+                .then(r => { if (r.ok) log.success(this.symbol, `[LEVERAGE] Taker leverage set to ${leverage}x`); else log.warn(this.symbol, `[LEVERAGE] Taker leverage update failed: ${JSON.stringify(r.data)}`); })
+                .catch(e => log.warn(this.symbol, `[LEVERAGE] Taker leverage call error: ${e.message}`))
+        );
+        await Promise.all(calls);
+    }
 
     async stop() {
         this.status = 'STOPPED'; log.warn(this.symbol, 'Engine Stopped.');
@@ -2792,7 +2865,7 @@ function autoParsePositions(data, tier = 'PRODUCTION') {
             entryPrice:    parseFloat(pos.entryPrice || 0).toFixed(inst.pricePrecision),
             markPrice:     parseFloat(pos.markPrice  || 0).toFixed(inst.pricePrecision),
             unrealizedPnL: parseFloat(pos.unRealizedProfit || pos.unrealizedProfit || 0).toFixed(2),
-            leverage:      pos.leverage || "1",
+            leverage:      pos.leverage || "5",
             liqPrice:      parseFloat(pos.liquidationPrice || 0).toFixed(inst.pricePrecision),
             margin:        parseFloat(pos.isolatedWallet || pos.currentMargin || 0).toFixed(2)
         };
@@ -3345,7 +3418,8 @@ const server = http.createServer(async (req, res) => {
                         if (parsed.cancelOnStop !== undefined) inst.cancelOnStop = Boolean(parsed.cancelOnStop);
                         if (parsed.tradeDelayMs !== undefined) inst.tradeDelayMs = parseInt(parsed.tradeDelayMs);
                         if (parsed.newUserFlow !== undefined) inst.newUserFlow = Boolean(parsed.newUserFlow);
-                        if (parsed.enableTradeSync !== undefined) inst.enableTradeSync = Boolean(parsed.enableTradeSync);
+                        // Use !== false comparison so string 'false' is treated correctly
+                        if (parsed.enableTradeSync !== undefined) inst.enableTradeSync = parsed.enableTradeSync !== false && parsed.enableTradeSync !== 'false';
                         log.info(targetSym, `Config updated for existing instance.`, null, tier);
                     }
 
@@ -3480,7 +3554,7 @@ const server = http.createServer(async (req, res) => {
 
 async function globalStartupCleanup() {
     log.info('SYSTEM', 'Performing startup safety cleanup of all open orders across accounts (by symbol)...');
-    const tiers = ['PRODUCTION', 'JAPAN', 'STAGING'];
+    const tiers = ['PRODUCTION', 'JAPAN', 'STAGING'].filter(t => t === globalActiveTier);
     for (const tier of tiers) {
         const hpoBase = TIER_URLS[tier] ? TIER_URLS[tier].HPO : null;
         if (!hpoBase) continue;
