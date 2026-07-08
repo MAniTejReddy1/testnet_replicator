@@ -47,6 +47,8 @@
     --title-grad: linear-gradient(90deg, #fff, #94a3b8);
     --text-shadow: 0 0 10px rgba(6,182,212,0.15);
     --ease: cubic-bezier(0.4, 0, 0.2, 1);
+    --flash-up-bg: rgba(16, 185, 129, 0.25);
+    --flash-down-bg: rgba(244, 63, 94, 0.25);
   }
 
   :root[data-theme="light"] {
@@ -79,6 +81,8 @@
     --glass-hover: rgba(0, 0, 0, 0.04);
     --glass-active: rgba(0, 0, 0, 0.08);
     --text-shadow: none;
+    --flash-up-bg: rgba(16, 185, 129, 0.38);
+    --flash-down-bg: rgba(244, 63, 94, 0.38);
   }
 
   ::view-transition-old(root),
@@ -184,8 +188,8 @@
   @keyframes fR { 50% { color: #f43f5e; text-shadow: 0 0 8px rgba(244,63,94,0.5); } }
   .fl-g { animation: fG .35s ease; }
   .fl-r { animation: fR .35s ease; }
-  @keyframes flashRowUp { 0% { background: rgba(16, 185, 129, 0.22); } 100% { background: transparent; } }
-  @keyframes flashRowDown { 0% { background: rgba(244, 63, 94, 0.22); } 100% { background: transparent; } }
+  @keyframes flashRowUp { 0% { background: var(--flash-up-bg); } 100% { background: transparent; } }
+  @keyframes flashRowDown { 0% { background: var(--flash-down-bg); } 100% { background: transparent; } }
   .flash-row-up { animation: flashRowUp 0.4s ease-out; }
   .flash-row-down { animation: flashRowDown 0.4s ease-out; }
   @keyframes slideIn { from { opacity:0; transform:translateX(8px); } to { opacity:1; transform:none; } }
@@ -4471,16 +4475,24 @@ window.addEventListener('DOMContentLoaded', () => {
                     barDiv.style.display = 'block';
                     
                     const ratio = parseFloat(r[1]) / maxQ;
-                    const bgAlpha = (0.05 + ratio * 0.28).toFixed(3);
-                    const borderAlpha = (0.3 + ratio * 0.6).toFixed(3);
-                    const borderWidth = (1.5 + ratio * 2.5).toFixed(1);
+                    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+                    
+                    const bgMin = isLight ? 0.22 : 0.05;
+                    const bgMax = isLight ? 0.60 : 0.30;
+                    const fadeTo = isLight ? 0.08 : 0.01;
+                    const borderMin = isLight ? 0.65 : 0.35;
+                    const borderMax = isLight ? 1.0 : 0.85;
+
+                    const bgAlpha = (bgMin + ratio * (bgMax - bgMin)).toFixed(3);
+                    const borderAlpha = (borderMin + ratio * (borderMax - borderMin)).toFixed(3);
+                    const borderWidth = (isLight ? 2.5 + ratio * 2.5 : 1.5 + ratio * 2.5).toFixed(1);
 
                     if (isAsk) {
-                        barDiv.style.background = `linear-gradient(to left, rgba(244, 63, 94, ${bgAlpha}) 0%, rgba(244, 63, 94, 0.02) 100%)`;
+                        barDiv.style.background = `linear-gradient(to left, rgba(244, 63, 94, ${bgAlpha}) 0%, rgba(244, 63, 94, ${fadeTo}) 100%)`;
                         barDiv.style.borderRight = `${borderWidth}px solid rgba(244, 63, 94, ${borderAlpha})`;
                         barDiv.style.borderLeft = 'none';
                     } else {
-                        barDiv.style.background = `linear-gradient(to right, rgba(16, 185, 129, ${bgAlpha}) 0%, rgba(16, 185, 129, 0.02) 100%)`;
+                        barDiv.style.background = `linear-gradient(to right, rgba(16, 185, 129, ${bgAlpha}) 0%, rgba(16, 185, 129, ${fadeTo}) 100%)`;
                         barDiv.style.borderLeft = `${borderWidth}px solid rgba(16, 185, 129, ${borderAlpha})`;
                         barDiv.style.borderRight = 'none';
                     }
