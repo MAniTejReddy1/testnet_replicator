@@ -3176,6 +3176,22 @@ function getSessionUser(req) {
 }
 
 const server = http.createServer(async (req, res) => {
+    // Set CORS headers for all requests (including preflights and auth routes)
+    const origin = req.headers.origin;
+    if (origin) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+    } else {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-replicator-user, x-replicator-sid, authorization');
+
+    if (req.method === 'OPTIONS') {
+        res.writeHead(204).end();
+        return;
+    }
+
     // 1. Handle Auth Routes (No session check required)
     if (req.method === 'POST' && req.url === '/api/auth/login') {
         let body = '';
@@ -3345,11 +3361,7 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    // M7: CORS headers for all requests
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-replicator-user');
-    if (req.method === 'OPTIONS') { res.writeHead(204).end(); return; }
+    // CORS headers handled globally at top of server handler
 
     if (req.method === 'GET' && req.url.startsWith('/api/stage/exchangeInfo')) {
         const urlObj = new URL(req.url, 'http://localhost');
