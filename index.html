@@ -512,8 +512,8 @@
     display: grid;
     grid-template-columns: 1fr;
     grid-template-rows: 1fr 1fr;
-    gap: 14px;
-    margin-top: 14px;
+    gap: 28px;
+    margin-top: 16px;
     height: 60vh;
     min-height: 520px;
     max-height: 580px;
@@ -6915,23 +6915,26 @@ window.addEventListener('DOMContentLoaded', () => {
                             ctx.stroke();
                         }
 
-                        // A2. Draw background line chart on the right side behind access terminal card
+                                        // A2. Draw background line chart on the right side behind access terminal card
                         const chartXStart = canvas.width * 0.58;
                         const chartWidth = canvas.width * 0.38;
-                        const chartYBase = canvas.height * 0.82;
-                        const chartHeight = canvas.height * 0.45;
+                        const chartYBase = canvas.height * 0.95; // Reaches bottom edge
+                        const chartHeight = canvas.height * 0.85; // Tall layout stretching to top
 
                         if (Date.now() - lastChartUpdate > 180) {
                             lastChartUpdate = Date.now();
                             
-                            chartVal += (Math.random() - 0.47) * 9;
-                            chartVal = Math.max(20, Math.min(chartHeight - 20, chartVal));
+                            // Let the line oscillate mostly in the top half of the screen
+                            const minVal = chartHeight * 0.55;
+                            const maxVal = chartHeight - 20;
+                            chartVal += (Math.random() - 0.48) * 14;
+                            chartVal = Math.max(minVal, Math.min(maxVal, chartVal));
                             chartData.push(chartVal);
                             if (chartData.length > 60) chartData.shift();
 
                             // Production line drifts similarly but slightly offset
-                            chartProdVal = chartVal + (Math.random() - 0.5) * 8 + Math.sin(Date.now() / 2000) * 12;
-                            chartProdVal = Math.max(20, Math.min(chartHeight - 20, chartProdVal));
+                            chartProdVal = chartVal + (Math.random() - 0.5) * 10 + Math.sin(Date.now() / 1500) * 16;
+                            chartProdVal = Math.max(minVal, Math.min(maxVal, chartProdVal));
                             chartProdData.push(chartProdVal);
                             if (chartProdData.length > 60) chartProdData.shift();
                         }
@@ -6939,7 +6942,19 @@ window.addEventListener('DOMContentLoaded', () => {
                         if (chartData.length > 1) {
                             const step = chartWidth / (chartData.length - 1);
 
-                            // 1. Draw Production benchmark (Dashed Amber line)
+                            // Draw volume bars at the very bottom axis
+                            ctx.lineWidth = 2.5;
+                            for (let idx = 0; idx < chartData.length; idx++) {
+                                const cx = chartXStart + idx * step;
+                                const volHeight = 10 + (Math.abs(Math.sin(idx * 0.7)) * 28) + (idx % 4 === 0 ? 14 : 0);
+                                ctx.beginPath();
+                                ctx.moveTo(cx, chartYBase);
+                                ctx.lineTo(cx, chartYBase - volHeight);
+                                ctx.strokeStyle = idx % 3 === 0 ? 'rgba(244, 63, 94, 0.14)' : 'rgba(16, 185, 129, 0.14)';
+                                ctx.stroke();
+                            }
+
+                            // 1. Draw Production benchmark (Dashed Blue line - starts from bottom and rises)
                             ctx.beginPath();
                             for (let idx = 0; idx < chartProdData.length; idx++) {
                                 const cx = chartXStart + idx * step;
@@ -6947,13 +6962,13 @@ window.addEventListener('DOMContentLoaded', () => {
                                 if (idx === 0) ctx.moveTo(cx, cy);
                                 else ctx.lineTo(cx, cy);
                             }
-                            ctx.strokeStyle = 'rgba(240, 185, 11, 0.12)';
-                            ctx.lineWidth = 1.6;
+                            ctx.strokeStyle = 'rgba(0, 162, 255, 0.18)';
+                            ctx.lineWidth = 1.8;
                             ctx.setLineDash([4, 4]);
                             ctx.stroke();
                             ctx.setLineDash([]); // Reset line dash
 
-                            // 2. Draw Staging Sync (Solid Cyan line)
+                            // 2. Draw Staging Sync (Solid Purple line - starts from bottom and rises, going up and down on top)
                             ctx.beginPath();
                             for (let idx = 0; idx < chartData.length; idx++) {
                                 const cx = chartXStart + idx * step;
@@ -6961,8 +6976,8 @@ window.addEventListener('DOMContentLoaded', () => {
                                 if (idx === 0) ctx.moveTo(cx, cy);
                                 else ctx.lineTo(cx, cy);
                             }
-                            ctx.strokeStyle = 'rgba(0, 217, 255, 0.18)';
-                            ctx.lineWidth = 2.4;
+                            ctx.strokeStyle = 'rgba(168, 85, 247, 0.35)';
+                            ctx.lineWidth = 2.5;
                             ctx.stroke();
 
                             // Area gradient fill below Staging line
@@ -6970,8 +6985,8 @@ window.addEventListener('DOMContentLoaded', () => {
                             ctx.lineTo(chartXStart, chartYBase);
                             ctx.closePath();
                             const chartGrad = ctx.createLinearGradient(0, chartYBase - chartHeight, 0, chartYBase);
-                            chartGrad.addColorStop(0, 'rgba(0, 217, 255, 0.04)');
-                            chartGrad.addColorStop(1, 'rgba(0, 217, 255, 0)');
+                            chartGrad.addColorStop(0, 'rgba(168, 85, 247, 0.045)');
+                            chartGrad.addColorStop(1, 'rgba(168, 85, 247, 0)');
                             ctx.fillStyle = chartGrad;
                             ctx.fill();
                         }
