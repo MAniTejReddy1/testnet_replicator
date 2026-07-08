@@ -1098,6 +1098,8 @@ class ReplicatorInstance {
         this.stage24h = { high: 0, low: 0, volume: 0, priceChangePercent: 0 };
         this.binanceFundingRate = null;
         this.stageFundingRate   = null;
+        this.binanceIndexPrice  = null;
+        this.testnetIndexPrice  = null;
 
         this.testnetLatency    = 0;
         this.binanceLatency    = 0;
@@ -2399,12 +2401,13 @@ startBinanceDepthWS() {
         if (this.pollingInterval) clearInterval(this.pollingInterval);
         
         this.pollingInterval = setInterval(async () => {
-            // 1. Fetch real-time Mark Price and Funding Rate for Binance and Stage
+            // 1. Fetch real-time Mark Price, Index Price, and Funding Rate for Binance and Stage
             try {
                 const resB = await fetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${this.sourceSymbol}`);
                 if (resB.ok) {
                     const dataB = await resB.json();
                     if (dataB.markPrice) this.binanceMarkPrice = parseFloat(dataB.markPrice);
+                    if (dataB.indexPrice) this.binanceIndexPrice = parseFloat(dataB.indexPrice);
                     if (dataB.lastFundingRate) this.binanceFundingRate = parseFloat(dataB.lastFundingRate);
                 }
             } catch(e){}
@@ -2415,6 +2418,7 @@ startBinanceDepthWS() {
                 if (resS.ok) {
                     const dataS = await resS.json();
                     if (dataS.markPrice) this.testnetMarkPrice = parseFloat(dataS.markPrice);
+                    if (dataS.indexPrice) this.testnetIndexPrice = parseFloat(dataS.indexPrice);
                     if (dataS.lastFundingRate) this.stageFundingRate = parseFloat(dataS.lastFundingRate);
                 }
             } catch(e){}
@@ -2445,7 +2449,7 @@ startBinanceDepthWS() {
                     this.binance24h = {
                         high: parseFloat(data24B.highPrice || 0),
                         low: parseFloat(data24B.lowPrice || 0),
-                        volume: parseFloat(data24B.quoteVolume || 0),
+                        volume: parseFloat(data24B.volume || 0),
                         priceChangePercent: parseFloat(data24B.priceChangePercent || 0)
                     };
                 }
@@ -2468,6 +2472,9 @@ startBinanceDepthWS() {
                 if (data.markPrice) {
                     this.testnetMarkPrice = parseFloat(data.markPrice);
                 }
+                if (data.indexPrice) {
+                    this.testnetIndexPrice = parseFloat(data.indexPrice);
+                }
             }
         } catch (e) {
             log.debug && log.debug('SYSTEM', `Failed to fetch Stage initial markPrice: ${e.message}`);
@@ -2483,6 +2490,9 @@ startBinanceDepthWS() {
                 const data = await res.json();
                 if (data.markPrice) {
                     this.binanceMarkPrice = parseFloat(data.markPrice);
+                }
+                if (data.indexPrice) {
+                    this.binanceIndexPrice = parseFloat(data.indexPrice);
                 }
             }
         } catch (e) {
@@ -2510,6 +2520,9 @@ startBinanceDepthWS() {
                     this.testnetMarkPrice = parseFloat(data.p || data.markPrice);
                     if (data.r !== undefined) {
                         this.stageFundingRate = parseFloat(data.r);
+                    }
+                    if (data.i !== undefined) {
+                        this.testnetIndexPrice = parseFloat(data.i);
                     }
                     broadcastToUI();
                     
@@ -2546,6 +2559,9 @@ startBinanceDepthWS() {
                     this.binanceMarkPrice = parseFloat(data.p || data.markPrice);
                     if (data.r !== undefined) {
                         this.binanceFundingRate = parseFloat(data.r);
+                    }
+                    if (data.i !== undefined) {
+                        this.binanceIndexPrice = parseFloat(data.i);
                     }
                     broadcastToUI();
                     
@@ -3038,6 +3054,8 @@ function buildPayload(isSnapshot = true, sinceTs = 0) {
                 testnetLtp:      inst.testnetLtp,
                 testnetMarkPrice: inst.testnetMarkPrice,
                 binanceMarkPrice: inst.binanceMarkPrice,
+                binanceIndexPrice: inst.binanceIndexPrice,
+                testnetIndexPrice: inst.testnetIndexPrice,
                 testnetKline:    inst.testnetKline,
                 binanceLatency:  inst.binanceLatency,
                 binanceLtp:      inst.binanceLtp,

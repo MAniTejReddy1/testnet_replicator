@@ -1913,12 +1913,26 @@
       </div>
     </div>
   </div>
-  <div class="ticker-card" id="funding-card" style="display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px; cursor:pointer;" onclick="window.fetchFundingRates()">
+  <div class="ticker-card" style="border-color:rgba(59,130,246,0.3); box-shadow:0 0 20px rgba(59,130,246,0.05); display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2px;">
+      <div class="ticker-label">Index Price</div>
+      <div id="ip-drift-badge" style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600; color:var(--text-muted); background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">Drift: —</div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:4px;">
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <span style="font-size:10.5px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Binance</span>
+        <span class="ticker-val" id="t-bip" style="color:var(--yellow); font-size:19px; font-weight:800; margin-top:0; font-family:'JetBrains Mono',monospace;">—</span>
+      </div>
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <span style="font-size:10.5px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Stage</span>
+        <span class="ticker-val" id="t-sip" style="color:var(--cyan); font-size:19px; font-weight:800; margin-top:0; font-family:'JetBrains Mono',monospace;">—</span>
+      </div>
+    </div>
+  </div>
+  <div class="ticker-card" id="funding-card" style="display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2px;">
       <span class="ticker-label">Funding Rate</span>
-      <span id="funding-refresh-icon" style="color:var(--text-muted); font-size:10px; font-weight:600; display:flex; align-items:center; gap:4px; background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">
-        <span style="font-size:10px; display:inline-block;">↻</span> Refresh
-      </span>
+      <div id="funding-drift-badge" style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600; color:var(--text-muted); background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">Drift: —</div>
     </div>
     <div style="display:flex; flex-direction:column; gap:4px;">
       <div style="display:flex; align-items:center; justify-content:space-between;">
@@ -1928,10 +1942,6 @@
       <div style="display:flex; align-items:center; justify-content:space-between;">
         <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Stage</span>
         <span class="ticker-val" id="t-stage-funding" style="color:var(--cyan); font-size:13px; font-weight:800; margin-top:0; font-family:'JetBrains Mono',monospace;">—</span>
-      </div>
-      <div style="display:flex; align-items:center; justify-content:space-between; border-top:1px solid var(--border); padding-top:2px; margin-top:2px;">
-        <span style="font-size:9.5px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Diff</span>
-        <span class="ticker-val" id="t-funding-diff" style="color:var(--purple); font-size:13px; font-weight:800; margin-top:0; font-family:'JetBrains Mono',monospace;">—</span>
       </div>
     </div>
   </div>
@@ -3757,6 +3767,8 @@ window.addEventListener('DOMContentLoaded', () => {
         let prevStageLtp = null;
         let prevBinMarkPrice = null;
         let prevStageMarkPrice = null;
+        let prevBinIndexPrice = null;
+        let prevStageIndexPrice = null;
         let prevBinFunding = null;
         let prevStageFunding = null;
         // knownTradeIds removed — was dead code (populated but never read)
@@ -5188,50 +5200,6 @@ window.addEventListener('DOMContentLoaded', () => {
             return val.toFixed(1);
         }
 
-        let fetchingFundingRates = false;
-        window.fetchFundingRates = async function() {
-            if (!activeTabSymbol || fetchingFundingRates) return;
-            fetchingFundingRates = true;
-            const icon = document.getElementById('funding-refresh-icon');
-            if (icon) {
-                icon.style.opacity = '0.5';
-                icon.innerHTML = `<span style="display:inline-block; animation:spin 1s linear infinite;">↻</span> Loading...`;
-            }
-            try {
-                const activeTier = activeEnvFilter || 'PRODUCTION';
-                const res = await fetch(`/api/fundingRate?symbol=${activeTabSymbol}&tier=${activeTier}`);
-                if (!res.ok) throw new Error('HTTP ' + res.status);
-                const data = await res.json();
-                
-                const formatFunding = (val) => {
-                    if (val === null || val === undefined || isNaN(val)) return '—';
-                    const pct = (val * 100).toFixed(4);
-                    return `${val.toFixed(8)} (${pct}%)`;
-                };
-                
-                document.getElementById('t-bin-funding').textContent = formatFunding(data.binance);
-                document.getElementById('t-stage-funding').textContent = formatFunding(data.stage);
-                
-                const diffVal = data.diff;
-                document.getElementById('t-funding-diff').textContent = formatFunding(diffVal);
-                
-                const diffEl = document.getElementById('t-funding-diff');
-                if (diffVal !== null && Math.abs(diffVal) > 0.0001) {
-                    diffEl.style.color = 'var(--rose)';
-                } else {
-                    diffEl.style.color = 'var(--purple)';
-                }
-            } catch(e) {
-                console.error('Fetch funding failed:', e);
-            } finally {
-                fetchingFundingRates = false;
-                if (icon) {
-                    icon.style.opacity = '1';
-                    icon.innerHTML = `<span style="font-size:10px;">↻</span> Refresh`;
-                }
-            }
-        };
-
         window.selectTab = function(sym) {
             activeTabSymbol = sym;
             if (activeEnvFilter) {
@@ -5273,8 +5241,6 @@ window.addEventListener('DOMContentLoaded', () => {
             if (cachedInstances && cachedInstances[sym] && cachedGlobalData) {
                 renderSymbolData(cachedInstances[sym], cachedGlobalData);
             }
-            
-            setTimeout(() => window.fetchFundingRates(), 50);
             
             // Re-fetch orders for all tabs to update counts
             window.fetchOrders('u1', 'open');
@@ -5744,6 +5710,27 @@ window.addEventListener('DOMContentLoaded', () => {
             prevStageMarkPrice = stageMarkPrice;
             stageMarkPriceEl.textContent = fmt(stageMarkPrice, pPrec);
 
+            // Index Price Update
+            const binIndexPrice = diag.binanceIndexPrice || binLtp;
+            const binIndexPriceEl = document.getElementById('t-bip');
+            if (prevBinIndexPrice !== null && flashOn) {
+                const d = parseFloat(binIndexPrice) - parseFloat(prevBinIndexPrice);
+                if (d > 0) flash(binIndexPriceEl, 'fl-g');
+                else if (d < 0) flash(binIndexPriceEl, 'fl-r');
+            }
+            prevBinIndexPrice = binIndexPrice;
+            binIndexPriceEl.textContent = fmt(binIndexPrice, pPrec);
+
+            const stageIndexPrice = diag.testnetIndexPrice || stageLtp;
+            const stageIndexPriceEl = document.getElementById('t-sip');
+            if (prevStageIndexPrice !== null && flashOn) {
+                const d = parseFloat(stageIndexPrice) - parseFloat(prevStageIndexPrice);
+                if (d > 0) flash(stageIndexPriceEl, 'fl-g');
+                else if (d < 0) flash(stageIndexPriceEl, 'fl-r');
+            }
+            prevStageIndexPrice = stageIndexPrice;
+            stageIndexPriceEl.textContent = fmt(stageIndexPrice, pPrec);
+
             // LTP Drift Update
             const dAbs = Math.abs(parseFloat(binLtp)-parseFloat(stageLtp)).toFixed(pPrec);
             const dPct = parseFloat(binLtp)>0 ? ((dAbs/parseFloat(binLtp))*100).toFixed(3) : '0.000';
@@ -5788,6 +5775,28 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
+            // Index Price Drift Update
+            const ipAbs = Math.abs(parseFloat(binIndexPrice)-parseFloat(stageIndexPrice)).toFixed(pPrec);
+            const ipPct = parseFloat(binIndexPrice)>0 ? ((ipAbs/parseFloat(binIndexPrice))*100).toFixed(3) : '0.000';
+            const ipp = parseFloat(ipPct);
+            const ipDriftEl = document.getElementById('ip-drift-badge');
+            if (ipDriftEl) {
+                ipDriftEl.textContent = `Drift: ${ipAbs} (${ipPct}%)`;
+                if (ipp > 0.05) {
+                    ipDriftEl.style.color = 'var(--rose)';
+                    ipDriftEl.style.borderColor = 'rgba(244,63,94,0.3)';
+                    ipDriftEl.style.background = 'rgba(244,63,94,0.05)';
+                } else if (ipp > 0.02) {
+                    ipDriftEl.style.color = 'var(--yellow)';
+                    ipDriftEl.style.borderColor = 'rgba(250,204,21,0.3)';
+                    ipDriftEl.style.background = 'rgba(250,204,21,0.05)';
+                } else {
+                    ipDriftEl.style.color = 'var(--text-muted)';
+                    ipDriftEl.style.borderColor = 'var(--border)';
+                    ipDriftEl.style.background = 'rgba(255,255,255,0.02)';
+                }
+            }
+
             // 24h Ticker Update
             const bin24 = diag.binance24h || {};
             const stage24 = diag.stage24h || {};
@@ -5828,18 +5837,30 @@ window.addEventListener('DOMContentLoaded', () => {
             prevStageFunding = stageFunding;
             stageFundingEl.textContent = formatFunding(stageFunding);
             
-            if (binFunding !== null && stageFunding !== null) {
-                const diffVal = binFunding - stageFunding;
-                document.getElementById('t-funding-diff').textContent = formatFunding(diffVal);
-                
-                const diffEl = document.getElementById('t-funding-diff');
-                if (Math.abs(diffVal) > 0.0001) {
-                    diffEl.style.color = 'var(--rose)';
+            const fundingDriftEl = document.getElementById('funding-drift-badge');
+            if (fundingDriftEl) {
+                if (binFunding !== null && stageFunding !== null) {
+                    const fDriftAbs = Math.abs(binFunding - stageFunding);
+                    fundingDriftEl.textContent = `Drift: ${fDriftAbs.toFixed(8)}`;
+                    if (fDriftAbs > 0.0001) {
+                        fundingDriftEl.style.color = 'var(--rose)';
+                        fundingDriftEl.style.borderColor = 'rgba(244,63,94,0.3)';
+                        fundingDriftEl.style.background = 'rgba(244,63,94,0.05)';
+                    } else if (fDriftAbs > 0.00002) {
+                        fundingDriftEl.style.color = 'var(--yellow)';
+                        fundingDriftEl.style.borderColor = 'rgba(250,204,21,0.3)';
+                        fundingDriftEl.style.background = 'rgba(250,204,21,0.05)';
+                    } else {
+                        fundingDriftEl.style.color = 'var(--text-muted)';
+                        fundingDriftEl.style.borderColor = 'var(--border)';
+                        fundingDriftEl.style.background = 'rgba(255,255,255,0.02)';
+                    }
                 } else {
-                    diffEl.style.color = 'var(--purple)';
+                    fundingDriftEl.textContent = 'Drift: —';
+                    fundingDriftEl.style.color = 'var(--text-muted)';
+                    fundingDriftEl.style.borderColor = 'var(--border)';
+                    fundingDriftEl.style.background = 'rgba(255,255,255,0.02)';
                 }
-            } else {
-                document.getElementById('t-funding-diff').textContent = '—';
             }
 
             // OK/FAIL counts are now rendered by updateTradeStream into #ltp-chips
@@ -5927,6 +5948,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 prevStageLtp = null;
                 prevBinMarkPrice = null;
                 prevStageMarkPrice = null;
+                prevBinIndexPrice = null;
+                prevStageIndexPrice = null;
                 prevBinFunding = null;
                 prevStageFunding = null;
                 const sp = document.getElementById('splash');
@@ -5956,11 +5979,14 @@ window.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('t-sltp').textContent = "—";
                 document.getElementById('t-bmp').textContent = "—";
                 document.getElementById('t-smp').textContent = "—";
+                document.getElementById('t-bip').textContent = "—";
+                document.getElementById('t-sip').textContent = "—";
                 document.getElementById('ltp-drift-badge').textContent = "Drift: —";
                 document.getElementById('mp-drift-badge').textContent = "Drift: —";
+                document.getElementById('ip-drift-badge').textContent = "Drift: —";
                 document.getElementById('t-bin-funding').textContent = "—";
                 document.getElementById('t-stage-funding').textContent = "—";
-                document.getElementById('t-funding-diff').textContent = "—";
+                document.getElementById('funding-drift-badge').textContent = "Drift: —";
                 document.getElementById('t-bin-24h-high').textContent = "—";
                 document.getElementById('t-bin-24h-low').textContent = "—";
                 document.getElementById('t-bin-24h-vol').textContent = "—";
