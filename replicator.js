@@ -3149,30 +3149,63 @@ function parseCookies(cookieHeader) {
 }
 
 function getSessionSid(req) {
-    const cookies = parseCookies(req.headers.cookie);
-    let sid = cookies.replicator_sid;
-    if (!sid && req.headers['x-replicator-sid']) {
-        sid = req.headers['x-replicator-sid'];
+    if (req.headers['x-replicator-sid']) {
+        return req.headers['x-replicator-sid'];
     }
-    if (!sid && req.headers.authorization) {
+    if (req.headers.authorization) {
         const parts = req.headers.authorization.split(' ');
         if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
-            sid = parts[1];
+            return parts[1];
         }
     }
-    if (!sid && req.url) {
+    if (req.url) {
         const match = req.url.match(/[?&]sid=([^&#]+)/);
         if (match) {
-            sid = match[1];
+            return match[1];
         }
     }
-    return sid || null;
+    const cookies = parseCookies(req.headers.cookie);
+    if (cookies.replicator_sid) {
+        return cookies.replicator_sid;
+    }
+    return null;
 }
 
 function getSessionUser(req) {
-    const sid = getSessionSid(req);
-    if (!sid) return null;
-    return activeSessions.get(sid) || null;
+    // 1. Prioritize explicit request headers set by our client application
+    if (req.headers['x-replicator-sid']) {
+        const sid = req.headers['x-replicator-sid'];
+        const sess = activeSessions.get(sid);
+        if (sess) return sess;
+    }
+    if (req.headers.authorization) {
+        const parts = req.headers.authorization.split(' ');
+        if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
+            const sid = parts[1];
+            const sess = activeSessions.get(sid);
+            if (sess) return sess;
+        }
+    }
+    
+    // 2. Check query parameter in URL (fallback)
+    if (req.url) {
+        const match = req.url.match(/[?&]sid=([^&#]+)/);
+        if (match) {
+            const sid = match[1];
+            const sess = activeSessions.get(sid);
+            if (sess) return sess;
+        }
+    }
+    
+    // 3. Fallback to standard cookie session (which might be stale/conflict)
+    const cookies = parseCookies(req.headers.cookie);
+    if (cookies.replicator_sid) {
+        const sid = cookies.replicator_sid;
+        const sess = activeSessions.get(sid);
+        if (sess) return sess;
+    }
+    
+    return null;
 }
 
 const server = http.createServer(async (req, res) => {
