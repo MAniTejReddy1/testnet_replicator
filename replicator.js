@@ -1172,7 +1172,7 @@ class ReplicatorInstance {
         }
     }
 
-    reconnectPrivateWs() {
+    async reconnectPrivateWs() {
         if (this.makerWs) {
             try { this.makerWs.close(); } catch(e) {}
             this.makerWs = null;
@@ -1188,13 +1188,23 @@ class ReplicatorInstance {
         const mId = tierRoles.makerId;
         const mUser = mId ? tierUsers[mId] : null;
         if (mUser) {
-            this.makerWs = new PrivateWsClient(mUser.listenKey, this.onMakerWsEvent.bind(this), 'Maker', mId, this.tier);
+            log.info(this.symbol, `[RECONNECT] Fetching fresh Maker authentication listenKey...`);
+            const newKey = await authenticateAndGetListenKey(mUser.email, mUser.password || 'Test@123', this.tier);
+            if (newKey) {
+                mUser.listenKey = newKey;
+                this.makerWs = new PrivateWsClient(newKey, this.onMakerWsEvent.bind(this), 'Maker', mId, this.tier);
+            }
         }
 
         const tId = tierRoles.takerId;
         const tUser = tId ? tierUsers[tId] : null;
         if (tUser) {
-            this.takerWs = new PrivateWsClient(tUser.listenKey, this.onTakerWsEvent.bind(this), 'Taker', tId, this.tier);
+            log.info(this.symbol, `[RECONNECT] Fetching fresh Taker authentication listenKey...`);
+            const newKey = await authenticateAndGetListenKey(tUser.email, tUser.password || 'Test@123', this.tier);
+            if (newKey) {
+                tUser.listenKey = newKey;
+                this.takerWs = new PrivateWsClient(newKey, this.onTakerWsEvent.bind(this), 'Taker', tId, this.tier);
+            }
         }
     }
 
@@ -2870,6 +2880,30 @@ startBinanceDepthWS() {
         log.success(this.symbol, 'All streams and depth successfully reloaded.');
     }
 
+    async reloadEngine() {
+        log.info(this.symbol, '⚡ [RELOAD-ENGINE] Starting comprehensive reload of all components...');
+        try {
+            // 1. Refresh exchange parameters and instrument limits
+            await loadInstruments(this.tier);
+
+            // 2. Refresh open positions clean-up/wiping
+            await this.wipeOrders();
+
+            // 3. Set default leverage for the current accounts
+            await this.setLeverage();
+
+            // 4. Reconnect to private User streams with fresh authentication listenKeys
+            await this.reconnectPrivateWs();
+
+            // 5. Reconnect to public orderbook depth, trade, ticker, and mark price streams
+            await this.reloadDepth();
+
+            log.success(this.symbol, '⚡ [RELOAD-ENGINE] Comprehensive reload completed successfully!');
+        } catch (err) {
+            log.error(this.symbol, `[RELOAD-ENGINE] Reload failed: ${err.message}`);
+        }
+    }
+
     async mountOnly() {
         this.status = 'STOPPED';
         log.info(this.symbol, 'Mounting market in data-only mode (simulation stopped)...', null, this.tier);
@@ -3928,7 +3962,7 @@ const server = http.createServer(async (req, res) => {
                     if (pathname === '/api/engine/start'  && inst) inst.start();
                     else if (pathname === '/api/engine/pause'  && inst) inst.pause();
                     else if (pathname === '/api/engine/stop'   && inst) await inst.stop();
-                    else if (pathname === '/api/engine/reload' && inst) inst.reloadDepth();
+                    else if (pathname === '/api/engine/reload' && inst) await inst.reloadEngine();
                 }
                 res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ success: true }));
             } catch (err) {
