@@ -1716,25 +1716,26 @@ class ReplicatorInstance {
                     return;
                 }
 
-                // Determine active orderbook price or fallback to LTP/Mark price
+                // Determine active price strictly aligned with Binance best bid and ask to prevent wicks
                 let crossPriceStr = null;
-                const bestBid = (this.testnetDepth && this.testnetDepth.bids && this.testnetDepth.bids.length > 0) ? this.testnetDepth.bids[0][0] : null;
-                const bestAsk = (this.testnetDepth && this.testnetDepth.asks && this.testnetDepth.asks.length > 0) ? this.testnetDepth.asks[0][0] : null;
+                const binBestBid = (this.binanceDepth && this.binanceDepth.bids && this.binanceDepth.bids.length > 0) ? this.binanceDepth.bids[0][0] : null;
+                const binBestAsk = (this.binanceDepth && this.binanceDepth.asks && this.binanceDepth.asks.length > 0) ? this.binanceDepth.asks[0][0] : null;
+                const binLtp = this.binanceLtp || null;
 
                 if (makerAmt !== 0) {
                     const makerSide = makerAmt > 0 ? 'SELL' : 'BUY';
-                    if (makerSide === 'SELL' && bestBid) {
-                        crossPriceStr = formatPrice(String(bestBid), this.symbol, this.tier);
-                    } else if (makerSide === 'BUY' && bestAsk) {
-                        crossPriceStr = formatPrice(String(bestAsk), this.symbol, this.tier);
+                    if (makerSide === 'SELL' && binBestBid) {
+                        crossPriceStr = formatPrice(String(binBestBid), this.symbol, this.tier);
+                    } else if (makerSide === 'BUY' && binBestAsk) {
+                        crossPriceStr = formatPrice(String(binBestAsk), this.symbol, this.tier);
                     }
                 }
 
                 if (!crossPriceStr) {
-                    // Fallback to current testnet LTP or binance LTP
-                    const fallbackPrice = this.testnetDepth.bids.length ? this.testnetDepth.bids[0][0] : (this.binanceDepth.bids.length ? this.binanceDepth.bids[0][0] : null);
+                    // Fallback to Binance LTP or best bid/ask
+                    const fallbackPrice = binLtp || binBestBid || binBestAsk;
                     if (!fallbackPrice) {
-                        log.error(this.symbol, `[REDUCE-POS] Cannot determine cross price. Aborting.`);
+                        log.error(this.symbol, `[REDUCE-POS] Cannot determine Binance cross price. Aborting.`);
                         return;
                     }
                     crossPriceStr = formatPrice(String(fallbackPrice), this.symbol, this.tier);
