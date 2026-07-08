@@ -504,6 +504,7 @@ async function loadInstruments(tier = 'PRODUCTION') {
                     tickSize: tick > 0 ? tick : 0.0001,
                     qtyStep:  step > 0 ? step : 1.0,
                     minQty:   parseFloat(inst.min_quantity || inst.min_trade_size || step || 1.0),
+                    minNotional: 10.0, // Default fallback
                     pricePrecision,
                     qtyPrecision,
                     multiplierUp: 5,   // Default
@@ -532,6 +533,11 @@ async function loadInstruments(tier = 'PRODUCTION') {
                         instrumentsMap[tier][symbol].multiplierUp = parseFloat(pctPrice.multiplierUp);
                         instrumentsMap[tier][symbol].multiplierDown = parseFloat(pctPrice.multiplierDown);
                     }
+                    // Extract MIN_NOTIONAL limit
+                    const minNotional = sym.filters.find(f => f.filterType === 'MIN_NOTIONAL');
+                    if (minNotional && minNotional.notional) {
+                        instrumentsMap[tier][symbol].minNotional = parseFloat(minNotional.notional);
+                    }
                 }
             });
         }
@@ -543,16 +549,23 @@ async function loadInstruments(tier = 'PRODUCTION') {
 function calculateQty(sizeUsdt, priceStr, symbol, tier = 'PRODUCTION') {
     const price = parseFloat(priceStr);
     const tierMap = instrumentsMap[tier] || {};
-    const inst = tierMap[symbol] || { qtyStep: 1.0, minQty: 1.0, qtyPrecision: 0 };
+    const inst = tierMap[symbol] || { qtyStep: 1.0, minQty: 1.0, qtyPrecision: 0, minNotional: 10.0 };
 
     if (isNaN(price) || price <= 0) return inst.minQty.toFixed(inst.qtyPrecision);
 
-    const minNotional = (tier === 'JAPAN') ? 70.0 : 10.0;
+    const minNotional = inst.minNotional || 10.0;
     const finalSizeUsdt = Math.max(sizeUsdt, minNotional);
 
     let rawQty = finalSizeUsdt / price;
     const factor = 1 / inst.qtyStep;
-    let qty = Math.round(rawQty * factor) / factor;
+    
+    let qty;
+    if (finalSizeUsdt === minNotional) {
+        qty = Math.ceil(rawQty * factor) / factor;
+    } else {
+        qty = Math.round(rawQty * factor) / factor;
+    }
+    
     if (qty < inst.minQty) qty = inst.minQty;
 
     return qty.toFixed(inst.qtyPrecision);
@@ -561,13 +574,13 @@ function calculateQty(sizeUsdt, priceStr, symbol, tier = 'PRODUCTION') {
 function formatRawQty(rawQty, priceStr, symbol, tier = 'PRODUCTION') {
     const price = parseFloat(priceStr);
     const tierMap = instrumentsMap[tier] || {};
-    const inst = tierMap[symbol] || { qtyStep: 1.0, minQty: 1.0, qtyPrecision: 0 };
+    const inst = tierMap[symbol] || { qtyStep: 1.0, minQty: 1.0, qtyPrecision: 0, minNotional: 10.0 };
     const factor = 1 / inst.qtyStep;
     let qty = Math.round(rawQty * factor) / factor;
     if (qty < inst.minQty) qty = inst.minQty;
 
     if (price > 0) {
-        const minNotional = (tier === 'JAPAN') ? 70.0 : 10.0;
+        const minNotional = inst.minNotional || 10.0;
         const minQtyForNotional = minNotional / price;
         if (qty < minQtyForNotional) {
             qty = Math.ceil(minQtyForNotional * factor) / factor;
