@@ -3611,6 +3611,7 @@ const server = http.createServer(async (req, res) => {
                     !pathname.startsWith('/api/users') && 
                     !pathname.startsWith('/api/manual-override') && 
                     !pathname.startsWith('/api/env') && 
+                    !pathname.startsWith('/api/mds-proxy') && 
                     !pathname.startsWith('/fapi/v1/openOrders')
                 ) {
                     throw new Error("Symbol is required");
@@ -3664,9 +3665,8 @@ const server = http.createServer(async (req, res) => {
                 }
 
                 if (pathname === '/api/mds-proxy') {
-                    const reqUrl = new URL(req.url, 'http://' + (req.headers.host || 'localhost'));
-                    const targetPath = reqUrl.searchParams.get('path');
-                    const activeTier = (reqUrl.searchParams.get('tier') || globalActiveTier || 'PRODUCTION').toUpperCase();
+                    const targetPath = parsed.path;
+                    const activeTier = (parsed.tier || globalActiveTier || 'PRODUCTION').toUpperCase();
                     if (!targetPath) {
                         res.writeHead(400);
                         return res.end(JSON.stringify({ error: 'Missing path parameter' }));
