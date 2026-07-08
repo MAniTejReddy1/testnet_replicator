@@ -328,136 +328,272 @@
     position: fixed;
     inset: 0;
     z-index: 10000;
-    background: #020617;
-    background-image: radial-gradient(circle at 20% 30%, rgba(6, 182, 212, 0.08), transparent 40vw),
-                      radial-gradient(circle at 80% 70%, rgba(168, 85, 247, 0.08), transparent 40vw);
+    background: #0A0E14;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: opacity 0.5s ease;
   }
-  .auth-card {
-    background: rgba(15, 23, 42, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 24px;
-    width: 100%;
-    max-width: 440px;
-    padding: 40px;
-    backdrop-filter: blur(20px);
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 40px rgba(6, 182, 212, 0.05);
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-    position: relative;
-    overflow: hidden;
-  }
-  .auth-card::before {
-    content: '';
+  
+  /* ---------- atmosphere layers ---------- */
+  .vignette {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, #06b6d4, #8b5cf6, #f43f5e, #06b6d4);
-    background-size: 300% 100%;
-    animation: shimmer 4s linear infinite;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 60% 50% at 22% 45%, rgba(240,185,11,0.05), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 82% 55%, rgba(0,217,255,0.06), transparent 60%),
+      radial-gradient(ellipse 120% 90% at 50% 50%, transparent 55%, rgba(0,0,0,0.55) 100%);
   }
-  .auth-tabs {
-    display: flex;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    gap: 16px;
-    margin-bottom: 8px;
+  .scanlines {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    opacity: 0.035;
+    background: repeating-linear-gradient(0deg, #fff 0px, #fff 1px, transparent 1px, transparent 3px);
+    mix-blend-mode: overlay;
   }
-  .auth-tab {
-    background: none;
-    border: none;
+
+  .card-border-wrap {
+    width: 100%;
+    max-width: 400px;
+    border-radius: 15px;
+    padding: 1px;
+    background: linear-gradient(var(--rot, 135deg), rgba(0,217,255,0.55), rgba(28,37,48,0.4) 35%, rgba(28,37,48,0.4) 65%, rgba(0,217,255,0.22));
+    box-shadow: 0 20px 60px -24px rgba(0,0,0,0.7);
+    animation: rotate-border 7s linear infinite;
+  }
+  @keyframes rotate-border {
+    0%{ --rot: 135deg; } 100%{ --rot: 495deg; }
+  }
+  
+  .terminal-card {
+    width: 100%;
+    height: 100%;
+    background: rgba(15,21,30,0.88);
+    border-radius: 14px;
+    padding: 28px 28px 24px;
+    position: relative;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    isolation: isolate;
+  }
+  .term-eyebrow {
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    border: 1px solid var(--cyan-dim);
+    background: rgba(0,217,255,0.06);
+    padding: 5px 10px;
+    border-radius: 100px;
+    width: fit-content;
+    line-height: 1.4;
+  }
+  .term-title {
+    font-family:'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 23px;
+    margin-top: 15px;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+    color: #E6EDF3;
+  }
+  .term-sub {
     color: var(--text-muted);
+    font-size: 12.5px;
+    margin-top: 5px;
+    line-height: 1.5;
+  }
+  .tabs {
+    margin-top: 20px;
+    display:flex;
+    background: #0D1219;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 3px;
+    position: relative;
+    height: 38px;
+  }
+  .tab-slider {
+    position:absolute;
+    top:3px; left:3px;
+    width: calc(50% - 3px);
+    height: calc(100% - 6px);
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 6px;
+    transition: transform 0.35s cubic-bezier(.65,0,.35,1);
+    will-change: transform;
+  }
+  .tabs.mode-signup .tab-slider { transform: translateX(100%); }
+  .tab-btn {
+    flex:1;
+    position:relative;
+    z-index:1;
+    background:none; border:none;
+    color: var(--text-muted);
+    font-family:'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor:pointer;
+    transition: color 0.25s ease;
+    border-radius: 6px;
+  }
+  .tab-btn.active { color: #E6EDF3; }
+  
+  .form-stack { position: relative; margin-top: 20px; }
+  form.pane {
+    display:none;
+    flex-direction:column; gap: 13px;
+  }
+  form.pane.active { display:flex; animation: pane-in 0.32s cubic-bezier(.2,.7,.3,1) both; }
+  @keyframes pane-in { from{ opacity:0; transform: translateY(6px);} to{ opacity:1; transform:none; } }
+
+  .field { display:flex; flex-direction:column; gap:6px; }
+  .field label {
+    font-size: 10.5px;
+    font-family:'JetBrains Mono', monospace;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    line-height: 1;
+    text-align: left;
+  }
+  .field-input {
+    position: relative;
+    display:flex;
+    align-items:center;
+  }
+  .field-input .icon {
+    position: absolute;
+    left: 12px;
+    width: 15px; height:15px;
+    color: var(--text-muted);
+    pointer-events:none;
+    display:flex;
+    transition: color 0.2s ease;
+    z-index: 2;
+  }
+  .field-input .status-icon {
+    position:absolute;
+    right: 12px;
+    width: 15px; height:15px;
+    display:flex;
+    opacity:0;
+    transform: scale(0.6);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 2;
+    pointer-events:none;
+  }
+  .field-input .status-icon.show { opacity:1; transform:scale(1); }
+  .field-input input, .field-input select {
+    width:100%;
+    background: #0D1219;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 11px 14px 11px 37px;
+    color: #E6EDF3;
+    font-family: 'Inter', sans-serif;
+    font-size: 13.5px;
+    line-height: 1.3;
+    outline:none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .field-input input::placeholder { color: rgba(255,255,255,0.3); }
+  .field-input input:focus, .field-input select:focus {
+    border-color: var(--cyan);
+    box-shadow: 0 0 0 3px rgba(0,217,255,0.1);
+  }
+  .field-input input:focus ~ .icon, .field-input input:focus + .icon { color: var(--cyan); }
+  
+  .pw-meter {
+    display:flex;
+    gap: 4px;
+    margin-top: 2px;
+    height: 3px;
+  }
+  .pw-meter i {
+    flex:1;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    transition: background 0.25s ease;
+  }
+  .pw-meter.s1 i:nth-child(1){ background: var(--ask); }
+  .pw-meter.s2 i:nth-child(1),.pw-meter.s2 i:nth-child(2){ background: var(--yellow); }
+  .pw-meter.s3 i:nth-child(1),.pw-meter.s3 i:nth-child(2),.pw-meter.s3 i:nth-child(3){ background: var(--bid); }
+  .pw-hint { font-size: 10.5px; color: var(--text-muted); text-align: left; }
+
+  .row-2 { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .submit-btn {
+    margin-top: 4px;
+    width:100%;
+    height: 44px;
+    border-radius: 8px;
+    border: none;
+    background: var(--cyan);
+    color: #04202A;
+    font-family:'Space Grotesk', sans-serif;
     font-weight: 700;
     font-size: 14px;
-    padding: 12px 4px;
-    cursor: pointer;
-    position: relative;
-    font-family: inherit;
-    transition: color 0.3s;
+    letter-spacing: 0.01em;
+    cursor:pointer;
+    position:relative;
+    overflow:hidden;
+    transition: transform 0.15s ease, box-shadow 0.25s ease, background 0.2s ease;
+    display:flex; align-items:center; justify-content:center;
   }
-  .auth-tab.active {
-    color: var(--cyan);
-    text-shadow: 0 0 10px rgba(6, 182, 212, 0.2);
+  .submit-btn:hover { box-shadow: 0 0 24px -4px rgba(0,217,255,0.55); }
+  .submit-btn:active { transform: scale(0.98); }
+  .submit-btn .sweep {
+    position:absolute; top:0; left:-40%;
+    width: 40%; height:100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+    transform: skewX(-20deg);
+    pointer-events:none;
   }
-  .auth-tab.active::after {
-    content: '';
-    position: absolute;
-    bottom: -1px;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: var(--cyan);
-    box-shadow: 0 0 8px var(--cyan);
-  }
-  .auth-input-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .auth-label {
+  .submit-btn.syncing .sweep { animation: sweep 0.9s ease; }
+  @keyframes sweep { from{ left:-40%; } to{ left: 140%; } }
+  .submit-btn.syncing { pointer-events:none; background: #0aa8c4; }
+  .submit-btn .label-text { display:inline-flex; align-items:center; gap:8px; line-height:1; }
+  .submit-btn.success { background: var(--bid); }
+
+  .gauge { width:15px; height:15px; flex-shrink:0; display:none; }
+  .submit-btn.syncing .gauge { display:block; }
+  .submit-btn.syncing .label-static { display:none; }
+  .submit-btn.success .label-static::after { content: ' ✓'; }
+
+  .provision-note {
+    margin-top: 14px;
+    display:flex;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    background: rgba(16,185,129,0.04);
     font-size: 11px;
-    text-transform: uppercase;
-    font-weight: 700;
     color: var(--text-muted);
-    letter-spacing: 0.5px;
+    line-height: 1.5;
+    text-align: left;
   }
-  .auth-input {
-    width: 100%;
-    padding: 12px 16px;
-    background: rgba(15, 23, 42, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
-    color: #fff;
-    font-family: inherit;
-    font-size: 13px;
-    outline: none;
-    transition: all 0.3s;
-  }
-  .auth-input:focus {
-    border-color: var(--cyan);
-    background: rgba(15, 23, 42, 0.8);
-    box-shadow: 0 0 12px rgba(6, 182, 212, 0.15);
-  }
-  .auth-btn {
-    width: 100%;
-    padding: 14px;
-    background: linear-gradient(135deg, #06b6d4, #3b82f6);
-    color: #fff;
-    border: none;
-    border-radius: 12px;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    font-family: inherit;
-    transition: all 0.3s;
-    box-shadow: 0 8px 24px rgba(6, 182, 212, 0.25);
-  }
-  .auth-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 12px 28px rgba(6, 182, 212, 0.35);
-  }
-  .auth-btn:active {
-    transform: translateY(1px);
-  }
-  .auth-footer {
+  .provision-note svg { flex-shrink:0; margin-top:1px; }
+  .provision-note b { color: var(--bid); font-weight:600; }
+
+  .term-footer {
+    margin-top: 16px;
+    display:flex;
+    justify-content: space-between;
     font-size: 11.5px;
     color: var(--text-muted);
-    text-align: center;
-    margin-top: 8px;
+    line-height: 1;
   }
-  .auth-footer span {
-    color: var(--cyan);
-    cursor: pointer;
-    font-weight: 600;
-  }
-  .auth-footer span:hover {
-    text-decoration: underline;
-  }
+  .term-footer a { color: var(--text-muted); text-decoration:none; border-bottom: 1px dotted rgba(255,255,255,0.15); padding-bottom:1px; transition: color 0.15s ease, border-color 0.15s ease; }
+  .term-footer a:hover { color: var(--cyan); border-color: var(--cyan); }
 
   
   /* Tables inside panels */
@@ -899,49 +1035,112 @@
 <div id="auth-overlay" style="display:none;">
   <!-- Animated Particles Background Canvas -->
   <canvas id="auth-bg-canvas" style="position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:1; opacity:0.6;"></canvas>
-  <div class="auth-card" style="z-index:2; position:relative;">
-    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
-      <div style="font-size:24px; color:var(--cyan); text-shadow:0 0 15px rgba(6,182,212,0.4);">📊</div>
-      <h2 style="font-size:18px; font-weight:700; color:var(--text-main); letter-spacing:1px; background:var(--title-grad); -webkit-background-clip:text; -webkit-text-fill-color:transparent; text-align:center;">REPLICATOR PORTAL</h2>
-      <p style="font-size:11px; color:var(--text-muted); font-family:'JetBrains Mono',monospace;">Secure Authentication Gateway</p>
-    </div>
+  <div class="vignette" aria-hidden="true" style="z-index:2;"></div>
+  <div class="scanlines" aria-hidden="true" style="z-index:2;"></div>
 
-    <div class="auth-tabs">
-      <button class="auth-tab active" id="tab-login" onclick="window.switchAuthTab('login')">LOGIN</button>
-      <button class="auth-tab" id="tab-signup" onclick="window.switchAuthTab('signup')">CREATE ACCOUNT</button>
-    </div>
+  <div class="card-border-wrap" style="z-index:3; position:relative;">
+    <div class="terminal-card">
+      <span class="term-eyebrow">◆ Staging access</span>
+      <h2 class="term-title">Access terminal</h2>
+      <p class="term-sub">Sign in to your sandbox, or provision a new account seeded with test capital.</p>
 
-    <!-- Login Form -->
-    <form id="form-login" onsubmit="window.handleAuthSubmit(event, 'login')" style="display:flex; flex-direction:column; gap:16px;">
-      <div class="auth-input-group">
-        <label class="auth-label">Email Address</label>
-        <input type="email" id="login-email" class="auth-input" placeholder="e.g. user@domain.com" required autocomplete="email" />
+      <div class="tabs" id="auth-tabs" role="tablist">
+        <div class="tab-slider" aria-hidden="true"></div>
+        <button class="tab-btn active" id="tab-login" type="button" onclick="window.switchAuthTab('login')">Log in</button>
+        <button class="tab-btn" id="tab-signup" type="button" onclick="window.switchAuthTab('signup')">Sign up</button>
       </div>
-      <div class="auth-input-group">
-        <label class="auth-label">Password</label>
-        <input type="password" id="login-password" class="auth-input" placeholder="Enter password" required autocomplete="current-password" />
-      </div>
-      <button type="submit" class="auth-btn" id="btn-login-submit">AUTHENTICATE</button>
-    </form>
 
-    <!-- Signup Form -->
-    <form id="form-signup" onsubmit="window.handleAuthSubmit(event, 'signup')" style="display:none; flex-direction:column; gap:16px;">
-      <div class="auth-input-group">
-        <label class="auth-label">Username</label>
-        <input type="text" id="signup-username" class="auth-input" placeholder="e.g. developer_alpha" required autocomplete="username" />
-      </div>
-      <div class="auth-input-group">
-        <label class="auth-label">Exchange Role Allocation</label>
-        <select id="signup-role" class="auth-input" style="cursor:pointer;">
-          <option value="MAKER">MAKER (Orderbook Liquidity Provider)</option>
-          <option value="TAKER">TAKER (IOC Trade Synchronization)</option>
-        </select>
-      </div>
-      <button type="submit" class="auth-btn" id="btn-signup-submit" style="background:linear-gradient(135deg, #8b5cf6, #d946ef); box-shadow:0 8px 24px rgba(139, 92, 246, 0.25);">ONBOARD TESTNET ACCOUNT</button>
-    </form>
+      <div class="form-stack">
+        <!-- Login Form -->
+        <form class="pane active" id="form-login" onsubmit="window.handleAuthSubmit(event, 'login')" novalidate>
+          <div class="field">
+            <label for="login-email">Work email</label>
+            <div class="field-input">
+              <span class="icon">
+                <svg viewBox="0 0 16 16" fill="none" style="width:15px;height:15px;"><path d="M2 4.5h12v7a1 1 0 01-1 1H3a1 1 0 01-1-1v-7z" stroke="currentColor" stroke-width="1.2"/><path d="M2.5 4.8L8 9l5.5-4.2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <input id="login-email" type="email" placeholder="you@coindcx.com" autocomplete="username" required>
+              <span class="status-icon" id="loginEmailStatus">
+                <svg viewBox="0 0 16 16" fill="none" style="width:15px;height:15px;"><circle cx="8" cy="8" r="7" stroke="#00E676" stroke-width="1.3"/><path d="M5 8.2l2 2 4-4.4" stroke="#00E676" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="login-password">Password</label>
+            <div class="field-input">
+              <span class="icon">
+                <svg viewBox="0 0 16 16" fill="none" style="width:15px;height:15px;"><rect x="3.5" y="7" width="9" height="6.5" rx="1.2" stroke="currentColor" stroke-width="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2" stroke="currentColor" stroke-width="1.2"/></svg>
+              </span>
+              <input id="login-password" type="password" placeholder="••••••••••" autocomplete="current-password" required>
+            </div>
+          </div>
+          <button type="submit" class="submit-btn" id="btn-login-submit">
+            <span class="sweep"></span>
+            <span class="label-text">
+              <svg class="gauge" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2" fill="none" stroke="rgba(4,32,42,0.3)" stroke-width="2.4"/><circle cx="8" cy="8" r="6.2" fill="none" stroke="#04202A" stroke-width="2.4" stroke-dasharray="39" stroke-dashoffset="29" stroke-linecap="round" transform="rotate(-90 8 8)"><animateTransform attributeName="transform" type="rotate" from="-90 8 8" to="270 8 8" dur="0.7s" repeatCount="indefinite"/></circle></svg>
+              <span class="label-static">Sync into staging</span>
+            </span>
+          </button>
+        </form>
 
-    <div class="auth-footer" id="auth-footer-text">
-      Accessing private instance? <span onclick="window.switchAuthTab('signup')">Create a testnet user</span>
+        <!-- Signup Form -->
+        <form class="pane" id="form-signup" onsubmit="window.handleAuthSubmit(event, 'signup')" novalidate>
+          <div class="row-2">
+            <div class="field">
+              <label for="signup-username">Username</label>
+              <div class="field-input">
+                <span class="icon"><svg viewBox="0 0 16 16" fill="none" style="width:15px;height:15px;"><circle cx="8" cy="5.5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M3 13c0-2.5 2.2-4 5-4s5 1.5 5 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></span>
+                <input id="signup-username" type="text" placeholder="mani_reddy" autocomplete="name" required>
+              </div>
+            </div>
+            <div class="field">
+              <label for="signup-role">Role Allocation</label>
+              <div class="field-input">
+                <span class="icon"><svg viewBox="0 0 16 16" fill="none" style="width:15px;height:15px;"><rect x="2.5" y="5" width="11" height="8" rx="1.2" stroke="currentColor" stroke-width="1.2"/><path d="M5.5 5V3.8a1.2 1.2 0 011.2-1.2h2.6a1.2 1.2 0 011.2 1.2V5" stroke="currentColor" stroke-width="1.2"/></svg></span>
+                <select id="signup-role" style="cursor:pointer;">
+                  <option value="MAKER">MAKER (Provider)</option>
+                  <option value="TAKER">TAKER (IOC Sync)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <label for="signup-email">Work email</label>
+            <div class="field-input">
+              <span class="icon"><svg viewBox="0 0 16 16" fill="none" style="width:15px;height:15px;"><path d="M2 4.5h12v7a1 1 0 01-1 1H3a1 1 0 01-1-1v-7z" stroke="currentColor" stroke-width="1.2"/><path d="M2.5 4.8L8 9l5.5-4.2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              <input id="signup-email" type="email" placeholder="you@coindcx.com" required>
+              <span class="status-icon" id="signupEmailStatus">
+                <svg viewBox="0 0 16 16" fill="none" style="width:15px;height:15px;"><circle cx="8" cy="8" r="7" stroke="#00E676" stroke-width="1.3"/><path d="M5 8.2l2 2 4-4.4" stroke="#00E676" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="signup-password">Password</label>
+            <div class="field-input">
+              <span class="icon"><svg viewBox="0 0 16 16" fill="none" style="width:15px;height:15px;"><rect x="3.5" y="7" width="9" height="6.5" rx="1.2" stroke="currentColor" stroke-width="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2" stroke="currentColor" stroke-width="1.2"/></svg></span>
+              <input id="signup-password" type="password" placeholder="min. 8 characters" required minlength="8">
+            </div>
+            <div class="pw-meter" id="suPwMeter"><i></i><i></i><i></i></div>
+            <span class="pw-hint" id="suPwHint">Use 8+ characters for a stronger key</span>
+          </div>
+          <button type="submit" class="submit-btn" id="btn-signup-submit">
+            <span class="sweep"></span>
+            <span class="label-text">
+              <svg class="gauge" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2" fill="none" stroke="rgba(4,32,42,0.3)" stroke-width="2.4"/><circle cx="8" cy="8" r="6.2" fill="none" stroke="#04202A" stroke-width="2.4" stroke-dasharray="39" stroke-dashoffset="29" stroke-linecap="round" transform="rotate(-90 8 8)"><animateTransform attributeName="transform" type="rotate" from="-90 8 8" to="270 8 8" dur="0.7s" repeatCount="indefinite"/></circle></svg>
+              <span class="label-static">Provision sandbox</span>
+            </span>
+          </button>
+          <div class="provision-note">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="width:14px;height:14px;"><circle cx="7" cy="7" r="6" stroke="#00E676" stroke-width="1.2"/><path d="M4.5 7l1.8 1.8L9.5 5" stroke="#00E676" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>One click provisions your account, seeds <b>100M test USDT</b>, and issues API keys.</span>
+          </div>
+        </form>
+      </div>
+
+      <div class="term-footer">
+        <a href="#" onclick="event.preventDefault();">Forgot password</a>
+        <a href="#" onclick="event.preventDefault();">API docs ↗</a>
+      </div>
     </div>
   </div>
 </div>
@@ -6036,33 +6235,60 @@ window.addEventListener('DOMContentLoaded', () => {
         // Landing Page Authentication Functions
         // ----------------------------------------------------
         window.switchAuthTab = function(tabName) {
+            const tabs = document.getElementById('auth-tabs');
             const loginBtn = document.getElementById('tab-login');
             const signupBtn = document.getElementById('tab-signup');
             const loginForm = document.getElementById('form-login');
             const signupForm = document.getElementById('form-signup');
-            const footerText = document.getElementById('auth-footer-text');
 
-            if (tabName === 'login') {
-                loginBtn.classList.add('active');
-                signupBtn.classList.remove('active');
-                loginForm.style.display = 'flex';
-                signupForm.style.display = 'none';
-                footerText.innerHTML = `Accessing private instance? <span onclick="window.switchAuthTab('signup')">Create a testnet user</span>`;
-            } else {
-                loginBtn.classList.remove('active');
-                signupBtn.classList.add('active');
-                loginForm.style.display = 'none';
-                signupForm.style.display = 'flex';
-                footerText.innerHTML = `Already have credentials? <span onclick="window.switchAuthTab('login')">Return to login</span>`;
-            }
+            const isSignup = tabName === 'signup';
+            tabs.classList.toggle('mode-signup', isSignup);
+            loginBtn.classList.toggle('active', !isSignup);
+            signupBtn.classList.toggle('active', isSignup);
+            loginForm.classList.toggle('active', !isSignup);
+            signupForm.classList.toggle('active', isSignup);
         };
+
+        // Wire up live status validation cues and helpers
+        document.addEventListener('DOMContentLoaded', () => {
+            const wireStatus = (inputId, statusId) => {
+                const input = document.getElementById(inputId);
+                const status = document.getElementById(statusId);
+                if (input && status) {
+                    input.addEventListener('input', () => {
+                        const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value);
+                        status.classList.toggle('show', ok);
+                    });
+                }
+            };
+            wireStatus('login-email', 'loginEmailStatus');
+            wireStatus('signup-email', 'signupEmailStatus');
+
+            // Wire up password strength indicators
+            const suPass = document.getElementById('signup-password');
+            const pwMeter = document.getElementById('suPwMeter');
+            const pwHint = document.getElementById('suPwHint');
+            if (suPass && pwMeter && pwHint) {
+                suPass.addEventListener('input', () => {
+                    const v = suPass.value;
+                    let score = 0;
+                    if (v.length >= 8) score++;
+                    if (/[A-Z]/.test(v) && /[0-9]/.test(v)) score++;
+                    if (v.length >= 12 && /[^A-Za-z0-9]/.test(v)) score++;
+                    pwMeter.className = 'pw-meter' + (score > 0 ? ' s' + score : '');
+                    pwHint.textContent = v.length === 0
+                        ? 'Use 8+ characters for a stronger key'
+                        : ['Weak — add length and numbers', 'Okay — add a symbol for strength', 'Strong key'][Math.max(score - 1, 0)];
+                });
+            }
+        });
 
         window.handleAuthSubmit = async function(event, flow) {
             event.preventDefault();
             const submitBtn = document.getElementById(`btn-${flow}-submit`);
-            const prevText = submitBtn.textContent;
-            submitBtn.disabled = true;
-            submitBtn.textContent = flow === 'login' ? 'VERIFYING...' : 'ONBOARDING VIA API...';
+            if (submitBtn.classList.contains('syncing')) return;
+
+            submitBtn.classList.add('syncing');
 
             try {
                 if (flow === 'login') {
@@ -6075,15 +6301,18 @@ window.addEventListener('DOMContentLoaded', () => {
                         body: JSON.stringify({ email, password })
                     });
 
-                    const data = await res.json();
                     if (res.ok && data.success) {
+                        submitBtn.classList.remove('syncing');
+                        submitBtn.classList.add('success');
                         window.showFlushbar('Authentication verified successfully! Redirecting...', 'success');
                         document.getElementById('auth-overlay').style.opacity = '0';
                         setTimeout(() => {
                             document.getElementById('auth-overlay').style.display = 'none';
+                            submitBtn.classList.remove('success');
                             window.initializeTerminalAfterAuth();
                         }, 500);
                     } else {
+                        submitBtn.classList.remove('syncing');
                         window.showFlushbar(data.error || 'Invalid credentials. Please try again.', 'error');
                     }
                 } else {
@@ -6098,6 +6327,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
                     const data = await res.json();
                     if (res.ok && data.success) {
+                        submitBtn.classList.remove('syncing');
+                        submitBtn.classList.add('success');
                         window.showFlushbar(`Onboarding success! Created testnet user account. Logged in automatically!`, 'success');
                         const loginRes = await fetch(window.getApiUrl('/api/auth/login'), {
                             method: 'POST',
@@ -6109,22 +6340,23 @@ window.addEventListener('DOMContentLoaded', () => {
                             document.getElementById('auth-overlay').style.opacity = '0';
                             setTimeout(() => {
                                 document.getElementById('auth-overlay').style.display = 'none';
+                                submitBtn.classList.remove('success');
                                 window.stopAuthCanvasAnimation();
                                 window.initializeTerminalAfterAuth();
                             }, 500);
                         } else {
+                            submitBtn.classList.remove('success');
                             window.switchAuthTab('login');
                             window.showFlushbar(`Account ready! Email: ${data.email}. Please login.`, 'success');
                         }
                     } else {
+                        submitBtn.classList.remove('syncing');
                         window.showFlushbar(data.error || 'Registration failed. Try a different name.', 'error');
                     }
                 }
             } catch (err) {
+                submitBtn.classList.remove('syncing');
                 window.showFlushbar(err.message || 'Network communication failure.', 'error');
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = prevText;
             }
         };
 
