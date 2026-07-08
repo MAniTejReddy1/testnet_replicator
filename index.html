@@ -5840,13 +5840,20 @@ window.addEventListener('DOMContentLoaded', () => {
             const fundingDriftEl = document.getElementById('funding-drift-badge');
             if (fundingDriftEl) {
                 if (binFunding !== null && stageFunding !== null) {
-                    const fDriftAbs = Math.abs(binFunding - stageFunding);
-                    fundingDriftEl.textContent = `Drift: ${fDriftAbs.toFixed(8)}`;
-                    if (fDriftAbs > 0.0001) {
+                    let fDriftPct = 0;
+                    const denom = Math.min(Math.abs(binFunding), Math.abs(stageFunding));
+                    if (denom > 0) {
+                        fDriftPct = ((stageFunding - binFunding) / denom) * 100;
+                    }
+                    const sign = fDriftPct > 0 ? '+' : '';
+                    fundingDriftEl.textContent = `Drift: ${sign}${fDriftPct.toFixed(1)}%`;
+                    
+                    const absPct = Math.abs(fDriftPct);
+                    if (absPct > 50) {
                         fundingDriftEl.style.color = 'var(--rose)';
                         fundingDriftEl.style.borderColor = 'rgba(244,63,94,0.3)';
                         fundingDriftEl.style.background = 'rgba(244,63,94,0.05)';
-                    } else if (fDriftAbs > 0.00002) {
+                    } else if (absPct > 20) {
                         fundingDriftEl.style.color = 'var(--yellow)';
                         fundingDriftEl.style.borderColor = 'rgba(250,204,21,0.3)';
                         fundingDriftEl.style.background = 'rgba(250,204,21,0.05)';
