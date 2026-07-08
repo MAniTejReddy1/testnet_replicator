@@ -6942,14 +6942,31 @@ window.addEventListener('DOMContentLoaded', () => {
                     const chartData = [];
                     const chartProdData = [];
                     
-                    // Seed the data to look like a climbing curve starting from bottom-left
-                    let seedVal = 30;
+                    // Seed the data to look exactly like the screenshot waveform
                     for (let i = 0; i < 60; i++) {
-                        seedVal += 4.5 + (Math.random() - 0.48) * 6;
-                        chartData.push(Math.max(20, seedVal));
-                        chartProdData.push(Math.max(20, seedVal + (Math.random() - 0.5) * 12));
+                        let val = 0;
+                        if (i < 18) {
+                            // Left range: starts at 140, oscillates downwards to 70
+                            val = 140 - i * 4 + Math.sin(i * 0.8) * 15 + (Math.random() - 0.5) * 8;
+                        } else if (i < 38) {
+                            // Middle climb: climbs from 70 up to 290
+                            const t = (i - 18) / 20;
+                            val = 68 + t * 220 + Math.sin(t * Math.PI * 2) * 18 + (Math.random() - 0.5) * 10;
+                        } else if (i < 48) {
+                            // Right double top and crash needle
+                            if (i === 45) {
+                                val = 70; // Needle drop!
+                            } else {
+                                val = 280 + Math.sin(i * 1.3) * 22 + (Math.random() - 0.5) * 10;
+                            }
+                        } else {
+                            // Recovery consolidation at top-right
+                            val = 290 + (i - 48) * 1.5 + Math.sin(i * 0.9) * 12 + (Math.random() - 0.5) * 8;
+                        }
+                        chartData.push(Math.max(20, val));
+                        chartProdData.push(Math.max(20, val));
                     }
-                    let basePriceValue = seedVal;
+                    let basePriceValue = chartData[59];
                     let lastChartUpdate = Date.now();
                     
                     const regimes = ['bull', 'range', 'bear', 'range'];
@@ -7048,21 +7065,21 @@ window.addEventListener('DOMContentLoaded', () => {
                                 ctx.stroke();
                             }
 
-                            // 1. Draw Production benchmark (Dashed Blue line)
+                            const lastIdx = chartData.length - 1;
+                            const headX = chartXStart + lastIdx * step;
+                            const headY = chartYBase - chartData[lastIdx];
+
+                            // 1. Draw horizontal dotted price tracker line matching the head position
+                            ctx.strokeStyle = 'rgba(168, 85, 247, 0.35)';
+                            ctx.lineWidth = 1;
+                            ctx.setLineDash([2, 4]);
                             ctx.beginPath();
-                            for (let idx = 0; idx < chartProdData.length; idx++) {
-                                const cx = chartXStart + idx * step;
-                                const cy = chartYBase - chartProdData[idx];
-                                if (idx === 0) ctx.moveTo(cx, cy);
-                                else ctx.lineTo(cx, cy);
-                            }
-                            ctx.strokeStyle = 'rgba(0, 162, 255, 0.18)';
-                            ctx.lineWidth = 1.8;
-                            ctx.setLineDash([4, 4]);
+                            ctx.moveTo(chartXStart, headY);
+                            ctx.lineTo(chartXStart + chartWidth, headY);
                             ctx.stroke();
                             ctx.setLineDash([]); // Reset line dash
 
-                            // 2. Draw Staging Sync (Solid Purple line)
+                            // 2. Draw Staging Sync (Single continuous Blue-to-Purple gradient line)
                             ctx.beginPath();
                             for (let idx = 0; idx < chartData.length; idx++) {
                                 const cx = chartXStart + idx * step;
@@ -7070,8 +7087,12 @@ window.addEventListener('DOMContentLoaded', () => {
                                 if (idx === 0) ctx.moveTo(cx, cy);
                                 else ctx.lineTo(cx, cy);
                             }
-                            ctx.strokeStyle = 'rgba(168, 85, 247, 0.35)';
-                            ctx.lineWidth = 2.5;
+                            const lineGrad = ctx.createLinearGradient(chartXStart, 0, chartXStart + chartWidth, 0);
+                            lineGrad.addColorStop(0, '#00a2ff');       // Blue starting on left
+                            lineGrad.addColorStop(0.45, '#3b82f6');    // Middle transition
+                            lineGrad.addColorStop(1, '#a855f7');       // Purple ending on right
+                            ctx.strokeStyle = lineGrad;
+                            ctx.lineWidth = 2.6;
                             ctx.stroke();
 
                             // Area gradient fill below Staging line
@@ -7083,30 +7104,28 @@ window.addEventListener('DOMContentLoaded', () => {
                             ctx.lineTo(chartXStart + chartWidth, chartYBase);
                             ctx.closePath();
                             
-                            const chartGrad = ctx.createLinearGradient(chartXStart, chartYBase, chartXStart + chartWidth, chartYBase - chartHeight);
-                            chartGrad.addColorStop(0, 'rgba(168, 85, 247, 0)');
-                            chartGrad.addColorStop(1, 'rgba(168, 85, 247, 0.045)');
-                            ctx.fillStyle = chartGrad;
+                            const fillGrad = ctx.createLinearGradient(chartXStart, chartYBase, chartXStart + chartWidth, chartYBase - chartHeight);
+                            fillGrad.addColorStop(0, 'rgba(0, 162, 255, 0)');
+                            fillGrad.addColorStop(1, 'rgba(168, 85, 247, 0.05)');
+                            ctx.fillStyle = fillGrad;
                             ctx.fill();
 
-                            // 3. Highlight heads of both streams with pulsing glow dots
-                            const lastIdx = chartData.length - 1;
-                            const headX = chartXStart + lastIdx * step;
-                            
-                            // Blue head dot
+                            // 3. Highlight head with target target marker rings & pulse dot
+                            // Outer target ring
                             ctx.beginPath();
-                            ctx.arc(headX, chartYBase - chartProdData[lastIdx], 4.5, 0, Math.PI * 2);
-                            ctx.fillStyle = '#00a2ff';
-                            ctx.fill();
+                            ctx.arc(headX, headY, 9, 0, Math.PI * 2);
+                            ctx.strokeStyle = 'rgba(168, 85, 247, 0.35)';
+                            ctx.lineWidth = 1.2;
+                            ctx.stroke();
 
-                            // Purple head dot (with glow)
+                            // Inner solid dot with glowing shadow
                             ctx.beginPath();
-                            ctx.arc(headX, chartYBase - chartData[lastIdx], 5.5, 0, Math.PI * 2);
+                            ctx.arc(headX, headY, 5, 0, Math.PI * 2);
                             ctx.fillStyle = '#a855f7';
                             ctx.shadowColor = '#a855f7';
-                            ctx.shadowBlur = 10;
+                            ctx.shadowBlur = 12;
                             ctx.fill();
-                            ctx.shadowBlur = 0; // Reset shadow blur properties for other draws
+                            ctx.shadowBlur = 0; // Reset shadow properties
                         }
 
                         // B. Render constellation nodes & links
