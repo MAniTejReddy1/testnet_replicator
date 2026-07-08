@@ -6668,10 +6668,9 @@ window.addEventListener('DOMContentLoaded', () => {
                     STAGING: "https://staging-exchange-futures-mds-read.dcxstage.com"
                 };
                 const activeTier = activeEnvFilter || 'PRODUCTION';
-                const mdsReadBase = TIER_MDS_READ_URLS[activeTier] || TIER_MDS_READ_URLS.PRODUCTION;
-
                 window.injectTerminalLog('INFO', pair, `[REST] Fetching historical ${interval} klines for ${sourceSym}...`);
-                const res = await fetch(`${mdsReadBase}/fapi/v1/klines?symbol=${sourceSym}&interval=${interval}&limit=500`);
+                const proxyPath = `/fapi/v1/klines?symbol=${sourceSym}&interval=${interval}&limit=500`;
+                const res = await fetch(window.getApiUrl(`/api/mds-proxy?path=${encodeURIComponent(proxyPath)}&tier=${activeTier}`));
                 const data = await res.json();
                 if (data && data.length) {
                     const formattedKlines = [];

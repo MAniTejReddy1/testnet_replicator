@@ -3663,6 +3663,32 @@ const server = http.createServer(async (req, res) => {
                     }
                 }
 
+                if (pathname === '/api/mds-proxy') {
+                    const reqUrl = new URL(req.url, 'http://' + (req.headers.host || 'localhost'));
+                    const targetPath = reqUrl.searchParams.get('path');
+                    const activeTier = (reqUrl.searchParams.get('tier') || globalActiveTier || 'PRODUCTION').toUpperCase();
+                    if (!targetPath) {
+                        res.writeHead(400);
+                        return res.end(JSON.stringify({ error: 'Missing path parameter' }));
+                    }
+                    const TIER_MDS_READ_URLS = {
+                        PRODUCTION: "https://testnet-futures-mds-read.dcxstage.com",
+                        JAPAN: "https://testnet-exchange-mds-read.dcxstage.com",
+                        STAGING: "https://staging-exchange-futures-mds-read.dcxstage.com"
+                    };
+                    const mdsBase = TIER_MDS_READ_URLS[activeTier] || TIER_MDS_READ_URLS.PRODUCTION;
+                    const finalUrl = `${mdsBase}${targetPath}`;
+                    try {
+                        const mdsRes = await fetch(finalUrl);
+                        const data = await mdsRes.text();
+                        res.writeHead(mdsRes.status, { 'Content-Type': 'application/json' });
+                        return res.end(data);
+                    } catch (err) {
+                        res.writeHead(500, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ error: `MDS proxy failed: ${err.message}` }));
+                    }
+                }
+
                 if (pathname === '/api/env') {
                     const tier = (parsed.tier || 'PRODUCTION').toUpperCase();
                     if (!TIER_URLS[tier]) {
