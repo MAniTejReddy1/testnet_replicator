@@ -5230,7 +5230,15 @@ window.addEventListener('DOMContentLoaded', () => {
             if (!activeTabSymbol) return showToast("Select a market tab first!", true);
             try {
                 const r = await fetch(window.getApiUrl('/api/engine/'+cmd), { method:'POST', body: JSON.stringify({ symbol: activeTabSymbol }), headers:{'Content-Type':'application/json'} });
-                if (r.ok) showToast('✓ Command ' + cmd.toUpperCase() + ' sent');
+                if (r.ok) {
+                    showToast('✓ Command ' + cmd.toUpperCase() + ' sent');
+                    if (cmd === 'reload') {
+                        showToast('⌛ Refreshing page in 1 second...');
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    }
+                }
                 else showToast('✗ Failed to send command', true);
             } catch(e) { showToast('✗ Network error', true); }
         };

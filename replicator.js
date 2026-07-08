@@ -3962,7 +3962,9 @@ const server = http.createServer(async (req, res) => {
                     if (pathname === '/api/engine/start'  && inst) inst.start();
                     else if (pathname === '/api/engine/pause'  && inst) inst.pause();
                     else if (pathname === '/api/engine/stop'   && inst) await inst.stop();
-                    else if (pathname === '/api/engine/reload' && inst) await inst.reloadEngine();
+                    else if (pathname === '/api/engine/reload' && inst) {
+                        inst.reloadEngine().catch(e => log.error(inst.symbol, `[RELOAD] Background reload failed: ${e.message}`));
+                    }
                 }
                 res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ success: true }));
             } catch (err) {
