@@ -7599,11 +7599,14 @@ window.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('auth-overlay').style.display = 'none';
                 window.stopAuthCanvasAnimation();
                 try {
-                    window.initializeTerminalAfterAuth();
+                    await window.initializeTerminalAfterAuth();
                 } catch (initErr) {
                     console.error("Error during post-auth terminal initialization:", initErr);
                     window.updateSplash("Error in post-auth init: " + initErr.message);
+                    return; // stop and keep splash showing the error
                 }
+                window.updateSplash("Bypass complete. Removing loading splash screen...");
+                await new Promise(r => setTimeout(r, 50));
                 const sp = document.getElementById('splash');
                 if (sp) { sp.classList.add('hidden'); setTimeout(()=>sp.remove(), 500); }
                 return;
@@ -7618,10 +7621,11 @@ window.addEventListener('DOMContentLoaded', () => {
                         document.getElementById('auth-overlay').style.display = 'none';
                         window.stopAuthCanvasAnimation();
                         try {
-                            window.initializeTerminalAfterAuth();
+                            await window.initializeTerminalAfterAuth();
                         } catch (initErr) {
                             console.error("Error during post-auth terminal initialization:", initErr);
                             window.updateSplash("Error in post-auth init: " + initErr.message);
+                            return;
                         }
                         // Hide splash immediately since we are logged in
                         const sp = document.getElementById('splash');
@@ -7649,8 +7653,9 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         };
 
-        window.initializeTerminalAfterAuth = function() {
+        window.initializeTerminalAfterAuth = async function() {
             window.updateSplash("Initializing custom UI selects...");
+            await new Promise(r => setTimeout(r, 50));
             window.initCustomSelects();
             // Synchronize default HTML classes with loaded localStorage states
             if (!cancelOnStopState) document.getElementById('tog-cancel-stop')?.classList.remove('on');
@@ -7660,14 +7665,17 @@ window.addEventListener('DOMContentLoaded', () => {
 
             // Apply saved trend, preset, and terminal tab preferences
             window.updateSplash("Restoring user trend preferences...");
+            await new Promise(r => setTimeout(r, 50));
             const savedTrend = localStorage.getItem('replicator_last_trend') || 'dump';
             window.setScenarioTrend(savedTrend);
 
             window.updateSplash("Restoring user preset card preferences...");
+            await new Promise(r => setTimeout(r, 50));
             const savedPreset = localStorage.getItem('replicator_last_preset') || 'flash-crash';
             window.selectPresetTemplateL1(savedPreset, true);
 
             window.updateSplash("Restoring terminal tab preferences...");
+            await new Promise(r => setTimeout(r, 50));
             const savedTermTab = localStorage.getItem('replicator_last_term_tab') || 'live';
             window.setTermTab(savedTermTab);
 
@@ -7675,18 +7683,21 @@ window.addEventListener('DOMContentLoaded', () => {
             const savedEnv = localStorage.getItem('replicator_last_env');
             if (savedEnv && savedEnv !== 'PRODUCTION') {
                 window.updateSplash("Synchronizing active environment to: " + savedEnv + "...");
-                fetch(window.getApiUrl('/api/env'), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ tier: savedEnv })
-                }).then(() => {
-                    connectSSE();
-                }).catch(() => {
-                    connectSSE();
-                });
-            } else {
-                connectSSE();
+                await new Promise(r => setTimeout(r, 50));
+                try {
+                    await fetch(window.getApiUrl('/api/env'), {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ tier: savedEnv })
+                    });
+                } catch (envErr) {
+                    console.error("Environment sync failed:", envErr);
+                }
             }
+            
+            window.updateSplash("Connecting to SSE telemetry stream...");
+            await new Promise(r => setTimeout(r, 50));
+            connectSSE();
         };
 
         // Initialize authentication session check on load
