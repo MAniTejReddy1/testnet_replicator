@@ -555,12 +555,22 @@ function calculateQty(sizeUsdt, priceStr, symbol, tier = 'PRODUCTION') {
     return qty.toFixed(inst.qtyPrecision);
 }
 
-function formatRawQty(rawQty, symbol, tier = 'PRODUCTION') {
+function formatRawQty(rawQty, priceStr, symbol, tier = 'PRODUCTION') {
+    const price = parseFloat(priceStr);
     const tierMap = instrumentsMap[tier] || {};
     const inst = tierMap[symbol] || { qtyStep: 1.0, minQty: 1.0, qtyPrecision: 0 };
     const factor = 1 / inst.qtyStep;
     let qty = Math.round(rawQty * factor) / factor;
     if (qty < inst.minQty) qty = inst.minQty;
+
+    if (price > 0) {
+        const minNotional = (tier === 'JAPAN') ? 70.0 : 10.0;
+        const minQtyForNotional = minNotional / price;
+        if (qty < minQtyForNotional) {
+            qty = Math.ceil(minQtyForNotional * factor) / factor;
+        }
+    }
+
     return qty.toFixed(inst.qtyPrecision);
 }
 
@@ -1721,8 +1731,8 @@ class ReplicatorInstance {
                     const makerSide = makerAmt > 0 ? 'SELL' : 'BUY';
                     const takerSide = takerAmt > 0 ? 'SELL' : 'BUY';
 
-                    const makerQtyStr = formatRawQty(Math.abs(makerAmt), this.symbol, this.tier);
-                    const takerQtyStr = formatRawQty(Math.abs(takerAmt), this.symbol, this.tier);
+                    const makerQtyStr = formatRawQty(Math.abs(makerAmt), crossPriceStr, this.symbol, this.tier);
+                    const takerQtyStr = formatRawQty(Math.abs(takerAmt), crossPriceStr, this.symbol, this.tier);
 
                     log.info(this.symbol, `[REDUCE-POS] Cross-selling: Placing Maker LIMIT ${makerSide} for ${makerQtyStr} @ ${crossPriceStr} (best book price)...`);
                     const makerRes = await this.placeOrder(makerSide, makerQtyStr, crossPriceStr, 'LIMIT', false, null, true, { reduceOnly: true });
@@ -1738,14 +1748,14 @@ class ReplicatorInstance {
                     // Case 2: Asymmetric positions (only one user has positions)
                     if (makerAmt !== 0) {
                         const makerSide = makerAmt > 0 ? 'SELL' : 'BUY';
-                        const makerQtyStr = formatRawQty(Math.abs(makerAmt), this.symbol, this.tier);
+                        const makerQtyStr = formatRawQty(Math.abs(makerAmt), crossPriceStr, this.symbol, this.tier);
                         log.info(this.symbol, `[REDUCE-POS] Asymmetric Maker reduction: Placing LIMIT ${makerSide} for ${makerQtyStr} @ ${crossPriceStr}...`);
                         const makerRes = await this.placeOrder(makerSide, makerQtyStr, crossPriceStr, 'LIMIT', false, null, true, { reduceOnly: true });
                         if (makerRes.success) placedMaker = true;
                     }
                     if (takerAmt !== 0) {
                         const takerSide = takerAmt > 0 ? 'SELL' : 'BUY';
-                        const takerQtyStr = formatRawQty(Math.abs(takerAmt), this.symbol, this.tier);
+                        const takerQtyStr = formatRawQty(Math.abs(takerAmt), crossPriceStr, this.symbol, this.tier);
                         log.info(this.symbol, `[REDUCE-POS] Asymmetric Taker reduction: Placing LIMIT_IOC ${takerSide} for ${takerQtyStr} @ ${crossPriceStr}...`);
                         const takerRes = await this.placeOrder(takerSide, takerQtyStr, crossPriceStr, 'LIMIT_IOC', true, null, true, { reduceOnly: true });
                         if (takerRes.success) placedTaker = true;
@@ -1923,7 +1933,7 @@ class ReplicatorInstance {
             let qty;
             if (useRawQty) {
                 // Use raw orderbook qty directly
-                qty = formatRawQty(parseFloat(lvl[1]), this.symbol, this.tier);
+                qty = formatRawQty(parseFloat(lvl[1]), rawPrice, this.symbol, this.tier);
             } else {
                 const notional  = parseFloat(lvl[0]) * parseFloat(lvl[1]);
                 const targetSz  = Math.max(this.minSize, Math.min(this.maxSize, notional));
@@ -2116,13 +2126,13 @@ class ReplicatorInstance {
             // Scenario CONDITION_SEEKING mode: use raw trade qty for quick market control
             if (remainingScenarioQty <= 0) return; // Freeze Taker if scenario condition is met
             const rawTradeQty = parseFloat(trade.q);
-            makerQty = formatRawQty(Math.min(rawTradeQty, remainingScenarioQty), this.symbol, this.tier);
+            makerQty = formatRawQty(Math.min(rawTradeQty, remainingScenarioQty), transformedTradePrice, this.symbol, this.tier);
         } else if (transformer.multiplier !== 1.0) {
             // Scenario DETERMINISTIC mode: use raw trade qty directly (no notional clamping)
-            makerQty = formatRawQty(parseFloat(trade.q), this.symbol, this.tier);
+            makerQty = formatRawQty(parseFloat(trade.q), transformedTradePrice, this.symbol, this.tier);
         } else if (this.makerUseRawQty) {
             // Maker uses raw trade qty directly
-            makerQty = formatRawQty(parseFloat(trade.q), this.symbol, this.tier);
+            makerQty = formatRawQty(parseFloat(trade.q), transformedTradePrice, this.symbol, this.tier);
         } else {
             // Normal mode: apply notional size clamp (minSize/maxSize) for maker
             const notional  = parseFloat(trade.q) * parseFloat(transformedTradePrice);
@@ -2133,7 +2143,7 @@ class ReplicatorInstance {
         // Taker size is determined from the takerSize configuration
         let takerQty;
         if (this.takerUseRawQty) {
-            takerQty = formatRawQty(parseFloat(trade.q), this.symbol, this.tier);
+            takerQty = formatRawQty(parseFloat(trade.q), transformedTradePrice, this.symbol, this.tier);
         } else {
             takerQty = calculateQty(this.takerSize, transformedTradePrice, this.symbol, this.tier);
             if (parseFloat(takerQty) <= 0) {
