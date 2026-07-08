@@ -1906,35 +1906,36 @@
       </div>
     </div>
   </div>
-  <div class="ticker-card" style="border-color:rgba(16,185,129,0.3); box-shadow:0 0 20px rgba(16,185,129,0.05); display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px; min-width: 180px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2px;">
-      <div class="ticker-label">Best Bid</div>
-      <div id="bid-drift-badge" style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600; color:var(--text-muted); background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">Drift: —</div>
-    </div>
-    <div style="display:flex; flex-direction:column; gap:4px;">
-      <div style="display:flex; align-items:center; justify-content:space-between;">
-        <span style="font-size:10.5px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Binance</span>
-        <span class="ticker-val" id="t-bbid" style="color:var(--yellow); font-size:19px; font-weight:800; margin-top:0; font-family:'JetBrains Mono',monospace;">—</span>
-      </div>
-      <div style="display:flex; align-items:center; justify-content:space-between;">
-        <span style="font-size:10.5px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Stage</span>
-        <span class="ticker-val" id="t-sbid" style="color:var(--cyan); font-size:19px; font-weight:800; margin-top:0; font-family:'JetBrains Mono',monospace;">—</span>
+  <div class="ticker-card" style="border-color:rgba(16,185,129,0.3); box-shadow:0 0 20px rgba(16,185,129,0.05); display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px; min-width: 280px; flex: 2;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+      <div class="ticker-label">Best Bid / Ask</div>
+      <div style="display:flex; gap:6px;">
+        <div id="bid-drift-badge" style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600; color:var(--text-muted); background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">B: —</div>
+        <div id="ask-drift-badge" style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600; color:var(--text-muted); background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">A: —</div>
       </div>
     </div>
-  </div>
-  <div class="ticker-card" style="border-color:rgba(239,68,68,0.3); box-shadow:0 0 20px rgba(239,68,68,0.05); display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px; min-width: 180px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2px;">
-      <div class="ticker-label">Best Ask</div>
-      <div id="ask-drift-badge" style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600; color:var(--text-muted); background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">Drift: —</div>
-    </div>
-    <div style="display:flex; flex-direction:column; gap:4px;">
-      <div style="display:flex; align-items:center; justify-content:space-between;">
-        <span style="font-size:10.5px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Binance</span>
-        <span class="ticker-val" id="t-bask" style="color:var(--yellow); font-size:19px; font-weight:800; margin-top:0; font-family:'JetBrains Mono',monospace;">—</span>
+    <div style="display:flex; gap:20px; width:100%;">
+      <!-- Bid Column -->
+      <div style="flex: 1; display:flex; flex-direction:column; gap:4px; border-right:1px solid rgba(255,255,255,0.05); padding-right:10px;">
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Bin Bid</span>
+          <span class="ticker-val" id="t-bbid" style="color:var(--yellow); font-size:17px; font-weight:800; margin-top:0; font-family:'JetBrains Mono',monospace;">—</span>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Stg Bid</span>
+          <span class="ticker-val" id="t-sbid" style="color:var(--cyan); font-size:17px; font-weight:800; margin-top:0; font-family:'JetBrains Mono',monospace;">—</span>
+        </div>
       </div>
-      <div style="display:flex; align-items:center; justify-content:space-between;">
-        <span style="font-size:10.5px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Stage</span>
-        <span class="ticker-val" id="t-sask" style="color:var(--cyan); font-size:19px; font-weight:800; margin-top:0; font-family:'JetBrains Mono',monospace;">—</span>
+      <!-- Ask Column -->
+      <div style="flex: 1; display:flex; flex-direction:column; gap:4px; padding-left:10px;">
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Bin Ask</span>
+          <span class="ticker-val" id="t-bask" style="color:var(--yellow); font-size:17px; font-weight:800; margin-top:0; font-family:'JetBrains Mono',monospace;">—</span>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Stg Ask</span>
+          <span class="ticker-val" id="t-sask" style="color:var(--cyan); font-size:17px; font-weight:800; margin-top:0; font-family:'JetBrains Mono',monospace;">—</span>
+        </div>
       </div>
     </div>
   </div>
