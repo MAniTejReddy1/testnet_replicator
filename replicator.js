@@ -42,40 +42,40 @@ let globalUsers = {
         'user1': {
             label: 'User 1',
             listenKey: process.env.USER1_LISTEN_KEY || "",
-            key: process.env.USER1_KEY || 'ad4e864466db984cb52acc138d98bd6c72c8e58fb910bf8f',
-            secret: process.env.USER1_SECRET || '1f8c9d0ac479a32c32959a34ce9092454a81985a8c034efc60f88408a81c1b64',
-            email: 'mani.reddy+8q1k0th9@coindcx.com',
+            key: process.env.USER1_KEY || '3cef4baed18692062ff1b99e71adbce1e8558c58ad0113b9',
+            secret: process.env.USER1_SECRET || '754688e515c77a50005dac4ff650e3203311467dbc1a4858bb7e84c5463e7508',
+            email: 'mani.reddy+t7ui62u3@coindcx.com',
             password: 'Test@123',
-            bearer_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IlYyIn0.eyJjb2luZGN4X2lkIjoiNGFlNDFlMTctNGY4ZC00MWNlLTljZTMtYjZiZTE5NmYyZGQ4IiwidXNlcl9pZCI6IjRhZTQxZTE3LTRmOGQtNDFjZS05Y2UzLWI2YmUxOTZmMmRkOCIsInBvcnRmb2xpb0ZhY3RvciI6MSwic2Vzc2lvbklkIjoiMzc4MmM4NDUtZTNiYS00OGViLTg0OGItMDk2OGIwZTRiM2ZhIiwicyI6IndlYiIsInVzZXJBZ2VudCI6IlBvc3RtYW5SdW50aW1lLzcuNTQuMCIsInNpcCI6IjEzMC40MS4yMDUuMTMyIiwic2NpdHkiOiJNdW1iYWkiLCJzY291bnRyeSI6IklOIiwic3JlZ2lvbiI6Ik1IIiwiaWF0IjoxNzgzMjc2MTM1LCJleHAiOjE3ODM0MDU3MzV9.gIWLRXSTFt6TyhCc4MMo5u4FI7H48qZDI-yJOl-Ecfg'
+            bearer_token: 'D4-rDgtolGWPsATr9OuMOOfxcc6cvt9_-y5Wt47MBKk'
         },
         'user2': {
             label: 'User 2',
             listenKey: process.env.USER2_LISTEN_KEY || "",
-            key: process.env.USER2_KEY || '5a1ffd36cdd24ea54bb1ea88744c5cd86a2a181d2c1b76a6',
-            secret: process.env.USER2_SECRET || '631eac42e852bbfc84d2693cd35a27e192825894781864022a54e04c84ba49c6',
-            email: 'mani.reddy+1c85zrk3@coindcx.com',
+            key: process.env.USER2_KEY || '4874d42c94d55e25695cb853dd1cc6de88db4eba327424ba',
+            secret: process.env.USER2_SECRET || 'b8e9788d189989c28dfb1136fad7cbd1f095ecb24fe1ff669e45e0997fd13fd2',
+            email: 'mani.reddy+9jcgxr6r@coindcx.com',
             password: 'Test@123',
-            bearer_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IlYyIn0.eyJjb2luZGN4X2lkIjoiYjY0OWY0NDEtZmQ1MS00ZmIzLWFjYmMtN2I2NWFjNThlOGE4IiwidXNlcl9pZCI6ImI2NDlmNDQxLWZkNTEtNGZiMy1hY2JjLTdiNjVhYzU4ZThhOCIsInBvcnRmb2xpb0ZhY3RvciI6MSwic2Vzc2lvbklkIjoiYTM2NWM0OTktNGNmMy00OWI5LTg5MmQtMzcwNzljOGU5MTcwIiwicyI6IndlYiIsInVzZXJBZ2VudCI6IlBvc3RtYW5SdW50aW1lLzcuNTQuMCIsInNpcCI6IjEzMC40MS4yMDUuMTMyIiwic2NpdHkiOiJNdW1iYWkiLCJzY291bnRyeSI6IklOIiwic3JlZ2lvbiI6Ik1IIiwiaWF0IjoxNzgzMjc2MTM5LCJleHAiOjE3ODM0MDU3Mzl9.s7ser9rYJdshZo7vnkofWu2MmPsVo1CobQ9qvXa_bh0'
+            bearer_token: 'QhsHol9LMDbCx00KwHMvD2V922mjA0sa7F3_AACF2Ws'
         }
     },
     JAPAN: {
         'user1': {
             label: 'User 1',
             listenKey: process.env.USER1_LISTEN_KEY || "",
-            key: process.env.USER1_KEY || '5979b70cbfa08236b663d138c4a80b3dcb9abd1a53e048a6',
-            secret: process.env.USER1_SECRET || 'c40a91c7b41ba11ab3eb7f1b1e3b9eed2b5794191390be84ed504023c9af5702',
-            email: 'mani.reddy+nqc6qjii@coindcx.com',
+            key: process.env.USER1_KEY || 'c8bc870189341e8f7e9c19dabc99d06b632e699e8a0b2422',
+            secret: process.env.USER1_SECRET || '937609fba93cdf8ed7e5a865a5be4781d6853cdf4e01eab3ebb804c23e4c21ef',
+            email: 'mani.reddy+wuqiibu2@coindcx.com',
             password: 'Test@123',
-            bearer_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IlYyIn0.eyJjb2luZGN4X2lkIjoiOGU1MjUyZDUtYTMyMS00MGRkLTk3MjAtNzMwNzZjNmU4ZTI3IiwidXNlcl9pZCI6IjhlNTI1MmQ1LWEzMjEtNDBkZC05NzIwLTczMDc2YzZlOGUyNyIsInBvcnRmb2xpb0ZhY3RvciI6MSwic2Vzc2lvbklkIjoiNTRlZmI0NjgtZTJmZC00OTliLTk5OWUtOWZhNDQxNDY1YTA3IiwicyI6IndlYiIsInVzZXJBZ2VudCI6IlBvc3RtYW5SdW50aW1lLzcuNTQuMCIsInNpcCI6IjEzMC40MS4yMDUuMTMyIiwic2NpdHkiOiJNdW1iYWkiLCJzY291bnRyeSI6IklOIiwic3JlZ2lvbiI6Ik1IIiwiaWF0IjoxNzgzMjc2MDc0LCJleHAiOjE3ODM0MDU2NzR9.tLDnwZNv7Co6EnLosxyjcHjMh_Zqz1fR3QNsoGhUKhY'
+            bearer_token: 'srqqapCc-LLqjSXCtr4UT1BU6INswoAflh-ZQLhnAb8'
         },
         'user2': {
             label: 'User 2',
             listenKey: process.env.USER2_LISTEN_KEY || "",
-            key: process.env.USER2_KEY || '4b61f7e097c1240aad0b74630fdcbe37ebc4f145f4b753ff',
-            secret: process.env.USER2_SECRET || '2fbe86c1dea6f4b93b9bdd7a04aa39a449e93c0f93f0de4f04c10e2ac0103bfb',
-            email: 'mani.reddy+fvxiy643@coindcx.com',
+            key: process.env.USER2_KEY || '8a00e70cbaed5893451a8adf944ab8674bb8d10ce8813ebb',
+            secret: process.env.USER2_SECRET || '2368a0f0a44c342ede6f829d782fee0ba26a419de865451eb9e3be6a17af002f',
+            email: 'mani.reddy+0il4qjod@coindcx.com',
             password: 'Test@123',
-            bearer_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IlYyIn0.eyJjb2luZGN4X2lkIjoiYyFlMjg2MjgtM2FhYi00NTdlLTg2N2QtYmFkNDUyZjdlODlhIiwidXNlcl9pZCI6ImMxZTI4NjI4LTNhYWItNDU3ZS04NjdkLWJhZDQ1MmY3ZTg5YSIsInBvcnRmb2xpb0ZhY3RvciI6MSwic2Vzc2lvbklkIjoiMjM1Y2FiNjgtYTE1MS00YTI2LThhMWQtZjQxM2Q2MDY5Nzk4IiwicyI6IndlYiIsInVzZXJBZ2VudCI6IlBvc3RtYW5SdW50aW1lLzcuNTQuMCIsInNpcCI6IjEzMC40MS4yMDUuMTMyIiwic2NpdHkiOiJNdW1iYWkiLCJzY291bnRyeSI6IklOIiwic3JlZ2lvbiI6Ik1IIiwiaWF0IjoxNzgzMjc2MDgwLCJleHAiOjE3ODM0MDU2ODB9.E7hcr10Zw_Z5-c9xfFRDuKhwQPE9ty0FFfNwI8JbVaI'
+            bearer_token: 'v9l1XJMPJU8mYjQRPKIPrMW2DuzGfyEdacDUD5GVFZI'
         }
     },
     STAGING: {}
@@ -1098,6 +1098,8 @@ class ReplicatorInstance {
         this.stage24h = { high: 0, low: 0, volume: 0, priceChangePercent: 0 };
         this.binanceFundingRate = null;
         this.stageFundingRate   = null;
+        this.binanceIndexPrice  = null;
+        this.testnetIndexPrice  = null;
 
         this.testnetLatency    = 0;
         this.binanceLatency    = 0;
@@ -2400,12 +2402,13 @@ startBinanceDepthWS() {
         if (this.pollingInterval) clearInterval(this.pollingInterval);
         
         this.pollingInterval = setInterval(async () => {
-            // 1. Fetch real-time Mark Price and Funding Rate for Binance and Stage
+            // 1. Fetch real-time Mark Price, Index Price, and Funding Rate for Binance and Stage
             try {
                 const resB = await fetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${this.sourceSymbol}`);
                 if (resB.ok) {
                     const dataB = await resB.json();
                     if (dataB.markPrice) this.binanceMarkPrice = parseFloat(dataB.markPrice);
+                    if (dataB.indexPrice) this.binanceIndexPrice = parseFloat(dataB.indexPrice);
                     if (dataB.lastFundingRate) this.binanceFundingRate = parseFloat(dataB.lastFundingRate);
                 }
             } catch(e){}
@@ -2416,6 +2419,7 @@ startBinanceDepthWS() {
                 if (resS.ok) {
                     const dataS = await resS.json();
                     if (dataS.markPrice) this.testnetMarkPrice = parseFloat(dataS.markPrice);
+                    if (dataS.indexPrice) this.testnetIndexPrice = parseFloat(dataS.indexPrice);
                     if (dataS.lastFundingRate) this.stageFundingRate = parseFloat(dataS.lastFundingRate);
                 }
             } catch(e){}
@@ -2446,7 +2450,7 @@ startBinanceDepthWS() {
                     this.binance24h = {
                         high: parseFloat(data24B.highPrice || 0),
                         low: parseFloat(data24B.lowPrice || 0),
-                        volume: parseFloat(data24B.quoteVolume || 0),
+                        volume: parseFloat(data24B.volume || 0),
                         priceChangePercent: parseFloat(data24B.priceChangePercent || 0)
                     };
                 }
@@ -2469,6 +2473,9 @@ startBinanceDepthWS() {
                 if (data.markPrice) {
                     this.testnetMarkPrice = parseFloat(data.markPrice);
                 }
+                if (data.indexPrice) {
+                    this.testnetIndexPrice = parseFloat(data.indexPrice);
+                }
             }
         } catch (e) {
             log.debug && log.debug('SYSTEM', `Failed to fetch Stage initial markPrice: ${e.message}`);
@@ -2484,6 +2491,9 @@ startBinanceDepthWS() {
                 const data = await res.json();
                 if (data.markPrice) {
                     this.binanceMarkPrice = parseFloat(data.markPrice);
+                }
+                if (data.indexPrice) {
+                    this.binanceIndexPrice = parseFloat(data.indexPrice);
                 }
             }
         } catch (e) {
@@ -2511,6 +2521,9 @@ startBinanceDepthWS() {
                     this.testnetMarkPrice = parseFloat(data.p || data.markPrice);
                     if (data.r !== undefined) {
                         this.stageFundingRate = parseFloat(data.r);
+                    }
+                    if (data.i !== undefined) {
+                        this.testnetIndexPrice = parseFloat(data.i);
                     }
                     broadcastToUI();
                     
@@ -2547,6 +2560,9 @@ startBinanceDepthWS() {
                     this.binanceMarkPrice = parseFloat(data.p || data.markPrice);
                     if (data.r !== undefined) {
                         this.binanceFundingRate = parseFloat(data.r);
+                    }
+                    if (data.i !== undefined) {
+                        this.binanceIndexPrice = parseFloat(data.i);
                     }
                     broadcastToUI();
                     
@@ -3039,6 +3055,8 @@ function buildPayload(isSnapshot = true, sinceTs = 0) {
                 testnetLtp:      inst.testnetLtp,
                 testnetMarkPrice: inst.testnetMarkPrice,
                 binanceMarkPrice: inst.binanceMarkPrice,
+                binanceIndexPrice: inst.binanceIndexPrice,
+                testnetIndexPrice: inst.testnetIndexPrice,
                 testnetKline:    inst.testnetKline,
                 binanceLatency:  inst.binanceLatency,
                 binanceLtp:      inst.binanceLtp,
@@ -3106,8 +3124,279 @@ function broadcastToUI() {
     writeStateFile(payload);
 }
 
+// Authentication Sessions Map and Persistence
+const SESSIONS_FILE = path.join(__dirname, 'sessions.json');
+const activeSessions = new Map();
+
+function loadSessions() {
+    try {
+        if (fs.existsSync(SESSIONS_FILE)) {
+            const data = JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8'));
+            for (const [sid, sess] of Object.entries(data)) {
+                activeSessions.set(sid, sess);
+            }
+            log.info('SYSTEM', `Loaded ${activeSessions.size} active sessions from disk.`);
+        }
+    } catch (e) {
+        log.error('SYSTEM', 'Failed to load sessions: ' + e.message);
+    }
+}
+
+function saveSessions() {
+    try {
+        const obj = {};
+        for (const [sid, sess] of activeSessions.entries()) {
+            obj[sid] = sess;
+        }
+        fs.writeFileSync(SESSIONS_FILE, JSON.stringify(obj, null, 2), 'utf8');
+    } catch (e) {
+        log.error('SYSTEM', 'Failed to save sessions: ' + e.message);
+    }
+}
+
+loadSessions();
+
+
+function parseCookies(cookieHeader) {
+    const list = {};
+    if (!cookieHeader) return list;
+    cookieHeader.split(';').forEach(cookie => {
+        const parts = cookie.split('=');
+        list[parts.shift().trim()] = decodeURI(parts.join('='));
+    });
+    return list;
+}
+
+function getSessionSid(req) {
+    if (req.headers['x-replicator-sid']) {
+        return req.headers['x-replicator-sid'];
+    }
+    if (req.headers.authorization) {
+        const parts = req.headers.authorization.split(' ');
+        if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
+            return parts[1];
+        }
+    }
+    if (req.url) {
+        const match = req.url.match(/[?&]sid=([^&#]+)/);
+        if (match) {
+            return match[1];
+        }
+    }
+    const cookies = parseCookies(req.headers.cookie);
+    if (cookies.replicator_sid) {
+        return cookies.replicator_sid;
+    }
+    return null;
+}
+
+const ENABLE_AUTH = true;
+
+function getSessionUser(req) {
+    if (!ENABLE_AUTH) {
+        return { id: 'admin', email: 'admin@coindcx.com', label: 'Admin Administrator', tier: globalActiveTier };
+    }
+    // 1. Prioritize explicit request headers set by our client application
+    if (req.headers['x-replicator-sid']) {
+        const sid = req.headers['x-replicator-sid'];
+        const sess = activeSessions.get(sid);
+        if (sess) return sess;
+    }
+    if (req.headers.authorization) {
+        const parts = req.headers.authorization.split(' ');
+        if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
+            const sid = parts[1];
+            const sess = activeSessions.get(sid);
+            if (sess) return sess;
+        }
+    }
+    
+    // 2. Check query parameter in URL (fallback)
+    if (req.url) {
+        const match = req.url.match(/[?&]sid=([^&#]+)/);
+        if (match) {
+            const sid = match[1];
+            const sess = activeSessions.get(sid);
+            if (sess) return sess;
+        }
+    }
+    
+    // 3. Fallback to standard cookie session (which might be stale/conflict)
+    const cookies = parseCookies(req.headers.cookie);
+    if (cookies.replicator_sid) {
+        const sid = cookies.replicator_sid;
+        const sess = activeSessions.get(sid);
+        if (sess) return sess;
+    }
+    
+    return null;
+}
+
 const server = http.createServer(async (req, res) => {
-    if (req.method === 'POST' && req.url === '/api/instance/select') {
+    // Set CORS headers for all requests (including preflights and auth routes)
+    let origin = req.headers.origin;
+    if (!origin && req.headers.host) {
+        const protocol = req.socket.encrypted ? 'https' : 'http';
+        origin = `${protocol}://${req.headers.host}`;
+    }
+    if (origin) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+    } else {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-replicator-user, x-replicator-sid, authorization');
+
+    if (req.method === 'OPTIONS') {
+        res.writeHead(204).end();
+        return;
+    }
+
+    const pathname = (req.url || '').split('?')[0];
+
+    // 1. Handle Auth Routes (No session check required)
+    if (req.method === 'POST' && pathname === '/api/auth/login') {
+        let body = '';
+        req.on('data', chunk => { body += chunk; });
+        req.on('end', () => {
+            try {
+                const parsed = JSON.parse(body || '{}');
+                const email = parsed.email || '';
+                const password = parsed.password || '';
+
+                let matchedId = null;
+                let matchedUser = null;
+
+                // Check static admin credentials fallback
+                if (email === 'admin@coindcx.com' && password === 'Test@123') {
+                    matchedId = 'admin';
+                    matchedUser = { email: 'admin@coindcx.com', label: 'Admin Administrator' };
+                } else {
+                    // Search in globalUsers for active tier
+                    const tierUsers = globalUsers[globalActiveTier] || {};
+                    for (const [id, user] of Object.entries(tierUsers)) {
+                        if (user.email === email && user.password === password) {
+                            matchedId = id;
+                            matchedUser = user;
+                            break;
+                        }
+                    }
+                }
+
+                if (matchedUser) {
+                    const sid = uuidv4();
+                    activeSessions.set(sid, { id: matchedId, email: matchedUser.email, label: matchedUser.label, tier: globalActiveTier });
+                    saveSessions();
+                    res.writeHead(200, {
+                        'Set-Cookie': `replicator_sid=${sid}; Path=/; HttpOnly; SameSite=Strict`,
+                        'Content-Type': 'application/json'
+                    });
+                    return res.end(JSON.stringify({ success: true, sid, user: { id: matchedId, email: matchedUser.email, label: matchedUser.label } }));
+                } else {
+                    res.writeHead(401, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, error: 'Invalid email or password' }));
+                }
+            } catch (e) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: false, error: e.message }));
+            }
+        });
+        return;
+    }
+
+    if (req.method === 'POST' && pathname === '/api/auth/register') {
+        let body = '';
+        req.on('data', chunk => { body += chunk; });
+        req.on('end', async () => {
+            try {
+                const parsed = JSON.parse(body || '{}');
+                const username = parsed.username || '';
+                const role = parsed.role || 'MAKER'; // MAKER or TAKER
+
+                if (!username || !/^[a-zA-Z0-9_-]+$/.test(username)) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, error: 'Invalid username format' }));
+                }
+
+                log.info('SYSTEM', `Registering new web account ${username} on ${globalActiveTier}...`);
+                const { execFile } = require('child_process');
+                const execFileAsync = require('util').promisify(execFile);
+                const targetUrls = TIER_URLS[globalActiveTier] || TIER_URLS.PRODUCTION;
+
+                const { stdout } = await execFileAsync('node', ['scripts/generate-single.js', username], {
+                    env: {
+                        ...process.env,
+                        API_BASE: targetUrls.ONBOARDING,
+                        RAILS_BASE: targetUrls.RAILS,
+                        FUTURES_URL: targetUrls.HPO
+                    }
+                });
+
+                const result = JSON.parse(stdout.trim());
+                globalUsers[globalActiveTier] = globalUsers[globalActiveTier] || {};
+                globalUsers[globalActiveTier][username] = {
+                    label: username,
+                    key: result.key,
+                    secret: result.secret,
+                    email: result.email,
+                    password: 'Test@123',
+                    listenKey: ''
+                };
+
+                // Assign role automatically if user requested it
+                if (role === 'MAKER') {
+                    globalRoles[globalActiveTier].makerId = username;
+                } else {
+                    globalRoles[globalActiveTier].takerId = username;
+                }
+
+                lastPortfolioSyncTime = 0;
+                log.success('SYSTEM', `Web account ${username} registered successfully on ${globalActiveTier}.`);
+
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: true, email: result.email, password: 'Test@123' }));
+            } catch (e) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: false, error: e.message }));
+            }
+        });
+        return;
+    }
+
+    if (pathname === '/api/auth/session') {
+        const user = getSessionUser(req);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ authenticated: !!user, user }));
+    }
+
+    if (req.method === 'POST' && pathname === '/api/auth/logout') {
+        const sid = getSessionSid(req);
+        if (sid) {
+            activeSessions.delete(sid);
+            saveSessions();
+        }
+        res.writeHead(200, {
+            'Set-Cookie': 'replicator_sid=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly',
+            'Content-Type': 'application/json'
+        });
+        return res.end(JSON.stringify({ success: true }));
+    }
+
+    // 2. Gate All Other Pages/API Requests Behind Authentication Session
+    const session = getSessionUser(req);
+    const isHtmlRoute = pathname === '/' || pathname === '/index.html';
+
+    if (!session && !pathname.startsWith('/api/auth/')) {
+        if (isHtmlRoute) {
+            // Render index.html anyway, the frontend will show the glassmorphic auth overlay
+        } else {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: 'Authentication required' }));
+        }
+    }
+
+    if (req.method === 'POST' && pathname === '/api/instance/select') {
         let body = '';
         req.on('data', chunk => { body += chunk; });
         req.on('end', async () => {
@@ -3135,13 +3424,9 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    // M7: CORS headers for all requests
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-replicator-user');
-    if (req.method === 'OPTIONS') { res.writeHead(204).end(); return; }
+    // CORS headers handled globally at top of server handler
 
-    if (req.method === 'GET' && req.url.startsWith('/api/stage/exchangeInfo')) {
+    if (req.method === 'GET' && pathname.startsWith('/api/stage/exchangeInfo')) {
         const urlObj = new URL(req.url, 'http://localhost');
         const tier = (urlObj.searchParams.get('tier') || globalActiveTier).toUpperCase();
         const urls = TIER_URLS[tier] || TIER_URLS.PRODUCTION;
@@ -3164,7 +3449,7 @@ const server = http.createServer(async (req, res) => {
         }
     }
 
-    if (req.method === 'GET' && req.url.startsWith('/api/stage/ticker/price')) {
+    if (req.method === 'GET' && pathname.startsWith('/api/stage/ticker/price')) {
         const urlObj = new URL(req.url, 'http://localhost');
         const tier = (urlObj.searchParams.get('tier') || globalActiveTier).toUpperCase();
         const urls = TIER_URLS[tier] || TIER_URLS.PRODUCTION;
@@ -3187,7 +3472,7 @@ const server = http.createServer(async (req, res) => {
         }
     }
 
-    if (req.method === 'GET' && req.url.startsWith('/api/stage/premiumIndex')) {
+    if (req.method === 'GET' && pathname.startsWith('/api/stage/premiumIndex')) {
         const urlObj = new URL(req.url, 'http://localhost');
         const tier = (urlObj.searchParams.get('tier') || globalActiveTier).toUpperCase();
         const urls = TIER_URLS[tier] || TIER_URLS.PRODUCTION;
@@ -3210,7 +3495,7 @@ const server = http.createServer(async (req, res) => {
         }
     }
 
-    if (req.method === 'GET' && req.url.startsWith('/api/fundingRate')) {
+    if (req.method === 'GET' && pathname.startsWith('/api/fundingRate')) {
         const urlObj = new URL(req.url, 'http://localhost');
         const sym = (urlObj.searchParams.get('symbol') || '').toUpperCase();
         const tier = (urlObj.searchParams.get('tier') || globalActiveTier).toUpperCase();
@@ -3274,7 +3559,7 @@ const server = http.createServer(async (req, res) => {
         }
     }
 
-    if (req.method === 'DELETE' && req.url.startsWith('/api/instance')) {
+    if (req.method === 'DELETE' && pathname.startsWith('/api/instance')) {
         const urlObj = new URL(req.url, 'http://localhost');
         const sym = (urlObj.searchParams.get('symbol') || '').toUpperCase();
         const tier = (urlObj.searchParams.get('tier') || globalActiveTier).toUpperCase();
@@ -3317,7 +3602,7 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    if (req.url === '/events') {
+    if (pathname === '/events') {
         res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
         res.flushHeaders();
         res.write('\n');
@@ -3342,14 +3627,15 @@ const server = http.createServer(async (req, res) => {
                 
                 // Allow specific routes to omit symbol
                 if (!sym && 
-                    !req.url.startsWith('/api/users') && 
-                    !req.url.startsWith('/api/manual-override') && 
-                    !req.url.startsWith('/api/env') && 
-                    !req.url.startsWith('/fapi/v1/openOrders')
+                    !pathname.startsWith('/api/users') && 
+                    !pathname.startsWith('/api/manual-override') && 
+                    !pathname.startsWith('/api/env') && 
+                    !pathname.startsWith('/api/mds-proxy') && 
+                    !pathname.startsWith('/fapi/v1/openOrders')
                 ) {
                     throw new Error("Symbol is required");
                 }
-                if (req.url.startsWith('/fapi/')) {
+                if (pathname.startsWith('/fapi/')) {
                     const userId = req.headers['x-replicator-user'];
                     if (!userId) { res.writeHead(400); return res.end(JSON.stringify({ error: "Missing x-replicator-user header" })); }
                     const tierUsers = globalUsers[globalActiveTier] || {};
@@ -3371,8 +3657,8 @@ const server = http.createServer(async (req, res) => {
                     }
                 }
 
-                if (req.url.startsWith('/api/scenario/preset/')) {
-                    const presetName = req.url.split('/').pop().split('?')[0];
+                if (pathname.startsWith('/api/scenario/preset/')) {
+                    const presetName = pathname.split('/').pop();
                     if (!/^[a-zA-Z0-9_-]+$/.test(presetName)) { res.writeHead(400).end(JSON.stringify({ error: 'Invalid preset name' })); return; }
                     const presetPath = path.join(__dirname, 'scenarios', `${presetName}.json`);
                     if (!fs.existsSync(presetPath)) { res.writeHead(404); return res.end(JSON.stringify({ error: `Preset ${presetName} not found` })); }
@@ -3386,7 +3672,7 @@ const server = http.createServer(async (req, res) => {
                     }
                 }
 
-                if (req.url === '/api/scenario/custom') {
+                if (pathname === '/api/scenario/custom') {
                     try {
                         const inst = (instances[globalActiveTier] || new Map()).get(targetSym);
                         const currentLtp = inst ? inst.binanceLtp : null;
@@ -3397,7 +3683,36 @@ const server = http.createServer(async (req, res) => {
                     }
                 }
 
-                if (req.url === '/api/env') {
+                if (pathname === '/api/mds-proxy') {
+                    const targetPath = parsed.path;
+                    const activeTier = (parsed.tier || globalActiveTier || 'PRODUCTION').toUpperCase();
+                    if (!targetPath) {
+                        res.writeHead(400);
+                        return res.end(JSON.stringify({ error: 'Missing path parameter' }));
+                    }
+                    const TIER_MDS_READ_URLS = {
+                        PRODUCTION: "https://testnet-futures-mds-read.dcxstage.com",
+                        JAPAN: "https://testnet-exchange-mds-read.dcxstage.com",
+                        STAGING: "https://staging-exchange-futures-mds-read.dcxstage.com"
+                    };
+                    const mdsBase = TIER_MDS_READ_URLS[activeTier] || TIER_MDS_READ_URLS.PRODUCTION;
+                    const finalUrl = `${mdsBase}${targetPath}`;
+                    try {
+                        const mdsRes = await fetch(finalUrl);
+                        const data = await mdsRes.text();
+                        if (!mdsRes.ok) {
+                            console.error(`[MDS PROXY ERROR] Status ${mdsRes.status} from ${finalUrl}. Body: ${data.substring(0, 300)}`);
+                        }
+                        res.writeHead(mdsRes.status, { 'Content-Type': 'application/json' });
+                        return res.end(data);
+                    } catch (err) {
+                        console.error(`[MDS PROXY CRASH] Failed to fetch ${finalUrl}: ${err.message}`);
+                        res.writeHead(500, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ error: `MDS proxy failed: ${err.message}` }));
+                    }
+                }
+
+                if (pathname === '/api/env') {
                     const tier = (parsed.tier || 'PRODUCTION').toUpperCase();
                     if (!TIER_URLS[tier]) {
                         res.writeHead(400);
@@ -3418,7 +3733,7 @@ const server = http.createServer(async (req, res) => {
                     return res.end(JSON.stringify({ success: true, tier: globalActiveTier }));
                 }
 
-                if (req.url === '/api/config') {
+                if (pathname === '/api/config') {
                     const tier = (parsed.tier || 'PRODUCTION').toUpperCase();
                     if (!instances[tier]) instances[tier] = new Map();
                     let inst = instances[tier].get(targetSym);
@@ -3480,10 +3795,10 @@ const server = http.createServer(async (req, res) => {
                     }
                     res.writeHead(200);
                     return res.end(JSON.stringify({ success: true }));
-                } else if (req.url === '/api/manual-override') {
+                } else if (pathname === '/api/manual-override') {
                     manualOverride = Boolean(parsed.locked);
                     log.info('SYSTEM', `Manual override set to ${manualOverride}`);
-                } else if (req.url === '/api/users') {
+                } else if (pathname === '/api/users') {
                     if (parsed.action === 'add' || parsed.action === 'update') {
                         const { id, label, key, secret, listenKey } = parsed.user;
                         if (!id) throw new Error("User ID is required");
@@ -3531,10 +3846,10 @@ const server = http.createServer(async (req, res) => {
                     }
                 } else {
                     const inst = (instances[globalActiveTier] || new Map()).get(targetSym);
-                    if (req.url === '/api/engine/start'  && inst) inst.start();
-                    else if (req.url === '/api/engine/pause'  && inst) inst.pause();
-                    else if (req.url === '/api/engine/stop'   && inst) await inst.stop();
-                    else if (req.url === '/api/engine/reload' && inst) inst.reloadDepth();
+                    if (pathname === '/api/engine/start'  && inst) inst.start();
+                    else if (pathname === '/api/engine/pause'  && inst) inst.pause();
+                    else if (pathname === '/api/engine/stop'   && inst) await inst.stop();
+                    else if (pathname === '/api/engine/reload' && inst) inst.reloadDepth();
                 }
                 res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ success: true }));
             } catch (err) {
@@ -3554,7 +3869,7 @@ const server = http.createServer(async (req, res) => {
                 const sym = parsed.symbol ? parsed.symbol.toUpperCase() : null;
                 if (!sym) throw new Error("Symbol is required");
                 
-                if (req.url === '/api/scenario/active') {
+                if (pathname === '/api/scenario/active') {
                     const aborted = ScenarioEngine.abortScenario(sym);
                     res.writeHead(200); return res.end(JSON.stringify({ success: true, aborted }));
                 }
@@ -3565,7 +3880,7 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    if (req.url === '/api/snapshot' && req.method === 'GET') {
+    if (pathname === '/api/snapshot' && req.method === 'GET') {
         try {
             const payload = buildPayload();
             res.writeHead(200, {
@@ -3578,7 +3893,7 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    if (req.url === '/api/connections' && req.method === 'GET') {
+    if (pathname === '/api/connections' && req.method === 'GET') {
         res.writeHead(200, {
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*'
@@ -3586,8 +3901,13 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    if (req.url === '/' || req.url === '/index.html') {
-        res.writeHead(200, { 'Content-Type': 'text/html' }).end(getHtmlUI());
+    if (pathname === '/' || pathname === '/index.html') {
+        res.writeHead(200, { 
+            'Content-Type': 'text/html',
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+        }).end(getHtmlUI());
         return;
     }
     res.writeHead(404).end();
