@@ -1050,12 +1050,12 @@ class ReplicatorInstance {
         this.symbol = this.targetSymbol; 
         this.status = 'STOPPED';
 
-        this.minSize            = marketConfig.minSize            || 100;
-        this.maxSize            = marketConfig.maxSize            || 500;
+        this.minSize            = marketConfig.minSize !== undefined ? marketConfig.minSize : 10;
+        this.maxSize            = marketConfig.maxSize !== undefined ? marketConfig.maxSize : 50000;
         this.takerSize          = marketConfig.takerSize          || 10;
         this.makerUseRawQty     = marketConfig.makerUseRawQty === true;
         this.takerUseRawQty     = marketConfig.takerUseRawQty === true;
-        this.depthLevels        = marketConfig.depthLevels        || 10;
+        this.depthLevels        = marketConfig.depthLevels        || 20;
         this.qtyChangeTolerance = marketConfig.qtyChangeTolerance || 0.25;
         this.enableTradeSync    = marketConfig.enableTradeSync !== false;
         this.newUserFlow        = marketConfig.newUserFlow === true;
@@ -1933,106 +1933,99 @@ class ReplicatorInstance {
             return { rawPrice, price: formatPrice(rawPrice, this.symbol, this.tier), qty };
         });
 
-        let unmappedResting = [...restingOrders];
-        let unmappedTargets = [...targets];
-        const activePool    = [];
-        const modifyBatch = [], placeBatch  = [], cancelBatch = [];
+        const activePool = [];
+        const modifyBatch = [];
+        const placeBatch = [];
+        const cancelBatch = [];
 
-        for (let i = unmappedTargets.length - 1; i >= 0; i--) {
-            const target = unmappedTargets[i];
-            if (this.priceLocks.has(target.price)) {
-                const idx = unmappedResting.findIndex(ro => ro && ro.price === target.price);
-                if (idx !== -1) { activePool.push(unmappedResting[idx]); unmappedResting.splice(idx, 1); }
-                unmappedTargets.splice(i, 1);
-                continue;
-            }
+        const maxLevels = Math.max(targets.length, restingOrders.length);
+        for (let i = 0; i < maxLevels; i++) {
+            const target = targets[i];
+            const resting = restingOrders[i];
 
-            const idx = unmappedResting.findIndex(ro => ro && ro.price === target.price);
-            if (idx !== -1) {
-                const matched = unmappedResting[idx];
-                unmappedResting.splice(idx, 1);
-                unmappedTargets.splice(i, 1);
-                const orderStatus = (matched.status || 'NEW').toUpperCase();
-
-                if (this.inFlightEdits.has(matched.orderId)) {
-                    activePool.push(matched);
-                } else if (orderStatus === 'PARTIALLY_FILLED') {
-                    activePool.push(matched); 
-                } else {
-                    const diffPct = Math.abs(parseFloat(matched.qty) - parseFloat(target.qty)) / parseFloat(matched.qty);
-                    if (diffPct > this.qtyChangeTolerance) {
-                        this.inFlightEdits.add(matched.orderId);
-                        modifyBatch.push((async () => {
-                            const result = await this.modifyMaker(matched.orderId, side, target.rawPrice, target.qty);
-                            this.inFlightEdits.delete(matched.orderId);
-                            if (result.success) { matched.qty = target.qty; activePool.push(matched); } 
-                            else if (!result.isTerminal) { activePool.push(matched); }
-                        })());
-                    } else { activePool.push(matched); }
-                }
-            }
-        }
-
-        for (let i = unmappedTargets.length - 1; i >= 0; i--) {
-            const target = unmappedTargets[i];
-            if (this.priceLocks.has(target.price)) continue;
-
-            if (unmappedResting.length > 0) {
-                const recyclableIdx = unmappedResting.findIndex(ro => (ro.status || 'NEW').toUpperCase() === 'NEW' && !this.inFlightEdits.has(ro.orderId));
-                if (recyclableIdx !== -1) {
-                    const recycled = unmappedResting[recyclableIdx];
-                    unmappedResting.splice(recyclableIdx, 1);
-                    this.inFlightEdits.add(recycled.orderId);
-                    modifyBatch.push((async () => {
-                        const result = await this.modifyMaker(recycled.orderId, side, target.rawPrice, target.qty);
-                        this.inFlightEdits.delete(recycled.orderId);
-                        if (result.success) { recycled.price = target.price; recycled.qty = target.qty; recycled.status = 'NEW'; recycled.createdAt = Date.now(); activePool.push(recycled); } 
-                        else {
-                            if (!result.isTerminal) activePool.push(recycled); 
-                            const r = await this.placeOrder(side, target.qty, target.rawPrice, 'LIMIT');
-                            if (r.success) activePool.push({ orderId: r.orderId, price: target.price, qty: target.qty, status: 'NEW', createdAt: Date.now() });
-                        }
-                    })());
-                    unmappedTargets.splice(i, 1);
+            if (target && resting) {
+                const orderStatus = (resting.status || 'NEW').toUpperCase();
+                
+                if (this.priceLocks.has(target.price) || this.inFlightEdits.has(resting.orderId)) {
+                    activePool.push(resting);
                     continue;
                 }
-                if (!tradeSync) { const pf = unmappedResting.pop(); activePool.push(pf); }
+
+                if (orderStatus === 'PARTIALLY_FILLED') {
+                    activePool.push(resting);
+                    continue;
+                }
+
+                const priceDiff = Math.abs(parseFloat(resting.price) - parseFloat(target.price));
+                const qtyDiffPct = Math.abs(parseFloat(resting.qty) - parseFloat(target.qty)) / parseFloat(resting.qty);
+
+                if (priceDiff > 0.00001 || qtyDiffPct > this.qtyChangeTolerance) {
+                    this.inFlightEdits.add(resting.orderId);
+                    modifyBatch.push((async () => {
+                        const result = await this.modifyMaker(resting.orderId, side, target.rawPrice, target.qty);
+                        this.inFlightEdits.delete(resting.orderId);
+                        if (result.success) {
+                            resting.price = target.price;
+                            resting.qty = target.qty;
+                            resting.status = 'NEW';
+                            resting.createdAt = Date.now();
+                            activePool.push(resting);
+                        } else {
+                            if (!result.isTerminal) activePool.push(resting);
+                            const r = await this.placeOrder(side, target.qty, target.rawPrice, 'LIMIT');
+                            if (r.success) {
+                                activePool.push({
+                                    orderId: r.orderId,
+                                    price: target.price,
+                                    qty: target.qty,
+                                    status: 'NEW',
+                                    createdAt: Date.now()
+                                });
+                            }
+                        }
+                    })());
+                } else {
+                    activePool.push(resting);
+                }
+            } else if (target) {
+                if (this.priceLocks.has(target.price)) continue;
+                
+                placeBatch.push((async () => {
+                    const r = await this.placeOrder(side, target.qty, target.rawPrice, 'LIMIT');
+                    if (r.success) {
+                        activePool.push({
+                            orderId: r.orderId,
+                            price: target.price,
+                            qty: target.qty,
+                            status: 'NEW',
+                            createdAt: Date.now()
+                        });
+                    }
+                })());
+            } else if (resting) {
+                const orderStatus = (resting.status || 'NEW').toUpperCase();
+                if (this.inFlightEdits.has(resting.orderId) || !tradeSync || orderStatus === 'PARTIALLY_FILLED' || this.tradeSyncMakerOrders.has(resting.orderId)) {
+                    activePool.push(resting);
+                } else {
+                    this.inFlightEdits.add(resting.orderId);
+                    cancelBatch.push(this.cancelOrder(resting.orderId).finally(() => this.inFlightEdits.delete(resting.orderId)));
+                }
             }
-            placeBatch.push(this.placeOrder(side, target.qty, target.rawPrice, 'LIMIT').then(r => r.success && activePool.push({ orderId: r.orderId, price: target.price, qty: target.qty, status: 'NEW', createdAt: Date.now() })));
-            unmappedTargets.splice(i, 1);
         }
 
-        const now = Date.now();
-        const canCleanup = (now - (this.lastExcessCancelTime || 0)) > 3000;
-        let cleanedUpCount = 0;
-
-        for (const excess of unmappedResting) {
-            const orderStatus = (excess.status || 'NEW').toUpperCase();
-            if (this.inFlightEdits.has(excess.orderId) || !tradeSync || orderStatus === 'PARTIALLY_FILLED' || this.tradeSyncMakerOrders.has(excess.orderId)) {
-                activePool.push(excess);
-            } else if (canCleanup && cleanedUpCount < 5) {
-                this.inFlightEdits.add(excess.orderId);
-                cancelBatch.push(this.cancelOrder(excess.orderId).finally(() => this.inFlightEdits.delete(excess.orderId)));
-                cleanedUpCount++;
-            } else {
-                activePool.push(excess);
-            }
+        // Place-Before-Cancel: Place and modify new orders first
+        await Promise.allSettled([...modifyBatch, ...placeBatch]);
+        
+        // Cancel excess orders in the background so book is never flat or empty
+        if (cancelBatch.length > 0) {
+            Promise.allSettled(cancelBatch).catch(err => {
+                log.debug && log.debug(this.symbol, 'Background excess cancel failed: ' + err.message);
+            });
         }
-        if (cleanedUpCount > 0) this.lastExcessCancelTime = now;
-
-            // Place-Before-Cancel: Place and modify new orders first
-            await Promise.allSettled([...modifyBatch, ...placeBatch]);
-            
-            // Cancel excess orders in the background so book is never flat or empty
-            if (cancelBatch.length > 0) {
-                Promise.allSettled(cancelBatch).catch(err => {
-                    log.debug && log.debug(this.symbol, 'Background excess cancel failed: ' + err.message);
-                });
-            }
-            
-            if (isBuy) this.restingBids = activePool; else this.restingAsks = activePool;
-        } finally { this[guardKey] = false; }
-    }
+        
+        if (isBuy) this.restingBids = activePool; else this.restingAsks = activePool;
+    } finally { this[guardKey] = false; }
+}
 
     async refreshRestingStatuses(openOrdersData) {
         if (!Array.isArray(openOrdersData)) return;
@@ -3747,12 +3740,12 @@ const server = http.createServer(async (req, res) => {
                             sourceSymbol: sym,
                             targetSymbol: targetSym,
                             tier: tier,
-                            minSize: parseFloat(parsed.minSize || 100),
-                            maxSize: parseFloat(parsed.maxSize || 500),
+                            minSize: parseFloat(parsed.minSize || 10),
+                            maxSize: parseFloat(parsed.maxSize || 50000),
                             takerSize: parseFloat(parsed.takerSize || 10),
                             makerUseRawQty: Boolean(parsed.makerUseRawQty),
                             takerUseRawQty: Boolean(parsed.takerUseRawQty),
-                            depthLevels: parseInt(parsed.depthLevels || 10),
+                            depthLevels: parseInt(parsed.depthLevels || 20),
                             bufferPct: parseFloat(parsed.bufferPct || 0),
                             tradeDelayMs: parseInt(parsed.tradeDelayMs || 0),
                             cancelOnStop: Boolean(parsed.cancelOnStop),
