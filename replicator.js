@@ -3092,16 +3092,19 @@ const server = http.createServer(async (req, res) => {
                 const email = parsed.email || '';
                 const password = parsed.password || '';
 
-                // Search in globalUsers for active tier
-                const tierUsers = globalUsers[globalActiveTier] || {};
-                let matchedId = null;
-                let matchedUser = null;
-
-                for (const [id, user] of Object.entries(tierUsers)) {
-                    if (user.email === email && user.password === password) {
-                        matchedId = id;
-                        matchedUser = user;
-                        break;
+                // Check static admin credentials fallback
+                if (email === 'admin@coindcx.com' && password === 'Test@123') {
+                    matchedId = 'admin';
+                    matchedUser = { email: 'admin@coindcx.com', label: 'Admin Administrator' };
+                } else {
+                    // Search in globalUsers for active tier
+                    const tierUsers = globalUsers[globalActiveTier] || {};
+                    for (const [id, user] of Object.entries(tierUsers)) {
+                        if (user.email === email && user.password === password) {
+                            matchedId = id;
+                            matchedUser = user;
+                            break;
+                        }
                     }
                 }
 
