@@ -512,7 +512,7 @@
     display: grid;
     grid-template-columns: 1fr;
     grid-template-rows: 1fr 1fr;
-    gap: 28px;
+    gap: 36px;
     margin-top: 16px;
     height: 60vh;
     min-height: 520px;
@@ -1502,21 +1502,9 @@
           </div>
           <div class="book-columns-rows" id="bookColsRows"></div>
           
-          <div class="book-foot mono" style="color: var(--text-muted); padding-bottom: 8px;">
+          <div class="book-foot mono" style="color: var(--text-muted);">
             <span id="latencyStat">sync latency: 42ms</span>
             <span id="depthStat">depth mirrored: 98.6%</span>
-          </div>
-
-          <!-- Engine Controls -->
-          <div class="simulation-controls" style="margin-top: auto; display: flex; flex-direction: column; gap: 8px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; flex-shrink: 0;">
-            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--text-muted);">
-              <span>REPLICATION CONTROLS</span>
-              <button id="btn-sim-pause" class="sim-ctrl-btn" onclick="window.toggleSimPause()" style="background: rgba(0, 217, 255, 0.08); border: 1px solid rgba(0, 217, 255, 0.2); color: var(--cyan); border-radius: 4px; padding: 2px 8px; font-size: 9px; cursor: pointer; text-transform: uppercase; font-family:'JetBrains Mono',monospace; outline:none;">● RUNNING</button>
-            </div>
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <span style="font-size: 9px; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); white-space: nowrap; min-width: 90px; text-align: left;">DELAY: <span id="sim-speed-lbl" style="color: var(--cyan); font-weight: 600;">100ms</span></span>
-              <input type="range" id="sim-speed-range" min="30" max="600" value="100" oninput="window.adjustSimSpeed(this.value)" style="flex: 1; height: 3px; background: rgba(255,255,255,0.1); border-radius: 2px; outline: none; -webkit-appearance: none; cursor: pointer;">
-            </div>
           </div>
         </div>
 
@@ -6992,8 +6980,8 @@ window.addEventListener('DOMContentLoaded', () => {
                         }
 
                                         // A2. Draw background line chart on the right side behind access terminal card
-                        const chartXStart = canvas.width * 0.58;
-                        const chartWidth = canvas.width * 0.38;
+                        const chartXStart = canvas.width * 0.46; // Center it further left to expand width
+                        const chartWidth = canvas.width * 0.50;  // Occupies 60%+ of the right-side component space
                         const chartYBase = canvas.height * 0.95; // Reaches bottom edge
                         const chartHeight = canvas.height * 0.85; // Tall layout stretching to top
 
@@ -7017,6 +7005,16 @@ window.addEventListener('DOMContentLoaded', () => {
 
                         if (chartData.length > 1) {
                             const step = chartWidth / (chartData.length - 1);
+
+                            // Draw subtle horizontal price gridlines behind the chart
+                            ctx.strokeStyle = 'rgba(255, 255, 255, 0.022)';
+                            ctx.lineWidth = 0.8;
+                            for (let gY = chartYBase - chartHeight + 40; gY < chartYBase - 20; gY += 60) {
+                                ctx.beginPath();
+                                ctx.moveTo(chartXStart, gY);
+                                ctx.lineTo(chartXStart + chartWidth, gY);
+                                ctx.stroke();
+                            }
 
                             // Draw volume bars at the very bottom axis
                             ctx.lineWidth = 2.5;
@@ -7065,6 +7063,25 @@ window.addEventListener('DOMContentLoaded', () => {
                             chartGrad.addColorStop(1, 'rgba(168, 85, 247, 0)');
                             ctx.fillStyle = chartGrad;
                             ctx.fill();
+
+                            // 3. Highlight heads of both streams with pulsing glow dots
+                            const lastIdx = chartData.length - 1;
+                            const headX = chartXStart + lastIdx * step;
+                            
+                            // Blue head dot
+                            ctx.beginPath();
+                            ctx.arc(headX, chartYBase - chartProdData[lastIdx], 4.5, 0, Math.PI * 2);
+                            ctx.fillStyle = '#00a2ff';
+                            ctx.fill();
+
+                            // Purple head dot (with glow)
+                            ctx.beginPath();
+                            ctx.arc(headX, chartYBase - chartData[lastIdx], 5.5, 0, Math.PI * 2);
+                            ctx.fillStyle = '#a855f7';
+                            ctx.shadowColor = '#a855f7';
+                            ctx.shadowBlur = 10;
+                            ctx.fill();
+                            ctx.shadowBlur = 0; // Reset shadow blur properties for other draws
                         }
 
                         // B. Render constellation nodes & links
@@ -7471,13 +7488,13 @@ window.addEventListener('DOMContentLoaded', () => {
                         `;
                         
                         syncList.insertBefore(item, syncList.firstChild);
-                        while (syncList.children.length > 7) {
+                        while (syncList.children.length > 10) {
                             syncList.removeChild(syncList.lastChild);
                         }
                     };
                     
                     // Populate initial entries
-                    for (let i = 0; i < 6; i++) {
+                    for (let i = 0; i < 10; i++) {
                         createSyncItem();
                     }
                     
