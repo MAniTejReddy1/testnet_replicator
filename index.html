@@ -596,15 +596,71 @@
   .book-price .delta.up { color: #10b981; }
   .book-price .delta.down { color: #f43f5e; }
 
-  .depth-rows { margin-top: 8px; display:flex; flex-direction:column; gap: 3px; flex:1; overflow:hidden; justify-content: space-between; }
-  .depth-row { position:relative; display:flex; align-items:center; height: 15px; font-family:'JetBrains Mono', monospace; font-size: 10.5px; line-height:1; border-radius: 2px; overflow:hidden; }
-  .depth-row .bar { position:absolute; top:0; bottom:0; right:0; border-radius: 2px; opacity: 0.16; transition: width 0.6s cubic-bezier(.4,0,.2,1); will-change: width; }
-  .depth-row.ask .bar { background: #f43f5e; left:0; right:auto; }
-  .depth-row.bid .bar { background: #10b981; }
-  .depth-row .vals { position:relative; display:flex; width:100%; justify-content:space-between; padding: 0 6px; z-index:1; }
-  .depth-row.ask .vals span:first-child { color: #f43f5e; }
-  .depth-row.bid .vals span:first-child { color: #10b981; }
-  .depth-row .vals span:last-child { color: rgba(255,255,255,0.4); }
+  .book-columns-headers {
+    display: grid;
+    grid-template-columns: 1fr 14px 1fr;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 6px;
+    margin-bottom: 4px;
+  }
+  .header-col { display: flex; justify-content: space-between; }
+  .header-col.bid-side { color: #00E676; padding: 0 4px; }
+  .header-col.ask-side { color: #FF3B5C; padding: 0 4px; }
+  .book-columns-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1;
+    overflow: hidden;
+    justify-content: space-between;
+  }
+  .book-split-row {
+    display: grid;
+    grid-template-columns: 1fr 14px 1fr;
+    height: 15px;
+    align-items: center;
+  }
+  .split-half {
+    position: relative;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    border-radius: 2px;
+  }
+  .split-half .bar {
+    position: absolute;
+    top: 0; bottom: 0;
+    opacity: 0.16;
+    transition: width 0.6s ease;
+  }
+  .split-half.bid .bar {
+    background: #00E676;
+    right: 0; left: auto;
+  }
+  .split-half.ask .bar {
+    background: #FF3B5C;
+    left: 0; right: auto;
+  }
+  .split-half .vals {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    line-height: 1;
+  }
+  .split-half.bid .vals .price { color: #00E676; font-weight: 600; }
+  .split-half.ask .vals .price { color: #FF3B5C; font-weight: 600; }
+  .split-half .vals .qty { color: rgba(255, 255, 255, 0.45); }
+  .split-spacer { width: 14px; }
 
   .book-foot {
     margin-top: 8px;
@@ -1374,7 +1430,17 @@
             <span>depth · live mirror</span>
           </div>
           <div class="book-price mono" style="color: var(--amber);"><span class="val" id="bookPriceVal">67,234.10</span><span class="delta up" id="bookDelta">+0.42%</span></div>
-          <div class="depth-rows" id="depthRows"></div>
+          
+          <!-- Depth Chart Canvas -->
+          <canvas id="book-depth-chart" style="width: 100%; height: 48px; margin-bottom: 6px; flex-shrink: 0;"></canvas>
+          
+          <div class="book-columns-headers">
+            <div class="header-col bid-side"><span>Size</span><span>Bid</span></div>
+            <div class="header-col mid-spacer"><span></span></div>
+            <div class="header-col ask-side"><span>Ask</span><span>Size</span></div>
+          </div>
+          <div class="book-columns-rows" id="bookColsRows"></div>
+          
           <div class="book-foot mono" style="color: var(--text-muted);">
             <span id="latencyStat">sync latency: 42ms</span>
             <span id="depthStat">depth mirrored: 98.6%</span>
@@ -6990,32 +7056,60 @@ window.addEventListener('DOMContentLoaded', () => {
             }
 
             // 4. Mirror Book Depth and Price Drift (30-second loop simulation)
-            const depthRows = document.getElementById('depthRows');
+            const bookColsRows = document.getElementById('bookColsRows');
             const priceVal = document.getElementById('bookPriceVal');
             const bookDelta = document.getElementById('bookDelta');
             const latencyStat = document.getElementById('latencyStat');
             const depthStat = document.getElementById('depthStat');
+            const depthCanvas = document.getElementById('book-depth-chart');
 
-            if (depthRows && priceVal && bookDelta) {
-                depthRows.innerHTML = '';
+            if (bookColsRows && priceVal && bookDelta) {
+                bookColsRows.innerHTML = '';
                 const startPrice = 67227.46;
-                const rows = { ask: [], bid: [] };
+                const rowsList = [];
 
-                const makeRow = (kind) => {
-                    const el = document.createElement('div');
-                    el.className = 'depth-row ' + kind;
-                    const bar = document.createElement('div'); bar.className = 'bar';
-                    const vals = document.createElement('div'); vals.className = 'vals';
-                    const priceSpan = document.createElement('span');
-                    const qtySpan = document.createElement('span');
-                    vals.appendChild(priceSpan); vals.appendChild(qtySpan);
-                    el.appendChild(bar); el.appendChild(vals);
-                    depthRows.appendChild(el);
-                    return { el, bar, priceSpan, qtySpan };
+                const makeSplitRow = () => {
+                    const rowEl = document.createElement('div');
+                    rowEl.className = 'book-split-row';
+                    
+                    // Bid half
+                    const bidHalf = document.createElement('div');
+                    bidHalf.className = 'split-half bid';
+                    const bidBar = document.createElement('div'); bidBar.className = 'bar';
+                    const bidVals = document.createElement('div'); bidVals.className = 'vals';
+                    const bidQty = document.createElement('span'); bidQty.className = 'qty';
+                    const bidPrice = document.createElement('span'); bidPrice.className = 'price';
+                    bidVals.appendChild(bidQty); bidVals.appendChild(bidPrice);
+                    bidHalf.appendChild(bidBar); bidHalf.appendChild(bidVals);
+                    
+                    // Spacer
+                    const spacer = document.createElement('div');
+                    spacer.className = 'split-spacer';
+                    
+                    // Ask half
+                    const askHalf = document.createElement('div');
+                    askHalf.className = 'split-half ask';
+                    const askBar = document.createElement('div'); askBar.className = 'bar';
+                    const askVals = document.createElement('div'); askVals.className = 'vals';
+                    const askPrice = document.createElement('span'); askPrice.className = 'price';
+                    const askQty = document.createElement('span'); askQty.className = 'qty';
+                    askVals.appendChild(askPrice); askVals.appendChild(askQty);
+                    askHalf.appendChild(askBar); askHalf.appendChild(askVals);
+                    
+                    rowEl.appendChild(bidHalf);
+                    rowEl.appendChild(spacer);
+                    rowEl.appendChild(askHalf);
+                    bookColsRows.appendChild(rowEl);
+                    
+                    return {
+                        bidBar, bidQty, bidPrice,
+                        askBar, askPrice, askQty
+                    };
                 };
 
-                for (let i = 0; i < 6; i++) rows.ask.push(makeRow('ask'));
-                for (let i = 0; i < 6; i++) rows.bid.push(makeRow('bid'));
+                for (let i = 0; i < 5; i++) {
+                    rowsList.push(makeSplitRow());
+                }
 
                 const updateSimulation = () => {
                     const t = (Date.now() % 30000) / 30000; // 0.0 to 1.0 representing the 30s cycle
@@ -7023,13 +7117,10 @@ window.addEventListener('DOMContentLoaded', () => {
                     // Determine priceOffset based on 30s cycle stage
                     let priceOffset = 0;
                     if (t < 0.4) {
-                        // 0s to 12s: Price ascends
                         priceOffset = Math.sin((t / 0.4) * (Math.PI / 2)) * 18.5;
                     } else if (t < 0.8) {
-                        // 12s to 24s: Price descends
                         priceOffset = 18.5 - Math.sin(((t - 0.4) / 0.4) * (Math.PI / 2)) * 37.0;
                     } else {
-                        // 24s to 30s: Price ascends back to starting point
                         priceOffset = -18.5 + Math.sin(((t - 0.8) / 0.2) * (Math.PI / 2)) * 18.5;
                     }
 
@@ -7042,22 +7133,82 @@ window.addEventListener('DOMContentLoaded', () => {
                     bookDelta.classList.toggle('up', pct >= 0);
                     bookDelta.classList.toggle('down', pct < 0);
 
-                    // Render depth bars and values smoothly
-                    rows.ask.forEach((r, i) => {
-                        const phase = t * Math.PI * 2 + i * 0.7;
-                        const barWidth = 20 + Math.abs(Math.sin(phase)) * 65;
-                        r.bar.style.width = barWidth.toFixed(1) + '%';
-                        r.priceSpan.textContent = (currentPrice + (i + 1) * 1.35).toFixed(2);
-                        r.qtySpan.textContent = (0.15 + Math.abs(Math.cos(phase * 1.3)) * 1.65).toFixed(3);
+                    // Render depth bars and values side-by-side
+                    rowsList.forEach((r, i) => {
+                        // Bid updates (price decreasing from center)
+                        const bidP = currentPrice - (i + 1) * 0.85;
+                        r.bidPrice.textContent = bidP.toFixed(2);
+                        
+                        const bidPhase = t * Math.PI * 2 - i * 0.6;
+                        const bidSize = (0.1 + Math.abs(Math.sin(bidPhase * 1.5)) * 1.9).toFixed(3);
+                        r.bidQty.textContent = parseFloat(bidSize).toLocaleString(undefined, { minimumFractionDigits: 3 });
+                        
+                        const bidWidth = 15 + Math.abs(Math.cos(bidPhase)) * 75;
+                        r.bidBar.style.width = bidWidth.toFixed(1) + '%';
+
+                        // Ask updates (price increasing from center)
+                        const askP = currentPrice + (i + 1) * 0.85;
+                        r.askPrice.textContent = askP.toFixed(2);
+                        
+                        const askPhase = t * Math.PI * 2 + i * 0.6;
+                        const askSize = (0.1 + Math.abs(Math.cos(askPhase * 1.5)) * 1.9).toFixed(3);
+                        r.askQty.textContent = parseFloat(askSize).toLocaleString(undefined, { minimumFractionDigits: 3 });
+                        
+                        const askWidth = 15 + Math.abs(Math.sin(askPhase)) * 75;
+                        r.askBar.style.width = askWidth.toFixed(1) + '%';
                     });
 
-                    rows.bid.forEach((r, i) => {
-                        const phase = t * Math.PI * 2 - i * 0.7;
-                        const barWidth = 20 + Math.abs(Math.cos(phase)) * 65;
-                        r.bar.style.width = barWidth.toFixed(1) + '%';
-                        r.priceSpan.textContent = (currentPrice - (i + 1) * 1.35).toFixed(2);
-                        r.qtySpan.textContent = (0.15 + Math.abs(Math.sin(phase * 1.3)) * 1.65).toFixed(3);
-                    });
+                    // Draw dynamic depth curve canvas
+                    if (depthCanvas) {
+                        const dctx = depthCanvas.getContext('2d');
+                        if (dctx) {
+                            // Sync canvas internal size to dynamic layout width/height
+                            if (depthCanvas.width !== depthCanvas.clientWidth || depthCanvas.height !== depthCanvas.clientHeight) {
+                                depthCanvas.width = depthCanvas.clientWidth;
+                                depthCanvas.height = depthCanvas.clientHeight;
+                            }
+                            const dw = depthCanvas.width;
+                            const dh = depthCanvas.height;
+                            dctx.clearRect(0, 0, dw, dh);
+
+                            const midX = dw / 2;
+                            const waveOffset = Math.sin(t * Math.PI * 2) * 4;
+
+                            // 1. Draw Bid Line & Area Fill (Left side)
+                            dctx.beginPath();
+                            dctx.moveTo(0, dh * 0.15 + waveOffset);
+                            dctx.bezierCurveTo(midX * 0.4, dh * 0.2, midX * 0.8, dh * 0.8, midX, dh * 0.88 + waveOffset);
+                            dctx.strokeStyle = '#00E676';
+                            dctx.lineWidth = 1.8;
+                            dctx.stroke();
+
+                            dctx.lineTo(midX, dh);
+                            dctx.lineTo(0, dh);
+                            dctx.closePath();
+                            const bidGrad = dctx.createLinearGradient(0, 0, 0, dh);
+                            bidGrad.addColorStop(0, 'rgba(0, 230, 118, 0.15)');
+                            bidGrad.addColorStop(1, 'rgba(0, 230, 118, 0)');
+                            dctx.fillStyle = bidGrad;
+                            dctx.fill();
+
+                            // 2. Draw Ask Line & Area Fill (Right side)
+                            dctx.beginPath();
+                            dctx.moveTo(midX, dh * 0.88 + waveOffset);
+                            dctx.bezierCurveTo(midX * 1.2, dh * 0.8, midX * 1.6, dh * 0.2, dw, dh * 0.15 - waveOffset);
+                            dctx.strokeStyle = '#FF3B5C';
+                            dctx.lineWidth = 1.8;
+                            dctx.stroke();
+
+                            dctx.lineTo(dw, dh);
+                            dctx.lineTo(midX, dh);
+                            dctx.closePath();
+                            const askGrad = dctx.createLinearGradient(0, 0, 0, dh);
+                            askGrad.addColorStop(0, 'rgba(255, 59, 92, 0.15)');
+                            askGrad.addColorStop(1, 'rgba(255, 59, 92, 0)');
+                            dctx.fillStyle = askGrad;
+                            dctx.fill();
+                        }
+                    }
 
                     if (latencyStat) {
                         const latVal = 28 + Math.floor(Math.abs(Math.sin(t * Math.PI * 4)) * 25);
