@@ -6671,6 +6671,10 @@ window.addEventListener('DOMContentLoaded', () => {
                 window.injectTerminalLog('INFO', pair, `[REST] Fetching historical ${interval} klines for ${sourceSym}...`);
                 const proxyPath = `/fapi/v1/klines?symbol=${sourceSym}&interval=${interval}&limit=500`;
                 const res = await fetch(window.getApiUrl(`/api/mds-proxy?path=${encodeURIComponent(proxyPath)}&tier=${activeTier}`));
+                if (!res.ok) {
+                    const text = await res.text();
+                    throw new Error(`HTTP ${res.status}: ${text || 'Empty response'}`);
+                }
                 const data = await res.json();
                 if (data && data.length) {
                     const formattedKlines = [];

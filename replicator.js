@@ -3681,9 +3681,13 @@ const server = http.createServer(async (req, res) => {
                     try {
                         const mdsRes = await fetch(finalUrl);
                         const data = await mdsRes.text();
+                        if (!mdsRes.ok) {
+                            console.error(`[MDS PROXY ERROR] Status ${mdsRes.status} from ${finalUrl}. Body: ${data.substring(0, 300)}`);
+                        }
                         res.writeHead(mdsRes.status, { 'Content-Type': 'application/json' });
                         return res.end(data);
                     } catch (err) {
+                        console.error(`[MDS PROXY CRASH] Failed to fetch ${finalUrl}: ${err.message}`);
                         res.writeHead(500, { 'Content-Type': 'application/json' });
                         return res.end(JSON.stringify({ error: `MDS proxy failed: ${err.message}` }));
                     }
