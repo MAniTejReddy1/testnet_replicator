@@ -6980,25 +6980,23 @@ window.addEventListener('DOMContentLoaded', () => {
                         }
 
                                         // A2. Draw background line chart on the right side behind access terminal card
-                        const chartXStart = canvas.width * 0.46; // Center it further left to expand width
-                        const chartWidth = canvas.width * 0.50;  // Occupies 60%+ of the right-side component space
-                        const chartYBase = canvas.height * 0.95; // Reaches bottom edge
-                        const chartHeight = canvas.height * 0.85; // Tall layout stretching to top
+                        const chartXStart = canvas.width * 0.42; // Starts immediately at the bottom-left of the right 60% screen (near middle seam)
+                        const chartWidth = canvas.width * 0.54;  // Extends near the right edge (96%), leaving a 4% margin gap
+                        const chartYBase = canvas.height * 0.95; // Bottom anchor baseline
+                        const chartHeight = canvas.height * 0.85; // Stretch amplitude limits
 
                         if (Date.now() - lastChartUpdate > 180) {
                             lastChartUpdate = Date.now();
                             
-                            // Let the line oscillate mostly in the top half of the screen
-                            const minVal = chartHeight * 0.55;
-                            const maxVal = chartHeight - 20;
-                            chartVal += (Math.random() - 0.48) * 14;
-                            chartVal = Math.max(minVal, Math.min(maxVal, chartVal));
+                            // Oscillations stay small since the trend does the rising work
+                            chartVal += (Math.random() - 0.48) * 12;
+                            chartVal = Math.max(10, Math.min(80, chartVal));
                             chartData.push(chartVal);
                             if (chartData.length > 60) chartData.shift();
 
-                            // Production line drifts similarly but slightly offset
-                            chartProdVal = chartVal + (Math.random() - 0.5) * 10 + Math.sin(Date.now() / 1500) * 16;
-                            chartProdVal = Math.max(minVal, Math.min(maxVal, chartProdVal));
+                            // Production drifts similarly but offset
+                            chartProdVal = chartVal + (Math.random() - 0.5) * 8 + Math.sin(Date.now() / 1500) * 10;
+                            chartProdVal = Math.max(10, Math.min(80, chartProdVal));
                             chartProdData.push(chartProdVal);
                             if (chartProdData.length > 60) chartProdData.shift();
                         }
@@ -7006,10 +7004,10 @@ window.addEventListener('DOMContentLoaded', () => {
                         if (chartData.length > 1) {
                             const step = chartWidth / (chartData.length - 1);
 
-                            // Draw subtle horizontal price gridlines behind the chart
-                            ctx.strokeStyle = 'rgba(255, 255, 255, 0.022)';
+                            // Draw subtle gridlines tracking the slope
+                            ctx.strokeStyle = 'rgba(255, 255, 255, 0.015)';
                             ctx.lineWidth = 0.8;
-                            for (let gY = chartYBase - chartHeight + 40; gY < chartYBase - 20; gY += 60) {
+                            for (let gY = chartYBase - chartHeight + 60; gY < chartYBase - 20; gY += 80) {
                                 ctx.beginPath();
                                 ctx.moveTo(chartXStart, gY);
                                 ctx.lineTo(chartXStart + chartWidth, gY);
@@ -7028,11 +7026,12 @@ window.addEventListener('DOMContentLoaded', () => {
                                 ctx.stroke();
                             }
 
-                            // 1. Draw Production benchmark (Dashed Blue line - starts from bottom and rises)
+                            // 1. Draw Production benchmark (Dashed Blue line - starts bottom-left and rises top-right)
                             ctx.beginPath();
                             for (let idx = 0; idx < chartProdData.length; idx++) {
                                 const cx = chartXStart + idx * step;
-                                const cy = chartYBase - chartProdData[idx];
+                                const trend = (idx / (chartProdData.length - 1)) * (chartHeight * 0.80);
+                                const cy = chartYBase - (trend + chartProdData[idx]);
                                 if (idx === 0) ctx.moveTo(cx, cy);
                                 else ctx.lineTo(cx, cy);
                             }
@@ -7042,11 +7041,12 @@ window.addEventListener('DOMContentLoaded', () => {
                             ctx.stroke();
                             ctx.setLineDash([]); // Reset line dash
 
-                            // 2. Draw Staging Sync (Solid Purple line - starts from bottom and rises, going up and down on top)
+                            // 2. Draw Staging Sync (Solid Purple line - starts bottom-left and rises top-right)
                             ctx.beginPath();
                             for (let idx = 0; idx < chartData.length; idx++) {
                                 const cx = chartXStart + idx * step;
-                                const cy = chartYBase - chartData[idx];
+                                const trend = (idx / (chartData.length - 1)) * (chartHeight * 0.80);
+                                const cy = chartYBase - (trend + chartData[idx]);
                                 if (idx === 0) ctx.moveTo(cx, cy);
                                 else ctx.lineTo(cx, cy);
                             }
@@ -7054,29 +7054,30 @@ window.addEventListener('DOMContentLoaded', () => {
                             ctx.lineWidth = 2.5;
                             ctx.stroke();
 
-                            // Area gradient fill below Staging line
+                            // Area gradient fill below Staging line (creating a climbing wedge)
                             ctx.lineTo(chartXStart + chartWidth, chartYBase);
                             ctx.lineTo(chartXStart, chartYBase);
                             ctx.closePath();
-                            const chartGrad = ctx.createLinearGradient(0, chartYBase - chartHeight, 0, chartYBase);
-                            chartGrad.addColorStop(0, 'rgba(168, 85, 247, 0.045)');
-                            chartGrad.addColorStop(1, 'rgba(168, 85, 247, 0)');
+                            const chartGrad = ctx.createLinearGradient(chartXStart, chartYBase, chartXStart + chartWidth, chartYBase - chartHeight);
+                            chartGrad.addColorStop(0, 'rgba(168, 85, 247, 0)');
+                            chartGrad.addColorStop(1, 'rgba(168, 85, 247, 0.045)');
                             ctx.fillStyle = chartGrad;
                             ctx.fill();
 
                             // 3. Highlight heads of both streams with pulsing glow dots
                             const lastIdx = chartData.length - 1;
                             const headX = chartXStart + lastIdx * step;
+                            const lastTrend = chartHeight * 0.80;
                             
                             // Blue head dot
                             ctx.beginPath();
-                            ctx.arc(headX, chartYBase - chartProdData[lastIdx], 4.5, 0, Math.PI * 2);
+                            ctx.arc(headX, chartYBase - (lastTrend + chartProdData[lastIdx]), 4.5, 0, Math.PI * 2);
                             ctx.fillStyle = '#00a2ff';
                             ctx.fill();
 
                             // Purple head dot (with glow)
                             ctx.beginPath();
-                            ctx.arc(headX, chartYBase - chartData[lastIdx], 5.5, 0, Math.PI * 2);
+                            ctx.arc(headX, chartYBase - (lastTrend + chartData[lastIdx]), 5.5, 0, Math.PI * 2);
                             ctx.fillStyle = '#a855f7';
                             ctx.shadowColor = '#a855f7';
                             ctx.shadowBlur = 10;
