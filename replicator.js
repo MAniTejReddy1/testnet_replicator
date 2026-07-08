@@ -3148,9 +3148,29 @@ function parseCookies(cookieHeader) {
     return list;
 }
 
-function getSessionUser(req) {
+function getSessionSid(req) {
     const cookies = parseCookies(req.headers.cookie);
-    const sid = cookies.replicator_sid;
+    let sid = cookies.replicator_sid;
+    if (!sid && req.headers['x-replicator-sid']) {
+        sid = req.headers['x-replicator-sid'];
+    }
+    if (!sid && req.headers.authorization) {
+        const parts = req.headers.authorization.split(' ');
+        if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
+            sid = parts[1];
+        }
+    }
+    if (!sid && req.url) {
+        const match = req.url.match(/[?&]sid=([^&#]+)/);
+        if (match) {
+            sid = match[1];
+        }
+    }
+    return sid || null;
+}
+
+function getSessionUser(req) {
+    const sid = getSessionSid(req);
     if (!sid) return null;
     return activeSessions.get(sid) || null;
 }
@@ -3193,7 +3213,7 @@ const server = http.createServer(async (req, res) => {
                         'Set-Cookie': `replicator_sid=${sid}; Path=/; HttpOnly; SameSite=Strict`,
                         'Content-Type': 'application/json'
                     });
-                    return res.end(JSON.stringify({ success: true, user: { id: matchedId, email: matchedUser.email, label: matchedUser.label } }));
+                    return res.end(JSON.stringify({ success: true, sid, user: { id: matchedId, email: matchedUser.email, label: matchedUser.label } }));
                 } else {
                     res.writeHead(401, { 'Content-Type': 'application/json' });
                     return res.end(JSON.stringify({ success: false, error: 'Invalid email or password' }));
@@ -3272,9 +3292,9 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === 'POST' && req.url === '/api/auth/logout') {
-        const cookies = parseCookies(req.headers.cookie);
-        if (cookies.replicator_sid) {
-            activeSessions.delete(cookies.replicator_sid);
+        const sid = getSessionSid(req);
+        if (sid) {
+            activeSessions.delete(sid);
             saveSessions();
         }
         res.writeHead(200, {
