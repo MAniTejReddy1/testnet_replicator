@@ -1077,6 +1077,8 @@ class ReplicatorInstance {
         this.isCancellingGhosts = false;
         this.isAligningLtp      = false;
         this.isSyncingGrid      = false;
+        this.isReducingPositions = false;
+        this.reductionPromise    = null;
 
         this.wsBinanceDepth  = null;
         this.wsBinanceTrades = null;
@@ -1237,7 +1239,7 @@ class ReplicatorInstance {
         }
     }
 
-    async placeOrder(side, qty, price = null, orderType = 'LIMIT', isTaker = false, clientOrderId = null, _isRetry = false) {
+    async placeOrder(side, qty, price = null, orderType = 'LIMIT', isTaker = false, clientOrderId = null, _isRetry = false, options = {}) {
         const tierUsers = globalUsers[this.tier] || {};
         const tierRoles = globalRoles[this.tier] || { makerId: '', takerId: '' };
         const userCreds = isTaker ? tierUsers[tierRoles.takerId] : tierUsers[tierRoles.makerId];
@@ -1248,6 +1250,7 @@ class ReplicatorInstance {
         const bufferedPrice = price ? applyBuffer(String(price), side, this.bufferPct, this.symbol, this.tier) : null;
 
         const payload = { symbol: this.symbol, side: side.toUpperCase(), quantity: String(qty) };
+        if (options.reduceOnly) payload.reduceOnly = "true";
         if (clientOrderId) payload.newClientOrderId = clientOrderId;
         if (orderType === 'LIMIT') {
             payload.type = 'LIMIT';
@@ -1391,6 +1394,13 @@ class ReplicatorInstance {
             }
             return { success: false, isTerminal: true };
         }
+
+        if (!res.ok && res.data && res.data.code === -2010) {
+            log.warn(this.symbol, `[POSITION-LIMIT] Maker modify hit max position (-2010). Invoking position reduction...`);
+            this.reducePositions().catch(e => log.error(this.symbol, `[REDUCE-POS] Background reduction from modify failed: ${e.message}`));
+            return { success: false, isTerminal: true };
+        }
+
         const isTerminal = res.ok || res.status === 404 || (res.data && [-2011, -2013, -4000].includes(res.data.code));
         
         if (res.ok) {
@@ -1423,6 +1433,7 @@ class ReplicatorInstance {
     }
     async alignLtpToTarget(targetPrice, failedSide = null, errMsg = null) {
         if (this.isAligningLtp) return;
+        if (this.isReducingPositions) return;
         this.isAligningLtp = true;
         try {
             const inst = instrumentsMap[this.tier] && instrumentsMap[this.tier][this.symbol];
@@ -1605,72 +1616,112 @@ class ReplicatorInstance {
     }
 
     async reducePositions() {
-        if (this.isReducingPositions) return;
+        if (this.isReducingPositions) {
+            log.info(this.symbol, `[POSITION-LIMIT] Reduction already in progress. Awaiting existing reduction...`);
+            await this.reductionPromise;
+            return;
+        }
+
         this.isReducingPositions = true;
-        log.warn(this.symbol, `[POSITION-LIMIT] Initiating 50% position reduction for both Maker and Taker...`);
+        this.reductionPromise = (async () => {
+            log.warn(this.symbol, `[POSITION-LIMIT] Initiating position reduction for Maker and Taker...`);
 
-        try {
-            // Cancel all open orders first to free up max position quota
-            log.info(this.symbol, `[REDUCE-POS] Wiping existing open orders before reducing...`);
-            await this.wipeOrders();
+            try {
+                const hpoBase = TIER_URLS[this.tier].HPO;
+                const tierUsers = globalUsers[this.tier] || {};
+                const tierRoles = globalRoles[this.tier] || { makerId: '', takerId: '' };
+                const makerUser = tierUsers[tierRoles.makerId];
+                const takerUser = tierUsers[tierRoles.takerId];
 
-            // Pick a cross price (current testnet LTP or binance LTP)
-            const fallbackPrice = this.testnetDepth.bids.length ? this.testnetDepth.bids[0][0] : (this.binanceDepth.bids.length ? this.binanceDepth.bids[0][0] : null);
-            if (!fallbackPrice) {
-                log.error(this.symbol, `[REDUCE-POS] Cannot determine cross price. Aborting.`);
-                return;
-            }
-            const crossPriceStr = formatPrice(String(fallbackPrice), this.symbol, this.tier);
+                if (!makerUser || !takerUser) {
+                    log.error(this.symbol, `[REDUCE-POS] Maker or Taker credentials not configured. Aborting.`);
+                    return;
+                }
 
-            const hpoBase = TIER_URLS[this.tier].HPO;
-            const reduceUser = async (userCreds, userLabel) => {
-                const posRes = await sendSignedRequest(`${hpoBase}/fapi/v2/positionRisk?symbol=${this.symbol}`, 'GET', null, userCreds);
-                if (!posRes.ok || !posRes.data) return false;
-
-                const positions = Array.isArray(posRes.data) ? posRes.data : [posRes.data];
-                const targetPos = positions.find(p => p.symbol === this.symbol);
-                if (!targetPos) return false;
-
-                const amt = parseFloat(targetPos.positionAmt);
-                if (amt === 0) return true;
-
-                const reduceQtyStr = formatRawQty(Math.abs(amt) * 0.5, this.symbol, this.tier);
-                if (parseFloat(reduceQtyStr) === 0) return true;
-
-                const side = amt > 0 ? 'SELL' : 'BUY';
-                
-                log.info(this.symbol, `[REDUCE-POS] ${userLabel} has ${amt} open position. Placing ${side} LIMIT @ ${crossPriceStr} for ${reduceQtyStr} to reduce by 50%...`);
-                
-                const payload = {
-                    symbol: this.symbol,
-                    side: side,
-                    type: 'LIMIT',
-                    price: crossPriceStr,
-                    quantity: reduceQtyStr,
-                    timeInForce: 'GTC',
-                    reduceOnly: true
+                // Helper to get position info
+                const getPosInfo = async (userCreds) => {
+                    const posRes = await sendSignedRequest(`${hpoBase}/fapi/v2/positionRisk?symbol=${this.symbol}`, 'GET', null, userCreds);
+                    if (!posRes.ok || !posRes.data) return null;
+                    const positions = Array.isArray(posRes.data) ? posRes.data : [posRes.data];
+                    return positions.find(p => p.symbol === this.symbol) || null;
                 };
 
-                const closeRes = await sendSignedRequest(`${hpoBase}/fapi/v1/order`, 'POST', payload, userCreds);
-                if (closeRes.ok) {
-                    log.success(this.symbol, `[REDUCE-POS] ${userLabel} successfully placed reduction LIMIT order.`);
-                    return true;
-                } else {
-                    log.error(this.symbol, `[REDUCE-POS] Failed to reduce ${userLabel} position: ${JSON.stringify(closeRes.data || closeRes.error)}`);
-                    return false;
-                }
-            };
+                // Step 1: Cancel open orders first to release margin and position quota
+                log.info(this.symbol, `[REDUCE-POS] Wiping existing open orders before closing positions...`);
+                await this.wipeOrders();
 
-            const tierUsers = globalUsers[this.tier] || {};
-            const tierRoles = globalRoles[this.tier] || { makerId: '', takerId: '' };
-            await Promise.all([
-                reduceUser(tierUsers[tierRoles.makerId], 'USER1_MAKER'),
-                reduceUser(tierUsers[tierRoles.takerId], 'USER2_TAKER')
-            ]);
-        } catch (err) {
-            log.error(this.symbol, `[REDUCE-POS] Exception during position reduction: ${err.message}`);
+                // Step 2: Check actual position sizes
+                let makerPos = await getPosInfo(makerUser);
+                let takerPos = await getPosInfo(takerUser);
+
+                const makerAmt = makerPos ? parseFloat(makerPos.positionAmt) : 0;
+                const takerAmt = takerPos ? parseFloat(takerPos.positionAmt) : 0;
+
+                log.info(this.symbol, `[REDUCE-POS] Active positions after wipe -> Maker: ${makerAmt}, Taker: ${takerAmt}`);
+
+                if (makerAmt === 0 && takerAmt === 0) {
+                    log.info(this.symbol, `[REDUCE-POS] No open positions to close.`);
+                    return;
+                }
+
+                let placedMaker = false;
+                let placedTaker = false;
+
+                // Step 3: Close positions completely at current market price using reduceOnly MARKET orders
+                if (makerAmt !== 0) {
+                    const makerSide = makerAmt > 0 ? 'SELL' : 'BUY';
+                    const makerQtyStr = formatRawQty(Math.abs(makerAmt), this.symbol, this.tier);
+                    log.info(this.symbol, `[REDUCE-POS] Placing Maker MARKET ${makerSide} for ${makerQtyStr} (reduceOnly)...`);
+                    const makerRes = await this.placeOrder(makerSide, makerQtyStr, null, 'MARKET', false, null, true, { reduceOnly: true });
+                    if (makerRes.success) placedMaker = true;
+                }
+
+                if (takerAmt !== 0) {
+                    const takerSide = takerAmt > 0 ? 'SELL' : 'BUY';
+                    const takerQtyStr = formatRawQty(Math.abs(takerAmt), this.symbol, this.tier);
+                    log.info(this.symbol, `[REDUCE-POS] Placing Taker MARKET ${takerSide} for ${takerQtyStr} (reduceOnly)...`);
+                    const takerRes = await this.placeOrder(takerSide, takerQtyStr, null, 'MARKET', true, null, true, { reduceOnly: true });
+                    if (takerRes.success) placedTaker = true;
+                }
+
+                // Step 4: Verification polling loop
+                if (placedMaker || placedTaker) {
+                    log.info(this.symbol, `[REDUCE-POS] Verification polling started...`);
+                    let success = false;
+                    for (let attempt = 1; attempt <= 10; attempt++) {
+                        await new Promise(r => setTimeout(r, 500));
+                        const mPos = await getPosInfo(makerUser);
+                        const tPos = await getPosInfo(takerUser);
+
+                        const mCur = mPos ? Math.abs(parseFloat(mPos.positionAmt)) : 0;
+                        const tCur = tPos ? Math.abs(parseFloat(tPos.positionAmt)) : 0;
+
+                        // Target is complete closure (0 or negligible amount)
+                        const mClosed = mCur < 0.001;
+                        const tClosed = tCur < 0.001;
+
+                        log.debug(this.symbol, `[REDUCE-POS] Verification attempt ${attempt}/10 -> Maker: ${mCur}, Taker: ${tCur}`);
+
+                        if (mClosed && tClosed) {
+                            success = true;
+                            log.success(this.symbol, `[REDUCE-POS] Verification success! Positions successfully closed.`);
+                            break;
+                        }
+                    }
+                    if (!success) {
+                        log.warn(this.symbol, `[REDUCE-POS] Verification timeout. Resuming trading anyway.`);
+                    }
+                }
+            } catch (err) {
+                log.error(this.symbol, `[REDUCE-POS] Exception during position reduction: ${err.message}`);
+            }
+        })();
+
+        try {
+            await this.reductionPromise;
         } finally {
             this.isReducingPositions = false;
+            this.reductionPromise = null;
         }
     }
 
@@ -1764,6 +1815,7 @@ class ReplicatorInstance {
 
     async syncGrid(side, sourceLevels) {
         if (this.status === 'PAUSED' || this.status === 'STOPPED') return; // Respect pause/stop
+        if (this.isReducingPositions) return;
         const guardKey = 'isSyncing' + side;
         if (this[guardKey]) return;
         this[guardKey] = true;
@@ -2152,6 +2204,7 @@ class ReplicatorInstance {
     async processTradeQueue() {
         if (manualOverride) return;
         if (this.status === 'PAUSED') return; // PAUSED: don't process taker trades
+        if (this.isReducingPositions) return;
         if (this.tradeQueue.length > 50) this.tradeQueue.splice(0, this.tradeQueue.length - 20);
         if (this.isCrossing) return;
         this.isCrossing = true;
