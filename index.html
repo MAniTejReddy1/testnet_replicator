@@ -1634,7 +1634,6 @@
   <div class="splash-dot"></div>
   <div style="color:var(--cyan);font-size:14px;letter-spacing:4px;text-transform:uppercase;font-weight:700;text-shadow: 0 0 15px rgba(6,182,212,0.5);">REPLICATOR UI</div>
   <div style="color:var(--text-muted);font-size:12px;font-family:'JetBrains Mono',monospace;">Establishing secure SSE stream...</div>
-  <div id="splash-status" style="color:#64748b;font-size:10px;font-family:'JetBrains Mono',monospace;margin-top:10px;text-align:center;max-width:80%;word-break:break-all;">Loading assets...</div>
 </div>
 <div id="err-splash"></div>
 
@@ -2668,60 +2667,6 @@
 </div>
 
 <script>
-// Setup on-screen debug log viewer
-const debugLogs = [];
-const origLog = console.log;
-const origError = console.error;
-const origWarn = console.warn;
-
-function showOnScreenLog(type, args) {
-    const msg = Array.from(args).map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
-    debugLogs.push(`[${type}] ${msg}`);
-    
-    let container = document.getElementById('debug-console-log');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'debug-console-log';
-        container.style.position = 'fixed';
-        container.style.bottom = '10px';
-        container.style.left = '10px';
-        container.style.right = '10px';
-        container.style.height = '180px';
-        container.style.background = 'rgba(0,0,0,0.9)';
-        container.style.border = '1px solid #10b981';
-        container.style.borderRadius = '6px';
-        container.style.color = '#34d399';
-        container.style.fontFamily = 'monospace';
-        container.style.fontSize = '10px';
-        container.style.padding = '8px';
-        container.style.overflowY = 'auto';
-        container.style.zIndex = '99999';
-        container.style.whiteSpace = 'pre-wrap';
-        document.body.appendChild(container);
-    }
-    container.textContent = debugLogs.join('\n');
-    container.scrollTop = container.scrollHeight;
-}
-
-console.log = function() {
-    origLog.apply(console, arguments);
-    showOnScreenLog('LOG', arguments);
-};
-console.error = function() {
-    origError.apply(console, arguments);
-    showOnScreenLog('ERR', arguments);
-};
-console.warn = function() {
-    origWarn.apply(console, arguments);
-    showOnScreenLog('WARN', arguments);
-};
-
-window.addEventListener('error', function(e) {
-    showOnScreenLog('UNCAUGHT-ERR', [e.message, 'at', e.filename, ':', e.lineno]);
-});
-window.addEventListener('unhandledrejection', function(e) {
-    showOnScreenLog('UNHANDLED-REJ', [e.reason]);
-});
 
 const pathParts = window.location.pathname.split('/');
 const replicatorPart = pathParts.find(p => p.startsWith('replicator-'));
@@ -2761,8 +2706,6 @@ window.fetch = function(input, init) {
 
 window.updateSplash = function(msg) {
     console.log("[Splash Status]:", msg);
-    const el = document.getElementById('splash-status');
-    if (el) el.textContent = msg;
 };
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -6967,6 +6910,7 @@ window.addEventListener('DOMContentLoaded', () => {
         };
 
         let seamAnimId = null;
+        let canvasAnimId = null;
         let tickerIntervalId = null;
         let bookDriftIntervalId = null;
         let syncIntervalId = null;
@@ -7646,7 +7590,7 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         };
 
-        const ENABLE_AUTH = false;
+        const ENABLE_AUTH = true;
 
         window.checkAuthSession = async function() {
             if (!ENABLE_AUTH) {

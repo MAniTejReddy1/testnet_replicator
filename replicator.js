@@ -3171,7 +3171,7 @@ function getSessionSid(req) {
     return null;
 }
 
-const ENABLE_AUTH = false;
+const ENABLE_AUTH = true;
 
 function getSessionUser(req) {
     if (!ENABLE_AUTH) {
