@@ -897,7 +897,9 @@
 
 <!-- Auth Landing Page Overlay -->
 <div id="auth-overlay" style="display:none;">
-  <div class="auth-card">
+  <!-- Animated Particles Background Canvas -->
+  <canvas id="auth-bg-canvas" style="position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:1; opacity:0.6;"></canvas>
+  <div class="auth-card" style="z-index:2; position:relative;">
     <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
       <div style="font-size:24px; color:var(--cyan); text-shadow:0 0 15px rgba(6,182,212,0.4);">📊</div>
       <h2 style="font-size:18px; font-weight:700; color:var(--text-main); letter-spacing:1px; background:var(--title-grad); -webkit-background-clip:text; -webkit-text-fill-color:transparent; text-align:center;">REPLICATOR PORTAL</h2>
@@ -6097,7 +6099,6 @@ window.addEventListener('DOMContentLoaded', () => {
                     const data = await res.json();
                     if (res.ok && data.success) {
                         window.showFlushbar(`Onboarding success! Created testnet user account. Logged in automatically!`, 'success');
-                        // Log them in automatically with the returned creds
                         const loginRes = await fetch(window.getApiUrl('/api/auth/login'), {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -6108,6 +6109,7 @@ window.addEventListener('DOMContentLoaded', () => {
                             document.getElementById('auth-overlay').style.opacity = '0';
                             setTimeout(() => {
                                 document.getElementById('auth-overlay').style.display = 'none';
+                                window.stopAuthCanvasAnimation();
                                 window.initializeTerminalAfterAuth();
                             }, 500);
                         } else {
@@ -6140,6 +6142,119 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         };
 
+        // ----------------------------------------------------
+        // Animated Canvas Background Logic
+        // ----------------------------------------------------
+        let canvasAnimId = null;
+        window.startAuthCanvasAnimation = function() {
+            const canvas = document.getElementById('auth-bg-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+
+            // Handle Resize
+            const resize = () => {
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+            };
+            window.addEventListener('resize', resize);
+            resize();
+
+            // Particles Array
+            const particles = [];
+            const particleCount = 65;
+            const maxDistance = 120;
+
+            // Initialize Particles
+            for (let i = 0; i < particleCount; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    vx: (Math.random() - 0.5) * 0.8,
+                    vy: (Math.random() - 0.5) * 0.8,
+                    radius: Math.random() * 2 + 1,
+                    color: Math.random() > 0.5 ? 'rgba(6, 182, 212, 0.4)' : 'rgba(168, 85, 247, 0.4)'
+                });
+            }
+
+            // Mouse Interactive Coordinates
+            let mouse = { x: null, y: null };
+            const parent = document.getElementById('auth-overlay');
+            if (parent) {
+                parent.addEventListener('mousemove', (e) => {
+                    mouse.x = e.clientX;
+                    mouse.y = e.clientY;
+                });
+                parent.addEventListener('mouseleave', () => {
+                    mouse.x = null;
+                    mouse.y = null;
+                });
+            }
+
+            // Render loop
+            const loop = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Draw and Update Particles
+                for (let i = 0; i < particles.length; i++) {
+                    const p = particles[i];
+                    p.x += p.vx;
+                    p.y += p.vy;
+
+                    // Bounce Walls
+                    if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+                    if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+
+                    // Draw Node
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = p.color;
+                    ctx.fill();
+
+                    // Mouse Interaction
+                    if (mouse.x !== null && mouse.y !== null) {
+                        const dx = mouse.x - p.x;
+                        const dy = mouse.y - p.y;
+                        const dist = Math.hypot(dx, dy);
+                        if (dist < 180) {
+                            // Attract slightly
+                            p.x += dx * 0.005;
+                            p.y += dy * 0.005;
+                        }
+                    }
+
+                    // Links lines between nodes
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const p2 = particles[j];
+                        const dx = p.x - p2.x;
+                        const dy = p.y - p2.y;
+                        const dist = Math.hypot(dx, dy);
+
+                        if (dist < maxDistance) {
+                            const alpha = (1 - (dist / maxDistance)) * 0.15;
+                            ctx.beginPath();
+                            ctx.moveTo(p.x, p.y);
+                            ctx.lineTo(p2.x, p2.y);
+                            ctx.strokeStyle = `rgba(34, 211, 238, ${alpha})`;
+                            ctx.lineWidth = 0.8;
+                            ctx.stroke();
+                        }
+                    }
+                }
+
+                canvasAnimId = requestAnimationFrame(loop);
+            };
+
+            loop();
+        };
+
+        window.stopAuthCanvasAnimation = function() {
+            if (canvasAnimId) {
+                cancelAnimationFrame(canvasAnimId);
+                canvasAnimId = null;
+            }
+        };
+
         window.checkAuthSession = async function() {
             try {
                 const res = await fetch(window.getApiUrl('/api/auth/session'));
@@ -6147,6 +6262,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     const data = await res.json();
                     if (data.authenticated) {
                         document.getElementById('auth-overlay').style.display = 'none';
+                        window.stopAuthCanvasAnimation();
                         window.initializeTerminalAfterAuth();
                         // Hide splash immediately since we are logged in
                         const sp = document.getElementById('splash');
