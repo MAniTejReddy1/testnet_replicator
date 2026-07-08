@@ -16,6 +16,8 @@ const AbortController = require('abort-controller');
 const fetch = require('node-fetch');
 const ScenarioEngine = require('./scenarioEngine');
 const PriceTransformer = require('./priceTransformer');
+const { OrderStateStore } = require('./state');
+const stateDiffer = require('./stateDiffer');
 
 // ==========================================
 // Reporter / Event Bus Setup
@@ -1960,95 +1962,141 @@ class ReplicatorInstance {
         });
 
         const activePool = [];
-        const modifyBatch = [];
-        const placeBatch = [];
-        const cancelBatch = [];
+        const modifyTasks = [];
+        const placeTasks = [];
+        const cancelTasks = [];
 
-        const maxLevels = Math.max(targets.length, restingOrders.length);
-        for (let i = 0; i < maxLevels; i++) {
-            const target = targets[i];
-            const resting = restingOrders[i];
+        // Key-based diffing using stateDiffer
+        const store = new OrderStateStore(side);
+        for (const order of restingOrders) {
+            if (order && order.price) {
+                store.set(order.price, order);
+            }
+        }
 
-            if (target && resting) {
-                const orderStatus = (resting.status || 'NEW').toUpperCase();
-                
-                if (this.priceLocks.has(target.price) || this.inFlightEdits.has(resting.orderId)) {
-                    activePool.push(resting);
-                    continue;
+        const targetLevels = targets.map(t => ({
+            level: t.price,
+            qty: t.qty,
+            rawPrice: t.rawPrice
+        }));
+
+        const { toPlace, toModify, toCancel } = stateDiffer.diff(targetLevels, store, this.qtyChangeTolerance);
+
+        // Keep target levels that exist and don't need changes
+        const placedOrModifiedKeys = new Set([
+            ...toPlace.map(p => p.level),
+            ...toModify.map(m => m.level)
+        ]);
+
+        for (const target of targets) {
+            if (!placedOrModifiedKeys.has(target.price)) {
+                const existing = store.get(target.price);
+                if (existing) {
+                    activePool.push(existing);
                 }
+            }
+        }
 
-                if (orderStatus === 'PARTIALLY_FILLED') {
-                    activePool.push(resting);
-                    continue;
+        // 1. Prepare Place Tasks
+        for (const target of toPlace) {
+            if (this.priceLocks.has(target.level)) continue;
+            placeTasks.push(async () => {
+                const r = await this.placeOrder(side, target.qty, target.rawPrice, 'LIMIT');
+                if (r.success) {
+                    activePool.push({
+                        orderId: r.orderId,
+                        price: target.level,
+                        qty: target.qty,
+                        status: 'NEW',
+                        createdAt: Date.now()
+                    });
                 }
+            });
+        }
 
-                const priceDiff = Math.abs(parseFloat(resting.price) - parseFloat(target.price));
-                const qtyDiffPct = Math.abs(parseFloat(resting.qty) - parseFloat(target.qty)) / parseFloat(resting.qty);
-
-                if (priceDiff > 0.00001 || qtyDiffPct > this.qtyChangeTolerance) {
-                    this.inFlightEdits.add(resting.orderId);
-                    modifyBatch.push((async () => {
-                        const result = await this.modifyMaker(resting.orderId, side, target.rawPrice, target.qty);
-                        this.inFlightEdits.delete(resting.orderId);
-                        if (result.success) {
-                            resting.price = target.price;
-                            resting.qty = target.qty;
-                            resting.status = 'NEW';
-                            resting.createdAt = Date.now();
-                            activePool.push(resting);
-                        } else {
-                            if (!result.isTerminal) activePool.push(resting);
-                            const r = await this.placeOrder(side, target.qty, target.rawPrice, 'LIMIT');
-                            if (r.success) {
-                                activePool.push({
-                                    orderId: r.orderId,
-                                    price: target.price,
-                                    qty: target.qty,
-                                    status: 'NEW',
-                                    createdAt: Date.now()
-                                });
-                            }
-                        }
-                    })());
+        // 2. Prepare Modify Tasks
+        for (const target of toModify) {
+            const existing = store.get(target.level);
+            if (this.priceLocks.has(target.level) || this.inFlightEdits.has(target.orderId)) {
+                if (existing) activePool.push(existing);
+                continue;
+            }
+            modifyTasks.push(async () => {
+                this.inFlightEdits.add(target.orderId);
+                const result = await this.modifyMaker(target.orderId, side, target.rawPrice, target.qty);
+                this.inFlightEdits.delete(target.orderId);
+                if (result.success) {
+                    activePool.push({
+                        orderId: target.orderId,
+                        price: target.level,
+                        qty: target.qty,
+                        status: 'NEW',
+                        createdAt: Date.now()
+                    });
                 } else {
-                    activePool.push(resting);
-                }
-            } else if (target) {
-                if (this.priceLocks.has(target.price)) continue;
-                
-                placeBatch.push((async () => {
+                    // Place replacement order on modify failure
                     const r = await this.placeOrder(side, target.qty, target.rawPrice, 'LIMIT');
                     if (r.success) {
                         activePool.push({
                             orderId: r.orderId,
-                            price: target.price,
+                            price: target.level,
                             qty: target.qty,
                             status: 'NEW',
                             createdAt: Date.now()
                         });
                     }
-                })());
-            } else if (resting) {
-                const orderStatus = (resting.status || 'NEW').toUpperCase();
-                if (this.inFlightEdits.has(resting.orderId) || !tradeSync || orderStatus === 'PARTIALLY_FILLED' || this.tradeSyncMakerOrders.has(resting.orderId)) {
-                    activePool.push(resting);
-                } else {
-                    this.inFlightEdits.add(resting.orderId);
-                    cancelBatch.push(this.cancelOrder(resting.orderId).finally(() => this.inFlightEdits.delete(resting.orderId)));
                 }
+            });
+        }
+
+        // 3. Prepare Cancel Tasks (Only run cancel on excess if tradeSync is enabled)
+        if (tradeSync) {
+            for (const cancel of toCancel) {
+                if (this.inFlightEdits.has(cancel.orderId) || this.tradeSyncMakerOrders.has(cancel.orderId)) {
+                    const existing = store.get(cancel.level);
+                    if (existing) activePool.push(existing);
+                    continue;
+                }
+                cancelTasks.push(async () => {
+                    this.inFlightEdits.add(cancel.orderId);
+                    await this.cancelOrder(cancel.orderId).finally(() => this.inFlightEdits.delete(cancel.orderId));
+                });
+            }
+        } else {
+            // Keep everything that would have been cancelled if tradeSync is off
+            for (const cancel of toCancel) {
+                const existing = store.get(cancel.level);
+                if (existing) activePool.push(existing);
             }
         }
 
-        // Place-Before-Cancel: Place and modify new orders first
-        await Promise.allSettled([...modifyBatch, ...placeBatch]);
-        
-        // Cancel excess orders in the background so book is never flat or empty
-        if (cancelBatch.length > 0) {
-            Promise.allSettled(cancelBatch).catch(err => {
-                log.debug && log.debug(this.symbol, 'Background excess cancel failed: ' + err.message);
+        // Concurrency limit helper
+        const limitConcurrency = async (concurrency, tasks) => {
+            const results = [];
+            const executing = new Set();
+            for (const task of tasks) {
+                const p = Promise.resolve().then(() => task());
+                results.push(p);
+                executing.add(p);
+                const clean = () => executing.delete(p);
+                p.then(clean, clean);
+                if (executing.size >= concurrency) {
+                    await Promise.race(executing);
+                }
+            }
+            return Promise.allSettled(results);
+        };
+
+        // Fire modifies and placements concurrently (limited to 5 parallel ops to avoid HTTP rate limits)
+        await limitConcurrency(5, [...modifyTasks, ...placeTasks]);
+
+        // Fire cancels in background
+        if (cancelTasks.length > 0) {
+            limitConcurrency(5, cancelTasks).catch(err => {
+                log.debug && log.debug(this.symbol, 'Background concurrent cancel failed: ' + err.message);
             });
         }
-        
+
         if (isBuy) this.restingBids = activePool; else this.restingAsks = activePool;
     } finally { this[guardKey] = false; }
 }
