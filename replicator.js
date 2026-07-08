@@ -1781,36 +1781,42 @@ class ReplicatorInstance {
                     }
                 }
 
-                // Step 4: Verification polling loop
+                // Release the guard here so syncGrid can resume replication immediately
+                this.isReducingPositions = false;
+
+                // Step 4: Verification polling loop (runs asynchronously in background)
                 if (placedMaker || placedTaker) {
-                    log.info(this.symbol, `[REDUCE-POS] Verification polling started...`);
-                    let success = false;
-                    for (let attempt = 1; attempt <= 10; attempt++) {
-                        await new Promise(r => setTimeout(r, 500));
-                        const mPos = await getPosInfo(makerUser);
-                        const tPos = await getPosInfo(takerUser);
+                    (async () => {
+                        log.info(this.symbol, `[REDUCE-POS] Verification polling started in background...`);
+                        let success = false;
+                        for (let attempt = 1; attempt <= 10; attempt++) {
+                            await new Promise(r => setTimeout(r, 500));
+                            const mPos = await getPosInfo(makerUser);
+                            const tPos = await getPosInfo(takerUser);
 
-                        const mCur = mPos ? Math.abs(parseFloat(mPos.positionAmt)) : 0;
-                        const tCur = tPos ? Math.abs(parseFloat(tPos.positionAmt)) : 0;
+                            const mCur = mPos ? Math.abs(parseFloat(mPos.positionAmt)) : 0;
+                            const tCur = tPos ? Math.abs(parseFloat(tPos.positionAmt)) : 0;
 
-                        // Target is complete closure (0 or negligible amount)
-                        const mClosed = mCur < 0.001;
-                        const tClosed = tCur < 0.001;
+                            // Target is complete closure (0 or negligible amount)
+                            const mClosed = mCur < 0.001;
+                            const tClosed = tCur < 0.001;
 
-                        log.debug(this.symbol, `[REDUCE-POS] Verification attempt ${attempt}/10 -> Maker: ${mCur}, Taker: ${tCur}`);
+                            log.debug(this.symbol, `[REDUCE-POS] Verification attempt ${attempt}/10 -> Maker: ${mCur}, Taker: ${tCur}`);
 
-                        if (mClosed && tClosed) {
-                            success = true;
-                            log.success(this.symbol, `[REDUCE-POS] Verification success! Positions successfully closed.`);
-                            break;
+                            if (mClosed && tClosed) {
+                                success = true;
+                                log.success(this.symbol, `[REDUCE-POS] Verification success! Positions successfully closed.`);
+                                break;
+                            }
                         }
-                    }
-                    if (!success) {
-                        log.warn(this.symbol, `[REDUCE-POS] Verification timeout. Resuming trading anyway.`);
-                    }
+                        if (!success) {
+                            log.warn(this.symbol, `[REDUCE-POS] Verification timeout.`);
+                        }
+                    })().catch(e => log.error(this.symbol, `[REDUCE-POS] Background verification failed: ${e.message}`));
                 }
             } catch (err) {
                 log.error(this.symbol, `[REDUCE-POS] Exception during position reduction: ${err.message}`);
+                this.isReducingPositions = false;
             }
         })();
 
