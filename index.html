@@ -7007,7 +7007,7 @@ window.addEventListener('DOMContentLoaded', () => {
                         const chartYBase = canvas.height * 0.95; // Bottom anchor baseline
                         const chartHeight = canvas.height * 0.85; // Stretch amplitude limits
 
-                        if (Date.now() - lastChartUpdate > 180) {
+                        if (Date.now() - lastChartUpdate > 500) {
                             lastChartUpdate = Date.now();
                             
                             // Switch market regimes every 10 seconds
@@ -7504,9 +7504,9 @@ window.addEventListener('DOMContentLoaded', () => {
                 };
                 window._runSimStep = updateSimulation;
 
-                // Run immediately and start high-frequency updates (every 100ms)
+                // Run immediately and start high-frequency updates (every 500ms)
                 updateSimulation();
-                bookDriftIntervalId = setInterval(updateSimulation, 100);
+                bookDriftIntervalId = setInterval(updateSimulation, 500);
 
                 // 5. Simulated Staging Sync Telemetry stream
                 const syncList = document.getElementById('syncList');
