@@ -173,6 +173,10 @@
   .d-bar { position: absolute; top:2px; bottom:2px; opacity:0.9; pointer-events:none; transition: width 0.35s cubic-bezier(0.25, 0.8, 0.25, 1); }
   .d-bar-r { right:0; left:auto; border-radius: 4px 0 0 4px; background: linear-gradient(to left, rgba(244, 63, 94, 0.24) 0%, rgba(244, 63, 94, 0.02) 100%); border-right: 2.5px solid rgba(244, 63, 94, 0.6); }
   .d-bar-l { left:0; right:auto; border-radius: 0 4px 4px 0; background: linear-gradient(to right, rgba(16, 185, 129, 0.24) 0%, rgba(16, 185, 129, 0.02) 100%); border-left: 2.5px solid rgba(16, 185, 129, 0.6); }
+  @keyframes wallShimmer { 0%, 100% { filter: drop-shadow(0 0 1px rgba(244,63,94,0.4)); opacity: 0.85; } 50% { filter: drop-shadow(0 0 5px rgba(244,63,94,0.85)); opacity: 1; } }
+  @keyframes wallShimmerBid { 0%, 100% { filter: drop-shadow(0 0 1px rgba(16,185,129,0.4)); opacity: 0.85; } 50% { filter: drop-shadow(0 0 5px rgba(16,185,129,0.85)); opacity: 1; } }
+  .d-bar-r.d-bar-wall { animation: wallShimmer 2.2s infinite ease-in-out; }
+  .d-bar-l.d-bar-wall { animation: wallShimmerBid 2.2s infinite ease-in-out; }
   .d-spread { flex-shrink:0; text-align:center; padding:6px 0; font-size:11px; color:var(--text-muted); border-top:1px solid var(--border); border-bottom:1px solid var(--border); margin:4px 0; letter-spacing:1px; background:var(--input-bg); }
   
   /* Flashes */
@@ -4465,7 +4469,24 @@ window.addEventListener('DOMContentLoaded', () => {
 
                 if (showBars) {
                     barDiv.style.display = 'block';
-                    barDiv.className = `d-bar d-bar-${isAsk ? 'r' : 'l'}`;
+                    
+                    const ratio = parseFloat(r[1]) / maxQ;
+                    const bgAlpha = (0.05 + ratio * 0.28).toFixed(3);
+                    const borderAlpha = (0.3 + ratio * 0.6).toFixed(3);
+                    const borderWidth = (1.5 + ratio * 2.5).toFixed(1);
+
+                    if (isAsk) {
+                        barDiv.style.background = `linear-gradient(to left, rgba(244, 63, 94, ${bgAlpha}) 0%, rgba(244, 63, 94, 0.02) 100%)`;
+                        barDiv.style.borderRight = `${borderWidth}px solid rgba(244, 63, 94, ${borderAlpha})`;
+                        barDiv.style.borderLeft = 'none';
+                    } else {
+                        barDiv.style.background = `linear-gradient(to right, rgba(16, 185, 129, ${bgAlpha}) 0%, rgba(16, 185, 129, 0.02) 100%)`;
+                        barDiv.style.borderLeft = `${borderWidth}px solid rgba(16, 185, 129, ${borderAlpha})`;
+                        barDiv.style.borderRight = 'none';
+                    }
+
+                    barDiv.className = `d-bar d-bar-${isAsk ? 'r' : 'l'}` + (ratio >= 0.70 ? ' d-bar-wall' : '');
+
                     // Set width asynchronously to ensure browser registers initial render for width transition
                     requestAnimationFrame(() => {
                         barDiv.style.width = `${pct}%`;
