@@ -169,9 +169,10 @@
   /* Data Rows */
   .d-row { display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; padding: 3px 12px; position: relative; border-radius: 4px; cursor: default; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
   .d-row:hover { background:var(--hover-bg); }
-  .d-bar { position: absolute; top:0; bottom:0; opacity:0.15; pointer-events:none; transition: width .22s ease; }
-  .d-bar-r { right:0; left:auto; border-radius: 4px 0 0 4px; }
-  .d-bar-l { left:0; right:auto; border-radius: 0 4px 4px 0; }
+  .d-row span { position: relative; z-index: 2; }
+  .d-bar { position: absolute; top:2px; bottom:2px; opacity:0.9; pointer-events:none; transition: width 0.35s cubic-bezier(0.25, 0.8, 0.25, 1); }
+  .d-bar-r { right:0; left:auto; border-radius: 4px 0 0 4px; background: linear-gradient(to left, rgba(244, 63, 94, 0.24) 0%, rgba(244, 63, 94, 0.02) 100%); border-right: 2.5px solid rgba(244, 63, 94, 0.6); }
+  .d-bar-l { left:0; right:auto; border-radius: 0 4px 4px 0; background: linear-gradient(to right, rgba(16, 185, 129, 0.24) 0%, rgba(16, 185, 129, 0.02) 100%); border-left: 2.5px solid rgba(16, 185, 129, 0.6); }
   .d-spread { flex-shrink:0; text-align:center; padding:6px 0; font-size:11px; color:var(--text-muted); border-top:1px solid var(--border); border-bottom:1px solid var(--border); margin:4px 0; letter-spacing:1px; background:var(--input-bg); }
   
   /* Flashes */
@@ -179,6 +180,10 @@
   @keyframes fR { 50% { color: #f43f5e; text-shadow: 0 0 8px rgba(244,63,94,0.5); } }
   .fl-g { animation: fG .35s ease; }
   .fl-r { animation: fR .35s ease; }
+  @keyframes flashRowUp { 0% { background: rgba(16, 185, 129, 0.22); } 100% { background: transparent; } }
+  @keyframes flashRowDown { 0% { background: rgba(244, 63, 94, 0.22); } 100% { background: transparent; } }
+  .flash-row-up { animation: flashRowUp 0.4s ease-out; }
+  .flash-row-down { animation: flashRowDown 0.4s ease-out; }
   @keyframes slideIn { from { opacity:0; transform:translateX(8px); } to { opacity:1; transform:none; } }
 
   /* Scenario running animations */
@@ -4387,22 +4392,96 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        function updateOrderBookSide(containerEl, levels, side, maxQ) {
+            if (!levels || !levels.length) {
+                containerEl.innerHTML = `<div style="text-align:center;padding:24px 0;color:var(--text-muted);font-size:11px;font-family:'Inter',sans-serif;">No ${side}s</div>`;
+                return;
+            }
+
+            const isAsk = side === 'ask';
+            if (containerEl.querySelector('div:not(.d-row)')) {
+                containerEl.innerHTML = '';
+            }
+
+            const targetCount = levels.length;
+
+            while (containerEl.children.length < targetCount) {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'd-row';
+                rowDiv.innerHTML = `
+                    <span style="font-weight:600;"></span>
+                    <span style="text-align:center;"></span>
+                    <span style="text-align:right;"></span>
+                    <div class="d-bar"></div>
+                `;
+                containerEl.appendChild(rowDiv);
+            }
+            while (containerEl.children.length > targetCount) {
+                containerEl.removeChild(containerEl.lastChild);
+            }
+
+            const col = isAsk ? 'var(--ask)' : 'var(--bid)';
+
+            for (let i = 0; i < targetCount; i++) {
+                const r = levels[i];
+                const rowDiv = containerEl.children[i];
+
+                const priceSpan = rowDiv.children[0];
+                const sizeSpan = rowDiv.children[1];
+                const totalSpan = rowDiv.children[2];
+                const barDiv = rowDiv.children[3];
+
+                const priceStr = fmt(r[0], pPrec);
+                const sizeStr = fmt(r[1], qPrec);
+                const total = (parseFloat(r[0]) * parseFloat(r[1])).toFixed(0);
+                const totalStr = fmtK(total);
+                const pct = Math.min(100, (parseFloat(r[1]) / maxQ) * 100).toFixed(1);
+
+                if (priceSpan.textContent !== priceStr) {
+                    priceSpan.textContent = priceStr;
+                    priceSpan.style.color = col;
+                }
+
+                if (sizeSpan.textContent !== sizeStr) {
+                    if (showFlash && sizeSpan.textContent !== '') {
+                        const oldVal = parseFloat(sizeSpan.textContent || 0);
+                        const newVal = parseFloat(sizeStr);
+                        if (newVal > oldVal) {
+                            rowDiv.classList.add('flash-row-up');
+                            setTimeout(() => rowDiv.classList.remove('flash-row-up'), 400);
+                        } else if (newVal < oldVal) {
+                            rowDiv.classList.add('flash-row-down');
+                            setTimeout(() => rowDiv.classList.remove('flash-row-down'), 400);
+                        }
+                    }
+                    sizeSpan.textContent = sizeStr;
+                    sizeSpan.style.color = 'var(--text-muted)';
+                }
+
+                if (totalSpan.textContent !== totalStr) {
+                    totalSpan.textContent = totalStr;
+                    totalSpan.style.color = '#64748b';
+                }
+
+                if (showBars) {
+                    barDiv.style.display = 'block';
+                    barDiv.className = `d-bar d-bar-${isAsk ? 'r' : 'l'}`;
+                    // Set width asynchronously to ensure browser registers initial render for width transition
+                    requestAnimationFrame(() => {
+                        barDiv.style.width = `${pct}%`;
+                    });
+                } else {
+                    barDiv.style.display = 'none';
+                }
+            }
+        }
+
         function renderBook(askEl, bidEl, spreadBadgeEl, spreadMidEl, asks, bids) {
             const maxAskQty = (asks||[]).reduce((m,r) => Math.max(m,parseFloat(r[1])), 0.0001);
             const maxBidQty = (bids||[]).reduce((m,r) => Math.max(m,parseFloat(r[1])), 0.0001);
 
-            function row(r, side, maxQ) {
-                const pct = Math.min(100,(parseFloat(r[1])/maxQ)*100).toFixed(1);
-                const isAsk = side === 'ask';
-                const barCol = isAsk ? 'rgba(244,63,94,0.2)' : 'rgba(16,185,129,0.2)';
-                const col = isAsk ? 'var(--ask)' : 'var(--bid)';
-                const total = (parseFloat(r[0]) * parseFloat(r[1])).toFixed(0);
-                const barHtml = showBars ? '<div class="d-bar d-bar-'+(isAsk?'r':'l')+'" style="background:'+barCol+';width:'+pct+'%"></div>' : '';
-                return '<div class="d-row"><span style="color:'+col+';font-weight:600;">'+fmt(r[0],pPrec)+'</span><span style="text-align:center;color:var(--text-muted);">'+fmt(r[1],qPrec)+'</span><span style="text-align:right;color:#64748b;">'+fmtK(total)+'</span>'+barHtml+'</div>';
-            }
-
-            askEl.innerHTML = asks && asks.length ? asks.map(r => row(r,'ask',maxAskQty)).join('') : '<div style="text-align:center;padding:24px 0;color:var(--text-muted);font-size:11px;font-family:\'Inter\',sans-serif;">No asks</div>';
-            bidEl.innerHTML = bids && bids.length ? bids.map(r => row(r,'bid',maxBidQty)).join('') : '<div style="text-align:center;padding:24px 0;color:var(--text-muted);font-size:11px;font-family:\'Inter\',sans-serif;">No bids</div>';
+            updateOrderBookSide(askEl, asks, 'ask', maxAskQty);
+            updateOrderBookSide(bidEl, bids, 'bid', maxBidQty);
 
             if (asks && asks[0] && bids && bids[0]) {
                 const bestAsk = parseFloat(asks[0][0]);
