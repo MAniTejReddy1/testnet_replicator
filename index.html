@@ -514,8 +514,9 @@
     grid-template-rows: 1fr 1fr;
     gap: 14px;
     margin-top: 14px;
-    height: 60%;
-    min-height: 0;
+    height: 60vh;
+    min-height: 520px;
+    max-height: 580px;
     flex-shrink: 0;
   }
   .book-wrap {
@@ -7198,16 +7199,17 @@ window.addEventListener('DOMContentLoaded', () => {
                     const askPrices = [];
 
                     for (let i = 0; i < 10; i++) {
-                        const bidP = currentPrice - (i + 1) * 0.85;
-                        const askP = currentPrice + (i + 1) * 0.85;
+                        const bidP = currentPrice - (i + 1) * 0.75;
+                        const askP = currentPrice + (i + 1) * 0.75;
                         bidPrices.push(bidP);
                         askPrices.push(askP);
 
                         const bidPhase = t * Math.PI * 2 - i * 0.45;
                         const askPhase = t * Math.PI * 2 + i * 0.45;
                         
-                        const bSize = 0.15 + Math.abs(Math.sin(bidPhase * 1.3)) * 1.85;
-                        const aSize = 0.15 + Math.abs(Math.cos(askPhase * 1.3)) * 1.85;
+                        // Generate clean integer-like sizes (e.g. multiples of 50 or 100)
+                        const bSize = Math.floor(2 + Math.abs(Math.sin(bidPhase * 1.4)) * 18) * 50;
+                        const aSize = Math.floor(2 + Math.abs(Math.cos(askPhase * 1.4)) * 18) * 50;
                         
                         bidSizes.push(bSize);
                         askSizes.push(aSize);
@@ -7225,18 +7227,18 @@ window.addEventListener('DOMContentLoaded', () => {
                     rowsList.forEach((r, i) => {
                         // Bid updates (price decreasing from center)
                         r.bidPrice.textContent = bidPrices[i].toFixed(2);
-                        r.bidQty.textContent = bidSizes[i].toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 });
-                        const bidWidth = (bidCumList[i] / maxCumBid * 90); // Scale to max 90%
+                        r.bidQty.textContent = bidSizes[i].toLocaleString();
+                        const bidWidth = (bidCumList[i] / maxCumBid * 88); // Scale to max 88%
                         r.bidBar.style.width = bidWidth.toFixed(1) + '%';
 
                         // Ask updates (price increasing from center)
                         r.askPrice.textContent = askPrices[i].toFixed(2);
-                        r.askQty.textContent = askSizes[i].toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 });
-                        const askWidth = (askCumList[i] / maxCumAsk * 90); // Scale to max 90%
+                        r.askQty.textContent = askSizes[i].toLocaleString();
+                        const askWidth = (askCumList[i] / maxCumAsk * 88); // Scale to max 88%
                         r.askBar.style.width = askWidth.toFixed(1) + '%';
                     });
 
-                    // Draw dynamic cumulative depth curve canvas
+                    // Draw dynamic cumulative depth curve canvas (Staircase Chart)
                     if (depthCanvas) {
                         const dctx = depthCanvas.getContext('2d');
                         if (dctx) {
@@ -7250,51 +7252,91 @@ window.addEventListener('DOMContentLoaded', () => {
                             dctx.clearRect(0, 0, dw, dh);
 
                             const midX = dw / 2;
+                            const spreadGap = 16; // Center spread blank gap
 
-                            // 1. Draw Bid Line & Area Fill (Left side)
+                            // 1. Draw Bid Line & Area Fill (Left side staircase)
                             dctx.beginPath();
-                            // Start at left-most index 9
-                            dctx.moveTo(0, dh - (bidCumList[9] / maxCumBid * (dh * 0.72)) - (dh * 0.1));
+                            const bidXLimit = midX - spreadGap;
+                            
+                            // Plot staircase steps
+                            let prevY = dh - (bidCumList[9] / maxCumBid * (dh * 0.7)) - (dh * 0.1);
+                            dctx.moveTo(0, prevY);
+                            
                             for (let i = 9; i >= 0; i--) {
-                                const cx = (9 - i) / 9 * midX;
-                                const cy = dh - (bidCumList[i] / maxCumBid * (dh * 0.72)) - (dh * 0.1);
-                                dctx.lineTo(cx, cy);
+                                const cx = (9 - i) / 9 * bidXLimit;
+                                const cy = dh - (bidCumList[i] / maxCumBid * (dh * 0.7)) - (dh * 0.1);
+                                dctx.lineTo(cx, prevY); // horizontal line to new X
+                                dctx.lineTo(cx, cy);    // vertical step to new Y
+                                prevY = cy;
                             }
-                            // Connect to center spread
-                            dctx.lineTo(midX, dh * 0.88);
-                            dctx.strokeStyle = '#00E676';
-                            dctx.lineWidth = 1.8;
-                            dctx.stroke();
-
-                            dctx.lineTo(midX, dh);
+                            
+                            // Complete the bid shape to center bottom
+                            dctx.lineTo(bidXLimit, dh);
                             dctx.lineTo(0, dh);
                             dctx.closePath();
+                            
                             const bidGrad = dctx.createLinearGradient(0, 0, 0, dh);
                             bidGrad.addColorStop(0, 'rgba(0, 230, 118, 0.15)');
                             bidGrad.addColorStop(1, 'rgba(0, 230, 118, 0)');
                             dctx.fillStyle = bidGrad;
                             dctx.fill();
-
-                            // 2. Draw Ask Line & Area Fill (Right side)
+                            
+                            // Re-draw Bid stroke line to avoid closing line artifact
                             dctx.beginPath();
-                            dctx.moveTo(midX, dh * 0.88);
-                            for (let i = 0; i < 10; i++) {
-                                const cx = midX + (i / 9) * (dw - midX);
-                                const cy = dh - (askCumList[i] / maxCumAsk * (dh * 0.72)) - (dh * 0.1);
+                            prevY = dh - (bidCumList[9] / maxCumBid * (dh * 0.7)) - (dh * 0.1);
+                            dctx.moveTo(0, prevY);
+                            for (let i = 9; i >= 0; i--) {
+                                const cx = (9 - i) / 9 * bidXLimit;
+                                const cy = dh - (bidCumList[i] / maxCumBid * (dh * 0.7)) - (dh * 0.1);
+                                dctx.lineTo(cx, prevY);
                                 dctx.lineTo(cx, cy);
+                                prevY = cy;
                             }
-                            dctx.strokeStyle = '#FF3B5C';
+                            dctx.strokeStyle = '#00E676';
                             dctx.lineWidth = 1.8;
                             dctx.stroke();
 
+                            // 2. Draw Ask Line & Area Fill (Right side staircase)
+                            dctx.beginPath();
+                            const askXStart = midX + spreadGap;
+                            
+                            // Plot staircase steps
+                            prevY = dh - (askCumList[0] / maxCumAsk * (dh * 0.7)) - (dh * 0.1);
+                            dctx.moveTo(askXStart, prevY);
+                            
+                            for (let i = 0; i < 10; i++) {
+                                const cx = askXStart + (i / 9) * (dw - askXStart);
+                                const cy = dh - (askCumList[i] / maxCumAsk * (dh * 0.7)) - (dh * 0.1);
+                                dctx.lineTo(cx, prevY);
+                                dctx.lineTo(cx, cy);
+                                prevY = cy;
+                            }
+                            
+                            // Complete ask shape to bottom
                             dctx.lineTo(dw, dh);
-                            dctx.lineTo(midX, dh);
+                            dctx.lineTo(askXStart, dh);
                             dctx.closePath();
+                            
                             const askGrad = dctx.createLinearGradient(0, 0, 0, dh);
                             askGrad.addColorStop(0, 'rgba(255, 59, 92, 0.15)');
                             askGrad.addColorStop(1, 'rgba(255, 59, 92, 0)');
                             dctx.fillStyle = askGrad;
                             dctx.fill();
+                            
+                            // Re-draw Ask stroke line
+                            dctx.beginPath();
+                            prevY = dh - (askCumList[0] / maxCumAsk * (dh * 0.7)) - (dh * 0.1);
+                            dctx.moveTo(askXStart, prevY);
+                            for (let i = 0; i < 10; i++) {
+                                const cx = askXStart + (i / 9) * (dw - askXStart);
+                                const cy = dh - (askCumList[i] / maxCumAsk * (dh * 0.7)) - (dh * 0.1);
+                                dctx.lineTo(cx, prevY);
+                                dctx.lineTo(cx, cy);
+                                prevY = cy;
+                            }
+                            dctx.strokeStyle = '#FF3B5C';
+                            dctx.lineWidth = 1.8;
+                            dctx.stroke();
                         }
                     }
 
