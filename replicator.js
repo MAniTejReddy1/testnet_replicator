@@ -3092,6 +3092,9 @@ const server = http.createServer(async (req, res) => {
                 const email = parsed.email || '';
                 const password = parsed.password || '';
 
+                let matchedId = null;
+                let matchedUser = null;
+
                 // Check static admin credentials fallback
                 if (email === 'admin@coindcx.com' && password === 'Test@123') {
                     matchedId = 'admin';
