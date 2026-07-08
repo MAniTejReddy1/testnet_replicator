@@ -1551,11 +1551,12 @@ class ReplicatorInstance {
                 }
             }
 
-            log.info(this.symbol, `[ALIGN] Firing TAKER MARKET ${dragSide} with sweep size ${qtyStr} (book sum: ${sweepQty}) to hit resting limits and drag LTP...`);
-            marketRes = await this.placeOrder(dragSide, qtyStr, null, 'MARKET', true, true);
+            const alignPriceStr = formatPrice(String(targetPrice), this.symbol, this.tier);
+            log.info(this.symbol, `[ALIGN] Firing TAKER LIMIT_IOC ${dragSide} @ ${alignPriceStr} with sweep size ${qtyStr} (book sum: ${sweepQty}) to hit resting limits and drag LTP...`);
+            marketRes = await this.placeOrder(dragSide, qtyStr, alignPriceStr, 'LIMIT_IOC', true, true);
 
             if (marketRes.success) {
-                log.success(this.symbol, `[ALIGN] Successfully dragged LTP instantly via MARKET order.`);
+                log.success(this.symbol, `[ALIGN] Successfully dragged LTP instantly via LIMIT_IOC order.`);
                 return;
             }
 
