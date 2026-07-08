@@ -6941,15 +6941,20 @@ window.addEventListener('DOMContentLoaded', () => {
 
                     const chartData = [];
                     const chartProdData = [];
-                    let chartVal = 60;
-                    let chartProdVal = 55;
+                    
+                    // Seed the data to look like a climbing curve starting from bottom-left
+                    let seedVal = 30;
                     for (let i = 0; i < 60; i++) {
-                        chartVal += (Math.random() - 0.48) * 6;
-                        chartProdVal = chartVal + (Math.random() - 0.5) * 12;
-                        chartData.push(Math.max(15, Math.min(160, chartVal)));
-                        chartProdData.push(Math.max(15, Math.min(160, chartProdVal)));
+                        seedVal += 4.5 + (Math.random() - 0.48) * 6;
+                        chartData.push(Math.max(20, seedVal));
+                        chartProdData.push(Math.max(20, seedVal + (Math.random() - 0.5) * 12));
                     }
+                    let basePriceValue = seedVal;
                     let lastChartUpdate = Date.now();
+                    
+                    const regimes = ['bull', 'range', 'bear', 'range'];
+                    let regimeIdx = 0;
+                    let lastRegimeChange = Date.now();
 
                     const loop = () => {
                         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -6988,23 +6993,40 @@ window.addEventListener('DOMContentLoaded', () => {
                         if (Date.now() - lastChartUpdate > 180) {
                             lastChartUpdate = Date.now();
                             
-                            // Oscillations stay small since the trend does the rising work
-                            chartVal += (Math.random() - 0.48) * 12;
-                            chartVal = Math.max(10, Math.min(80, chartVal));
-                            chartData.push(chartVal);
+                            // Switch market regimes every 10 seconds
+                            if (Date.now() - lastRegimeChange > 10000) {
+                                regimeIdx = (regimeIdx + 1) % regimes.length;
+                                lastRegimeChange = Date.now();
+                            }
+                            
+                            const regime = regimes[regimeIdx];
+                            let change = 0;
+                            if (regime === 'bull') {
+                                change = 2.4 + (Math.random() - 0.42) * 8; // Bullish drift
+                            } else if (regime === 'bear') {
+                                change = -2.4 + (Math.random() - 0.58) * 8; // Bearish drift
+                            } else {
+                                change = (Math.random() - 0.5) * 8; // Range-bound consolidation
+                            }
+                            
+                            basePriceValue += change;
+                            // Clamp value within bounds (15% to 85% of chart height)
+                            basePriceValue = Math.max(30, Math.min(chartHeight * 0.9, basePriceValue));
+                            
+                            chartData.push(basePriceValue);
                             if (chartData.length > 60) chartData.shift();
 
-                            // Production drifts similarly but offset
-                            chartProdVal = chartVal + (Math.random() - 0.5) * 8 + Math.sin(Date.now() / 1500) * 10;
-                            chartProdVal = Math.max(10, Math.min(80, chartProdVal));
-                            chartProdData.push(chartProdVal);
+                            // Production line drifts with slightly leading oscillations
+                            let prodPrice = basePriceValue + (Math.random() - 0.5) * 8 + Math.sin(Date.now() / 1200) * 14;
+                            prodPrice = Math.max(20, Math.min(chartHeight * 0.95, prodPrice));
+                            chartProdData.push(prodPrice);
                             if (chartProdData.length > 60) chartProdData.shift();
                         }
 
                         if (chartData.length > 1) {
                             const step = chartWidth / (chartData.length - 1);
 
-                            // Draw subtle gridlines tracking the slope
+                            // Draw subtle horizontal price gridlines behind the chart
                             ctx.strokeStyle = 'rgba(255, 255, 255, 0.015)';
                             ctx.lineWidth = 0.8;
                             for (let gY = chartYBase - chartHeight + 60; gY < chartYBase - 20; gY += 80) {
@@ -7026,12 +7048,11 @@ window.addEventListener('DOMContentLoaded', () => {
                                 ctx.stroke();
                             }
 
-                            // 1. Draw Production benchmark (Dashed Blue line - starts bottom-left and rises top-right)
+                            // 1. Draw Production benchmark (Dashed Blue line)
                             ctx.beginPath();
                             for (let idx = 0; idx < chartProdData.length; idx++) {
                                 const cx = chartXStart + idx * step;
-                                const trend = (idx / (chartProdData.length - 1)) * (chartHeight * 0.80);
-                                const cy = chartYBase - (trend + chartProdData[idx]);
+                                const cy = chartYBase - chartProdData[idx];
                                 if (idx === 0) ctx.moveTo(cx, cy);
                                 else ctx.lineTo(cx, cy);
                             }
@@ -7041,12 +7062,11 @@ window.addEventListener('DOMContentLoaded', () => {
                             ctx.stroke();
                             ctx.setLineDash([]); // Reset line dash
 
-                            // 2. Draw Staging Sync (Solid Purple line - starts bottom-left and rises top-right)
+                            // 2. Draw Staging Sync (Solid Purple line)
                             ctx.beginPath();
                             for (let idx = 0; idx < chartData.length; idx++) {
                                 const cx = chartXStart + idx * step;
-                                const trend = (idx / (chartData.length - 1)) * (chartHeight * 0.80);
-                                const cy = chartYBase - (trend + chartData[idx]);
+                                const cy = chartYBase - chartData[idx];
                                 if (idx === 0) ctx.moveTo(cx, cy);
                                 else ctx.lineTo(cx, cy);
                             }
@@ -7054,10 +7074,15 @@ window.addEventListener('DOMContentLoaded', () => {
                             ctx.lineWidth = 2.5;
                             ctx.stroke();
 
-                            // Area gradient fill below Staging line (creating a climbing wedge)
+                            // Area gradient fill below Staging line
+                            ctx.beginPath();
+                            ctx.moveTo(chartXStart, chartYBase);
+                            for (let idx = 0; idx < chartData.length; idx++) {
+                                ctx.lineTo(chartXStart + idx * step, chartYBase - chartData[idx]);
+                            }
                             ctx.lineTo(chartXStart + chartWidth, chartYBase);
-                            ctx.lineTo(chartXStart, chartYBase);
                             ctx.closePath();
+                            
                             const chartGrad = ctx.createLinearGradient(chartXStart, chartYBase, chartXStart + chartWidth, chartYBase - chartHeight);
                             chartGrad.addColorStop(0, 'rgba(168, 85, 247, 0)');
                             chartGrad.addColorStop(1, 'rgba(168, 85, 247, 0.045)');
@@ -7067,17 +7092,16 @@ window.addEventListener('DOMContentLoaded', () => {
                             // 3. Highlight heads of both streams with pulsing glow dots
                             const lastIdx = chartData.length - 1;
                             const headX = chartXStart + lastIdx * step;
-                            const lastTrend = chartHeight * 0.80;
                             
                             // Blue head dot
                             ctx.beginPath();
-                            ctx.arc(headX, chartYBase - (lastTrend + chartProdData[lastIdx]), 4.5, 0, Math.PI * 2);
+                            ctx.arc(headX, chartYBase - chartProdData[lastIdx], 4.5, 0, Math.PI * 2);
                             ctx.fillStyle = '#00a2ff';
                             ctx.fill();
 
                             // Purple head dot (with glow)
                             ctx.beginPath();
-                            ctx.arc(headX, chartYBase - (lastTrend + chartData[lastIdx]), 5.5, 0, Math.PI * 2);
+                            ctx.arc(headX, chartYBase - chartData[lastIdx], 5.5, 0, Math.PI * 2);
                             ctx.fillStyle = '#a855f7';
                             ctx.shadowColor = '#a855f7';
                             ctx.shadowBlur = 10;
