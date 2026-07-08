@@ -4451,7 +4451,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
 
                 if (sizeSpan.textContent !== sizeStr) {
-                    if (showFlash && sizeSpan.textContent !== '') {
+                    if (flashOn && sizeSpan.textContent !== '') {
                         const oldVal = parseFloat(sizeSpan.textContent || 0);
                         const newVal = parseFloat(sizeStr);
                         if (newVal > oldVal) {
