@@ -322,6 +322,143 @@
   #splash.hidden { opacity:0;pointer-events:none; }
   .splash-dot { width:16px;height:16px;border-radius:50%;background:var(--cyan);animation:pulse-g 1.2s ease-out infinite; box-shadow: 0 0 20px rgba(6,182,212,0.5); }
   #err-splash { position:fixed;inset:0;z-index:998;background:var(--drawer-bg);backdrop-filter:blur(10px);display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:#f43f5e;font-size:14px;padding:40px; }
+
+  /* Auth Landing Page Styles */
+  #auth-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: #020617;
+    background-image: radial-gradient(circle at 20% 30%, rgba(6, 182, 212, 0.08), transparent 40vw),
+                      radial-gradient(circle at 80% 70%, rgba(168, 85, 247, 0.08), transparent 40vw);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.5s ease;
+  }
+  .auth-card {
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    width: 100%;
+    max-width: 440px;
+    padding: 40px;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 40px rgba(6, 182, 212, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .auth-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #06b6d4, #8b5cf6, #f43f5e, #06b6d4);
+    background-size: 300% 100%;
+    animation: shimmer 4s linear infinite;
+  }
+  .auth-tabs {
+    display: flex;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+  .auth-tab {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-weight: 700;
+    font-size: 14px;
+    padding: 12px 4px;
+    cursor: pointer;
+    position: relative;
+    font-family: inherit;
+    transition: color 0.3s;
+  }
+  .auth-tab.active {
+    color: var(--cyan);
+    text-shadow: 0 0 10px rgba(6, 182, 212, 0.2);
+  }
+  .auth-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--cyan);
+    box-shadow: 0 0 8px var(--cyan);
+  }
+  .auth-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .auth-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+  }
+  .auth-input {
+    width: 100%;
+    padding: 12px 16px;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    color: #fff;
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+    transition: all 0.3s;
+  }
+  .auth-input:focus {
+    border-color: var(--cyan);
+    background: rgba(15, 23, 42, 0.8);
+    box-shadow: 0 0 12px rgba(6, 182, 212, 0.15);
+  }
+  .auth-btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #06b6d4, #3b82f6);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.3s;
+    box-shadow: 0 8px 24px rgba(6, 182, 212, 0.25);
+  }
+  .auth-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 28px rgba(6, 182, 212, 0.35);
+  }
+  .auth-btn:active {
+    transform: translateY(1px);
+  }
+  .auth-footer {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: 8px;
+  }
+  .auth-footer span {
+    color: var(--cyan);
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .auth-footer span:hover {
+    text-decoration: underline;
+  }
+
   
   /* Tables inside panels */
   table { width: 100%; border-collapse: separate; border-spacing: 0; }
@@ -758,6 +895,55 @@
     })();
 </script>
 
+<!-- Auth Landing Page Overlay -->
+<div id="auth-overlay">
+  <div class="auth-card">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div style="font-size:24px; color:var(--cyan); text-shadow:0 0 15px rgba(6,182,212,0.4);">📊</div>
+      <h2 style="font-size:18px; font-weight:700; color:var(--text-main); letter-spacing:1px; background:var(--title-grad); -webkit-background-clip:text; -webkit-text-fill-color:transparent; text-align:center;">REPLICATOR PORTAL</h2>
+      <p style="font-size:11px; color:var(--text-muted); font-family:'JetBrains Mono',monospace;">Secure Authentication Gateway</p>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="window.switchAuthTab('login')">LOGIN</button>
+      <button class="auth-tab" id="tab-signup" onclick="window.switchAuthTab('signup')">CREATE ACCOUNT</button>
+    </div>
+
+    <!-- Login Form -->
+    <form id="form-login" onsubmit="window.handleAuthSubmit(event, 'login')" style="display:flex; flex-direction:column; gap:16px;">
+      <div class="auth-input-group">
+        <label class="auth-label">Email Address</label>
+        <input type="email" id="login-email" class="auth-input" placeholder="e.g. user@domain.com" required autocomplete="email" />
+      </div>
+      <div class="auth-input-group">
+        <label class="auth-label">Password</label>
+        <input type="password" id="login-password" class="auth-input" placeholder="Enter password" required autocomplete="current-password" />
+      </div>
+      <button type="submit" class="auth-btn" id="btn-login-submit">AUTHENTICATE</button>
+    </form>
+
+    <!-- Signup Form -->
+    <form id="form-signup" onsubmit="window.handleAuthSubmit(event, 'signup')" style="display:none; flex-direction:column; gap:16px;">
+      <div class="auth-input-group">
+        <label class="auth-label">Username</label>
+        <input type="text" id="signup-username" class="auth-input" placeholder="e.g. developer_alpha" required autocomplete="username" />
+      </div>
+      <div class="auth-input-group">
+        <label class="auth-label">Exchange Role Allocation</label>
+        <select id="signup-role" class="auth-input" style="cursor:pointer;">
+          <option value="MAKER">MAKER (Orderbook Liquidity Provider)</option>
+          <option value="TAKER">TAKER (IOC Trade Synchronization)</option>
+        </select>
+      </div>
+      <button type="submit" class="auth-btn" id="btn-signup-submit" style="background:linear-gradient(135deg, #8b5cf6, #d946ef); box-shadow:0 8px 24px rgba(139, 92, 246, 0.25);">ONBOARD TESTNET ACCOUNT</button>
+    </form>
+
+    <div class="auth-footer" id="auth-footer-text">
+      Accessing private instance? <span onclick="window.switchAuthTab('signup')">Create a testnet user</span>
+    </div>
+  </div>
+</div>
+
 <div id="splash">
   <div class="hdr-bar" style="position:fixed;top:0;left:0;right:0;"></div>
   <div class="splash-dot"></div>
@@ -776,6 +962,7 @@
       <span style="font-weight:700;font-size:14px;letter-spacing:1px;background: var(--title-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">MULTI-MARKET REPLICATOR</span>
       <span style="color:var(--text-muted);font-size:10px;margin-left:12px;letter-spacing:1px;font-family:'JetBrains Mono',monospace;background:rgba(255,255,255,0.1);padding:3px 8px;border-radius:99px;">v5 PRO</span>
     </div>
+
     
     <!-- Global Environment Switcher Tabs -->
     <div style="display:flex; gap: 4px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 3px; border-radius: 8px; margin-left: 20px;" id="env-switcher">
@@ -800,6 +987,7 @@
     <div class="chip"><div class="chip-label">Network Time</div><div class="chip-val" id="c-clock" style="color:var(--text-muted);font-size:12px;">—</div></div>
     <button id="btn-theme-toggle" style="background:var(--btn-theme);border:1px solid var(--border);cursor:pointer;font-size:14px;color:var(--text-main);padding:8px 12px;border-radius:8px;transition:all 0.3s;display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px rgba(0,0,0,0.1);" title="Toggle Light/Dark Theme">☀</button>
     <button id="btn-cfg" class="btn-primary" style="padding: 10px 20px; width: auto; font-size: 11px;">⚙ CONFIGURE</button>
+    <button id="btn-logout" class="btn-primary" onclick="window.handleAuthLogout()" style="padding: 10px 20px; width: auto; font-size: 11px; background: linear-gradient(135deg, rgba(244,63,94,0.2), rgba(244,63,94,0.4)); border: 1px solid rgba(244,63,94,0.4); box-shadow: none;">🔒 LOGOUT</button>
   </div>
 </header>
 <script>
@@ -5842,38 +6030,174 @@ window.addEventListener('DOMContentLoaded', () => {
             // ResizeObserver is already created above in the chart init block — no duplicate needed
         };
 
-        window.initCustomSelects();
-        // Synchronize default HTML classes with loaded localStorage states
-        if (!cancelOnStopState) document.getElementById('tog-cancel-stop')?.classList.remove('on');
-        if (newUserState) document.getElementById('tog-new-user')?.classList.add('on');
-        if (!showBars) document.getElementById('tog-bars')?.classList.remove('on');
-        if (!flashOn) document.getElementById('tog-flash')?.classList.remove('on');
+        // ----------------------------------------------------
+        // Landing Page Authentication Functions
+        // ----------------------------------------------------
+        window.switchAuthTab = function(tabName) {
+            const loginBtn = document.getElementById('tab-login');
+            const signupBtn = document.getElementById('tab-signup');
+            const loginForm = document.getElementById('form-login');
+            const signupForm = document.getElementById('form-signup');
+            const footerText = document.getElementById('auth-footer-text');
 
-        // Apply saved trend, preset, and terminal tab preferences
-        const savedTrend = localStorage.getItem('replicator_last_trend') || 'dump';
-        window.setScenarioTrend(savedTrend);
+            if (tabName === 'login') {
+                loginBtn.classList.add('active');
+                signupBtn.classList.remove('active');
+                loginForm.style.display = 'flex';
+                signupForm.style.display = 'none';
+                footerText.innerHTML = `Accessing private instance? <span onclick="window.switchAuthTab('signup')">Create a testnet user</span>`;
+            } else {
+                loginBtn.classList.remove('active');
+                signupBtn.classList.add('active');
+                loginForm.style.display = 'none';
+                signupForm.style.display = 'flex';
+                footerText.innerHTML = `Already have credentials? <span onclick="window.switchAuthTab('login')">Return to login</span>`;
+            }
+        };
 
-        const savedPreset = localStorage.getItem('replicator_last_preset') || 'flash-crash';
-        window.selectPresetTemplateL1(savedPreset, true);
+        window.handleAuthSubmit = async function(event, flow) {
+            event.preventDefault();
+            const submitBtn = document.getElementById(`btn-${flow}-submit`);
+            const prevText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = flow === 'login' ? 'VERIFYING...' : 'ONBOARDING VIA API...';
 
-        const savedTermTab = localStorage.getItem('replicator_last_term_tab') || 'live';
-        window.setTermTab(savedTermTab);
+            try {
+                if (flow === 'login') {
+                    const email = document.getElementById('login-email').value;
+                    const password = document.getElementById('login-password').value;
 
-        // Env restore on backend prior to starting SSE stream
-        const savedEnv = localStorage.getItem('replicator_last_env');
-        if (savedEnv && savedEnv !== 'PRODUCTION') {
-            fetch(window.getApiUrl('/api/env'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tier: savedEnv })
-            }).then(() => {
+                    const res = await fetch(window.getApiUrl('/api/auth/login'), {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, password })
+                    });
+
+                    const data = await res.json();
+                    if (res.ok && data.success) {
+                        window.showFlushbar('Authentication verified successfully! Redirecting...', 'success');
+                        document.getElementById('auth-overlay').style.opacity = '0';
+                        setTimeout(() => {
+                            document.getElementById('auth-overlay').style.display = 'none';
+                            window.initializeTerminalAfterAuth();
+                        }, 500);
+                    } else {
+                        window.showFlushbar(data.error || 'Invalid credentials. Please try again.', 'error');
+                    }
+                } else {
+                    const username = document.getElementById('signup-username').value;
+                    const role = document.getElementById('signup-role').value;
+
+                    const res = await fetch(window.getApiUrl('/api/auth/register'), {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, role })
+                    });
+
+                    const data = await res.json();
+                    if (res.ok && data.success) {
+                        window.showFlushbar(`Onboarding success! Created testnet user account. Logged in automatically!`, 'success');
+                        // Log them in automatically with the returned creds
+                        const loginRes = await fetch(window.getApiUrl('/api/auth/login'), {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email: data.email, password: data.password })
+                        });
+                        const loginData = await loginRes.json();
+                        if (loginRes.ok && loginData.success) {
+                            document.getElementById('auth-overlay').style.opacity = '0';
+                            setTimeout(() => {
+                                document.getElementById('auth-overlay').style.display = 'none';
+                                window.initializeTerminalAfterAuth();
+                            }, 500);
+                        } else {
+                            window.switchAuthTab('login');
+                            window.showFlushbar(`Account ready! Email: ${data.email}. Please login.`, 'success');
+                        }
+                    } else {
+                        window.showFlushbar(data.error || 'Registration failed. Try a different name.', 'error');
+                    }
+                }
+            } catch (err) {
+                window.showFlushbar(err.message || 'Network communication failure.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = prevText;
+            }
+        };
+
+        window.handleAuthLogout = async function() {
+            try {
+                const res = await fetch(window.getApiUrl('/api/auth/logout'), { method: 'POST' });
+                if (res.ok) {
+                    window.showFlushbar('Session terminated successfully.', 'info');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500);
+                }
+            } catch (err) {
+                window.showFlushbar('Logout request failed.', 'error');
+            }
+        };
+
+        window.checkAuthSession = async function() {
+            try {
+                const res = await fetch(window.getApiUrl('/api/auth/session'));
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.authenticated) {
+                        document.getElementById('auth-overlay').style.display = 'none';
+                        window.initializeTerminalAfterAuth();
+                    } else {
+                        document.getElementById('auth-overlay').style.display = 'flex';
+                        const sp = document.getElementById('splash');
+                        if (sp) { sp.classList.add('hidden'); setTimeout(()=>sp.remove(), 500); }
+                    }
+                } else {
+                    document.getElementById('auth-overlay').style.display = 'flex';
+                }
+            } catch (err) {
+                document.getElementById('auth-overlay').style.display = 'flex';
+            }
+        };
+
+        window.initializeTerminalAfterAuth = function() {
+            window.initCustomSelects();
+            // Synchronize default HTML classes with loaded localStorage states
+            if (!cancelOnStopState) document.getElementById('tog-cancel-stop')?.classList.remove('on');
+            if (newUserState) document.getElementById('tog-new-user')?.classList.add('on');
+            if (!showBars) document.getElementById('tog-bars')?.classList.remove('on');
+            if (!flashOn) document.getElementById('tog-flash')?.classList.remove('on');
+
+            // Apply saved trend, preset, and terminal tab preferences
+            const savedTrend = localStorage.getItem('replicator_last_trend') || 'dump';
+            window.setScenarioTrend(savedTrend);
+
+            const savedPreset = localStorage.getItem('replicator_last_preset') || 'flash-crash';
+            window.selectPresetTemplateL1(savedPreset, true);
+
+            const savedTermTab = localStorage.getItem('replicator_last_term_tab') || 'live';
+            window.setTermTab(savedTermTab);
+
+            // Env restore on backend prior to starting SSE stream
+            const savedEnv = localStorage.getItem('replicator_last_env');
+            if (savedEnv && savedEnv !== 'PRODUCTION') {
+                fetch(window.getApiUrl('/api/env'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tier: savedEnv })
+                }).then(() => {
+                    connectSSE();
+                }).catch(() => {
+                    connectSSE();
+                });
+            } else {
                 connectSSE();
-            }).catch(() => {
-                connectSSE();
-            });
-        } else {
-            connectSSE();
-        }
+            }
+        };
+
+        // Initialize authentication session check on load
+        window.checkAuthSession();
 
     } catch (e) {
         console.error("FATAL UI INITIALIZATION ERROR: ", e);

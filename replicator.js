@@ -3061,7 +3061,160 @@ function broadcastToUI() {
     writeStateFile(payload);
 }
 
+// Authentication Sessions Map
+const activeSessions = new Map();
+
+function parseCookies(cookieHeader) {
+    const list = {};
+    if (!cookieHeader) return list;
+    cookieHeader.split(';').forEach(cookie => {
+        const parts = cookie.split('=');
+        list[parts.shift().trim()] = decodeURI(parts.join('='));
+    });
+    return list;
+}
+
+function getSessionUser(req) {
+    const cookies = parseCookies(req.headers.cookie);
+    const sid = cookies.replicator_sid;
+    if (!sid) return null;
+    return activeSessions.get(sid) || null;
+}
+
 const server = http.createServer(async (req, res) => {
+    // 1. Handle Auth Routes (No session check required)
+    if (req.method === 'POST' && req.url === '/api/auth/login') {
+        let body = '';
+        req.on('data', chunk => { body += chunk; });
+        req.on('end', () => {
+            try {
+                const parsed = JSON.parse(body || '{}');
+                const email = parsed.email || '';
+                const password = parsed.password || '';
+
+                // Search in globalUsers for active tier
+                const tierUsers = globalUsers[globalActiveTier] || {};
+                let matchedId = null;
+                let matchedUser = null;
+
+                for (const [id, user] of Object.entries(tierUsers)) {
+                    if (user.email === email && user.password === password) {
+                        matchedId = id;
+                        matchedUser = user;
+                        break;
+                    }
+                }
+
+                if (matchedUser) {
+                    const sid = uuidv4();
+                    activeSessions.set(sid, { id: matchedId, email: matchedUser.email, label: matchedUser.label, tier: globalActiveTier });
+                    res.writeHead(200, {
+                        'Set-Cookie': `replicator_sid=${sid}; Path=/; HttpOnly; SameSite=Strict`,
+                        'Content-Type': 'application/json'
+                    });
+                    return res.end(JSON.stringify({ success: true, user: { id: matchedId, email: matchedUser.email, label: matchedUser.label } }));
+                } else {
+                    res.writeHead(401, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, error: 'Invalid email or password' }));
+                }
+            } catch (e) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: false, error: e.message }));
+            }
+        });
+        return;
+    }
+
+    if (req.method === 'POST' && req.url === '/api/auth/register') {
+        let body = '';
+        req.on('data', chunk => { body += chunk; });
+        req.on('end', async () => {
+            try {
+                const parsed = JSON.parse(body || '{}');
+                const username = parsed.username || '';
+                const role = parsed.role || 'MAKER'; // MAKER or TAKER
+
+                if (!username || !/^[a-zA-Z0-9_-]+$/.test(username)) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, error: 'Invalid username format' }));
+                }
+
+                log.info('SYSTEM', `Registering new web account ${username} on ${globalActiveTier}...`);
+                const { execFile } = require('child_process');
+                const execFileAsync = require('util').promisify(execFile);
+                const targetUrls = TIER_URLS[globalActiveTier] || TIER_URLS.PRODUCTION;
+
+                const { stdout } = await execFileAsync('node', ['scripts/generate-single.js', username], {
+                    env: {
+                        ...process.env,
+                        API_BASE: targetUrls.ONBOARDING,
+                        RAILS_BASE: targetUrls.RAILS,
+                        FUTURES_URL: targetUrls.HPO
+                    }
+                });
+
+                const result = JSON.parse(stdout.trim());
+                globalUsers[globalActiveTier] = globalUsers[globalActiveTier] || {};
+                globalUsers[globalActiveTier][username] = {
+                    label: username,
+                    key: result.key,
+                    secret: result.secret,
+                    email: result.email,
+                    password: 'Test@123',
+                    listenKey: ''
+                };
+
+                // Assign role automatically if user requested it
+                if (role === 'MAKER') {
+                    globalRoles[globalActiveTier].makerId = username;
+                } else {
+                    globalRoles[globalActiveTier].takerId = username;
+                }
+
+                lastPortfolioSyncTime = 0;
+                log.success('SYSTEM', `Web account ${username} registered successfully on ${globalActiveTier}.`);
+
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: true, email: result.email, password: 'Test@123' }));
+            } catch (e) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: false, error: e.message }));
+            }
+        });
+        return;
+    }
+
+    if (req.url === '/api/auth/session') {
+        const user = getSessionUser(req);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ authenticated: !!user, user }));
+    }
+
+    if (req.method === 'POST' && req.url === '/api/auth/logout') {
+        const cookies = parseCookies(req.headers.cookie);
+        if (cookies.replicator_sid) {
+            activeSessions.delete(cookies.replicator_sid);
+        }
+        res.writeHead(200, {
+            'Set-Cookie': 'replicator_sid=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly',
+            'Content-Type': 'application/json'
+        });
+        return res.end(JSON.stringify({ success: true }));
+    }
+
+    // 2. Gate All Other Pages/API Requests Behind Authentication Session
+    const session = getSessionUser(req);
+    const isHtmlRoute = req.url === '/' || req.url === '/index.html';
+
+    if (!session && !req.url.startsWith('/api/auth/')) {
+        if (isHtmlRoute) {
+            // Render index.html anyway, the frontend will show the glassmorphic auth overlay
+        } else {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: 'Authentication required' }));
+        }
+    }
+
     if (req.method === 'POST' && req.url === '/api/instance/select') {
         let body = '';
         req.on('data', chunk => { body += chunk; });
