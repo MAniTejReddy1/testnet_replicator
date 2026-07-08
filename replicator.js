@@ -1685,24 +1685,68 @@ class ReplicatorInstance {
                     return;
                 }
 
+                // Determine active orderbook price or fallback to LTP/Mark price
+                let crossPriceStr = null;
+                const bestBid = (this.testnetDepth && this.testnetDepth.bids && this.testnetDepth.bids.length > 0) ? this.testnetDepth.bids[0][0] : null;
+                const bestAsk = (this.testnetDepth && this.testnetDepth.asks && this.testnetDepth.asks.length > 0) ? this.testnetDepth.asks[0][0] : null;
+
+                if (makerAmt !== 0) {
+                    const makerSide = makerAmt > 0 ? 'SELL' : 'BUY';
+                    if (makerSide === 'SELL' && bestBid) {
+                        crossPriceStr = formatPrice(String(bestBid), this.symbol, this.tier);
+                    } else if (makerSide === 'BUY' && bestAsk) {
+                        crossPriceStr = formatPrice(String(bestAsk), this.symbol, this.tier);
+                    }
+                }
+
+                if (!crossPriceStr) {
+                    // Fallback to current testnet LTP or binance LTP
+                    const fallbackPrice = this.testnetDepth.bids.length ? this.testnetDepth.bids[0][0] : (this.binanceDepth.bids.length ? this.binanceDepth.bids[0][0] : null);
+                    if (!fallbackPrice) {
+                        log.error(this.symbol, `[REDUCE-POS] Cannot determine cross price. Aborting.`);
+                        return;
+                    }
+                    crossPriceStr = formatPrice(String(fallbackPrice), this.symbol, this.tier);
+                }
+
                 let placedMaker = false;
                 let placedTaker = false;
 
-                // Step 3: Close positions completely at current market price using reduceOnly MARKET orders
-                if (makerAmt !== 0) {
+                // Step 3: Close positions completely using LIMIT and LIMIT_IOC cross-selling
+                // Case 1: Both Maker and Taker have opposite non-zero positions -> Cross them
+                if (makerAmt !== 0 && takerAmt !== 0 && (makerAmt > 0 !== takerAmt > 0)) {
                     const makerSide = makerAmt > 0 ? 'SELL' : 'BUY';
-                    const makerQtyStr = formatRawQty(Math.abs(makerAmt), this.symbol, this.tier);
-                    log.info(this.symbol, `[REDUCE-POS] Placing Maker MARKET ${makerSide} for ${makerQtyStr} (reduceOnly)...`);
-                    const makerRes = await this.placeOrder(makerSide, makerQtyStr, null, 'MARKET', false, null, true, { reduceOnly: true });
-                    if (makerRes.success) placedMaker = true;
-                }
-
-                if (takerAmt !== 0) {
                     const takerSide = takerAmt > 0 ? 'SELL' : 'BUY';
+
+                    const makerQtyStr = formatRawQty(Math.abs(makerAmt), this.symbol, this.tier);
                     const takerQtyStr = formatRawQty(Math.abs(takerAmt), this.symbol, this.tier);
-                    log.info(this.symbol, `[REDUCE-POS] Placing Taker MARKET ${takerSide} for ${takerQtyStr} (reduceOnly)...`);
-                    const takerRes = await this.placeOrder(takerSide, takerQtyStr, null, 'MARKET', true, null, true, { reduceOnly: true });
+
+                    log.info(this.symbol, `[REDUCE-POS] Cross-selling: Placing Maker LIMIT ${makerSide} for ${makerQtyStr} @ ${crossPriceStr} (best book price)...`);
+                    const makerRes = await this.placeOrder(makerSide, makerQtyStr, crossPriceStr, 'LIMIT', false, null, true, { reduceOnly: true });
+                    if (makerRes.success) placedMaker = true;
+
+                    // Wait 200ms for Maker's order to rest on the book
+                    await new Promise(r => setTimeout(r, 200));
+
+                    log.info(this.symbol, `[REDUCE-POS] Cross-selling: Placing Taker LIMIT_IOC ${takerSide} for ${takerQtyStr} @ ${crossPriceStr}...`);
+                    const takerRes = await this.placeOrder(takerSide, takerQtyStr, crossPriceStr, 'LIMIT_IOC', true, null, true, { reduceOnly: true });
                     if (takerRes.success) placedTaker = true;
+                } else {
+                    // Case 2: Asymmetric positions (only one user has positions)
+                    if (makerAmt !== 0) {
+                        const makerSide = makerAmt > 0 ? 'SELL' : 'BUY';
+                        const makerQtyStr = formatRawQty(Math.abs(makerAmt), this.symbol, this.tier);
+                        log.info(this.symbol, `[REDUCE-POS] Asymmetric Maker reduction: Placing LIMIT ${makerSide} for ${makerQtyStr} @ ${crossPriceStr}...`);
+                        const makerRes = await this.placeOrder(makerSide, makerQtyStr, crossPriceStr, 'LIMIT', false, null, true, { reduceOnly: true });
+                        if (makerRes.success) placedMaker = true;
+                    }
+                    if (takerAmt !== 0) {
+                        const takerSide = takerAmt > 0 ? 'SELL' : 'BUY';
+                        const takerQtyStr = formatRawQty(Math.abs(takerAmt), this.symbol, this.tier);
+                        log.info(this.symbol, `[REDUCE-POS] Asymmetric Taker reduction: Placing LIMIT_IOC ${takerSide} for ${takerQtyStr} @ ${crossPriceStr}...`);
+                        const takerRes = await this.placeOrder(takerSide, takerQtyStr, crossPriceStr, 'LIMIT_IOC', true, null, true, { reduceOnly: true });
+                        if (takerRes.success) placedTaker = true;
+                    }
                 }
 
                 // Step 4: Verification polling loop
