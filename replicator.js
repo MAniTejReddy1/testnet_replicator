@@ -663,7 +663,7 @@ async function autoGenerateNewUserAndAssign(role, tier) {
             );
         }
         
-        // Update WebSocket connections on all active instances of this tier
+        // Update WebSocket connections and default leverage on all active instances of this tier
         const tierInstances = instances[tier] || new Map();
         for (const [, inst] of tierInstances.entries()) {
             if (role === 'MAKER' && inst.makerWs) {
@@ -677,6 +677,10 @@ async function autoGenerateNewUserAndAssign(role, tier) {
                     inst.takerWs = new PrivateWsClient(listenKey, inst.onTakerWsEvent.bind(inst), 'Taker', uniqueId, tier);
                 }
             }
+            // Update leverage for the new user on this instance
+            inst.setLeverage().catch(err => {
+                log.warn(inst.symbol, `[RECOVERY] Failed to set leverage for new user: ${err.message}`);
+            });
         }
         
         broadcastToUI();
