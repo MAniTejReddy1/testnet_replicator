@@ -3777,7 +3777,12 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.url === '/' || req.url === '/index.html') {
-        res.writeHead(200, { 'Content-Type': 'text/html' }).end(getHtmlUI());
+        res.writeHead(200, { 
+            'Content-Type': 'text/html',
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+        }).end(getHtmlUI());
         return;
     }
     res.writeHead(404).end();
