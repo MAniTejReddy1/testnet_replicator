@@ -1032,116 +1032,166 @@
 </script>
 
 <!-- Auth Landing Page Overlay -->
-<div id="auth-overlay" style="display:none;">
+<div id="auth-overlay" style="display:none; flex-direction:column; background: #0A0E14; overflow-y: auto;">
   <!-- Animated Particles Background Canvas -->
   <canvas id="auth-bg-canvas" style="position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:1; opacity:0.6;"></canvas>
   <div class="vignette" aria-hidden="true" style="z-index:2;"></div>
   <div class="scanlines" aria-hidden="true" style="z-index:2;"></div>
 
-  <div class="card-border-wrap" style="z-index:3; position:relative;">
-    <div class="terminal-card">
-      <span class="term-eyebrow">◆ Staging access</span>
-      <h2 class="term-title">Access terminal</h2>
-      <p class="term-sub">Sign in to your sandbox, or provision a new account seeded with test capital.</p>
-
-      <div class="tabs" id="auth-tabs" role="tablist">
-        <div class="tab-slider" aria-hidden="true"></div>
-        <button class="tab-btn active" id="tab-login" type="button" onclick="window.switchAuthTab('login')">Log in</button>
-        <button class="tab-btn" id="tab-signup" type="button" onclick="window.switchAuthTab('signup')">Sign up</button>
-      </div>
-
-      <div class="form-stack">
-        <!-- Login Form -->
-        <form class="pane active" id="form-login" onsubmit="window.handleAuthSubmit(event, 'login')" novalidate>
-          <div class="field">
-            <label for="login-email">Work email</label>
-            <div class="field-input">
-              <span class="icon">
-                <svg viewBox="0 0 16 16" fill="none" style="width:15px;height:15px;"><path d="M2 4.5h12v7a1 1 0 01-1 1H3a1 1 0 01-1-1v-7z" stroke="currentColor" stroke-width="1.2"/><path d="M2.5 4.8L8 9l5.5-4.2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </span>
-              <input id="login-email" type="email" placeholder="you@coindcx.com" autocomplete="username" required>
-              <span class="status-icon" id="loginEmailStatus">
-                <svg viewBox="0 0 16 16" fill="none" style="width:15px;height:15px;"><circle cx="8" cy="8" r="7" stroke="#00E676" stroke-width="1.3"/><path d="M5 8.2l2 2 4-4.4" stroke="#00E676" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </span>
-            </div>
-          </div>
-          <div class="field">
-            <label for="login-password">Password</label>
-            <div class="field-input">
-              <span class="icon">
-                <svg viewBox="0 0 16 16" fill="none" style="width:15px;height:15px;"><rect x="3.5" y="7" width="9" height="6.5" rx="1.2" stroke="currentColor" stroke-width="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2" stroke="currentColor" stroke-width="1.2"/></svg>
-              </span>
-              <input id="login-password" type="password" placeholder="••••••••••" autocomplete="current-password" required>
-            </div>
-          </div>
-          <button type="submit" class="submit-btn" id="btn-login-submit">
-            <span class="sweep"></span>
-            <span class="label-text">
-              <svg class="gauge" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2" fill="none" stroke="rgba(4,32,42,0.3)" stroke-width="2.4"/><circle cx="8" cy="8" r="6.2" fill="none" stroke="#04202A" stroke-width="2.4" stroke-dasharray="39" stroke-dashoffset="29" stroke-linecap="round" transform="rotate(-90 8 8)"><animateTransform attributeName="transform" type="rotate" from="-90 8 8" to="270 8 8" dur="0.7s" repeatCount="indefinite"/></circle></svg>
-              <span class="label-static">Sync into staging</span>
-            </span>
-          </button>
-        </form>
-
-        <!-- Signup Form -->
-        <form class="pane" id="form-signup" onsubmit="window.handleAuthSubmit(event, 'signup')" novalidate>
-          <div class="row-2">
-            <div class="field">
-              <label for="signup-username">Username</label>
-              <div class="field-input">
-                <span class="icon"><svg viewBox="0 0 16 16" fill="none" style="width:15px;height:15px;"><circle cx="8" cy="5.5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M3 13c0-2.5 2.2-4 5-4s5 1.5 5 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></span>
-                <input id="signup-username" type="text" placeholder="mani_reddy" autocomplete="name" required>
-              </div>
-            </div>
-            <div class="field">
-              <label for="signup-role">Role Allocation</label>
-              <div class="field-input">
-                <span class="icon"><svg viewBox="0 0 16 16" fill="none" style="width:15px;height:15px;"><rect x="2.5" y="5" width="11" height="8" rx="1.2" stroke="currentColor" stroke-width="1.2"/><path d="M5.5 5V3.8a1.2 1.2 0 011.2-1.2h2.6a1.2 1.2 0 011.2 1.2V5" stroke="currentColor" stroke-width="1.2"/></svg></span>
-                <select id="signup-role" style="cursor:pointer;">
-                  <option value="MAKER">MAKER (Provider)</option>
-                  <option value="TAKER">TAKER (IOC Sync)</option>
-                </select>
-              </div>
-            </div>
-          </div>
-          <div class="field">
-            <label for="signup-email">Work email</label>
-            <div class="field-input">
-              <span class="icon"><svg viewBox="0 0 16 16" fill="none" style="width:15px;height:15px;"><path d="M2 4.5h12v7a1 1 0 01-1 1H3a1 1 0 01-1-1v-7z" stroke="currentColor" stroke-width="1.2"/><path d="M2.5 4.8L8 9l5.5-4.2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-              <input id="signup-email" type="email" placeholder="you@coindcx.com" required>
-              <span class="status-icon" id="signupEmailStatus">
-                <svg viewBox="0 0 16 16" fill="none" style="width:15px;height:15px;"><circle cx="8" cy="8" r="7" stroke="#00E676" stroke-width="1.3"/><path d="M5 8.2l2 2 4-4.4" stroke="#00E676" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </span>
-            </div>
-          </div>
-          <div class="field">
-            <label for="signup-password">Password</label>
-            <div class="field-input">
-              <span class="icon"><svg viewBox="0 0 16 16" fill="none" style="width:15px;height:15px;"><rect x="3.5" y="7" width="9" height="6.5" rx="1.2" stroke="currentColor" stroke-width="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2" stroke="currentColor" stroke-width="1.2"/></svg></span>
-              <input id="signup-password" type="password" placeholder="min. 8 characters" required minlength="8">
-            </div>
-            <div class="pw-meter" id="suPwMeter"><i></i><i></i><i></i></div>
-            <span class="pw-hint" id="suPwHint">Use 8+ characters for a stronger key</span>
-          </div>
-          <button type="submit" class="submit-btn" id="btn-signup-submit">
-            <span class="sweep"></span>
-            <span class="label-text">
-              <svg class="gauge" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2" fill="none" stroke="rgba(4,32,42,0.3)" stroke-width="2.4"/><circle cx="8" cy="8" r="6.2" fill="none" stroke="#04202A" stroke-width="2.4" stroke-dasharray="39" stroke-dashoffset="29" stroke-linecap="round" transform="rotate(-90 8 8)"><animateTransform attributeName="transform" type="rotate" from="-90 8 8" to="270 8 8" dur="0.7s" repeatCount="indefinite"/></circle></svg>
-              <span class="label-static">Provision sandbox</span>
-            </span>
-          </button>
-          <div class="provision-note">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="width:14px;height:14px;"><circle cx="7" cy="7" r="6" stroke="#00E676" stroke-width="1.2"/><path d="M4.5 7l1.8 1.8L9.5 5" stroke="#00E676" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span>One click provisions your account, seeds <b>100M test USDT</b>, and issues API keys.</span>
-          </div>
-        </form>
-      </div>
-
-      <div class="term-footer">
-        <a href="#" onclick="event.preventDefault();">Forgot password</a>
-        <a href="#" onclick="event.preventDefault();">API docs ↗</a>
-      </div>
+  <!-- Landing Header -->
+  <div class="topbar" style="position: absolute; z-index:10; background: transparent; backdrop-filter: none; border-bottom: 1px solid rgba(255,255,255,0.05);">
+    <div class="brand">
+      <span class="brand-mark">
+        <svg viewBox="0 0 22 22" fill="none" style="width: 22px; height: 22px;">
+          <circle cx="6" cy="11" r="4" stroke="#F0B90B" stroke-width="1.4"/>
+          <circle cx="16" cy="11" r="4" stroke="#00D9FF" stroke-width="1.4"/>
+          <line x1="9.6" y1="11" x2="12.4" y2="11" stroke="#5B6572" stroke-width="1.2" stroke-dasharray="1.6 1.6"/>
+        </svg>
+      </span>
+      <span class="brand-text" style="color: #E6EDF3;">REPLICATOR<small style="color: var(--text-muted);">Multi-Market Engine</small></span>
     </div>
+    <div class="status-cluster" style="color: var(--text-muted);">
+      <div class="status-item"><span class="dot live"></span><span>LIVE · BINANCE</span></div>
+      <div class="status-item hide-sm"><span class="dot staging"></span><span>STAGING · HPO</span></div>
+    </div>
+  </div>
+
+  <div class="stage" style="z-index:3; display:grid; width: 100%; flex: 1;">
+    <!-- LEFT: ambient live feed -->
+    <section class="feed-panel">
+      <span class="eyebrow" style="align-self: flex-start;">● Production feed — read only</span>
+      <h1 class="feed-title" style="color: #E6EDF3;">Every tick, mirrored to <span class="accent" style="color: var(--amber);">staging</span> in real time.</h1>
+      <p class="feed-sub" style="color: var(--text-muted);">The Replicator listens to live order book and trade data, then reconstructs it faithfully on the testnet — so your sandbox never feels empty.</p>
+
+      <div class="ticker-tape">
+        <div class="ticker-track" id="tickerTrack"></div>
+      </div>
+
+      <div class="book-wrap">
+        <div class="book-head">
+          <span class="pair" style="color: #E6EDF3;">BTC/USDT</span>
+          <span>depth · live mirror</span>
+        </div>
+        <div class="book-price mono" style="color: var(--amber);"><span class="val" id="bookPriceVal">67,234.10</span><span class="delta up" id="bookDelta">+0.42%</span></div>
+        <div class="depth-rows" id="depthRows"></div>
+        <div class="book-foot mono" style="color: var(--text-muted);">
+          <span id="latencyStat">sync latency: 42ms</span>
+          <span id="depthStat">depth mirrored: 98.6%</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- SEAM -->
+    <div class="seam"><canvas id="seam-canvas"></canvas></div>
+
+    <!-- RIGHT: access terminal -->
+    <section class="terminal-panel">
+      <div class="card-border-wrap">
+        <div class="terminal-card">
+          <span class="term-eyebrow">◆ Staging access</span>
+          <h2 class="term-title">Access terminal</h2>
+          <p class="term-sub">Sign in to your sandbox, or provision a new account seeded with test capital.</p>
+
+          <div class="tabs" id="auth-tabs" role="tablist">
+            <div class="tab-slider" aria-hidden="true"></div>
+            <button class="tab-btn active" id="tab-login" type="button" onclick="window.switchAuthTab('login')">Log in</button>
+            <button class="tab-btn" id="tab-signup" type="button" onclick="window.switchAuthTab('signup')">Sign up</button>
+          </div>
+
+          <div class="form-stack">
+            <!-- Login Form -->
+            <form class="pane active" id="form-login" onsubmit="window.handleAuthSubmit(event, 'login')" novalidate>
+              <div class="field">
+                <label for="login-email">Work email</label>
+                <div class="field-input">
+                  <span class="icon">
+                    <svg viewBox="0 0 16 16" fill="none" style="width:15px;height:15px;"><path d="M2 4.5h12v7a1 1 0 01-1 1H3a1 1 0 01-1-1v-7z" stroke="currentColor" stroke-width="1.2"/><path d="M2.5 4.8L8 9l5.5-4.2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </span>
+                  <input id="login-email" type="email" placeholder="you@coindcx.com" autocomplete="username" required>
+                  <span class="status-icon" id="loginEmailStatus">
+                    <svg viewBox="0 0 16 16" fill="none" style="width:15px;height:15px;"><circle cx="8" cy="8" r="7" stroke="#00E676" stroke-width="1.3"/><path d="M5 8.2l2 2 4-4.4" stroke="#00E676" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </span>
+                </div>
+              </div>
+              <div class="field">
+                <label for="login-password">Password</label>
+                <div class="field-input">
+                  <span class="icon">
+                    <svg viewBox="0 0 16 16" fill="none" style="width:15px;height:15px;"><rect x="3.5" y="7" width="9" height="6.5" rx="1.2" stroke="currentColor" stroke-width="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2" stroke="currentColor" stroke-width="1.2"/></svg>
+                  </span>
+                  <input id="login-password" type="password" placeholder="••••••••••" autocomplete="current-password" required>
+                </div>
+              </div>
+              <button type="submit" class="submit-btn" id="btn-login-submit">
+                <span class="sweep"></span>
+                <span class="label-text">
+                  <svg class="gauge" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2" fill="none" stroke="rgba(4,32,42,0.3)" stroke-width="2.4"/><circle cx="8" cy="8" r="6.2" fill="none" stroke="#04202A" stroke-width="2.4" stroke-dasharray="39" stroke-dashoffset="29" stroke-linecap="round" transform="rotate(-90 8 8)"><animateTransform attributeName="transform" type="rotate" from="-90 8 8" to="270 8 8" dur="0.7s" repeatCount="indefinite"/></circle></svg>
+                  <span class="label-static">Sync into staging</span>
+                </span>
+              </button>
+            </form>
+
+            <!-- Signup Form -->
+            <form class="pane" id="form-signup" onsubmit="window.handleAuthSubmit(event, 'signup')" novalidate>
+              <div class="row-2">
+                <div class="field">
+                  <label for="signup-username">Username</label>
+                  <div class="field-input">
+                    <span class="icon"><svg viewBox="0 0 16 16" fill="none" style="width:15px;height:15px;"><circle cx="8" cy="5.5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M3 13c0-2.5 2.2-4 5-4s5 1.5 5 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></span>
+                    <input id="signup-username" type="text" placeholder="mani_reddy" autocomplete="name" required>
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="signup-role">Role Allocation</label>
+                  <div class="field-input">
+                    <span class="icon"><svg viewBox="0 0 16 16" fill="none" style="width:15px;height:15px;"><rect x="2.5" y="5" width="11" height="8" rx="1.2" stroke="currentColor" stroke-width="1.2"/><path d="M5.5 5V3.8a1.2 1.2 0 011.2-1.2h2.6a1.2 1.2 0 011.2 1.2V5" stroke="currentColor" stroke-width="1.2"/></svg></span>
+                    <select id="signup-role" style="cursor:pointer;">
+                      <option value="MAKER">MAKER (Provider)</option>
+                      <option value="TAKER">TAKER (IOC Sync)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div class="field">
+                <label for="signup-email">Work email</label>
+                <div class="field-input">
+                  <span class="icon"><svg viewBox="0 0 16 16" fill="none" style="width:15px;height:15px;"><path d="M2 4.5h12v7a1 1 0 01-1 1H3a1 1 0 01-1-1v-7z" stroke="currentColor" stroke-width="1.2"/><path d="M2.5 4.8L8 9l5.5-4.2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                  <input id="signup-email" type="email" placeholder="you@coindcx.com" required>
+                  <span class="status-icon" id="signupEmailStatus">
+                    <svg viewBox="0 0 16 16" fill="none" style="width:15px;height:15px;"><circle cx="8" cy="8" r="7" stroke="#00E676" stroke-width="1.3"/><path d="M5 8.2l2 2 4-4.4" stroke="#00E676" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </span>
+                </div>
+              </div>
+              <div class="field">
+                <label for="signup-password">Password</label>
+                <div class="field-input">
+                  <span class="icon"><svg viewBox="0 0 16 16" fill="none" style="width:15px;height:15px;"><rect x="3.5" y="7" width="9" height="6.5" rx="1.2" stroke="currentColor" stroke-width="1.2"/><path d="M5.5 7V5a2.5 2.5 0 015 0v2" stroke="currentColor" stroke-width="1.2"/></svg></span>
+                  <input id="signup-password" type="password" placeholder="min. 8 characters" required minlength="8">
+                </div>
+                <div class="pw-meter" id="suPwMeter"><i></i><i></i><i></i></div>
+                <span class="pw-hint" id="suPwHint">Use 8+ characters for a stronger key</span>
+              </div>
+              <button type="submit" class="submit-btn" id="btn-signup-submit">
+                <span class="sweep"></span>
+                <span class="label-text">
+                  <svg class="gauge" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2" fill="none" stroke="rgba(4,32,42,0.3)" stroke-width="2.4"/><circle cx="8" cy="8" r="6.2" fill="none" stroke="#04202A" stroke-width="2.4" stroke-dasharray="39" stroke-dashoffset="29" stroke-linecap="round" transform="rotate(-90 8 8)"><animateTransform attributeName="transform" type="rotate" from="-90 8 8" to="270 8 8" dur="0.7s" repeatCount="indefinite"/></circle></svg>
+                  <span class="label-static">Provision sandbox</span>
+                </span>
+              </button>
+              <div class="provision-note">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="width:14px;height:14px;"><circle cx="7" cy="7" r="6" stroke="#00E676" stroke-width="1.2"/><path d="M4.5 7l1.8 1.8L9.5 5" stroke="#00E676" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <span>One click provisions your account, seeds <b>100M test USDT</b>, and issues API keys.</span>
+              </div>
+            </form>
+          </div>
+
+          <div class="term-footer">
+            <a href="#" onclick="event.preventDefault();">Forgot password</a>
+            <a href="#" onclick="event.preventDefault();">API docs ↗</a>
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
 </div>
 
@@ -6301,6 +6351,7 @@ window.addEventListener('DOMContentLoaded', () => {
                         body: JSON.stringify({ email, password })
                     });
 
+                    const data = await res.json();
                     if (res.ok && data.success) {
                         submitBtn.classList.remove('syncing');
                         submitBtn.classList.add('success');
@@ -6374,116 +6425,234 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         };
 
-        // ----------------------------------------------------
-        // Animated Canvas Background Logic
-        // ----------------------------------------------------
-        let canvasAnimId = null;
+        let seamAnimId = null;
+        let tickerIntervalId = null;
+        let bookDriftIntervalId = null;
+
         window.startAuthCanvasAnimation = function() {
+            // 1. Constellation Background Canvas
             const canvas = document.getElementById('auth-bg-canvas');
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) return;
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    const resize = () => {
+                        canvas.width = canvas.offsetWidth;
+                        canvas.height = canvas.offsetHeight;
+                    };
+                    window.addEventListener('resize', resize);
+                    resize();
 
-            // Handle Resize
-            const resize = () => {
-                canvas.width = canvas.offsetWidth;
-                canvas.height = canvas.offsetHeight;
-            };
-            window.addEventListener('resize', resize);
-            resize();
+                    const particles = [];
+                    const particleCount = 65;
+                    const maxDistance = 120;
 
-            // Particles Array
-            const particles = [];
-            const particleCount = 65;
-            const maxDistance = 120;
-
-            // Initialize Particles
-            for (let i = 0; i < particleCount; i++) {
-                particles.push({
-                    x: Math.random() * canvas.width,
-                    y: Math.random() * canvas.height,
-                    vx: (Math.random() - 0.5) * 0.8,
-                    vy: (Math.random() - 0.5) * 0.8,
-                    radius: Math.random() * 2 + 1,
-                    color: Math.random() > 0.5 ? 'rgba(6, 182, 212, 0.4)' : 'rgba(168, 85, 247, 0.4)'
-                });
-            }
-
-            // Mouse Interactive Coordinates
-            let mouse = { x: null, y: null };
-            const parent = document.getElementById('auth-overlay');
-            if (parent) {
-                parent.addEventListener('mousemove', (e) => {
-                    mouse.x = e.clientX;
-                    mouse.y = e.clientY;
-                });
-                parent.addEventListener('mouseleave', () => {
-                    mouse.x = null;
-                    mouse.y = null;
-                });
-            }
-
-            // Render loop
-            const loop = () => {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-                // Draw and Update Particles
-                for (let i = 0; i < particles.length; i++) {
-                    const p = particles[i];
-                    p.x += p.vx;
-                    p.y += p.vy;
-
-                    // Bounce Walls
-                    if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
-                    if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
-
-                    // Draw Node
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-                    ctx.fillStyle = p.color;
-                    ctx.fill();
-
-                    // Mouse Interaction
-                    if (mouse.x !== null && mouse.y !== null) {
-                        const dx = mouse.x - p.x;
-                        const dy = mouse.y - p.y;
-                        const dist = Math.hypot(dx, dy);
-                        if (dist < 180) {
-                            // Attract slightly
-                            p.x += dx * 0.005;
-                            p.y += dy * 0.005;
-                        }
+                    for (let i = 0; i < particleCount; i++) {
+                        particles.push({
+                            x: Math.random() * canvas.width,
+                            y: Math.random() * canvas.height,
+                            vx: (Math.random() - 0.5) * 0.8,
+                            vy: (Math.random() - 0.5) * 0.8,
+                            radius: Math.random() * 2 + 1,
+                            color: Math.random() > 0.5 ? 'rgba(6, 182, 212, 0.4)' : 'rgba(168, 85, 247, 0.4)'
+                        });
                     }
 
-                    // Links lines between nodes
-                    for (let j = i + 1; j < particles.length; j++) {
-                        const p2 = particles[j];
-                        const dx = p.x - p2.x;
-                        const dy = p.y - p2.y;
-                        const dist = Math.hypot(dx, dy);
+                    let mouse = { x: null, y: null };
+                    const parent = document.getElementById('auth-overlay');
+                    if (parent) {
+                        parent.addEventListener('mousemove', (e) => {
+                            mouse.x = e.clientX;
+                            mouse.y = e.clientY;
+                        });
+                        parent.addEventListener('mouseleave', () => {
+                            mouse.x = null;
+                            mouse.y = null;
+                        });
+                    }
 
-                        if (dist < maxDistance) {
-                            const alpha = (1 - (dist / maxDistance)) * 0.15;
+                    const loop = () => {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        for (let i = 0; i < particles.length; i++) {
+                            const p = particles[i];
+                            p.x += p.vx;
+                            p.y += p.vy;
+
+                            if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+                            if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+
                             ctx.beginPath();
-                            ctx.moveTo(p.x, p.y);
-                            ctx.lineTo(p2.x, p2.y);
-                            ctx.strokeStyle = `rgba(34, 211, 238, ${alpha})`;
-                            ctx.lineWidth = 0.8;
-                            ctx.stroke();
+                            ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                            ctx.fillStyle = p.color;
+                            ctx.fill();
+
+                            if (mouse.x !== null && mouse.y !== null) {
+                                const dx = mouse.x - p.x;
+                                const dy = mouse.y - p.y;
+                                const dist = Math.hypot(dx, dy);
+                                if (dist < 180) {
+                                    p.x += dx * 0.005;
+                                    p.y += dy * 0.005;
+                                }
+                            }
+
+                            for (let j = i + 1; j < particles.length; j++) {
+                                const p2 = particles[j];
+                                const dx = p.x - p2.x;
+                                const dy = p.y - p2.y;
+                                const dist = Math.hypot(dx, dy);
+
+                                if (dist < maxDistance) {
+                                    const alpha = (1 - (dist / maxDistance)) * 0.15;
+                                    ctx.beginPath();
+                                    ctx.moveTo(p.x, p.y);
+                                    ctx.lineTo(p2.x, p2.y);
+                                    ctx.strokeStyle = `rgba(34, 211, 238, ${alpha})`;
+                                    ctx.lineWidth = 0.8;
+                                    ctx.stroke();
+                                }
+                            }
                         }
+                        canvasAnimId = requestAnimationFrame(loop);
+                    };
+                    loop();
+                }
+            }
+
+            // 2. Seam Canvas Flowing Dots
+            const seamCanvas = document.getElementById('seam-canvas');
+            if (seamCanvas) {
+                const sctx = seamCanvas.getContext('2d');
+                if (sctx) {
+                    let cw = 120, ch = 0, dpr = 1;
+                    const resizeSeam = () => {
+                        if (getComputedStyle(seamCanvas).display === 'none') return;
+                        dpr = Math.min(window.devicePixelRatio || 1, 2);
+                        const rect = seamCanvas.parentElement.getBoundingClientRect();
+                        cw = 120; ch = rect.height;
+                        seamCanvas.width = Math.round(cw * dpr);
+                        seamCanvas.height = Math.round(ch * dpr);
+                        sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                    };
+                    resizeSeam();
+                    window.addEventListener('resize', resizeSeam);
+
+                    let t = 0;
+                    const seamLoop = () => {
+                        if (ch > 0) {
+                            sctx.clearRect(0, 0, cw, ch);
+                            const cx = 60;
+                            for (let y = 20; y < ch; y += 46) {
+                                const phase = (y / 46) + t;
+                                const glow = 0.4 + Math.sin(phase) * 0.35;
+                                sctx.beginPath();
+                                sctx.arc(cx, y, 2, 0, Math.PI * 2);
+                                sctx.fillStyle = `rgba(0, 217, 255, ${0.25 + glow * 0.3})`;
+                                sctx.fill();
+                            }
+                            t += 0.02;
+                        }
+                        seamAnimId = requestAnimationFrame(seamLoop);
+                    };
+                    seamLoop();
+                }
+            }
+
+            // 3. Ticker Tape Feed loop
+            const pairsList = [
+                ['BTC/USDT', 67234.10, 1], ['ETH/USDT', 3542.88, 1], ['SOL/USDT', 168.22, -1],
+                ['XRP/USDT', 0.6120, 1], ['BNB/USDT', 589.40, -1], ['DOGE/USDT', 0.1421, 1]
+            ];
+            const track = document.getElementById('tickerTrack');
+            if (track) {
+                const segHTML = pairsList.map(([sym, price, dir]) => {
+                    const pct = (Math.random() * 2.4).toFixed(2);
+                    const cls = dir > 0 ? 'up' : 'down';
+                    const arrow = dir > 0 ? '▲' : '▼';
+                    return `<span class="tick"><b>${sym}</b> ${price.toLocaleString(undefined, { minimumFractionDigits: 2 })} <span class="${cls}">${arrow} ${pct}%</span></span>`;
+                }).join('');
+                track.innerHTML = segHTML + segHTML;
+
+                const full = track.scrollWidth / 2;
+                if (full > 0) {
+                    track.style.animation = `ticker-scroll 22s linear infinite`;
+                    if (!document.getElementById('ticker-scroll-keyframes')) {
+                        const styleTag = document.createElement('style');
+                        styleTag.id = 'ticker-scroll-keyframes';
+                        styleTag.textContent = `@keyframes ticker-scroll{ from{ transform: translateX(0);} to{ transform: translateX(${-full}px);} }`;
+                        document.head.appendChild(styleTag);
                     }
                 }
+            }
 
-                canvasAnimId = requestAnimationFrame(loop);
-            };
+            // 4. Mirror Book Depth and Price Drift
+            const depthRows = document.getElementById('depthRows');
+            const priceVal = document.getElementById('bookPriceVal');
+            const bookDelta = document.getElementById('bookDelta');
+            const latencyStat = document.getElementById('latencyStat');
+            const depthStat = document.getElementById('depthStat');
 
-            loop();
+            if (depthRows && priceVal && bookDelta) {
+                depthRows.innerHTML = '';
+                let basePrice = 67234.10;
+                const rows = { ask: [], bid: [] };
+
+                const makeRow = (kind) => {
+                    const el = document.createElement('div');
+                    el.className = 'depth-row ' + kind;
+                    const bar = document.createElement('div'); bar.className = 'bar';
+                    const vals = document.createElement('div'); vals.className = 'vals';
+                    const priceSpan = document.createElement('span');
+                    const qtySpan = document.createElement('span');
+                    vals.appendChild(priceSpan); vals.appendChild(qtySpan);
+                    el.appendChild(bar); el.appendChild(vals);
+                    depthRows.appendChild(el);
+                    return { el, bar, priceSpan, qtySpan };
+                };
+
+                for (let i = 0; i < 6; i++) rows.ask.push(makeRow('ask'));
+                for (let i = 0; i < 6; i++) rows.bid.push(makeRow('bid'));
+
+                const renderBook = () => {
+                    rows.ask.forEach((r, i) => {
+                        r.bar.style.width = (18 + Math.random() * 72).toFixed(0) + '%';
+                        r.priceSpan.textContent = (basePrice + (i + 1) * 1.4).toFixed(2);
+                        r.qtySpan.textContent = (Math.random() * 2 + 0.1).toFixed(3);
+                    });
+                    rows.bid.forEach((r, i) => {
+                        r.bar.style.width = (18 + Math.random() * 72).toFixed(0) + '%';
+                        r.priceSpan.textContent = (basePrice - (i + 1) * 1.4).toFixed(2);
+                        r.qtySpan.textContent = (Math.random() * 2 + 0.1).toFixed(3);
+                    });
+                };
+                renderBook();
+
+                bookDriftIntervalId = setInterval(() => {
+                    const drift = (Math.random() - 0.48) * 6;
+                    basePrice += drift;
+                    const pct = (drift / basePrice * 100);
+                    priceVal.textContent = basePrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    bookDelta.textContent = (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%';
+                    bookDelta.classList.toggle('up', pct >= 0);
+                    bookDelta.classList.toggle('down', pct < 0);
+                    renderBook();
+                    if (latencyStat) latencyStat.textContent = 'sync latency: ' + (28 + Math.floor(Math.random() * 30)) + 'ms';
+                    if (depthStat) depthStat.textContent = 'depth mirrored: ' + (96 + Math.random() * 3).toFixed(1) + '%';
+                }, 2200);
+            }
         };
 
         window.stopAuthCanvasAnimation = function() {
             if (canvasAnimId) {
                 cancelAnimationFrame(canvasAnimId);
                 canvasAnimId = null;
+            }
+            if (seamAnimId) {
+                cancelAnimationFrame(seamAnimId);
+                seamAnimId = null;
+            }
+            if (bookDriftIntervalId) {
+                clearInterval(bookDriftIntervalId);
+                bookDriftIntervalId = null;
             }
         };
 
