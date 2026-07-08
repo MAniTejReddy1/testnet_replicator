@@ -7580,7 +7580,22 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         };
 
+        const ENABLE_AUTH = false;
+
         window.checkAuthSession = async function() {
+            if (!ENABLE_AUTH) {
+                console.log("Authentication is disabled by ENABLE_AUTH flag. Bypassing login page.");
+                document.getElementById('auth-overlay').style.display = 'none';
+                window.stopAuthCanvasAnimation();
+                try {
+                    window.initializeTerminalAfterAuth();
+                } catch (initErr) {
+                    console.error("Error during post-auth terminal initialization:", initErr);
+                }
+                const sp = document.getElementById('splash');
+                if (sp) { sp.classList.add('hidden'); setTimeout(()=>sp.remove(), 500); }
+                return;
+            }
             try {
                 const res = await fetch(window.getApiUrl('/api/auth/session'));
                 if (res.ok) {
