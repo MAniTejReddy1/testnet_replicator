@@ -506,16 +506,62 @@
   .tick .up { color: #10b981; }
   .tick .down { color: #f43f5e; }
 
-  .book-wrap {
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
     margin-top: 20px;
+    flex: 1;
+    min-height: 0;
+  }
+  .book-wrap {
     border: 1px solid rgba(255,255,255,0.06);
     border-radius: 10px;
     background: #0D1219;
     padding: 16px 18px 18px;
-    flex: 1;
     display:flex;
     flex-direction: column;
     min-height: 0;
+  }
+  .sync-feed-wrap {
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    background: #0D1219;
+    padding: 16px 18px 18px;
+    display:flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .sync-list {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    overflow: hidden;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+  }
+  .sync-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 7px 10px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-left: 3px solid var(--muted);
+    border-radius: 6px;
+    animation: item-slide-in 0.3s ease both;
+  }
+  .sync-item.buy { border-left-color: #00E676; background: rgba(0, 230, 118, 0.015); }
+  .sync-item.sell { border-left-color: #FF3B5C; background: rgba(255, 59, 92, 0.015); }
+  .sync-item .ts { color: var(--muted); font-size: 10px; }
+  .sync-item .amount { color: #E6EDF3; font-weight: 600; }
+  .sync-item .side-lbl.buy { color: #00E676; font-weight: bold; }
+  .sync-item .side-lbl.sell { color: #FF3B5C; font-weight: bold; }
+  @keyframes item-slide-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: none; }
   }
   .book-head {
     display:flex; justify-content: space-between; align-items:baseline;
@@ -836,6 +882,7 @@
     #auth-overlay #seam-canvas { display:none; }
     #auth-overlay .feed-panel { padding: 22px 18px 18px; }
     #auth-overlay .terminal-panel { padding: 20px 18px 40px; overflow-y: visible; }
+    #auth-overlay .dashboard-grid { grid-template-columns: 1fr; }
     #auth-overlay .book-wrap { min-height: 250px; }
   }
   @media (max-width: 400px){
@@ -1313,16 +1360,26 @@
         <div class="ticker-track" id="tickerTrack"></div>
       </div>
 
-      <div class="book-wrap">
-        <div class="book-head">
-          <span class="pair" style="color: #E6EDF3;">BTC/USDT</span>
-          <span>depth · live mirror</span>
+      <div class="dashboard-grid">
+        <div class="book-wrap">
+          <div class="book-head">
+            <span class="pair" style="color: #E6EDF3;">BTC/USDT</span>
+            <span>depth · live mirror</span>
+          </div>
+          <div class="book-price mono" style="color: var(--amber);"><span class="val" id="bookPriceVal">67,234.10</span><span class="delta up" id="bookDelta">+0.42%</span></div>
+          <div class="depth-rows" id="depthRows"></div>
+          <div class="book-foot mono" style="color: var(--text-muted);">
+            <span id="latencyStat">sync latency: 42ms</span>
+            <span id="depthStat">depth mirrored: 98.6%</span>
+          </div>
         </div>
-        <div class="book-price mono" style="color: var(--amber);"><span class="val" id="bookPriceVal">67,234.10</span><span class="delta up" id="bookDelta">+0.42%</span></div>
-        <div class="depth-rows" id="depthRows"></div>
-        <div class="book-foot mono" style="color: var(--text-muted);">
-          <span id="latencyStat">sync latency: 42ms</span>
-          <span id="depthStat">depth mirrored: 98.6%</span>
+
+        <div class="sync-feed-wrap">
+          <div class="book-head">
+            <span class="pair" style="color: #E6EDF3;">LIVE SYNC TELEMETRY</span>
+            <span>stage replica status</span>
+          </div>
+          <div class="sync-list" id="syncList"></div>
         </div>
       </div>
     </section>
@@ -6674,6 +6731,7 @@ window.addEventListener('DOMContentLoaded', () => {
         let seamAnimId = null;
         let tickerIntervalId = null;
         let bookDriftIntervalId = null;
+        let syncIntervalId = null;
 
         window.startAuthCanvasAnimation = function() {
             // 1. Constellation Background Canvas
@@ -6961,6 +7019,43 @@ window.addEventListener('DOMContentLoaded', () => {
                 // Run immediately and start high-frequency updates (every 100ms)
                 updateSimulation();
                 bookDriftIntervalId = setInterval(updateSimulation, 100);
+
+                // 5. Simulated Staging Sync Telemetry stream
+                const syncList = document.getElementById('syncList');
+                if (syncList) {
+                    syncList.innerHTML = '';
+                    const sampleAssets = ['BTC', 'ETH', 'SOL', 'BNB', 'DOGE', 'XRP', 'AVAX'];
+                    const createSyncItem = () => {
+                        const asset = sampleAssets[Math.floor(Math.random() * sampleAssets.length)];
+                        const isBuy = Math.random() > 0.45;
+                        const amount = (Math.random() * 5 + 0.05).toFixed(Math.random() > 0.5 ? 4 : 2);
+                        const now = new Date();
+                        const timeStr = now.toTimeString().split(' ')[0];
+                        const elapsedMs = Math.floor(Math.random() * 25 + 12) + 'ms';
+                        
+                        const item = document.createElement('div');
+                        item.className = 'sync-item ' + (isBuy ? 'buy' : 'sell');
+                        item.innerHTML = `
+                            <span class="ts">${timeStr}</span>
+                            <span><b style="color:#fff;">${asset}/USDT</b> <span class="side-lbl ${isBuy ? 'buy' : 'sell'}">${isBuy ? 'BUY' : 'SELL'}</span></span>
+                            <span class="amount">${amount}</span>
+                            <span style="color:var(--cyan); font-weight:600; font-size:10px;">${elapsedMs}</span>
+                        `;
+                        
+                        syncList.insertBefore(item, syncList.firstChild);
+                        while (syncList.children.length > 7) {
+                            syncList.removeChild(syncList.lastChild);
+                        }
+                    };
+                    
+                    // Populate initial entries
+                    for (let i = 0; i < 6; i++) {
+                        createSyncItem();
+                    }
+                    
+                    // Run random additions
+                    syncIntervalId = setInterval(createSyncItem, 1300);
+                }
             }
         };
 
@@ -6976,6 +7071,10 @@ window.addEventListener('DOMContentLoaded', () => {
             if (bookDriftIntervalId) {
                 clearInterval(bookDriftIntervalId);
                 bookDriftIntervalId = null;
+            }
+            if (syncIntervalId) {
+                clearInterval(syncIntervalId);
+                syncIntervalId = null;
             }
         };
 
