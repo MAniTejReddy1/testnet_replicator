@@ -2675,6 +2675,16 @@ const replicatorPart = pathParts.find(p => p.startsWith('replicator-'));
 const basePrefix = replicatorPart ? '/' + replicatorPart : '';
 window.getApiUrl = (path) => basePrefix + path;
 
+const originalFetch = window.fetch;
+window.fetch = function(input, init) {
+    init = init || {};
+    const urlStr = typeof input === 'string' ? input : (input && input.url) ? input.url : '';
+    if (urlStr.includes('/api/') || urlStr.includes('/fapi/') || urlStr.includes('/events') || urlStr.startsWith('/')) {
+        init.credentials = 'include';
+    }
+    return originalFetch(input, init);
+};
+
 window.addEventListener('DOMContentLoaded', () => {
     try {
         window.payload = { users: {}, roles: { makerId: '', takerId: '' }, portfolios: {} };
@@ -5881,7 +5891,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const SSE_MAX_DELAY = 30000;
         function connectSSE() {
             if (es) es.close();
-            es = new EventSource(window.getApiUrl('/events'));
+            es = new EventSource(window.getApiUrl('/events'), { withCredentials: true });
 
             es.onopen = () => {
                 sseReconnectDelay = 2500; // Reset backoff on success
@@ -6797,6 +6807,7 @@ window.addEventListener('DOMContentLoaded', () => {
                         setTimeout(() => {
                             document.getElementById('auth-overlay').style.display = 'none';
                             submitBtn.classList.remove('success');
+                            window.stopAuthCanvasAnimation();
                             window.initializeTerminalAfterAuth();
                         }, 500);
                     } else {
