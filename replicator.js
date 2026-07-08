@@ -3192,8 +3192,10 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
+    const pathname = (req.url || '').split('?')[0];
+
     // 1. Handle Auth Routes (No session check required)
-    if (req.method === 'POST' && req.url === '/api/auth/login') {
+    if (req.method === 'POST' && pathname === '/api/auth/login') {
         let body = '';
         req.on('data', chunk => { body += chunk; });
         req.on('end', () => {
@@ -3242,7 +3244,7 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    if (req.method === 'POST' && req.url === '/api/auth/register') {
+    if (req.method === 'POST' && pathname === '/api/auth/register') {
         let body = '';
         req.on('data', chunk => { body += chunk; });
         req.on('end', async () => {
@@ -3301,13 +3303,13 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    if (req.url === '/api/auth/session') {
+    if (pathname === '/api/auth/session') {
         const user = getSessionUser(req);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         return res.end(JSON.stringify({ authenticated: !!user, user }));
     }
 
-    if (req.method === 'POST' && req.url === '/api/auth/logout') {
+    if (req.method === 'POST' && pathname === '/api/auth/logout') {
         const sid = getSessionSid(req);
         if (sid) {
             activeSessions.delete(sid);
@@ -3322,9 +3324,9 @@ const server = http.createServer(async (req, res) => {
 
     // 2. Gate All Other Pages/API Requests Behind Authentication Session
     const session = getSessionUser(req);
-    const isHtmlRoute = req.url === '/' || req.url === '/index.html';
+    const isHtmlRoute = pathname === '/' || pathname === '/index.html';
 
-    if (!session && !req.url.startsWith('/api/auth/')) {
+    if (!session && !pathname.startsWith('/api/auth/')) {
         if (isHtmlRoute) {
             // Render index.html anyway, the frontend will show the glassmorphic auth overlay
         } else {
@@ -3333,7 +3335,7 @@ const server = http.createServer(async (req, res) => {
         }
     }
 
-    if (req.method === 'POST' && req.url === '/api/instance/select') {
+    if (req.method === 'POST' && pathname === '/api/instance/select') {
         let body = '';
         req.on('data', chunk => { body += chunk; });
         req.on('end', async () => {
@@ -3363,7 +3365,7 @@ const server = http.createServer(async (req, res) => {
 
     // CORS headers handled globally at top of server handler
 
-    if (req.method === 'GET' && req.url.startsWith('/api/stage/exchangeInfo')) {
+    if (req.method === 'GET' && pathname.startsWith('/api/stage/exchangeInfo')) {
         const urlObj = new URL(req.url, 'http://localhost');
         const tier = (urlObj.searchParams.get('tier') || globalActiveTier).toUpperCase();
         const urls = TIER_URLS[tier] || TIER_URLS.PRODUCTION;
@@ -3386,7 +3388,7 @@ const server = http.createServer(async (req, res) => {
         }
     }
 
-    if (req.method === 'GET' && req.url.startsWith('/api/stage/ticker/price')) {
+    if (req.method === 'GET' && pathname.startsWith('/api/stage/ticker/price')) {
         const urlObj = new URL(req.url, 'http://localhost');
         const tier = (urlObj.searchParams.get('tier') || globalActiveTier).toUpperCase();
         const urls = TIER_URLS[tier] || TIER_URLS.PRODUCTION;
@@ -3409,7 +3411,7 @@ const server = http.createServer(async (req, res) => {
         }
     }
 
-    if (req.method === 'GET' && req.url.startsWith('/api/stage/premiumIndex')) {
+    if (req.method === 'GET' && pathname.startsWith('/api/stage/premiumIndex')) {
         const urlObj = new URL(req.url, 'http://localhost');
         const tier = (urlObj.searchParams.get('tier') || globalActiveTier).toUpperCase();
         const urls = TIER_URLS[tier] || TIER_URLS.PRODUCTION;
@@ -3432,7 +3434,7 @@ const server = http.createServer(async (req, res) => {
         }
     }
 
-    if (req.method === 'GET' && req.url.startsWith('/api/fundingRate')) {
+    if (req.method === 'GET' && pathname.startsWith('/api/fundingRate')) {
         const urlObj = new URL(req.url, 'http://localhost');
         const sym = (urlObj.searchParams.get('symbol') || '').toUpperCase();
         const tier = (urlObj.searchParams.get('tier') || globalActiveTier).toUpperCase();
@@ -3496,7 +3498,7 @@ const server = http.createServer(async (req, res) => {
         }
     }
 
-    if (req.method === 'DELETE' && req.url.startsWith('/api/instance')) {
+    if (req.method === 'DELETE' && pathname.startsWith('/api/instance')) {
         const urlObj = new URL(req.url, 'http://localhost');
         const sym = (urlObj.searchParams.get('symbol') || '').toUpperCase();
         const tier = (urlObj.searchParams.get('tier') || globalActiveTier).toUpperCase();
@@ -3539,7 +3541,7 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    if (req.url === '/events') {
+    if (pathname === '/events') {
         res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
         res.flushHeaders();
         res.write('\n');
@@ -3564,14 +3566,14 @@ const server = http.createServer(async (req, res) => {
                 
                 // Allow specific routes to omit symbol
                 if (!sym && 
-                    !req.url.startsWith('/api/users') && 
-                    !req.url.startsWith('/api/manual-override') && 
-                    !req.url.startsWith('/api/env') && 
-                    !req.url.startsWith('/fapi/v1/openOrders')
+                    !pathname.startsWith('/api/users') && 
+                    !pathname.startsWith('/api/manual-override') && 
+                    !pathname.startsWith('/api/env') && 
+                    !pathname.startsWith('/fapi/v1/openOrders')
                 ) {
                     throw new Error("Symbol is required");
                 }
-                if (req.url.startsWith('/fapi/')) {
+                if (pathname.startsWith('/fapi/')) {
                     const userId = req.headers['x-replicator-user'];
                     if (!userId) { res.writeHead(400); return res.end(JSON.stringify({ error: "Missing x-replicator-user header" })); }
                     const tierUsers = globalUsers[globalActiveTier] || {};
@@ -3593,8 +3595,8 @@ const server = http.createServer(async (req, res) => {
                     }
                 }
 
-                if (req.url.startsWith('/api/scenario/preset/')) {
-                    const presetName = req.url.split('/').pop().split('?')[0];
+                if (pathname.startsWith('/api/scenario/preset/')) {
+                    const presetName = pathname.split('/').pop();
                     if (!/^[a-zA-Z0-9_-]+$/.test(presetName)) { res.writeHead(400).end(JSON.stringify({ error: 'Invalid preset name' })); return; }
                     const presetPath = path.join(__dirname, 'scenarios', `${presetName}.json`);
                     if (!fs.existsSync(presetPath)) { res.writeHead(404); return res.end(JSON.stringify({ error: `Preset ${presetName} not found` })); }
@@ -3608,7 +3610,7 @@ const server = http.createServer(async (req, res) => {
                     }
                 }
 
-                if (req.url === '/api/scenario/custom') {
+                if (pathname === '/api/scenario/custom') {
                     try {
                         const inst = (instances[globalActiveTier] || new Map()).get(targetSym);
                         const currentLtp = inst ? inst.binanceLtp : null;
@@ -3619,7 +3621,7 @@ const server = http.createServer(async (req, res) => {
                     }
                 }
 
-                if (req.url === '/api/env') {
+                if (pathname === '/api/env') {
                     const tier = (parsed.tier || 'PRODUCTION').toUpperCase();
                     if (!TIER_URLS[tier]) {
                         res.writeHead(400);
@@ -3640,7 +3642,7 @@ const server = http.createServer(async (req, res) => {
                     return res.end(JSON.stringify({ success: true, tier: globalActiveTier }));
                 }
 
-                if (req.url === '/api/config') {
+                if (pathname === '/api/config') {
                     const tier = (parsed.tier || 'PRODUCTION').toUpperCase();
                     if (!instances[tier]) instances[tier] = new Map();
                     let inst = instances[tier].get(targetSym);
@@ -3702,10 +3704,10 @@ const server = http.createServer(async (req, res) => {
                     }
                     res.writeHead(200);
                     return res.end(JSON.stringify({ success: true }));
-                } else if (req.url === '/api/manual-override') {
+                } else if (pathname === '/api/manual-override') {
                     manualOverride = Boolean(parsed.locked);
                     log.info('SYSTEM', `Manual override set to ${manualOverride}`);
-                } else if (req.url === '/api/users') {
+                } else if (pathname === '/api/users') {
                     if (parsed.action === 'add' || parsed.action === 'update') {
                         const { id, label, key, secret, listenKey } = parsed.user;
                         if (!id) throw new Error("User ID is required");
@@ -3753,10 +3755,10 @@ const server = http.createServer(async (req, res) => {
                     }
                 } else {
                     const inst = (instances[globalActiveTier] || new Map()).get(targetSym);
-                    if (req.url === '/api/engine/start'  && inst) inst.start();
-                    else if (req.url === '/api/engine/pause'  && inst) inst.pause();
-                    else if (req.url === '/api/engine/stop'   && inst) await inst.stop();
-                    else if (req.url === '/api/engine/reload' && inst) inst.reloadDepth();
+                    if (pathname === '/api/engine/start'  && inst) inst.start();
+                    else if (pathname === '/api/engine/pause'  && inst) inst.pause();
+                    else if (pathname === '/api/engine/stop'   && inst) await inst.stop();
+                    else if (pathname === '/api/engine/reload' && inst) inst.reloadDepth();
                 }
                 res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ success: true }));
             } catch (err) {
@@ -3776,7 +3778,7 @@ const server = http.createServer(async (req, res) => {
                 const sym = parsed.symbol ? parsed.symbol.toUpperCase() : null;
                 if (!sym) throw new Error("Symbol is required");
                 
-                if (req.url === '/api/scenario/active') {
+                if (pathname === '/api/scenario/active') {
                     const aborted = ScenarioEngine.abortScenario(sym);
                     res.writeHead(200); return res.end(JSON.stringify({ success: true, aborted }));
                 }
@@ -3787,7 +3789,7 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    if (req.url === '/api/snapshot' && req.method === 'GET') {
+    if (pathname === '/api/snapshot' && req.method === 'GET') {
         try {
             const payload = buildPayload();
             res.writeHead(200, {
@@ -3800,7 +3802,7 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    if (req.url === '/api/connections' && req.method === 'GET') {
+    if (pathname === '/api/connections' && req.method === 'GET') {
         res.writeHead(200, {
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*'
@@ -3808,7 +3810,7 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    if (req.url === '/' || req.url === '/index.html') {
+    if (pathname === '/' || pathname === '/index.html') {
         res.writeHead(200, { 
             'Content-Type': 'text/html',
             'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
