@@ -572,6 +572,38 @@
     from { opacity: 0; transform: translateY(-4px); }
     to { opacity: 1; transform: none; }
   }
+  .sim-ctrl-btn {
+    transition: all 0.15s ease;
+  }
+  .sim-ctrl-btn:hover {
+    background: rgba(0, 217, 255, 0.16) !important;
+    box-shadow: 0 0 8px rgba(0, 217, 255, 0.25);
+  }
+  .sim-ctrl-btn.paused {
+    color: var(--yellow) !important;
+    background: rgba(240, 185, 11, 0.08) !important;
+    border-color: rgba(240, 185, 11, 0.25) !important;
+  }
+  #sim-speed-range {
+    -webkit-appearance: none;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+    height: 3px;
+    outline: none;
+  }
+  #sim-speed-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 6px var(--cyan);
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+  #sim-speed-range::-webkit-slider-thumb:hover {
+    transform: scale(1.25);
+  }
   .book-head {
     display:flex; justify-content: space-between; align-items:baseline;
     font-family:'JetBrains Mono', monospace;
@@ -1434,9 +1466,10 @@
       </span>
       <span class="brand-text" style="color: #E6EDF3;">REPLICATOR<small style="color: var(--text-muted);">Multi-Market Engine</small></span>
     </div>
-    <div class="status-cluster" style="color: var(--text-muted);">
-      <div class="status-item"><span class="dot live"></span><span>LIVE · BINANCE</span></div>
-      <div class="status-item hide-sm"><span class="dot staging"></span><span>STAGING · HPO</span></div>
+    <div class="status-cluster" style="color: var(--text-muted); display: flex; align-items: center; gap: 16px;">
+      <div class="status-item"><span class="dot live"></span><span style="color:#E6EDF3; font-weight:600; font-family:'Space Grotesk',sans-serif; font-size:11px; letter-spacing:0.04em;">BINANCE: ACTIVE <small style="color:var(--cyan);">(1,420 t/s)</small></span></div>
+      <div class="status-item hide-sm"><span class="dot staging"></span><span style="color:#E6EDF3; font-weight:600; font-family:'Space Grotesk',sans-serif; font-size:11px; letter-spacing:0.04em;">STAGING: SYNCED <small style="color:var(--yellow);">(99.98%)</small></span></div>
+      <div class="status-item hide-sm" style="font-family:'JetBrains Mono', monospace; font-size:10px; border:1px solid rgba(255,255,255,0.06); padding: 2px 6px; border-radius:4px; background:rgba(255,255,255,0.02); height: 18px; display:flex; align-items:center; box-sizing:border-box;"><span style="color:var(--cyan); font-weight:600;">PING: 12ms</span></div>
     </div>
   </div>
 
@@ -1469,9 +1502,21 @@
           </div>
           <div class="book-columns-rows" id="bookColsRows"></div>
           
-          <div class="book-foot mono" style="color: var(--text-muted);">
+          <div class="book-foot mono" style="color: var(--text-muted); padding-bottom: 8px;">
             <span id="latencyStat">sync latency: 42ms</span>
             <span id="depthStat">depth mirrored: 98.6%</span>
+          </div>
+
+          <!-- Engine Controls -->
+          <div class="simulation-controls" style="margin-top: auto; display: flex; flex-direction: column; gap: 8px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; flex-shrink: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--text-muted);">
+              <span>REPLICATION CONTROLS</span>
+              <button id="btn-sim-pause" class="sim-ctrl-btn" onclick="window.toggleSimPause()" style="background: rgba(0, 217, 255, 0.08); border: 1px solid rgba(0, 217, 255, 0.2); color: var(--cyan); border-radius: 4px; padding: 2px 8px; font-size: 9px; cursor: pointer; text-transform: uppercase; font-family:'JetBrains Mono',monospace; outline:none;">● RUNNING</button>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 9px; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); white-space: nowrap; min-width: 90px; text-align: left;">DELAY: <span id="sim-speed-lbl" style="color: var(--cyan); font-weight: 600;">100ms</span></span>
+              <input type="range" id="sim-speed-range" min="30" max="600" value="100" oninput="window.adjustSimSpeed(this.value)" style="flex: 1; height: 3px; background: rgba(255,255,255,0.1); border-radius: 2px; outline: none; -webkit-appearance: none; cursor: pointer;">
+            </div>
           </div>
         </div>
 
@@ -6833,6 +6878,37 @@ window.addEventListener('DOMContentLoaded', () => {
         let tickerIntervalId = null;
         let bookDriftIntervalId = null;
         let syncIntervalId = null;
+        
+        let isSimPaused = false;
+        let simSpeedMs = 100;
+        
+        window.toggleSimPause = function() {
+            isSimPaused = !isSimPaused;
+            const btn = document.getElementById('btn-sim-pause');
+            if (btn) {
+                if (isSimPaused) {
+                    btn.textContent = '■ PAUSED';
+                    btn.classList.add('paused');
+                } else {
+                    btn.textContent = '● RUNNING';
+                    btn.classList.remove('paused');
+                }
+            }
+        };
+        
+        window.adjustSimSpeed = function(val) {
+            simSpeedMs = parseInt(val);
+            const lbl = document.getElementById('sim-speed-lbl');
+            if (lbl) {
+                lbl.textContent = val + 'ms';
+            }
+            if (bookDriftIntervalId) {
+                clearInterval(bookDriftIntervalId);
+                if (typeof window._runSimStep === 'function') {
+                    bookDriftIntervalId = setInterval(window._runSimStep, simSpeedMs);
+                }
+            }
+        };
 
         window.startAuthCanvasAnimation = function() {
             // 1. Constellation Background Canvas
@@ -7182,6 +7258,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
 
                 const updateSimulation = () => {
+                    if (isSimPaused) return;
                     const t = (Date.now() % 30000) / 30000; // 0.0 to 1.0 representing the 30s cycle
                     
                     // Determine priceOffset based on 30s cycle stage
@@ -7364,6 +7441,7 @@ window.addEventListener('DOMContentLoaded', () => {
                         depthStat.textContent = 'depth mirrored: ' + depthVal.toFixed(1) + '%';
                     }
                 };
+                window._runSimStep = updateSimulation;
 
                 // Run immediately and start high-frequency updates (every 100ms)
                 updateSimulation();
@@ -7375,6 +7453,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     syncList.innerHTML = '';
                     const sampleAssets = ['BTC', 'ETH', 'SOL', 'BNB', 'DOGE', 'XRP', 'AVAX'];
                     const createSyncItem = () => {
+                        if (isSimPaused) return;
                         const asset = sampleAssets[Math.floor(Math.random() * sampleAssets.length)];
                         const isBuy = Math.random() > 0.45;
                         const amount = (Math.random() * 5 + 0.05).toFixed(Math.random() > 0.5 ? 4 : 2);
