@@ -228,12 +228,12 @@ pipeline {
                     withEnv(envVars) {
                         sh """
 # 1. Start reporter in background, capture PID
-node reporter.js > reporter.log 2>&1 &
+node reporter.js --symbol=${env.SRC} --executor=${env.EXECUTOR_NUMBER} > reporter.log 2>&1 &
 REPORTER_PID=\$!
 echo "Reporter started (PID \$REPORTER_PID)"
 
 # 2. Start replicator in background, capture PID
-node replicator.js &
+node replicator.js --symbol=${env.SRC} --executor=${env.EXECUTOR_NUMBER} &
 REPLICATOR_PID=\$!
 echo "Replicator started (PID \$REPLICATOR_PID) — branch: ${params.BRANCH_NAME}"
 
@@ -270,7 +270,7 @@ wait \$REPLICATOR_PID
                         echo "Sending SIGTERM to replicator PID $RPID"
                         kill -SIGTERM $RPID 2>/dev/null || true
                     else
-                        pkill -f "node replicator.js" || true
+                        pkill -f "node replicator.js --symbol=${env.SRC} --executor=${env.EXECUTOR_NUMBER}" || true
                     fi
 
                     if [ -f reporter.pid ]; then
@@ -278,7 +278,7 @@ wait \$REPLICATOR_PID
                         echo "Sending SIGTERM to reporter PID $RPID"
                         kill -SIGTERM $RPID 2>/dev/null || true
                     else
-                        pkill -f "node reporter.js" || true
+                        pkill -f "node reporter.js --symbol=${env.SRC} --executor=${env.EXECUTOR_NUMBER}" || true
                     fi
 
                     # Belt-and-braces: free the dedicated UI/reporter ports
