@@ -573,7 +573,15 @@ function calculateQty(sizeUsdt, priceStr, symbol, tier = 'PRODUCTION') {
     return qty.toFixed(inst.qtyPrecision);
 }
 
-function formatRawQty(rawQty, priceStr, symbol, tier = 'PRODUCTION') {
+// enforceMinNotional=true (default) bumps qty up to satisfy the exchange's minimum
+// order value, which is correct when we need a guaranteed-placeable order (e.g.
+// closing a real position in reducePositions, or scenario/deterministic testing
+// modes). When enforceMinNotional=false — used for exact book/trade mirroring
+// ("Maker/Taker Use Raw Qty") — inflating would place an order LARGER than the
+// actual source bid/ask/trade qty, defeating the purpose of raw-qty mirroring. In
+// that case we return null so the caller can skip the level/trade instead of
+// distorting its size.
+function formatRawQty(rawQty, priceStr, symbol, tier = 'PRODUCTION', enforceMinNotional = true) {
     const price = parseFloat(priceStr);
     const tierMap = instrumentsMap[tier] || {};
     const inst = tierMap[symbol] || { qtyStep: 1.0, minQty: 1.0, qtyPrecision: 0, minNotional: 10.0 };
@@ -585,6 +593,7 @@ function formatRawQty(rawQty, priceStr, symbol, tier = 'PRODUCTION') {
         const minNotional = inst.minNotional || 10.0;
         const minQtyForNotional = minNotional / price;
         if (qty < minQtyForNotional) {
+            if (!enforceMinNotional) return null;
             qty = Math.ceil(minQtyForNotional * factor) / factor;
         }
     }
@@ -607,11 +616,70 @@ function applyBuffer(priceStr, side, bufferPct, symbol, tier = 'PRODUCTION') {
     return formatPrice(String(raw * multiplier), symbol, tier);
 }
 
+// Detects "max allowed position" rejections. The exchange doesn't always use a
+// stable/documented error code for this rejection reason, so in addition to the
+// known -2010 code we also match on the message text itself (case-insensitive)
+// to make sure reducePositions() reliably triggers.
+function isMaxPositionError(resData) {
+    if (!resData) return false;
+    if (resData.code === -2010) return true;
+    const msgStr = (resData.msg || JSON.stringify(resData) || '').toLowerCase();
+    return msgStr.includes('exceeding the max allowed position') ||
+           msgStr.includes('exceeded the max allowed position') ||
+           msgStr.includes('max allowed position') ||
+           msgStr.includes('maximum allowable position') ||
+           msgStr.includes('exceeds maximum allowable position');
+}
+
+// Guards against concurrent duplicate account recovery for the same tier+role.
+// A single Maker/Taker account is shared by every ReplicatorInstance (every symbol)
+// on a tier. When that shared account starts failing (401 / -1003 / -2018 / max-position),
+// ALL instances hit the failure at roughly the same time and would otherwise each
+// independently call autoGenerateNewUserAndAssign() before any of them finishes —
+// spawning a burst of brand-new throwaway accounts within the same second, with only
+// the last one to finish actually winning the role assignment race.
+const userRecoveryState = {}; // key: `${tier}:${role}` -> { promise, lastAttemptAt, lastResult }
+const USER_RECOVERY_COOLDOWN_MS = 60000;
+
 async function autoGenerateNewUserAndAssign(role, tier) {
+    const lockKey = `${tier}:${role}`;
+    const state = userRecoveryState[lockKey];
+
+    // A recovery for this exact tier+role is already in flight — piggyback on it
+    // instead of spawning another account generation.
+    if (state && state.promise) {
+        log.info('SYSTEM', `[RECOVERY][${tier}] ${role} recovery already in progress — awaiting existing attempt instead of creating another account...`);
+        return state.promise;
+    }
+
+    // A recovery for this tier+role just completed SUCCESSFULLY very recently. Give the
+    // newly assigned account a chance to be used before considering another regeneration,
+    // in case several callers arrive within milliseconds of the lock being released.
+    // If the last attempt FAILED, don't gate on cooldown — nothing was created/assigned,
+    // so there's no duplicate-creation risk, and suppressing retries would just extend
+    // the outage for the full cooldown window.
+    if (state && state.lastResult === true && state.lastAttemptAt && (Date.now() - state.lastAttemptAt) < USER_RECOVERY_COOLDOWN_MS) {
+        log.warn('SYSTEM', `[RECOVERY][${tier}] ${role} was recovered ${Math.round((Date.now() - state.lastAttemptAt) / 1000)}s ago — skipping duplicate account creation, reusing current assignment.`);
+        return true;
+    }
+
     const roleKey = role === 'TAKER' ? 'takerId' : 'makerId';
     const uniqueId = 'user_' + Math.random().toString(36).substring(2, 10);
     log.info('SYSTEM', `[RECOVERY][${tier}] Starting auto-generation of new user ${uniqueId} for role ${role}...`);
-    
+
+    const attemptPromise = generateAndAssignUser(role, tier, roleKey, uniqueId);
+    userRecoveryState[lockKey] = { promise: attemptPromise, lastAttemptAt: null, lastResult: false };
+
+    let result = false;
+    try {
+        result = await attemptPromise;
+    } finally {
+        userRecoveryState[lockKey] = { promise: null, lastAttemptAt: Date.now(), lastResult: result };
+    }
+    return result;
+}
+
+async function generateAndAssignUser(role, tier, roleKey, uniqueId) {
     try {
         const { execFile } = require('child_process');
         const execFileAsync = require('util').promisify(execFile);
@@ -685,7 +753,11 @@ async function autoGenerateNewUserAndAssign(role, tier) {
         
         broadcastToUI();
 
-        log.success('SYSTEM', `[RECOVERY][${tier}] ${role} account is ready.`);
+        // Sleep 120 seconds to allow testnet funds and API keys to fully propagate
+        // (same wait applied in Jenkins Generate Test Credentials stage)
+        log.info('SYSTEM', `[RECOVERY][${tier}] New user ${uniqueId} assigned. Sleeping 120s for funds and API keys to propagate before resuming trading...`);
+        await new Promise(r => setTimeout(r, 120000));
+        log.success('SYSTEM', `[RECOVERY][${tier}] Sleep complete. ${role} account is ready.`);
 
         return true;
     } catch (e) {
@@ -1289,7 +1361,7 @@ class ReplicatorInstance {
         }
     }
 
-    async placeOrder(side, qty, price = null, orderType = 'LIMIT', isTaker = false, clientOrderId = null, _isRetry = false, options = {}) {
+    async placeOrder(side, qty, price = null, orderType = 'LIMIT', isTaker = false, clientOrderId = null, _isRetry = false, options = {}, _wipeAttempted = false) {
         const tierUsers = globalUsers[this.tier] || {};
         const tierRoles = globalRoles[this.tier] || { makerId: '', takerId: '' };
         const userCreds = isTaker ? tierUsers[tierRoles.takerId] : tierUsers[tierRoles.makerId];
@@ -1326,7 +1398,7 @@ class ReplicatorInstance {
                 const recovered = await autoGenerateNewUserAndAssign(roleName, this.tier);
                 if (recovered) {
                     log.success(this.symbol, `[AUTH-FAIL] ${userLabel} recovered with a new user. Retrying order...`);
-                    return this.placeOrder(side, qty, price, orderType, isTaker, clientOrderId, true);
+                    return this.placeOrder(side, qty, price, orderType, isTaker, clientOrderId, true, options);
                 }
             }
             return { success: false };
@@ -1348,23 +1420,33 @@ class ReplicatorInstance {
                 }
             }
             
-            // Handle Max Position Limit Error (-2010)
-            if (res.data.code === -2010) {
-                log.warn(this.symbol, `[POSITION-LIMIT] ${userLabel} hit max position (-2010). Invoking 50% reduction...`);
+            // Handle Max Position Limit Error (matches on code -2010 and/or message text,
+            // since the exchange doesn't consistently use -2010 for this rejection reason)
+            if (isMaxPositionError(res.data)) {
+                log.warn(this.symbol, `[POSITION-LIMIT] ${userLabel} hit max allowed position (${res.data.code}): "${res.data.msg}". Invoking reduction...`);
                 await this.reducePositions();
                 log.success(this.symbol, `[POSITION-LIMIT] Reduction process finished. Retrying original order...`);
-                return this.placeOrder(side, qty, price, orderType, isTaker, clientOrderId, true);
+                return this.placeOrder(side, qty, price, orderType, isTaker, clientOrderId, true, options);
             }
         }
 
-        // Auto-recover on Open order limit exceeded (-1003)
+        // Auto-recover on Open order limit exceeded (-1003). Cancelling this symbol's
+        // stale open orders is cheap/instant and almost always the real fix — the limit
+        // is "per pair per account", so it's very likely ghost/orphaned orders piled up
+        // rather than the account itself being unusable. Only fall back to the much more
+        // expensive account-recovery flow if wiping orders didn't actually resolve it.
         if (!res.ok && !_isRetry && res.data && res.data.code === -1003) {
-            log.warn(this.symbol, `[LIMIT-EXCEEDED] ${userLabel} open order limit exceeded (-1003) — attempting auto user recovery...`);
+            if (!_wipeAttempted) {
+                log.warn(this.symbol, `[LIMIT-EXCEEDED] ${userLabel} hit open-order limit (-1003) — wiping ${this.symbol} open orders and retrying...`);
+                await this.wipeOrders();
+                return this.placeOrder(side, qty, price, orderType, isTaker, clientOrderId, false, options, true);
+            }
+            log.warn(this.symbol, `[LIMIT-EXCEEDED] ${userLabel} still hit open-order limit after wiping orders — attempting auto user recovery...`);
             const roleName = isTaker ? 'TAKER' : 'MAKER';
             const recovered = await autoGenerateNewUserAndAssign(roleName, this.tier);
             if (recovered) {
                 log.success(this.symbol, `[LIMIT-EXCEEDED] ${userLabel} recovered with a new user. Retrying order...`);
-                return this.placeOrder(side, qty, price, orderType, isTaker, clientOrderId, true);
+                return this.placeOrder(side, qty, price, orderType, isTaker, clientOrderId, true, options);
             } else {
                 log.error(this.symbol, `[LIMIT-EXCEEDED] ${userLabel} recovery failed — cannot retry.`);
             }
@@ -1376,14 +1458,14 @@ class ReplicatorInstance {
             const seeded = await seedBalance(userCreds, this.tier);
             if (seeded) {
                 log.success(this.symbol, `[SEED] ${userLabel} balance topped up. Retrying order...`);
-                return this.placeOrder(side, qty, price, orderType, isTaker, clientOrderId, true);
+                return this.placeOrder(side, qty, price, orderType, isTaker, clientOrderId, true, options);
             } else {
                 log.error(this.symbol, `[SEED] ${userLabel} seed_balance failed — attempting auto user recovery...`);
                 const roleName = isTaker ? 'TAKER' : 'MAKER';
                 const recovered = await autoGenerateNewUserAndAssign(roleName, this.tier);
                 if (recovered) {
                     log.success(this.symbol, `[SEED] ${userLabel} recovered with a new user. Retrying order...`);
-                    return this.placeOrder(side, qty, price, orderType, isTaker, clientOrderId, true);
+                    return this.placeOrder(side, qty, price, orderType, isTaker, clientOrderId, true, options);
                 } else {
                     log.error(this.symbol, `[SEED] ${userLabel} recovery failed — cannot retry.`);
                 }
@@ -1458,8 +1540,8 @@ class ReplicatorInstance {
             return { success: false, isTerminal: true };
         }
 
-        if (!res.ok && res.data && res.data.code === -2010) {
-            log.warn(this.symbol, `[POSITION-LIMIT] Maker modify hit max position (-2010). Invoking position reduction...`);
+        if (!res.ok && isMaxPositionError(res.data)) {
+            log.warn(this.symbol, `[POSITION-LIMIT] Maker modify hit max allowed position (${res.data.code}): "${res.data.msg}". Invoking position reduction...`);
             this.reducePositions().catch(e => log.error(this.symbol, `[REDUCE-POS] Background reduction from modify failed: ${e.message}`));
             return { success: false, isTerminal: true };
         }
@@ -1670,7 +1752,6 @@ class ReplicatorInstance {
                     break;
                 }
                 
-                await new Promise(r => setTimeout(r, 200));
             }
         } catch (e) {
             log.error(this.symbol, `[ALIGN] Exception during LTP alignment: ${e.message}`);
@@ -1710,13 +1791,25 @@ class ReplicatorInstance {
                     return positions.find(p => p.symbol === this.symbol) || null;
                 };
 
+                // Fetches the freshest best-bid/best-ask/LTP for the given order side, right at
+                // call time. Computing this per-order (instead of once up-front) avoids using a
+                // stale price after the wipeOrders()/positionRisk round-trips above, and — since
+                // SELL must cross into the bid and BUY must cross into the ask — it must be
+                // recomputed independently for each side rather than shared between Maker/Taker.
+                const getCrossPrice = (orderSide) => {
+                    const bb = (this.binanceDepth && this.binanceDepth.bids && this.binanceDepth.bids.length > 0) ? this.binanceDepth.bids[0][0] : null;
+                    const ba = (this.binanceDepth && this.binanceDepth.asks && this.binanceDepth.asks.length > 0) ? this.binanceDepth.asks[0][0] : null;
+                    const ltp = this.binanceLtp || null;
+                    const raw = orderSide === 'SELL' ? (bb || ba || ltp) : (ba || bb || ltp);
+                    return raw ? formatPrice(String(raw), this.symbol, this.tier) : null;
+                };
+
                 // Step 1: Cancel open orders first to release margin and position quota
                 log.info(this.symbol, `[REDUCE-POS] Wiping existing open orders before closing positions...`);
                 await this.wipeOrders();
 
-                // Step 2: Check actual position sizes
-                let makerPos = await getPosInfo(makerUser);
-                let takerPos = await getPosInfo(takerUser);
+                // Step 2: Check actual position sizes (in parallel to minimize delay)
+                const [makerPos, takerPos] = await Promise.all([getPosInfo(makerUser), getPosInfo(takerUser)]);
 
                 const makerAmt = makerPos ? parseFloat(makerPos.positionAmt) : 0;
                 const takerAmt = takerPos ? parseFloat(takerPos.positionAmt) : 0;
@@ -1728,70 +1821,43 @@ class ReplicatorInstance {
                     return;
                 }
 
-                // Determine active price strictly aligned with Binance best bid and ask to prevent wicks
-                let crossPriceStr = null;
-                const binBestBid = (this.binanceDepth && this.binanceDepth.bids && this.binanceDepth.bids.length > 0) ? this.binanceDepth.bids[0][0] : null;
-                const binBestAsk = (this.binanceDepth && this.binanceDepth.asks && this.binanceDepth.asks.length > 0) ? this.binanceDepth.asks[0][0] : null;
-                const binLtp = this.binanceLtp || null;
+                let placedMaker = false;
+                let placedTaker = false;
+                const orderJobs = [];
 
                 if (makerAmt !== 0) {
                     const makerSide = makerAmt > 0 ? 'SELL' : 'BUY';
-                    if (makerSide === 'SELL' && binBestBid) {
-                        crossPriceStr = formatPrice(String(binBestBid), this.symbol, this.tier);
-                    } else if (makerSide === 'BUY' && binBestAsk) {
-                        crossPriceStr = formatPrice(String(binBestAsk), this.symbol, this.tier);
+                    const makerPriceStr = getCrossPrice(makerSide);
+                    if (!makerPriceStr) {
+                        log.error(this.symbol, `[REDUCE-POS] Cannot determine cross price for Maker ${makerSide}. Skipping Maker leg.`);
+                    } else {
+                        const makerQtyStr = formatRawQty(Math.abs(makerAmt), makerPriceStr, this.symbol, this.tier);
+                        log.info(this.symbol, `[REDUCE-POS] Maker reduction: Placing LIMIT ${makerSide} for ${makerQtyStr} @ ${makerPriceStr} (best book price)...`);
+                        orderJobs.push(
+                            this.placeOrder(makerSide, makerQtyStr, makerPriceStr, 'LIMIT', false, null, true, { reduceOnly: true })
+                                .then(res => { if (res.success) placedMaker = true; })
+                        );
                     }
                 }
 
-                if (!crossPriceStr) {
-                    // Fallback to Binance LTP or best bid/ask
-                    const fallbackPrice = binLtp || binBestBid || binBestAsk;
-                    if (!fallbackPrice) {
-                        log.error(this.symbol, `[REDUCE-POS] Cannot determine Binance cross price. Aborting.`);
-                        return;
-                    }
-                    crossPriceStr = formatPrice(String(fallbackPrice), this.symbol, this.tier);
-                }
-
-                let placedMaker = false;
-                let placedTaker = false;
-
-                // Step 3: Close positions completely using LIMIT and LIMIT_IOC cross-selling
-                // Case 1: Both Maker and Taker have opposite non-zero positions -> Cross them
-                if (makerAmt !== 0 && takerAmt !== 0 && (makerAmt > 0 !== takerAmt > 0)) {
-                    const makerSide = makerAmt > 0 ? 'SELL' : 'BUY';
+                if (takerAmt !== 0) {
                     const takerSide = takerAmt > 0 ? 'SELL' : 'BUY';
-
-                    const makerQtyStr = formatRawQty(Math.abs(makerAmt), crossPriceStr, this.symbol, this.tier);
-                    const takerQtyStr = formatRawQty(Math.abs(takerAmt), crossPriceStr, this.symbol, this.tier);
-
-                    log.info(this.symbol, `[REDUCE-POS] Cross-selling: Placing Maker LIMIT ${makerSide} for ${makerQtyStr} @ ${crossPriceStr} (best book price)...`);
-                    const makerRes = await this.placeOrder(makerSide, makerQtyStr, crossPriceStr, 'LIMIT', false, null, true, { reduceOnly: true });
-                    if (makerRes.success) placedMaker = true;
-
-                    // Wait 200ms for Maker's order to rest on the book
-                    await new Promise(r => setTimeout(r, 200));
-
-                    log.info(this.symbol, `[REDUCE-POS] Cross-selling: Placing Taker LIMIT_IOC ${takerSide} for ${takerQtyStr} @ ${crossPriceStr}...`);
-                    const takerRes = await this.placeOrder(takerSide, takerQtyStr, crossPriceStr, 'LIMIT_IOC', true, null, true, { reduceOnly: true });
-                    if (takerRes.success) placedTaker = true;
-                } else {
-                    // Case 2: Asymmetric positions (only one user has positions)
-                    if (makerAmt !== 0) {
-                        const makerSide = makerAmt > 0 ? 'SELL' : 'BUY';
-                        const makerQtyStr = formatRawQty(Math.abs(makerAmt), crossPriceStr, this.symbol, this.tier);
-                        log.info(this.symbol, `[REDUCE-POS] Asymmetric Maker reduction: Placing LIMIT ${makerSide} for ${makerQtyStr} @ ${crossPriceStr}...`);
-                        const makerRes = await this.placeOrder(makerSide, makerQtyStr, crossPriceStr, 'LIMIT', false, null, true, { reduceOnly: true });
-                        if (makerRes.success) placedMaker = true;
-                    }
-                    if (takerAmt !== 0) {
-                        const takerSide = takerAmt > 0 ? 'SELL' : 'BUY';
-                        const takerQtyStr = formatRawQty(Math.abs(takerAmt), crossPriceStr, this.symbol, this.tier);
-                        log.info(this.symbol, `[REDUCE-POS] Asymmetric Taker reduction: Placing LIMIT_IOC ${takerSide} for ${takerQtyStr} @ ${crossPriceStr}...`);
-                        const takerRes = await this.placeOrder(takerSide, takerQtyStr, crossPriceStr, 'LIMIT_IOC', true, null, true, { reduceOnly: true });
-                        if (takerRes.success) placedTaker = true;
+                    const takerPriceStr = getCrossPrice(takerSide);
+                    if (!takerPriceStr) {
+                        log.error(this.symbol, `[REDUCE-POS] Cannot determine cross price for Taker ${takerSide}. Skipping Taker leg.`);
+                    } else {
+                        const takerQtyStr = formatRawQty(Math.abs(takerAmt), takerPriceStr, this.symbol, this.tier);
+                        log.info(this.symbol, `[REDUCE-POS] Taker reduction: Placing LIMIT_IOC ${takerSide} for ${takerQtyStr} @ ${takerPriceStr}...`);
+                        orderJobs.push(
+                            this.placeOrder(takerSide, takerQtyStr, takerPriceStr, 'LIMIT_IOC', true, null, true, { reduceOnly: true })
+                                .then(res => { if (res.success) placedTaker = true; })
+                        );
                     }
                 }
+
+                // Step 3: Fire both legs concurrently — each already has its own fresh,
+                // side-correct cross price, so there's no need to serialize them.
+                await Promise.all(orderJobs);
 
                 // Release the guard here so syncGrid can resume replication immediately
                 this.isReducingPositions = false;
@@ -1803,8 +1869,7 @@ class ReplicatorInstance {
                         let success = false;
                         for (let attempt = 1; attempt <= 10; attempt++) {
                             await new Promise(r => setTimeout(r, 500));
-                            const mPos = await getPosInfo(makerUser);
-                            const tPos = await getPosInfo(takerUser);
+                            const [mPos, tPos] = await Promise.all([getPosInfo(makerUser), getPosInfo(takerUser)]);
 
                             const mCur = mPos ? Math.abs(parseFloat(mPos.positionAmt)) : 0;
                             const tCur = tPos ? Math.abs(parseFloat(tPos.positionAmt)) : 0;
@@ -1963,6 +2028,10 @@ class ReplicatorInstance {
         // Detect active scenario - if so, bypass min/max clamp and use raw orderbook qty
         const isScenarioActive = transformer && transformer.multiplier !== 1.0;
         const useRawQty = isScenarioActive || isHugeDiff || this.makerUseRawQty;
+        // Pure "Maker Use Raw Qty" mirroring (not scenario/drift-driven) must place the
+        // EXACT source book qty. Scenario/huge-diff modes still get the min-notional
+        // safety bump since they need a guaranteed-placeable order.
+        const strictRawQty = this.makerUseRawQty && !isScenarioActive && !isHugeDiff;
 
         const targets = skewedLevels.slice(0, this.depthLevels).map((lvl, index) => {
             let rawPrice  = lvl[0];
@@ -1970,7 +2039,8 @@ class ReplicatorInstance {
             let qty;
             if (useRawQty) {
                 // Use raw orderbook qty directly
-                qty = formatRawQty(parseFloat(lvl[1]), rawPrice, this.symbol, this.tier);
+                qty = formatRawQty(parseFloat(lvl[1]), rawPrice, this.symbol, this.tier, !strictRawQty);
+                if (qty === null) return null; // Below exchange min notional — skip rather than inflate beyond the real book qty
             } else {
                 const notional  = parseFloat(lvl[0]) * parseFloat(lvl[1]);
                 const targetSz  = Math.max(this.minSize, Math.min(this.maxSize, notional));
@@ -1978,7 +2048,7 @@ class ReplicatorInstance {
                 qty = PriceTransformer.applyProfileSkew(qty, side, transformer, index);
             }
             return { rawPrice, price: formatPrice(rawPrice, this.symbol, this.tier), qty };
-        });
+        }).filter(Boolean);
 
         const activePool = [];
         const modifyTasks = [];
@@ -2214,8 +2284,14 @@ class ReplicatorInstance {
             // Scenario DETERMINISTIC mode: use raw trade qty directly (no notional clamping)
             makerQty = formatRawQty(parseFloat(trade.q), transformedTradePrice, this.symbol, this.tier);
         } else if (this.makerUseRawQty) {
-            // Maker uses raw trade qty directly
-            makerQty = formatRawQty(parseFloat(trade.q), transformedTradePrice, this.symbol, this.tier);
+            // Maker uses raw trade qty directly — mirror the exact size. Do NOT inflate to
+            // meet exchange min-notional here, that would place a bigger order than the
+            // actual source trade.
+            makerQty = formatRawQty(parseFloat(trade.q), transformedTradePrice, this.symbol, this.tier, false);
+            if (makerQty === null) {
+                log.debug(this.symbol, `[TRADE-SYNC-SKIP] Trade qty ${trade.q} @ ${transformedTradePrice} is below exchange min notional — skipping to avoid oversizing Maker order.`);
+                return;
+            }
         } else {
             // Normal mode: apply notional size clamp (minSize/maxSize) for maker
             const notional  = parseFloat(trade.q) * parseFloat(transformedTradePrice);
@@ -2226,7 +2302,12 @@ class ReplicatorInstance {
         // Taker size is determined from the takerSize configuration
         let takerQty;
         if (this.takerUseRawQty) {
-            takerQty = formatRawQty(parseFloat(trade.q), transformedTradePrice, this.symbol, this.tier);
+            // Same exact-mirroring rule as Maker above — no min-notional inflation.
+            takerQty = formatRawQty(parseFloat(trade.q), transformedTradePrice, this.symbol, this.tier, false);
+            if (takerQty === null) {
+                log.debug(this.symbol, `[TRADE-SYNC-SKIP] Trade qty ${trade.q} @ ${transformedTradePrice} is below exchange min notional — skipping to avoid oversizing Taker order.`);
+                return;
+            }
         } else {
             takerQty = calculateQty(this.takerSize, transformedTradePrice, this.symbol, this.tier);
             if (parseFloat(takerQty) <= 0) {
@@ -2790,6 +2871,15 @@ startBinanceDepthWS() {
     }
 
     async wipeOrders() {
+        // Single-flight: if several concurrent order attempts for this symbol all hit
+        // -1003/etc at once, they'd otherwise each fire their own redundant bulk-cancel
+        // storm. Collapse them into one in-flight wipe that everyone awaits.
+        if (this.wipeOrdersPromise) return this.wipeOrdersPromise;
+        this.wipeOrdersPromise = this._wipeOrdersInternal().finally(() => { this.wipeOrdersPromise = null; });
+        return this.wipeOrdersPromise;
+    }
+
+    async _wipeOrdersInternal() {
         log.info(this.symbol, 'Wiping orders (15s timeout)...');
         const hpoBase = TIER_URLS[this.tier].HPO;
         const tierUsers = globalUsers[this.tier] || {};
@@ -3192,13 +3282,14 @@ function buildPayload(isSnapshot = true, sinceTs = 0) {
             scenarioStatus: ScenarioEngine.getStatus(sym)
         };
     }
-    // We send globalUsers keys (without secrets) and roles to the UI
+    // Send full user credentials (including secret) to the UI's User Config panel,
+    // per operator request, so accounts can be inspected/copied for external tooling.
     const usersMetadata = {};
     for (const tier of ['PRODUCTION', 'JAPAN', 'STAGING']) {
         usersMetadata[tier] = {};
         const tierUsers = globalUsers[tier] || {};
         for (const [k, u] of Object.entries(tierUsers)) {
-            usersMetadata[tier][k] = { label: u.label, key: u.key, email: u.email };
+            usersMetadata[tier][k] = { label: u.label, key: u.key, secret: u.secret, email: u.email };
         }
     }
     
