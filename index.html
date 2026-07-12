@@ -303,6 +303,10 @@
   .sec-label { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); font-weight: 600; }
   .sec-title { font-size:14px; font-weight:700; color:var(--text-main); margin-top:2px; }
   .book-hdr { display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 6px 12px; font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing:1px; border-bottom: 1px solid var(--border); font-weight: 600; background:var(--input-bg); }
+  .stage-book-hdr { display: grid; grid-template-columns: 1.1fr 1.1fr 1fr 1fr; padding: 6px 12px; font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing:1px; border-bottom: 1px solid var(--border); font-weight: 600; background:var(--input-bg); }
+  .stage-d-row { display: grid; grid-template-columns: 1.1fr 1.1fr 1fr 1fr; align-items: center; padding: 3px 12px; position: relative; border-radius: 4px; cursor: default; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+  .stage-d-row:hover { background:var(--hover-bg); }
+  .stage-d-row span { position: relative; z-index: 2; }
   
   /* Toggles */
   .tog { position: relative; width: 32px; height: 18px; background: rgba(255,255,255,0.1); border: 1px solid var(--border); border-radius: 99px; cursor: pointer; transition: all .3s cubic-bezier(0.4, 0, 0.2, 1); }
@@ -1906,6 +1910,39 @@
       </div>
     </div>
   </div>
+  <div class="ticker-card" style="border-color:rgba(16,185,129,0.3); box-shadow:0 0 20px rgba(16,185,129,0.05); display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px; min-width: 280px; flex: 2;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+      <div class="ticker-label">Best Bid / Ask</div>
+      <div style="display:flex; gap:6px;">
+        <div id="bid-drift-badge" style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600; color:var(--text-muted); background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">B: —</div>
+        <div id="ask-drift-badge" style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600; color:var(--text-muted); background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">A: —</div>
+      </div>
+    </div>
+    <div style="display:flex; gap:20px; width:100%;">
+      <!-- Bid Column -->
+      <div style="flex: 1; display:flex; flex-direction:column; gap:4px; border-right:1px solid rgba(255,255,255,0.05); padding-right:10px;">
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Bin Bid</span>
+          <span class="ticker-val" id="t-bbid" style="color:var(--yellow); font-size:17px; font-weight:800; margin-top:0; font-family:'JetBrains Mono',monospace;">—</span>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Stg Bid</span>
+          <span class="ticker-val" id="t-sbid" style="color:var(--cyan); font-size:17px; font-weight:800; margin-top:0; font-family:'JetBrains Mono',monospace;">—</span>
+        </div>
+      </div>
+      <!-- Ask Column -->
+      <div style="flex: 1; display:flex; flex-direction:column; gap:4px; padding-left:10px;">
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Bin Ask</span>
+          <span class="ticker-val" id="t-bask" style="color:var(--yellow); font-size:17px; font-weight:800; margin-top:0; font-family:'JetBrains Mono',monospace;">—</span>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Stg Ask</span>
+          <span class="ticker-val" id="t-sask" style="color:var(--cyan); font-size:17px; font-weight:800; margin-top:0; font-family:'JetBrains Mono',monospace;">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
   <div class="ticker-card" style="border-color:rgba(168,85,247,0.3); box-shadow:0 0 20px rgba(168,85,247,0.05); display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2px;">
       <div class="ticker-label">Mark Price</div>
@@ -2422,13 +2459,13 @@
   </div>
 </div>
 
-<div style="display:grid;grid-template-columns:1fr 1fr 380px;gap:16px;padding:24px;">
+<div style="display:grid;grid-template-columns:35% 35% 30%;gap:16px;padding:24px;">
   <div class="panel" style="display:flex;flex-direction:column;height:550px;overflow:hidden;">
     <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);">
       <div><div class="sec-label">Source</div><div class="sec-title" style="color:var(--yellow)">Binance Perpetual</div></div>
       <div id="bin-spread-badge" style="font-size:11px;padding:4px 10px;border-radius:99px;background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);color:#c084fc;font-weight:600;letter-spacing:1px;">Spread —</div>
     </div>
-    <div class="book-hdr"><span>Price</span><span style="text-align:center;">Size</span><span style="text-align:right;">Total</span></div>
+    <div class="book-hdr"><span>Total</span><span style="text-align:center;">Size</span><span style="text-align:right; color:var(--yellow);">Price</span></div>
     <div style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column-reverse;padding:4px 0;" id="bin-asks"></div>
     <div class="d-spread" id="bin-spread-mid">Spread —</div>
     <div style="flex:1;min-height:0;overflow-y:auto;padding:4px 0;" id="bin-bids"></div>
@@ -2439,7 +2476,7 @@
       <div><div class="sec-label">Target · Testnet WS</div><div class="sec-title" style="color:var(--cyan)">Stage Orderbook</div></div>
       <div id="stage-spread-badge" style="font-size:11px;padding:4px 10px;border-radius:99px;background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.3);color:var(--cyan);font-weight:600;letter-spacing:1px;">Spread —</div>
     </div>
-    <div class="book-hdr"><span>Price</span><span style="text-align:center;">Size</span><span style="text-align:right;">Total</span></div>
+    <div class="book-hdr"><span style="color:var(--cyan);">Price</span><span style="text-align:center;">Size</span><span style="text-align:right;">Total</span></div>
     <div style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column-reverse;padding:4px 0;" id="stage-asks"></div>
     <div class="d-spread" id="stage-spread-mid" style="background:rgba(6,182,212,0.05);color:var(--cyan);border-color:rgba(6,182,212,0.1);">Spread —</div>
     <div style="flex:1;min-height:0;overflow-y:auto;padding:4px 0;" id="stage-bids"></div>
@@ -2810,6 +2847,12 @@ window.addEventListener('DOMContentLoaded', () => {
             window.renderPortfolios();
         };
 
+        window.showOrderId = function(orderId) {
+            if (!orderId) return;
+            navigator.clipboard.writeText(String(orderId));
+            window.showToast('Order ID: ' + orderId + ' (copied to clipboard)');
+        };
+
         window.changePage = function(type, delta) {
             const newPage = window.pagination[type] + delta;
             if (newPage > 0) {
@@ -2956,7 +2999,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     <div>
                         <div style="font-size:12px;font-weight:600;color:var(--text-main);">${u.label} <span style="color:var(--text-muted);font-weight:400;font-size:10px;">(${k})</span>${badges}</div>
                         ${u.email ? `<div style="font-size:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;cursor:pointer;margin-top:2px;transition:color 0.2s;" onmouseover="this.style.color='var(--text-main)'" onmouseout="this.style.color='var(--text-muted)'" onclick="navigator.clipboard.writeText('${u.email}');window.showToast('Email copied!')" title="Click to copy Email">Email: ${u.email}</div>` : ''}
-                        <div style="font-size:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;cursor:pointer;margin-top:2px;transition:color 0.2s;" onmouseover="this.style.color='var(--text-main)'" onmouseout="this.style.color='var(--text-muted)'" onclick="navigator.clipboard.writeText('${u.key}');window.showToast('API Key copied!')" title="Click to copy Key">Key: ${u.key ? u.key.substring(0,16)+'...' : 'None'}</div>
+                        <div style="font-size:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;cursor:pointer;margin-top:2px;transition:color 0.2s;word-break:break-all;" onmouseover="this.style.color='var(--text-main)'" onmouseout="this.style.color='var(--text-muted)'" onclick="navigator.clipboard.writeText('${u.key}');window.showToast('API Key copied!')" title="Click to copy Key">Key: ${u.key || 'None'}</div>
+                        ${u.secret ? `<div style="font-size:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;cursor:pointer;margin-top:2px;transition:color 0.2s;word-break:break-all;" onmouseover="this.style.color='var(--text-main)'" onmouseout="this.style.color='var(--text-muted)'" onclick="navigator.clipboard.writeText('${u.secret}');window.showToast('Secret copied!')" title="Click to copy Secret">Secret: ${u.secret}</div>` : ''}
                     </div>
                     ${deleteBtnHtml}
                 </div>`;
@@ -3783,6 +3827,10 @@ window.addEventListener('DOMContentLoaded', () => {
         let prevStageIndexPrice = null;
         let prevBinFunding = null;
         let prevStageFunding = null;
+        let prevBinBestBid = null;
+        let prevStageBestBid = null;
+        let prevBinBestAsk = null;
+        let prevStageBestAsk = null;
         // knownTradeIds removed — was dead code (populated but never read)
         let cancelOnStopState = localStorage.getItem('replicator_cancel_on_stop') === '1';
         let newUserState = localStorage.getItem('replicator_new_user') === '1';
@@ -5189,7 +5237,15 @@ window.addEventListener('DOMContentLoaded', () => {
             if (!activeTabSymbol) return showToast("Select a market tab first!", true);
             try {
                 const r = await fetch(window.getApiUrl('/api/engine/'+cmd), { method:'POST', body: JSON.stringify({ symbol: activeTabSymbol }), headers:{'Content-Type':'application/json'} });
-                if (r.ok) showToast('✓ Command ' + cmd.toUpperCase() + ' sent');
+                if (r.ok) {
+                    showToast('✓ Command ' + cmd.toUpperCase() + ' sent');
+                    if (cmd === 'reload') {
+                        showToast('⌛ Refreshing page in 1 second...');
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    }
+                }
                 else showToast('✗ Failed to send command', true);
             } catch(e) { showToast('✗ Network error', true); }
         };
@@ -5279,13 +5335,16 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        function updateOrderBookSide(containerEl, levels, side, maxQ) {
+        function updateOrderBookSide(containerEl, levels, side, maxQ, reversed = false) {
             if (!levels || !levels.length) {
                 containerEl.innerHTML = `<div style="text-align:center;padding:24px 0;color:var(--text-muted);font-size:11px;font-family:'Inter',sans-serif;">No ${side}s</div>`;
                 return;
             }
 
             const isAsk = side === 'ask';
+            const targetClassName = 'd-row';
+
+            // Clean container if elements are not d-row
             if (containerEl.querySelector('div:not(.d-row)')) {
                 containerEl.innerHTML = '';
             }
@@ -5294,13 +5353,22 @@ window.addEventListener('DOMContentLoaded', () => {
 
             while (containerEl.children.length < targetCount) {
                 const rowDiv = document.createElement('div');
-                rowDiv.className = 'd-row';
-                rowDiv.innerHTML = `
-                    <span style="font-weight:600;"></span>
-                    <span style="text-align:center;"></span>
-                    <span style="text-align:right;"></span>
-                    <div class="d-bar"></div>
-                `;
+                rowDiv.className = targetClassName;
+                if (reversed) {
+                    rowDiv.innerHTML = `
+                        <span style="text-align:left;"></span>
+                        <span style="text-align:center;"></span>
+                        <span style="text-align:right; font-weight:600;"></span>
+                        <div class="d-bar"></div>
+                    `;
+                } else {
+                    rowDiv.innerHTML = `
+                        <span style="font-weight:600;"></span>
+                        <span style="text-align:center;"></span>
+                        <span style="text-align:right;"></span>
+                        <div class="d-bar"></div>
+                    `;
+                }
                 containerEl.appendChild(rowDiv);
             }
             while (containerEl.children.length > targetCount) {
@@ -5313,10 +5381,18 @@ window.addEventListener('DOMContentLoaded', () => {
                 const r = levels[i];
                 const rowDiv = containerEl.children[i];
 
-                const priceSpan = rowDiv.children[0];
-                const sizeSpan = rowDiv.children[1];
-                const totalSpan = rowDiv.children[2];
-                const barDiv = rowDiv.children[3];
+                let priceSpan, sizeSpan, totalSpan, barDiv;
+                if (reversed) {
+                    totalSpan = rowDiv.children[0];
+                    sizeSpan = rowDiv.children[1];
+                    priceSpan = rowDiv.children[2];
+                    barDiv = rowDiv.children[3];
+                } else {
+                    priceSpan = rowDiv.children[0];
+                    sizeSpan = rowDiv.children[1];
+                    totalSpan = rowDiv.children[2];
+                    barDiv = rowDiv.children[3];
+                }
 
                 const priceStr = fmt(r[0], pPrec);
                 const sizeStr = fmt(r[1], qPrec);
@@ -5327,6 +5403,11 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (priceSpan.textContent !== priceStr) {
                     priceSpan.textContent = priceStr;
                     priceSpan.style.color = col;
+                    priceSpan.style.background = isAsk ? 'rgba(244, 63, 94, 0.08)' : 'rgba(16, 185, 129, 0.08)';
+                    priceSpan.style.padding = '2px 8px';
+                    priceSpan.style.borderRadius = '4px';
+                    priceSpan.style.display = 'inline-block';
+                    priceSpan.style.border = isAsk ? '1px solid rgba(244, 63, 94, 0.15)' : '1px solid rgba(16, 185, 129, 0.15)';
                 }
 
                 if (sizeSpan.textContent !== sizeStr) {
@@ -5347,7 +5428,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
                 if (totalSpan.textContent !== totalStr) {
                     totalSpan.textContent = totalStr;
-                    totalSpan.style.color = '#64748b';
+                    totalSpan.style.color = 'var(--text-main)';
+                    totalSpan.style.fontWeight = '600';
+                    totalSpan.style.opacity = '0.95';
                 }
 
                 if (showBars) {
@@ -5366,19 +5449,36 @@ window.addEventListener('DOMContentLoaded', () => {
                     const borderAlpha = (borderMin + ratio * (borderMax - borderMin)).toFixed(3);
                     const borderWidth = 1.5;
 
+                    const isBarAlignRight = reversed;
+
                     if (isAsk) {
-                        barDiv.style.background = `linear-gradient(to left, rgba(244, 63, 94, ${bgAlpha}) 0%, rgba(244, 63, 94, ${fadeTo}) 100%)`;
-                        barDiv.style.borderRight = `${borderWidth}px solid rgba(244, 63, 94, ${borderAlpha})`;
-                        barDiv.style.borderLeft = 'none';
+                        barDiv.style.background = isBarAlignRight 
+                            ? `linear-gradient(to left, rgba(244, 63, 94, ${bgAlpha}) 0%, rgba(244, 63, 94, ${fadeTo}) 100%)`
+                            : `linear-gradient(to right, rgba(244, 63, 94, ${bgAlpha}) 0%, rgba(244, 63, 94, ${fadeTo}) 100%)`;
+                        
+                        if (isBarAlignRight) {
+                            barDiv.style.borderRight = `${borderWidth}px solid rgba(244, 63, 94, ${borderAlpha})`;
+                            barDiv.style.borderLeft = 'none';
+                        } else {
+                            barDiv.style.borderLeft = `${borderWidth}px solid rgba(244, 63, 94, ${borderAlpha})`;
+                            barDiv.style.borderRight = 'none';
+                        }
                     } else {
-                        barDiv.style.background = `linear-gradient(to right, rgba(16, 185, 129, ${bgAlpha}) 0%, rgba(16, 185, 129, ${fadeTo}) 100%)`;
-                        barDiv.style.borderLeft = `${borderWidth}px solid rgba(16, 185, 129, ${borderAlpha})`;
-                        barDiv.style.borderRight = 'none';
+                        barDiv.style.background = isBarAlignRight 
+                            ? `linear-gradient(to left, rgba(16, 185, 129, ${bgAlpha}) 0%, rgba(16, 185, 129, ${fadeTo}) 100%)`
+                            : `linear-gradient(to right, rgba(16, 185, 129, ${bgAlpha}) 0%, rgba(16, 185, 129, ${fadeTo}) 100%)`;
+
+                        if (isBarAlignRight) {
+                            barDiv.style.borderRight = `${borderWidth}px solid rgba(16, 185, 129, ${borderAlpha})`;
+                            barDiv.style.borderLeft = 'none';
+                        } else {
+                            barDiv.style.borderLeft = `${borderWidth}px solid rgba(16, 185, 129, ${borderAlpha})`;
+                            barDiv.style.borderRight = 'none';
+                        }
                     }
 
-                    barDiv.className = `d-bar d-bar-${isAsk ? 'r' : 'l'}`;
+                    barDiv.className = `d-bar d-bar-${isBarAlignRight ? 'r' : 'l'}`;
 
-                    // Set width asynchronously to ensure browser registers initial render for width transition
                     requestAnimationFrame(() => {
                         barDiv.style.width = `${pct}%`;
                     });
@@ -5388,12 +5488,12 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        function renderBook(askEl, bidEl, spreadBadgeEl, spreadMidEl, asks, bids) {
+        function renderBook(askEl, bidEl, spreadBadgeEl, spreadMidEl, asks, bids, reversed = false) {
             const maxAskQty = (asks||[]).reduce((m,r) => Math.max(m,parseFloat(r[1])), 0.0001);
             const maxBidQty = (bids||[]).reduce((m,r) => Math.max(m,parseFloat(r[1])), 0.0001);
 
-            updateOrderBookSide(askEl, asks, 'ask', maxAskQty);
-            updateOrderBookSide(bidEl, bids, 'bid', maxBidQty);
+            updateOrderBookSide(askEl, asks, 'ask', maxAskQty, reversed);
+            updateOrderBookSide(bidEl, bids, 'bid', maxBidQty, reversed);
 
             if (asks && asks[0] && bids && bids[0]) {
                 const bestAsk = parseFloat(asks[0][0]);
@@ -5594,7 +5694,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     else if (o.status === 'PARTIALLY_FILLED') statusHtml = '<span class="badge" style="background:rgba(16,185,129,0.1);color:var(--emerald);border:1px solid rgba(16,185,129,0.3);">PARTIAL</span>';
                     else statusHtml = '<span class="badge" style="background:rgba(255,255,255,0.1);color:var(--text-muted);">'+o.status+'</span>';
 
-                    return '<tr><td><span style="font-weight:700;color:var(--text-main);font-family:\'Inter\',sans-serif;">'+o.symbol+'</span></td><td style="text-align:right;color:'+sideColor+';font-weight:700;">'+o.side+'</td><td style="text-align:right;color:var(--text-main);">'+parseFloat(o.price)+'</td><td style="text-align:right;color:var(--text-muted);">'+parseFloat(o.origQty)+'</td><td style="text-align:right;color:var(--text-muted);">'+parseFloat(o.executedQty)+'</td><td style="text-align:right;color:var(--text-muted);">'+o.type+'</td><td style="text-align:right;">'+statusHtml+'</td><td style="text-align:right;color:var(--text-muted);font-size:10px;">'+timeStr+'</td><td style="text-align:right;"><button class="act-btn act-lev" onclick="window.fapiAction(\'edit\', \''+userStr+'\', \''+o.symbol+'\', \''+o.orderId+'\', \''+o.side+'\')" style="margin-right:8px;">EDIT</button><button class="act-btn act-cls" onclick="window.fapiAction(\'cancel\', \''+userStr+'\', \''+o.symbol+'\', \''+o.orderId+'\')">CANCEL</button></td></tr>';
+                    return '<tr style="cursor:pointer;" onclick="window.showOrderId(\''+o.orderId+'\')" title="Click to show/copy Order ID"><td><span style="font-weight:700;color:var(--text-main);font-family:\'Inter\',sans-serif;">'+o.symbol+'</span></td><td style="text-align:right;color:'+sideColor+';font-weight:700;">'+o.side+'</td><td style="text-align:right;color:var(--text-main);">'+parseFloat(o.price)+'</td><td style="text-align:right;color:var(--text-muted);">'+parseFloat(o.origQty)+'</td><td style="text-align:right;color:var(--text-muted);">'+parseFloat(o.executedQty)+'</td><td style="text-align:right;color:var(--text-muted);">'+o.type+'</td><td style="text-align:right;">'+statusHtml+'</td><td style="text-align:right;color:var(--text-muted);font-size:10px;">'+timeStr+'</td><td style="text-align:right;"><button class="act-btn act-lev" onclick="event.stopPropagation();window.fapiAction(\'edit\', \''+userStr+'\', \''+o.symbol+'\', \''+o.orderId+'\', \''+o.side+'\')" style="margin-right:8px;">EDIT</button><button class="act-btn act-cls" onclick="event.stopPropagation();window.fapiAction(\'cancel\', \''+userStr+'\', \''+o.symbol+'\', \''+o.orderId+'\')">CANCEL</button></td></tr>';
                 }).join('');
             } else if (tab === 'hist') {
                 bodyEl.innerHTML = pageData.map(o => {
@@ -5606,7 +5706,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     else if (o.status === 'CANCELED' || o.status === 'EXPIRED') statusHtml = '<span class="badge badge-fail">'+o.status+'</span>';
                     else statusHtml = '<span class="badge" style="background:rgba(255,255,255,0.1);color:var(--text-muted);">'+o.status+'</span>';
                     
-                    return '<tr><td><span style="font-weight:700;color:var(--text-main);font-family:\'Inter\',sans-serif;">'+o.symbol+'</span></td><td style="text-align:right;color:'+sideColor+';font-weight:700;">'+o.side+'</td><td style="text-align:right;color:var(--text-main);">'+parseFloat(o.price)+'</td><td style="text-align:right;color:var(--text-muted);">'+parseFloat(o.origQty)+'</td><td style="text-align:right;color:var(--text-muted);">'+parseFloat(o.executedQty)+'</td><td style="text-align:right;">'+statusHtml+'</td><td style="text-align:right;color:var(--text-muted);font-size:10px;">'+timeStr+'</td></tr>';
+                    return '<tr style="cursor:pointer;" onclick="window.showOrderId(\''+(o.orderId||o.id)+'\')" title="Click to show/copy Order ID"><td><span style="font-weight:700;color:var(--text-main);font-family:\'Inter\',sans-serif;">'+o.symbol+'</span></td><td style="text-align:right;color:'+sideColor+';font-weight:700;">'+o.side+'</td><td style="text-align:right;color:var(--text-main);">'+parseFloat(o.price)+'</td><td style="text-align:right;color:var(--text-muted);">'+parseFloat(o.origQty)+'</td><td style="text-align:right;color:var(--text-muted);">'+parseFloat(o.executedQty)+'</td><td style="text-align:right;">'+statusHtml+'</td><td style="text-align:right;color:var(--text-muted);font-size:10px;">'+timeStr+'</td></tr>';
                 }).join('');
             } else {
                 bodyEl.innerHTML = pageData.map(p => {
@@ -5846,21 +5946,119 @@ window.addEventListener('DOMContentLoaded', () => {
             prevStageIndexPrice = stageIndexPrice;
             stageIndexPriceEl.textContent = fmt(stageIndexPrice, pPrec);
 
+            // Best Bid Update
+            const bBids = instance.binanceDepth ? instance.binanceDepth.bids : [];
+            const bAsks = instance.binanceDepth ? instance.binanceDepth.asks : [];
+            const sBids = instance.testnetDepth ? instance.testnetDepth.bids : [];
+            const sAsks = instance.testnetDepth ? instance.testnetDepth.asks : [];
+
+            const binBestBid = (bBids && bBids[0]) ? parseFloat(bBids[0][0]) : 0;
+            const binBestAsk = (bAsks && bAsks[0]) ? parseFloat(bAsks[0][0]) : 0;
+            const stageBestBid = (sBids && sBids[0]) ? parseFloat(sBids[0][0]) : 0;
+            const stageBestAsk = (sAsks && sAsks[0]) ? parseFloat(sAsks[0][0]) : 0;
+
+            const binBestBidEl = document.getElementById('t-bbid');
+            if (binBestBidEl) {
+                if (prevBinBestBid !== null && flashOn) {
+                    const d = binBestBid - prevBinBestBid;
+                    if (d > 0) flash(binBestBidEl, 'fl-g');
+                    else if (d < 0) flash(binBestBidEl, 'fl-r');
+                }
+                prevBinBestBid = binBestBid;
+                binBestBidEl.textContent = binBestBid > 0 ? fmt(binBestBid, pPrec) : '—';
+            }
+
+            const stageBestBidEl = document.getElementById('t-sbid');
+            if (stageBestBidEl) {
+                if (prevStageBestBid !== null && flashOn) {
+                    const d = stageBestBid - prevStageBestBid;
+                    if (d > 0) flash(stageBestBidEl, 'fl-g');
+                    else if (d < 0) flash(stageBestBidEl, 'fl-r');
+                }
+                prevStageBestBid = stageBestBid;
+                stageBestBidEl.textContent = stageBestBid > 0 ? fmt(stageBestBid, pPrec) : '—';
+            }
+
+            const bidDriftAbs = Math.abs(binBestBid - stageBestBid).toFixed(pPrec);
+            const bidDriftPct = binBestBid > 0 ? ((bidDriftAbs / binBestBid) * 100).toFixed(3) : '0.000';
+            const bdp = parseFloat(bidDriftPct);
+            const bidDriftEl = document.getElementById('bid-drift-badge');
+            if (bidDriftEl) {
+                bidDriftEl.textContent = `B: ${bidDriftPct}%`;
+                if (bdp > 0.05) {
+                    bidDriftEl.style.color = '#f43f5e';
+                    bidDriftEl.style.borderColor = 'rgba(244,63,94,0.3)';
+                    bidDriftEl.style.background = 'rgba(244,63,94,0.1)';
+                } else if (bdp > 0.02) {
+                    bidDriftEl.style.color = '#eab308';
+                    bidDriftEl.style.borderColor = 'rgba(234,179,8,0.3)';
+                    bidDriftEl.style.background = 'rgba(234,179,8,0.08)';
+                } else {
+                    bidDriftEl.style.color = 'var(--text-muted)';
+                    bidDriftEl.style.borderColor = 'var(--border)';
+                    bidDriftEl.style.background = 'rgba(255,255,255,0.02)';
+                }
+            }
+
+            // Best Ask Update
+            const binBestAskEl = document.getElementById('t-bask');
+            if (binBestAskEl) {
+                if (prevBinBestAsk !== null && flashOn) {
+                    const d = binBestAsk - prevBinBestAsk;
+                    if (d > 0) flash(binBestAskEl, 'fl-g');
+                    else if (d < 0) flash(binBestAskEl, 'fl-r');
+                }
+                prevBinBestAsk = binBestAsk;
+                binBestAskEl.textContent = binBestAsk > 0 ? fmt(binBestAsk, pPrec) : '—';
+            }
+
+            const stageBestAskEl = document.getElementById('t-sask');
+            if (stageBestAskEl) {
+                if (prevStageBestAsk !== null && flashOn) {
+                    const d = stageBestAsk - prevStageBestAsk;
+                    if (d > 0) flash(stageBestAskEl, 'fl-g');
+                    else if (d < 0) flash(stageBestAskEl, 'fl-r');
+                }
+                prevStageBestAsk = stageBestAsk;
+                stageBestAskEl.textContent = stageBestAsk > 0 ? fmt(stageBestAsk, pPrec) : '—';
+            }
+
+            const askDriftAbs = Math.abs(binBestAsk - stageBestAsk).toFixed(pPrec);
+            const askDriftPct = binBestAsk > 0 ? ((askDriftAbs / binBestAsk) * 100).toFixed(3) : '0.000';
+            const adp = parseFloat(askDriftPct);
+            const askDriftEl = document.getElementById('ask-drift-badge');
+            if (askDriftEl) {
+                askDriftEl.textContent = `A: ${askDriftPct}%`;
+                if (adp > 0.05) {
+                    askDriftEl.style.color = '#f43f5e';
+                    askDriftEl.style.borderColor = 'rgba(244,63,94,0.3)';
+                    askDriftEl.style.background = 'rgba(244,63,94,0.1)';
+                } else if (adp > 0.02) {
+                    askDriftEl.style.color = '#eab308';
+                    askDriftEl.style.borderColor = 'rgba(234,179,8,0.3)';
+                    askDriftEl.style.background = 'rgba(234,179,8,0.08)';
+                } else {
+                    askDriftEl.style.color = 'var(--text-muted)';
+                    askDriftEl.style.borderColor = 'var(--border)';
+                    askDriftEl.style.background = 'rgba(255,255,255,0.02)';
+                }
+            }
+
             // LTP Drift Update
             const dAbs = Math.abs(parseFloat(binLtp)-parseFloat(stageLtp)).toFixed(pPrec);
             const dPct = parseFloat(binLtp)>0 ? ((dAbs/parseFloat(binLtp))*100).toFixed(3) : '0.000';
             const dp = parseFloat(dPct);
             const ltpDriftEl = document.getElementById('ltp-drift-badge');
             if (ltpDriftEl) {
-                ltpDriftEl.textContent = `Drift: ${dAbs} (${dPct}%)`;
+                ltpDriftEl.textContent = `${dPct}%`;
                 if (dp > 0.05) {
-                    ltpDriftEl.style.color = 'var(--rose)';
+                    ltpDriftEl.style.color = '#f43f5e';
                     ltpDriftEl.style.borderColor = 'rgba(244,63,94,0.3)';
-                    ltpDriftEl.style.background = 'rgba(244,63,94,0.05)';
+                    ltpDriftEl.style.background = 'rgba(244,63,94,0.1)';
                 } else if (dp > 0.02) {
-                    ltpDriftEl.style.color = 'var(--yellow)';
-                    ltpDriftEl.style.borderColor = 'rgba(250,204,21,0.3)';
-                    ltpDriftEl.style.background = 'rgba(250,204,21,0.05)';
+                    ltpDriftEl.style.color = '#eab308';
+                    ltpDriftEl.style.borderColor = 'rgba(234,179,8,0.3)';
+                    ltpDriftEl.style.background = 'rgba(234,179,8,0.08)';
                 } else {
                     ltpDriftEl.style.color = 'var(--text-muted)';
                     ltpDriftEl.style.borderColor = 'var(--border)';
@@ -5874,15 +6072,15 @@ window.addEventListener('DOMContentLoaded', () => {
             const mpp = parseFloat(mpPct);
             const mpDriftEl = document.getElementById('mp-drift-badge');
             if (mpDriftEl) {
-                mpDriftEl.textContent = `Drift: ${mpAbs} (${mpPct}%)`;
+                mpDriftEl.textContent = `${mpPct}%`;
                 if (mpp > 0.05) {
-                    mpDriftEl.style.color = 'var(--rose)';
+                    mpDriftEl.style.color = '#f43f5e';
                     mpDriftEl.style.borderColor = 'rgba(244,63,94,0.3)';
-                    mpDriftEl.style.background = 'rgba(244,63,94,0.05)';
+                    mpDriftEl.style.background = 'rgba(244,63,94,0.1)';
                 } else if (mpp > 0.02) {
-                    mpDriftEl.style.color = 'var(--yellow)';
-                    mpDriftEl.style.borderColor = 'rgba(250,204,21,0.3)';
-                    mpDriftEl.style.background = 'rgba(250,204,21,0.05)';
+                    mpDriftEl.style.color = '#eab308';
+                    mpDriftEl.style.borderColor = 'rgba(234,179,8,0.3)';
+                    mpDriftEl.style.background = 'rgba(234,179,8,0.08)';
                 } else {
                     mpDriftEl.style.color = 'var(--text-muted)';
                     mpDriftEl.style.borderColor = 'var(--border)';
@@ -5896,15 +6094,15 @@ window.addEventListener('DOMContentLoaded', () => {
             const ipp = parseFloat(ipPct);
             const ipDriftEl = document.getElementById('ip-drift-badge');
             if (ipDriftEl) {
-                ipDriftEl.textContent = `Drift: ${ipAbs} (${ipPct}%)`;
+                ipDriftEl.textContent = `${ipPct}%`;
                 if (ipp > 0.05) {
-                    ipDriftEl.style.color = 'var(--rose)';
+                    ipDriftEl.style.color = '#f43f5e';
                     ipDriftEl.style.borderColor = 'rgba(244,63,94,0.3)';
-                    ipDriftEl.style.background = 'rgba(244,63,94,0.05)';
+                    ipDriftEl.style.background = 'rgba(244,63,94,0.1)';
                 } else if (ipp > 0.02) {
-                    ipDriftEl.style.color = 'var(--yellow)';
-                    ipDriftEl.style.borderColor = 'rgba(250,204,21,0.3)';
-                    ipDriftEl.style.background = 'rgba(250,204,21,0.05)';
+                    ipDriftEl.style.color = '#eab308';
+                    ipDriftEl.style.borderColor = 'rgba(234,179,8,0.3)';
+                    ipDriftEl.style.background = 'rgba(234,179,8,0.08)';
                 } else {
                     ipDriftEl.style.color = 'var(--text-muted)';
                     ipDriftEl.style.borderColor = 'var(--border)';
@@ -5987,8 +6185,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
             // OK/FAIL counts are now rendered by updateTradeStream into #ltp-chips
 
-            renderBook(document.getElementById('bin-asks'), document.getElementById('bin-bids'), document.getElementById('bin-spread-badge'), document.getElementById('bin-spread-mid'), instance.binanceDepth.asks, instance.binanceDepth.bids);
-            renderBook(document.getElementById('stage-asks'), document.getElementById('stage-bids'), document.getElementById('stage-spread-badge'), document.getElementById('stage-spread-mid'), instance.testnetDepth.asks, instance.testnetDepth.bids);
+            renderBook(document.getElementById('bin-asks'), document.getElementById('bin-bids'), document.getElementById('bin-spread-badge'), document.getElementById('bin-spread-mid'), instance.binanceDepth.asks, instance.binanceDepth.bids, true);
+            renderBook(document.getElementById('stage-asks'), document.getElementById('stage-bids'), document.getElementById('stage-spread-badge'), document.getElementById('stage-spread-mid'), instance.testnetDepth.asks, instance.testnetDepth.bids, false);
 
             updateTradeStream(instance.syncedTrades);
         }
@@ -6074,6 +6272,10 @@ window.addEventListener('DOMContentLoaded', () => {
                 prevStageIndexPrice = null;
                 prevBinFunding = null;
                 prevStageFunding = null;
+                prevBinBestBid = null;
+                prevStageBestBid = null;
+                prevBinBestAsk = null;
+                prevStageBestAsk = null;
                 const sp = document.getElementById('splash');
                 if (sp) { sp.classList.add('hidden'); setTimeout(()=>sp.remove(),500); }
                 document.getElementById('dot').className = 'dot-live';
