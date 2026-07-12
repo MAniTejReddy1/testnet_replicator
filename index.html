@@ -17,72 +17,72 @@
 <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
 <style>
   :root { 
-    --bg: #020617; 
-    --panel: rgba(15, 23, 42, 0.7); 
-    --panel-border: rgba(255, 255, 255, 0.05);
-    --border: rgba(255, 255, 255, 0.04); 
-    --bid: #10b981; 
-    --ask: #f43f5e; 
-    --cyan: #22d3ee;
-    --yellow: #facc15;
-    --purple: #a855f7;
-    --rose: #f43f5e;
-    --emerald: #10b981;
+    --bg: #030712; 
+    --panel: rgba(17, 24, 39, 0.65); 
+    --panel-border: rgba(255, 255, 255, 0.07);
+    --border: rgba(255, 255, 255, 0.05); 
+    --bid: #00e676; 
+    --ask: #ff3366; 
+    --cyan: #00e5ff;
+    --yellow: #ffd600;
+    --purple: #d500f9;
+    --rose: #ff3366;
+    --emerald: #00e676;
     --text-main: #f8fafc;
     --text-muted: #94a3b8;
-    --text-dim: #94a3b8;
-    --btn-theme: #334155;
-    --hdr-bg: rgba(15, 23, 42, 0.85);
-    --drawer-bg: rgba(15, 23, 42, 0.95);
-    --shadow: 0 8px 32px rgba(0,0,0,0.4);
-    --shadow-heavy: 0 4px 20px rgba(0, 0, 0, 0.6);
+    --text-dim: #64748b;
+    --btn-theme: rgba(255, 255, 255, 0.05);
+    --hdr-bg: rgba(17, 24, 39, 0.85);
+    --drawer-bg: rgba(10, 15, 30, 0.95);
+    --shadow: 0 12px 40px rgba(0,0,0,0.5);
+    --shadow-heavy: 0 8px 32px rgba(0, 0, 0, 0.7);
     --glass-border: rgba(255, 255, 255, 0.12);
     --glass-hover: rgba(255, 255, 255, 0.05);
     --glass-active: rgba(255, 255, 255, 0.1);
-    --glass-blur: blur(12px);
-    --hover-bg: rgba(255, 255, 255, 0.05);
-    --row-bg: rgba(255, 255, 255, 0.02);
-    --row-hover: rgba(255, 255, 255, 0.06);
-    --input-bg: rgba(15, 23, 42, 0.5);
-    --title-grad: linear-gradient(90deg, #fff, #94a3b8);
-    --text-shadow: 0 0 10px rgba(6,182,212,0.15);
+    --glass-blur: blur(20px);
+    --hover-bg: rgba(255, 255, 255, 0.04);
+    --row-bg: rgba(255, 255, 255, 0.015);
+    --row-hover: rgba(255, 255, 255, 0.05);
+    --input-bg: rgba(9, 11, 20, 0.6);
+    --title-grad: linear-gradient(90deg, #ffffff 0%, #cbd5e1 50%, #64748b 100%);
+    --text-shadow: 0 0 15px rgba(0, 229, 255, 0.2);
     --ease: cubic-bezier(0.4, 0, 0.2, 1);
-    --flash-up-bg: rgba(16, 185, 129, 0.25);
-    --flash-down-bg: rgba(244, 63, 94, 0.25);
+    --flash-up-bg: rgba(0, 230, 118, 0.25);
+    --flash-down-bg: rgba(255, 51, 102, 0.25);
   }
 
   :root[data-theme="light"] {
-    --bg: #f1f5f9; 
-    --panel: rgba(255, 255, 255, 0.85); 
-    --panel-border: rgba(0, 0, 0, 0.12);
-    --border: rgba(0, 0, 0, 0.08); 
-    --bid: #059669; 
-    --ask: #e11d48; 
+    --bg: #f8fafc; 
+    --panel: rgba(255, 255, 255, 0.75); 
+    --panel-border: rgba(15, 23, 42, 0.08);
+    --border: rgba(15, 23, 42, 0.06); 
+    --bid: #00a85d; 
+    --ask: #e61952; 
     --cyan: #0284c7; 
-    --yellow: #ca8a04; 
+    --yellow: #b45309; 
     --purple: #7e22ce;
-    --rose: #e11d48;
-    --emerald: #059669;
+    --rose: #e61952;
+    --emerald: #00a85d;
     --text-main: #0f172a;
-    --text-muted: #64748b;
+    --text-muted: #475569;
     --text-dim: #64748b;
-    --glass-blur: blur(24px);
-    --title-grad: linear-gradient(90deg, #0f172a, #64748b);
-    --btn-theme: rgba(0,0,0,0.05);
-    --input-bg: rgba(255,255,255,0.6);
-    --hover-bg: rgba(0,0,0,0.05);
-    --row-bg: rgba(0,0,0,0.03);
-    --row-hover: rgba(0,0,0,0.06);
-    --hdr-bg: rgba(255,255,255,0.85);
-    --drawer-bg: rgba(248,250,252,0.95);
-    --shadow: 0 8px 24px rgba(0,0,0,0.06);
-    --shadow-heavy: 0 4px 20px rgba(0, 0, 0, 0.1);
-    --glass-border: rgba(0, 0, 0, 0.15);
-    --glass-hover: rgba(0, 0, 0, 0.04);
-    --glass-active: rgba(0, 0, 0, 0.08);
+    --btn-theme: rgba(0, 0, 0, 0.04);
+    --hdr-bg: rgba(255, 255, 255, 0.85);
+    --drawer-bg: rgba(248, 250, 252, 0.95);
+    --shadow: 0 12px 30px rgba(0,0,0,0.05);
+    --shadow-heavy: 0 8px 24px rgba(0, 0, 0, 0.08);
+    --glass-border: rgba(15, 23, 42, 0.1);
+    --glass-hover: rgba(15, 23, 42, 0.04);
+    --glass-active: rgba(15, 23, 42, 0.08);
+    --hover-bg: rgba(15, 23, 42, 0.03);
+    --row-bg: rgba(15, 23, 42, 0.01);
+    --row-hover: rgba(15, 23, 42, 0.04);
+    --input-bg: rgba(255, 255, 255, 0.8);
+    --title-grad: linear-gradient(90deg, #0f172a 0%, #334155 50%, #64748b 100%);
     --text-shadow: none;
-    --flash-up-bg: rgba(16, 185, 129, 0.38);
-    --flash-down-bg: rgba(244, 63, 94, 0.38);
+    --flash-up-bg: rgba(0, 168, 93, 0.35);
+    --flash-down-bg: rgba(230, 25, 82, 0.35);
+    --glass-blur: blur(30px);
   }
 
   ::view-transition-old(root),
@@ -112,10 +112,22 @@
     color: var(--text-main); 
     font-size: 12px; 
     overflow-x: hidden;
-    background-image: radial-gradient(circle at 15% 50%, rgba(6, 182, 212, 0.03), transparent 25vw),
-                      radial-gradient(circle at 85% 30%, rgba(168, 85, 247, 0.03), transparent 25vw);
+    background-image: 
+      radial-gradient(circle at 10% 20%, rgba(0, 229, 255, 0.04), transparent 30vw),
+      radial-gradient(circle at 90% 80%, rgba(213, 0, 249, 0.04), transparent 30vw),
+      linear-gradient(rgba(255,255,255,0.003) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.003) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 20px 20px, 20px 20px;
     background-attachment: fixed;
     padding-top: 135px; /* Offset for fixed header */
+    transition: background-image 0.4s var(--ease);
+  }
+  :root[data-theme="light"] body {
+    background-image: 
+      radial-gradient(circle at 10% 20%, rgba(2, 132, 199, 0.03), transparent 30vw),
+      radial-gradient(circle at 90% 80%, rgba(126, 34, 206, 0.03), transparent 30vw),
+      linear-gradient(rgba(15,23,42,0.008) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(15,23,42,0.008) 1px, transparent 1px);
   }
   
   /* Fonts */
@@ -171,7 +183,7 @@
   @keyframes pulse-g { 70% { box-shadow: 0 0 0 8px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
   
   /* Data Rows */
-  .d-row { display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; padding: 3px 12px; position: relative; border-radius: 4px; cursor: default; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+  .d-row { display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; padding: 3px 12px; position: relative; border-radius: 4px; cursor: default; font-family: 'JetBrains Mono', monospace; font-size: 11px; border: 1px solid transparent; }
   .d-row:hover { background:var(--hover-bg); }
   .d-row span { position: relative; z-index: 2; }
   .d-bar { position: absolute; top:2px; bottom:2px; pointer-events:none; transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
@@ -188,6 +200,80 @@
   @keyframes flashRowDown { 0% { background: var(--flash-down-bg); } 100% { background: transparent; } }
   .flash-row-up { animation: flashRowUp 0.4s ease-out; }
   .flash-row-down { animation: flashRowDown 0.4s ease-out; }
+  .flash-highlight-ask {
+    background-color: rgba(244, 63, 94, 0.28) !important;
+    border-color: rgba(244, 63, 94, 0.7) !important;
+    box-shadow: 0 0 12px rgba(244, 63, 94, 0.45);
+    transition: none !important;
+  }
+  .flash-highlight-bid {
+    background-color: rgba(16, 185, 129, 0.25) !important;
+    border-color: rgba(16, 185, 129, 0.7) !important;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.45);
+    transition: none !important;
+  }
+  .flash-size-up {
+    color: #10b981 !important;
+    text-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+    transition: none !important;
+  }
+  .flash-size-down {
+    color: #f43f5e !important;
+    text-shadow: 0 0 8px rgba(244, 63, 94, 0.6);
+    transition: none !important;
+  }
+  
+  /* Telemetry Badges */
+  .tele-pill {
+    display: flex;
+    align-items: center;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    padding: 6px 14px;
+    border-radius: 20px;
+    height: 32px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    transition: all 0.2s var(--ease);
+  }
+  .tele-pill:hover {
+    border-color: rgba(0, 229, 255, 0.25);
+    background: var(--hover-bg);
+    box-shadow: 0 4px 12px rgba(0, 229, 255, 0.05);
+  }
+  
+  .pulse-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-right: 8px;
+  }
+  .pulse-dot-yellow {
+    background: #eab308;
+    box-shadow: 0 0 8px #eab308;
+    animation: pulseTelemetry 1.8s infinite ease-in-out;
+  }
+  .pulse-dot-cyan {
+    background: #06b6d4;
+    box-shadow: 0 0 8px #06b6d4;
+    animation: pulseTelemetry 1.8s infinite ease-in-out;
+  }
+  .pulse-dot-emerald {
+    background: #10b981;
+    box-shadow: 0 0 8px #10b981;
+    animation: pulseTelemetry 1.8s infinite ease-in-out;
+  }
+  .pulse-dot-purple {
+    background: #a855f7;
+    box-shadow: 0 0 8px #a855f7;
+    animation: pulseTelemetry 1.8s infinite ease-in-out;
+  }
+  @keyframes pulseTelemetry {
+    0%, 100% { opacity: 0.45; transform: scale(0.92); }
+    50% { opacity: 1; transform: scale(1.15); }
+  }
   @keyframes slideIn { from { opacity:0; transform:translateX(8px); } to { opacity:1; transform:none; } }
 
   /* Scenario running animations */
@@ -209,23 +295,45 @@
   .tab:hover { color: var(--text-main); }
   .tab.on { border-color: var(--cyan); color: var(--cyan); }
   
-  .sym-tab { padding: 8px 16px; border-radius: 8px; color: var(--text-muted); font-weight: 600; cursor: pointer; transition: all .2s; background:var(--row-bg); border: 1px solid transparent; display: flex; align-items: center; }
-  .sym-tab:hover { background: rgba(255,255,255,0.06); }
-  .sym-tab.on { background: rgba(6,182,212,.1); color: var(--cyan); border: 1px solid rgba(6,182,212,.3); box-shadow: 0 0 10px rgba(6,182,212,0.1); }
+  .sym-tab { padding: 8px 16px; border-radius: 8px; color: var(--text-muted); font-weight: 600; cursor: pointer; transition: all .3s var(--ease); background:var(--row-bg); border: 1px solid var(--border); display: flex; align-items: center; }
+  .sym-tab:hover { background: var(--hover-bg); border-color: rgba(0, 229, 255, 0.25); transform: translateY(-1px); }
+  .sym-tab.on { background: rgba(0, 229, 255, 0.08); color: var(--cyan); border: 1px solid rgba(0, 229, 255, 0.35); box-shadow: 0 0 15px rgba(0, 229, 255, 0.15); }
   
   /* Badges & Chips */
   .badge { font-size:10px; padding:3px 8px; border-radius:99px; font-weight:700; letter-spacing:0.5px; }
-  .badge-ok { background:rgba(16,185,129,.1); border:1px solid rgba(16,185,129,.2); color:var(--bid); }
-  .badge-fail { background:rgba(244,63,94,.1); border:1px solid rgba(244,63,94,.2); color:var(--ask); }
+  .badge-ok { background:rgba(0,230,118,.1); border:1px solid rgba(0,230,118,.2); color:var(--bid); }
+  .badge-fail { background:rgba(255,51,102,.1); border:1px solid rgba(255,51,102,.2); color:var(--ask); }
   
-  .chip { background:var(--row-bg); border: 1px solid var(--border); border-radius: 10px; padding: 8px 14px; transition: all .2s; cursor: default; text-align: center; min-width: 80px; }
-  .chip:hover { border-color: var(--glass-active); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+  .chip { background:var(--input-bg); border: 1px solid var(--border); border-radius: 10px; padding: 8px 14px; transition: all .3s var(--ease); cursor: default; text-align: center; min-width: 80px; }
+  .chip:hover { border-color: rgba(0, 229, 255, 0.25); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0, 229, 255, 0.1); }
   .chip-label { font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; font-weight:600; }
   .chip-val   { font-size:14px; font-weight:700; margin-top:4px; font-family: 'JetBrains Mono', monospace; }
   
   /* Ticker Cards */
-  .ticker-card { background: var(--panel); border: 1px solid var(--panel-border); border-radius: 12px; padding: 16px 20px; flex: 1; backdrop-filter: var(--glass-blur); transition: transform 0.2s; }
-  .ticker-card:hover { transform: translateY(-2px); border-color: var(--glass-border); }
+  .ticker-card { background: var(--panel); border: 1px solid var(--panel-border); border-radius: 12px; padding: 16px 20px; flex: 1; backdrop-filter: var(--glass-blur); transition: transform 0.3s var(--ease), border-color 0.3s var(--ease), box-shadow 0.3s var(--ease); }
+  .ticker-card:hover { transform: translateY(-2px); border-color: rgba(0, 229, 255, 0.25); box-shadow: 0 12px 30px rgba(0, 229, 255, 0.08); }
+
+  /* Spotlight mouse hover glow effect */
+  .ticker-card, .panel {
+    position: relative;
+  }
+  .ticker-card::after, .panel::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(300px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(255, 255, 255, 0.02), transparent 45%);
+    border-radius: inherit;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s var(--ease);
+  }
+  :root[data-theme="light"] .ticker-card::after, :root[data-theme="light"] .panel::after {
+    background: radial-gradient(300px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(0, 0, 0, 0.015), transparent 45%);
+  }
+  .ticker-card:hover::after, .panel:hover::after {
+    opacity: 1;
+  }
   .ticker-label { font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; font-weight:600; }
   .ticker-val   { font-size:24px; font-weight:700; font-variant-numeric:tabular-nums; margin-top:6px; font-family: 'JetBrains Mono', monospace; text-shadow: var(--text-shadow); }
   .ticker-sub   { font-size:10px; color:var(--text-muted); margin-top:4px; }
@@ -287,17 +395,17 @@
   .btn-success:hover { background: rgba(16,185,129,0.25); box-shadow: 0 6px 16px rgba(16,185,129,0.2); }
 
   /* Control buttons */
-  .ctrl-btn { padding: 6px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all .2s; border: 1px solid transparent; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .ctrl-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
-  .ctrl-btn:active { transform: translateY(1px); }
-  .btn-start  { background: rgba(16,185,129,.15); color: var(--bid); border-color: rgba(16,185,129,.3); }
-  .btn-start:hover { background: rgba(16,185,129,.25); }
-  .btn-pause  { background: rgba(234,179,8,.15);  color: #fde047; border-color: rgba(234,179,8,.3); }
-  .btn-pause:hover { background: rgba(234,179,8,.25); }
-  .btn-stop   { background: rgba(244,63,94,.15);  color: #fb7185; border-color: rgba(244,63,94,.3); }
-  .btn-stop:hover { background: rgba(244,63,94,.25); }
-  .btn-reload { background: rgba(168,85,247,.15); color: #c084fc; border-color: rgba(168,85,247,.3); }
-  .btn-reload:hover { background: rgba(168,85,247,.25); }
+  .ctrl-btn { padding: 6px 14px; border-radius: 6px; font-weight: 700; cursor: pointer; transition: all .25s var(--ease); border: 1px solid transparent; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+  .ctrl-btn:hover { transform: translateY(-1.5px); }
+  .ctrl-btn:active { transform: translateY(0.5px); }
+  .btn-start  { background: rgba(0,230,118,.12); color: var(--bid); border-color: rgba(0,230,118,.35); }
+  .btn-start:hover { background: rgba(0,230,118,.2); box-shadow: 0 6px 18px rgba(0,230,118,0.22); border-color: rgba(0,230,118,.5); }
+  .btn-pause  { background: rgba(255,214,0,.1);  color: var(--yellow); border-color: rgba(255,214,0,.3); }
+  .btn-pause:hover { background: rgba(255,214,0,.18); box-shadow: 0 6px 18px rgba(255,214,0,0.18); border-color: rgba(255,214,0,.45); }
+  .btn-stop   { background: rgba(255,51,102,.12);  color: var(--rose); border-color: rgba(255,51,102,.35); }
+  .btn-stop:hover { background: rgba(255,51,102,.2); box-shadow: 0 6px 18px rgba(255,51,102,0.22); border-color: rgba(255,51,102,.5); }
+  .btn-reload { background: rgba(213,0,249,.1); color: #e040fb; border-color: rgba(213,0,249,.3); }
+  .btn-reload:hover { background: rgba(213,0,249,.18); box-shadow: 0 6px 18px rgba(213,0,249,0.18); border-color: rgba(213,0,249,.45); }
   
   /* Sections */
   .sec-label { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); font-weight: 600; }
@@ -1521,7 +1629,7 @@
         <div class="sync-feed-wrap">
           <div class="book-head">
             <span class="pair" style="color: #E6EDF3;">LIVE SYNC TELEMETRY</span>
-            <span>stage replica status</span>
+            <span>testnet replica status</span>
           </div>
           <div class="sync-list" id="syncList"></div>
         </div>
@@ -1654,14 +1762,13 @@
 <div class="hdr-bar"></div>
 
 <header style="background:var(--hdr-bg);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
-  <div style="display:flex;align-items:center;gap:14px;flex:1;">
+  <div style="display:flex;align-items:center;gap:14px;flex:0 0 auto;">
     <div style="position:relative;width:12px;height:12px;"><div id="dot" class="dot-dead" style="width:12px;height:12px;border-radius:50%;position:absolute;"></div></div>
     <div>
       <span style="font-weight:700;font-size:14px;letter-spacing:1px;background: var(--title-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">MULTI-MARKET REPLICATOR</span>
       <span style="color:var(--text-muted);font-size:10px;margin-left:12px;letter-spacing:1px;font-family:'JetBrains Mono',monospace;background:rgba(255,255,255,0.1);padding:3px 8px;border-radius:99px;">v5 PRO</span>
     </div>
 
-    
     <!-- Global Environment Switcher Tabs -->
     <div style="display:flex; gap: 4px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 3px; border-radius: 8px; margin-left: 20px;" id="env-switcher">
       <button class="env-tab on" data-env="PRODUCTION" style="background:transparent; border:none; color:var(--text-muted); padding: 4px 10px; font-size: 9px; font-weight:700; font-family:inherit; cursor:pointer; border-radius: 5px; transition: all 0.2s;">PRODUCTION</button>
@@ -1669,23 +1776,20 @@
       <button class="env-tab" data-env="STAGING" style="background:transparent; border:none; color:var(--text-muted); padding: 4px 10px; font-size: 9px; font-weight:700; font-family:inherit; cursor:pointer; border-radius: 5px; transition: all 0.2s;">STAGING</button>
     </div>
   </div>
-  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;flex:0 1 auto;justify-content:center;">
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;flex:1 1 auto;justify-content:center;min-width:0;">
     <!-- Markets Selector Button -->
     <button id="btn-markets-list-open" onclick="window.openMarketListModal()" style="background: rgba(6, 182, 212, 0.08); border: 1px solid rgba(6, 182, 212, 0.2); color: var(--cyan); padding: 7px 14px; font-size: 11px; font-weight: 700; font-family: inherit; cursor: pointer; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;" onmouseover="this.style.background='rgba(6, 182, 212, 0.15)';" onmouseout="this.style.background='rgba(6, 182, 212, 0.08)';">
       <span style="font-size: 13px;">☰</span> Markets
     </button>
-    
-
-    
     <div style="display:flex;gap:10px;align-items:center;" id="symbol-tabs"></div>
   </div>
-  <div style="display:flex;gap:12px;align-items:center;flex:1;justify-content:flex-end;">
+  <div style="display:flex;gap:12px;align-items:center;flex:0 0 auto;justify-content:flex-end;">
     <div id="c-status-toast" style="display:none;"></div>
-    <div class="chip"><div class="chip-label">Engine Status</div><div class="chip-val" id="c-eng"><span class="c-rose fw-bold">OFFLINE</span></div></div>
-    <div class="chip"><div class="chip-label">Network Time</div><div class="chip-val" id="c-clock" style="color:var(--text-muted);font-size:12px;">—</div></div>
-    <button id="btn-theme-toggle" style="background:var(--btn-theme);border:1px solid var(--border);cursor:pointer;font-size:14px;color:var(--text-main);padding:8px 12px;border-radius:8px;transition:all 0.3s;display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px rgba(0,0,0,0.1);" title="Toggle Light/Dark Theme">☀</button>
-    <button id="btn-cfg" class="btn-primary" style="padding: 10px 20px; width: auto; font-size: 11px;">⚙ CONFIGURE</button>
-    <button id="btn-logout" class="btn-primary" onclick="window.handleAuthLogout()" style="padding: 10px 20px; width: auto; font-size: 11px; background: linear-gradient(135deg, rgba(244,63,94,0.2), rgba(244,63,94,0.4)); border: 1px solid rgba(244,63,94,0.4); box-shadow: none;">🔒 LOGOUT</button>
+    <div class="chip" style="min-height: 46px; display: flex; flex-direction: column; justify-content: center; padding: 6px 14px;"><div class="chip-label">Engine Status</div><div class="chip-val" id="c-eng" style="margin-top:2px;"><span class="c-rose fw-bold">OFFLINE</span></div></div>
+    <div class="chip" style="min-height: 46px; display: flex; flex-direction: column; justify-content: center; padding: 6px 14px;"><div class="chip-label">Network Time</div><div class="chip-val" id="c-clock" style="color:var(--text-muted);font-size:12px;margin-top:2px;">—</div></div>
+    <button id="btn-theme-toggle" style="background:var(--btn-theme);border:1px solid var(--border);cursor:pointer;font-size:14px;color:var(--text-main);padding:10px 14px;height:46px;border-radius:8px;transition:all 0.3s;display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px rgba(0,0,0,0.1);" title="Toggle Light/Dark Theme">☀</button>
+    <button id="btn-cfg" class="btn-primary" style="padding: 10px 20px; width: auto; font-size: 11px; height: 46px; display: flex; align-items: center; justify-content: center;">⚙ CONFIGURE</button>
+    <button id="btn-logout" class="btn-primary" onclick="window.handleAuthLogout()" style="padding: 10px 20px; width: auto; font-size: 11px; height: 46px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, rgba(244,63,94,0.2), rgba(244,63,94,0.4)); border: 1px solid rgba(244,63,94,0.4); box-shadow: none;">🔒 LOGOUT</button>
   </div>
 </header>
 <script>
@@ -1753,12 +1857,28 @@
         <button class="ctrl-btn btn-stop"   id="btn-cmd-stop"><span style="margin-right:6px">⏹</span> STOP</button>
         <button class="ctrl-btn btn-reload" id="btn-cmd-reload"><span style="margin-right:6px">↻</span> RELOAD</button>
     </div>
-    <div style="display:flex; gap: 16px; font-size: 11px; align-items:center; flex-wrap:wrap; font-family: 'JetBrains Mono', monospace;">
-        <div style="background:var(--row-bg);padding:6px 12px;border-radius:8px;border:1px solid var(--border);"><span style="color:var(--text-muted);margin-right:6px;">PAIR</span><span id="c-pair" style="color:var(--text-main);font-weight:700;">—</span></div>
-        <div style="background:var(--row-bg);padding:6px 12px;border-radius:8px;border:1px solid var(--border);"><span style="color:var(--text-muted);margin-right:6px;">BINANCE LATENCY</span><span id="c-bping" style="color:var(--yellow);font-weight:700;">0ms</span></div>
-        <div style="background:var(--row-bg);padding:6px 12px;border-radius:8px;border:1px solid var(--border);"><span style="color:var(--text-muted);margin-right:6px;">TESTNET LATENCY</span><span id="c-sping" style="color:var(--cyan);font-weight:700;">0ms</span></div>
-        <div style="background:var(--row-bg);padding:6px 12px;border-radius:8px;border:1px solid var(--border);"><span style="color:var(--text-muted);margin-right:6px;">SYNC RATIO</span><span id="c-sync" style="color:var(--bid);font-weight:700;">100%</span></div>
-        <div id="flag-scenario" class="flag-pill" style="display:none;background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.2);color:var(--ask);box-shadow:0 0 10px rgba(244,63,94,0.1);">SCENARIO IDLE</div>
+    <div style="display:flex; gap: 12px; font-size: 11px; align-items:center; flex-wrap:wrap;">
+        <div class="tele-pill">
+            <span class="pulse-dot pulse-dot-cyan"></span>
+            <span style="color:var(--text-muted);margin-right:6px;">PAIR</span>
+            <span id="c-pair" style="color:var(--text-main);font-weight:700;">—</span>
+        </div>
+        <div class="tele-pill">
+            <span class="pulse-dot pulse-dot-yellow"></span>
+            <span style="color:var(--text-muted);margin-right:6px;">CoinDCX</span>
+            <span id="c-bping" style="color:var(--yellow);font-weight:700;">0ms</span>
+        </div>
+        <div class="tele-pill">
+            <span class="pulse-dot pulse-dot-cyan"></span>
+            <span style="color:var(--text-muted);margin-right:6px;">TESTNET</span>
+            <span id="c-sping" style="color:var(--cyan);font-weight:700;">0ms</span>
+        </div>
+        <div class="tele-pill">
+            <span class="pulse-dot pulse-dot-emerald"></span>
+            <span style="color:var(--text-muted);margin-right:6px;">SYNC RATIO</span>
+            <span id="c-sync" style="color:var(--bid);font-weight:700;">100%</span>
+        </div>
+        <div id="flag-scenario" class="flag-pill" style="display:none;background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.2);color:var(--ask);box-shadow:0 0 10px rgba(244,63,94,0.1);font-family:'JetBrains Mono',monospace;">SCENARIO IDLE</div>
             </div>
 </div>
 </div>
@@ -1819,7 +1939,7 @@
       <div style="width:4px;height:12px;background:var(--cyan);border-radius:2px;"></div>Market & Sizing
     </div>
     
-    <label>Source Symbol (Binance)</label>
+    <label>Source Symbol (CoinDCX)</label>
     <input id="cfg-symbol" placeholder="e.g. BNBUSDT" style="margin-bottom:12px;">
     
     <label>Target Symbol (Testnet - Optional)</label>
@@ -1894,119 +2014,119 @@
 </div>
 
 <div style="display:flex;gap:16px;padding:24px 24px 0;">
-  <div class="ticker-card panel-accent" style="display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2px;">
+  <div class="ticker-card panel-accent" style="display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px; flex: 1; min-width: 150px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
       <div class="ticker-label">LTP (Last Traded Price)</div>
-      <div id="ltp-drift-badge" style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600; color:var(--text-muted); background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">Drift: —</div>
+      <div id="ltp-drift-badge" style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; color:var(--text-muted); background:rgba(255,255,255,0.03); padding:2px 6px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">Drift: —</div>
     </div>
-    <div style="display:flex; flex-direction:column; gap:4px;">
-      <div style="display:flex; align-items:center; justify-content:space-between;">
-        <span style="font-size:10.5px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Binance</span>
-        <span class="ticker-val" id="t-bltp" style="color:var(--yellow); font-size:19px; font-weight:800; margin-top:0; font-family:'JetBrains Mono',monospace;">—</span>
+    <div style="display:flex; flex-direction:column; gap:6px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid var(--yellow); padding-left:8px; height: 22px;">
+        <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">CoinDCX</span>
+        <span class="ticker-val" id="t-bltp" style="color:var(--yellow); font-size:18px; font-weight:800; font-family:'JetBrains Mono',monospace; line-height: 1;">—</span>
       </div>
-      <div style="display:flex; align-items:center; justify-content:space-between;">
-        <span style="font-size:10.5px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Stage</span>
-        <span class="ticker-val" id="t-sltp" style="color:var(--cyan); font-size:19px; font-weight:800; margin-top:0; font-family:'JetBrains Mono',monospace;">—</span>
+      <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid var(--cyan); padding-left:8px; height: 22px;">
+        <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Testnet</span>
+        <span class="ticker-val" id="t-sltp" style="color:var(--cyan); font-size:18px; font-weight:800; font-family:'JetBrains Mono',monospace; line-height: 1;">—</span>
       </div>
     </div>
   </div>
   <div class="ticker-card" style="border-color:rgba(16,185,129,0.3); box-shadow:0 0 20px rgba(16,185,129,0.05); display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px; min-width: 280px; flex: 2;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
       <div class="ticker-label">Best Bid / Ask</div>
       <div style="display:flex; gap:6px;">
-        <div id="bid-drift-badge" style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600; color:var(--text-muted); background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">B: —</div>
-        <div id="ask-drift-badge" style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600; color:var(--text-muted); background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">A: —</div>
+        <div id="bid-drift-badge" style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; color:var(--text-muted); background:rgba(255,255,255,0.03); padding:2px 6px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">B: —</div>
+        <div id="ask-drift-badge" style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; color:var(--text-muted); background:rgba(255,255,255,0.03); padding:2px 6px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">A: —</div>
       </div>
     </div>
-    <div style="display:flex; gap:20px; width:100%;">
+    <div style="display:flex; gap:16px; width:100%;">
       <!-- Bid Column -->
-      <div style="flex: 1; display:flex; flex-direction:column; gap:4px; border-right:1px solid rgba(255,255,255,0.05); padding-right:10px;">
-        <div style="display:flex; align-items:center; justify-content:space-between;">
-          <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Bin Bid</span>
-          <span class="ticker-val" id="t-bbid" style="color:var(--yellow); font-size:17px; font-weight:800; margin-top:0; font-family:'JetBrains Mono',monospace;">—</span>
+      <div style="flex: 1; display:flex; flex-direction:column; gap:6px; border-right:1px solid rgba(255,255,255,0.05); padding-right:12px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid var(--yellow); padding-left:6px; height: 22px;">
+          <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">CoinDCX Bid</span>
+          <span class="ticker-val" id="t-bbid" style="color:var(--yellow); font-size:16px; font-weight:800; font-family:'JetBrains Mono',monospace; line-height: 1;">—</span>
         </div>
-        <div style="display:flex; align-items:center; justify-content:space-between;">
-          <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Stg Bid</span>
-          <span class="ticker-val" id="t-sbid" style="color:var(--cyan); font-size:17px; font-weight:800; margin-top:0; font-family:'JetBrains Mono',monospace;">—</span>
+        <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid var(--cyan); padding-left:6px; height: 22px;">
+          <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Testnet Bid</span>
+          <span class="ticker-val" id="t-sbid" style="color:var(--cyan); font-size:16px; font-weight:800; font-family:'JetBrains Mono',monospace; line-height: 1;">—</span>
         </div>
       </div>
       <!-- Ask Column -->
-      <div style="flex: 1; display:flex; flex-direction:column; gap:4px; padding-left:10px;">
-        <div style="display:flex; align-items:center; justify-content:space-between;">
-          <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Bin Ask</span>
-          <span class="ticker-val" id="t-bask" style="color:var(--yellow); font-size:17px; font-weight:800; margin-top:0; font-family:'JetBrains Mono',monospace;">—</span>
+      <div style="flex: 1; display:flex; flex-direction:column; gap:6px; padding-left:4px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid var(--yellow); padding-left:6px; height: 22px;">
+          <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">CoinDCX Ask</span>
+          <span class="ticker-val" id="t-bask" style="color:var(--yellow); font-size:16px; font-weight:800; font-family:'JetBrains Mono',monospace; line-height: 1;">—</span>
         </div>
-        <div style="display:flex; align-items:center; justify-content:space-between;">
-          <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Stg Ask</span>
-          <span class="ticker-val" id="t-sask" style="color:var(--cyan); font-size:17px; font-weight:800; margin-top:0; font-family:'JetBrains Mono',monospace;">—</span>
+        <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid var(--cyan); padding-left:6px; height: 22px;">
+          <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Testnet Ask</span>
+          <span class="ticker-val" id="t-sask" style="color:var(--cyan); font-size:16px; font-weight:800; font-family:'JetBrains Mono',monospace; line-height: 1;">—</span>
         </div>
       </div>
     </div>
   </div>
-  <div class="ticker-card" style="border-color:rgba(168,85,247,0.3); box-shadow:0 0 20px rgba(168,85,247,0.05); display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2px;">
+  <div class="ticker-card" style="border-color:rgba(168,85,247,0.3); box-shadow:0 0 20px rgba(168,85,247,0.05); display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px; flex: 1; min-width: 150px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
       <div class="ticker-label">Mark Price</div>
-      <div id="mp-drift-badge" style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600; color:var(--text-muted); background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">Drift: —</div>
+      <div id="mp-drift-badge" style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; color:var(--text-muted); background:rgba(255,255,255,0.03); padding:2px 6px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">Drift: —</div>
     </div>
-    <div style="display:flex; flex-direction:column; gap:4px;">
-      <div style="display:flex; align-items:center; justify-content:space-between;">
-        <span style="font-size:10.5px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Binance</span>
-        <span class="ticker-val" id="t-bmp" style="color:var(--yellow); font-size:19px; font-weight:800; margin-top:0; font-family:'JetBrains Mono',monospace;">—</span>
+    <div style="display:flex; flex-direction:column; gap:6px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid var(--yellow); padding-left:8px; height: 22px;">
+        <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">CoinDCX</span>
+        <span class="ticker-val" id="t-bmp" style="color:var(--yellow); font-size:18px; font-weight:800; font-family:'JetBrains Mono',monospace; line-height: 1;">—</span>
       </div>
-      <div style="display:flex; align-items:center; justify-content:space-between;">
-        <span style="font-size:10.5px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Stage</span>
-        <span class="ticker-val" id="t-smp" style="color:var(--cyan); font-size:19px; font-weight:800; margin-top:0; font-family:'JetBrains Mono',monospace;">—</span>
+      <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid var(--cyan); padding-left:8px; height: 22px;">
+        <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Testnet</span>
+        <span class="ticker-val" id="t-smp" style="color:var(--cyan); font-size:18px; font-weight:800; font-family:'JetBrains Mono',monospace; line-height: 1;">—</span>
       </div>
     </div>
   </div>
-  <div class="ticker-card" style="border-color:rgba(59,130,246,0.3); box-shadow:0 0 20px rgba(59,130,246,0.05); display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2px;">
+  <div class="ticker-card" style="border-color:rgba(59,130,246,0.3); box-shadow:0 0 20px rgba(59,130,246,0.05); display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px; flex: 1; min-width: 150px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
       <div class="ticker-label">Index Price</div>
-      <div id="ip-drift-badge" style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600; color:var(--text-muted); background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">Drift: —</div>
+      <div id="ip-drift-badge" style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; color:var(--text-muted); background:rgba(255,255,255,0.03); padding:2px 6px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">Drift: —</div>
     </div>
-    <div style="display:flex; flex-direction:column; gap:4px;">
-      <div style="display:flex; align-items:center; justify-content:space-between;">
-        <span style="font-size:10.5px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Binance</span>
-        <span class="ticker-val" id="t-bip" style="color:var(--yellow); font-size:19px; font-weight:800; margin-top:0; font-family:'JetBrains Mono',monospace;">—</span>
+    <div style="display:flex; flex-direction:column; gap:6px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid var(--yellow); padding-left:8px; height: 22px;">
+        <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">CoinDCX</span>
+        <span class="ticker-val" id="t-bip" style="color:var(--yellow); font-size:18px; font-weight:800; font-family:'JetBrains Mono',monospace; line-height: 1;">—</span>
       </div>
-      <div style="display:flex; align-items:center; justify-content:space-between;">
-        <span style="font-size:10.5px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Stage</span>
-        <span class="ticker-val" id="t-sip" style="color:var(--cyan); font-size:19px; font-weight:800; margin-top:0; font-family:'JetBrains Mono',monospace;">—</span>
+      <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid var(--cyan); padding-left:8px; height: 22px;">
+        <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Testnet</span>
+        <span class="ticker-val" id="t-sip" style="color:var(--cyan); font-size:18px; font-weight:800; font-family:'JetBrains Mono',monospace; line-height: 1;">—</span>
       </div>
     </div>
   </div>
-  <div class="ticker-card" id="funding-card" style="display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2px;">
+  <div class="ticker-card" id="funding-card" style="display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px; flex: 1.8; min-width: 220px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
       <span class="ticker-label">Funding Rate</span>
-      <div id="funding-drift-badge" style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600; color:var(--text-muted); background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">Drift: —</div>
+      <div id="funding-drift-badge" style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; color:var(--text-muted); background:rgba(255,255,255,0.03); padding:2px 6px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">Drift: —</div>
     </div>
-    <div style="display:flex; flex-direction:column; gap:4px;">
-      <div style="display:flex; align-items:center; justify-content:space-between;">
-        <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Binance</span>
-        <span class="ticker-val" id="t-bin-funding" style="color:var(--yellow); font-size:13px; font-weight:800; margin-top:0; font-family:'JetBrains Mono',monospace;">—</span>
+    <div style="display:flex; flex-direction:column; gap:6px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid var(--yellow); padding-left:8px; height: 22px;">
+        <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">CoinDCX</span>
+        <span class="ticker-val" id="t-bin-funding" style="color:var(--yellow); font-size:12.5px; font-weight:800; font-family:'JetBrains Mono',monospace; line-height: 1; white-space:nowrap;">—</span>
       </div>
-      <div style="display:flex; align-items:center; justify-content:space-between;">
-        <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Stage</span>
-        <span class="ticker-val" id="t-stage-funding" style="color:var(--cyan); font-size:13px; font-weight:800; margin-top:0; font-family:'JetBrains Mono',monospace;">—</span>
+      <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid var(--cyan); padding-left:8px; height: 22px;">
+        <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Testnet</span>
+        <span class="ticker-val" id="t-stage-funding" style="color:var(--cyan); font-size:12.5px; font-weight:800; font-family:'JetBrains Mono',monospace; line-height: 1; white-space:nowrap;">—</span>
       </div>
     </div>
   </div>
-  <div class="ticker-card" style="display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px;">
-    <div class="ticker-label" style="margin-bottom: 4px;">24h Statistics</div>
-    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size:11px; flex:1;">
+  <div class="ticker-card" style="display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px; flex: 2; min-width: 260px;">
+    <div class="ticker-label" style="margin-bottom: 8px;">24h Statistics</div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size:11px; flex:1;">
       <!-- Binance Column -->
-      <div style="display:flex; flex-direction:column; gap:2px; border-right:1px solid var(--border); padding-right:8px;">
-        <div style="font-size:10px; color:var(--yellow); font-weight:700; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:2px;">Binance</div>
-        <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">High:</span><span id="t-bin-24h-high" style="font-family:'JetBrains Mono',monospace; font-weight:600; color:var(--text-main);">—</span></div>
-        <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">Low:</span><span id="t-bin-24h-low" style="font-family:'JetBrains Mono',monospace; font-weight:600; color:var(--text-main);">—</span></div>
-        <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">Vol:</span><span id="t-bin-24h-vol" style="font-family:'JetBrains Mono',monospace; font-weight:600; color:var(--text-main);">—</span></div>
+      <div style="display:flex; flex-direction:column; gap:4px; border-right:1px solid var(--border); padding-right:12px;">
+        <div style="font-size:10px; color:var(--yellow); font-weight:700; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; border-left:3px solid var(--yellow); padding-left:6px; height: 12px; line-height: 1;">CoinDCX</div>
+        <div style="display:flex; justify-content:space-between; height: 16px; align-items:center; padding-left:9px;"><span style="color:var(--text-muted); font-size:10px;">High:</span><span id="t-bin-24h-high" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-main);">—</span></div>
+        <div style="display:flex; justify-content:space-between; height: 16px; align-items:center; padding-left:9px;"><span style="color:var(--text-muted); font-size:10px;">Low:</span><span id="t-bin-24h-low" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-main);">—</span></div>
+        <div style="display:flex; justify-content:space-between; height: 16px; align-items:center; padding-left:9px;"><span style="color:var(--text-muted); font-size:10px;">Vol:</span><span id="t-bin-24h-vol" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-main);">—</span></div>
       </div>
       <!-- Stage Column -->
-      <div style="display:flex; flex-direction:column; gap:2px; padding-left:4px;">
-        <div style="font-size:10px; color:var(--cyan); font-weight:700; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:2px;">Stage</div>
-        <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">High:</span><span id="t-stage-24h-high" style="font-family:'JetBrains Mono',monospace; font-weight:600; color:var(--text-main);">—</span></div>
-        <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">Low:</span><span id="t-stage-24h-low" style="font-family:'JetBrains Mono',monospace; font-weight:600; color:var(--text-main);">—</span></div>
-        <div style="display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">Vol:</span><span id="t-stage-24h-vol" style="font-family:'JetBrains Mono',monospace; font-weight:600; color:var(--text-main);">—</span></div>
+      <div style="display:flex; flex-direction:column; gap:4px; padding-left:4px;">
+        <div style="font-size:10px; color:var(--cyan); font-weight:700; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; border-left:3px solid var(--cyan); padding-left:6px; height: 12px; line-height: 1;">Testnet</div>
+        <div style="display:flex; justify-content:space-between; height: 16px; align-items:center; padding-left:9px;"><span style="color:var(--text-muted); font-size:10px;">High:</span><span id="t-stage-24h-high" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-main);">—</span></div>
+        <div style="display:flex; justify-content:space-between; height: 16px; align-items:center; padding-left:9px;"><span style="color:var(--text-muted); font-size:10px;">Low:</span><span id="t-stage-24h-low" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-main);">—</span></div>
+        <div style="display:flex; justify-content:space-between; height: 16px; align-items:center; padding-left:9px;"><span style="color:var(--text-muted); font-size:10px;">Vol:</span><span id="t-stage-24h-vol" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-main);">—</span></div>
       </div>
     </div>
   </div>
@@ -2462,7 +2582,7 @@
 <div style="display:grid;grid-template-columns:35% 35% 30%;gap:16px;padding:24px;">
   <div class="panel" style="display:flex;flex-direction:column;height:550px;overflow:hidden;">
     <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);">
-      <div><div class="sec-label">Source</div><div class="sec-title" style="color:var(--yellow)">Binance Perpetual</div></div>
+      <div><div class="sec-label">Source</div><div class="sec-title" style="color:var(--yellow)">CoinDCX Perpetual</div></div>
       <div id="bin-spread-badge" style="font-size:11px;padding:4px 10px;border-radius:99px;background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);color:#c084fc;font-weight:600;letter-spacing:1px;">Spread —</div>
     </div>
     <div class="book-hdr"><span>Total</span><span style="text-align:center;">Size</span><span style="text-align:right; color:var(--yellow);">Price</span></div>
@@ -2473,7 +2593,7 @@
   
   <div class="panel panel-accent" style="display:flex;flex-direction:column;height:550px;overflow:hidden;">
     <div style="padding:14px 16px;border-bottom:1px solid rgba(6,182,212,0.15);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);">
-      <div><div class="sec-label">Target · Testnet WS</div><div class="sec-title" style="color:var(--cyan)">Stage Orderbook</div></div>
+      <div><div class="sec-label">Target · Testnet WS</div><div class="sec-title" style="color:var(--cyan)">Testnet Orderbook</div></div>
       <div id="stage-spread-badge" style="font-size:11px;padding:4px 10px;border-radius:99px;background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.3);color:var(--cyan);font-weight:600;letter-spacing:1px;">Spread —</div>
     </div>
     <div class="book-hdr"><span style="color:var(--cyan);">Price</span><span style="text-align:center;">Size</span><span style="text-align:right;">Total</span></div>
@@ -3766,10 +3886,10 @@ window.addEventListener('DOMContentLoaded', () => {
             } catch(e){}
         };
 
-        window.mountLocalSymbolsForEnv = function(tier) {
+        window.mountLocalSymbolsForEnv = async function(tier) {
             const symbols = window.getLocalMountedSymbols(tier);
             window.localMountedSymbols = symbols;
-            symbols.forEach(sym => {
+            for (const sym of symbols) {
                 if (!window.cachedInstances[sym]) {
                     window.cachedInstances[sym] = {
                         status: 'STOPPED',
@@ -3799,12 +3919,14 @@ window.addEventListener('DOMContentLoaded', () => {
                     mountOnly: true
                 };
                 
-                fetch(window.getApiUrl('/api/config'), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(reqBody)
-                }).catch(e => {});
-            });
+                try {
+                    await fetch(window.getApiUrl('/api/config'), {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(reqBody)
+                    });
+                } catch(e) {}
+            }
         };
 
         window.activeEnvFilter = localStorage.getItem('replicator_last_env') || 'PRODUCTION';
@@ -3854,7 +3976,7 @@ window.addEventListener('DOMContentLoaded', () => {
                         localStorage.setItem('replicator_last_env', targetEnv);
                         
                         // Mount the local symbols for the switched environment
-                        window.mountLocalSymbolsForEnv(targetEnv);
+                        await window.mountLocalSymbolsForEnv(targetEnv);
                         
                         // Pick active symbol corresponding to the selected env automatically
                         const sym = window.lastActiveSymbolByEnv[targetEnv];
@@ -5400,6 +5522,17 @@ window.addEventListener('DOMContentLoaded', () => {
                 const totalStr = fmtK(total);
                 const pct = Math.min(100, (parseFloat(r[1]) / maxQ) * 100).toFixed(1);
 
+                const priceChanged = priceSpan.textContent !== '' && priceSpan.textContent !== priceStr;
+                const sizeChanged = sizeSpan.textContent !== '' && sizeSpan.textContent !== sizeStr;
+
+                if (flashOn && (priceChanged || sizeChanged)) {
+                    const animClass = isAsk ? 'flash-highlight-ask' : 'flash-highlight-bid';
+                    rowDiv.classList.add(animClass);
+                    setTimeout(() => {
+                        rowDiv.classList.remove(animClass);
+                    }, 180);
+                }
+
                 if (priceSpan.textContent !== priceStr) {
                     priceSpan.textContent = priceStr;
                     priceSpan.style.color = col;
@@ -5412,18 +5545,17 @@ window.addEventListener('DOMContentLoaded', () => {
 
                 if (sizeSpan.textContent !== sizeStr) {
                     if (flashOn && sizeSpan.textContent !== '') {
-                        const oldVal = parseFloat(sizeSpan.textContent || 0);
-                        const newVal = parseFloat(sizeStr);
-                        if (newVal > oldVal) {
-                            rowDiv.classList.add('flash-row-up');
-                            setTimeout(() => rowDiv.classList.remove('flash-row-up'), 400);
-                        } else if (newVal < oldVal) {
-                            rowDiv.classList.add('flash-row-down');
-                            setTimeout(() => rowDiv.classList.remove('flash-row-down'), 400);
+                        const oldVal = parseFloat(sizeSpan.textContent.replace(/,/g, '') || 0);
+                        const newVal = parseFloat(sizeStr.replace(/,/g, '') || 0);
+                        const sizeClass = newVal > oldVal ? 'flash-size-up' : (newVal < oldVal ? 'flash-size-down' : '');
+                        if (sizeClass) {
+                            sizeSpan.classList.add(sizeClass);
+                            setTimeout(() => sizeSpan.classList.remove(sizeClass), 180);
                         }
                     }
                     sizeSpan.textContent = sizeStr;
                     sizeSpan.style.color = 'var(--text-muted)';
+                    sizeSpan.style.transition = 'color 0.25s ease';
                 }
 
                 if (totalSpan.textContent !== totalStr) {
@@ -6335,7 +6467,15 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 const chartBox = document.getElementById('tv-chart');
-                if (chartBox) chartBox.innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:12px;">No active symbol selected</div>';
+                if (chartBox) {
+                    if (window.tvChart) {
+                        try { window.tvChart.remove(); } catch(e) {}
+                        window.tvChart = null;
+                        window.tvSeries = null;
+                        window.tvVolumeSeries = null;
+                    }
+                    chartBox.innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:12px;">No active symbol selected</div>';
+                }
             };
 
             window.refreshSymbolTabs = function(data) {
@@ -6830,7 +6970,9 @@ window.addEventListener('DOMContentLoaded', () => {
                 const showDetails = window.activeTermTab === 'events' ? hasMeta : isApiCall;
                 const isSelected = window.selectedLogIdx === i;
                 const rowClass = 'term-log-row' + (showDetails ? ' has-meta' : '') + (isSelected ? ' selected' : '');
-                const escapedMsg = (l.msg || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                let msgText = l.msg || '';
+                msgText = msgText.replace(/Binance/gi, 'CoinDCX').replace(/Stage/gi, 'Testnet');
+                const escapedMsg = msgText.replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 
                 let metaBadge = '';
                 if (showDetails) {
@@ -6906,6 +7048,68 @@ window.addEventListener('DOMContentLoaded', () => {
             window.tvInterval = interval;
             window.tvCurrentPair = pair;
             const container = document.getElementById('tv-chart');
+            if (container && (container.textContent.includes('No active symbol selected') || !window.tvChart)) {
+                container.innerHTML = '';
+                if (window.tvChart) {
+                    try { window.tvChart.remove(); } catch(e) {}
+                }
+                window.tvChart = null;
+            }
+
+            const IST_OFFSET = 19800; // +5:30 in seconds
+            const intervalMsMap = {
+                '1s': 1000,
+                '1m': 60 * 1000,
+                '3m': 3 * 60 * 1000,
+                '5m': 5 * 60 * 1000,
+                '15m': 15 * 60 * 1000,
+                '30m': 30 * 60 * 1000,
+                '1h': 3600 * 1000,
+                '2h': 2 * 3600 * 1000,
+                '4h': 4 * 3600 * 1000,
+                '6h': 6 * 3600 * 1000,
+                '8h': 8 * 3600 * 1000,
+                '12h': 12 * 3600 * 1000,
+                '1d': 24 * 3600 * 1000,
+                '3d': 3 * 24 * 3600 * 1000,
+                '1w': 7 * 24 * 3600 * 1000,
+                '1M': 30 * 24 * 3600 * 1000
+            };
+
+            const fetchCandles = async (symbol, interval, activeTier, limit, endTimeMs) => {
+                let path = `/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+                if (endTimeMs) {
+                    const requestLimit = Math.floor(limit * 1.25); // fetch 25% extra to cover potential gaps
+                    const duration = (intervalMsMap[interval] || 60000) * requestLimit;
+                    const startTimeMs = endTimeMs - duration;
+                    path = `/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=${requestLimit}&startTime=${startTimeMs}&endTime=${endTimeMs}`;
+                }
+                const res = await fetch(window.getApiUrl('/api/mds-proxy'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path, tier: activeTier })
+                });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const rawData = await res.json();
+                let klines = [];
+                let volume = [];
+                rawData.forEach(d => {
+                    const time = (d[0] / 1000) + IST_OFFSET;
+                    const open = parseFloat(d[1]);
+                    const high = parseFloat(d[2]);
+                    const low = parseFloat(d[3]);
+                    const close = parseFloat(d[4]);
+                    const vol = parseFloat(d[5]);
+                    const color = close >= open ? 'rgba(16, 185, 129, 0.5)' : 'rgba(244, 63, 94, 0.5)';
+                    klines.push({ time, open, high, low, close });
+                    volume.push({ time, value: vol, color });
+                });
+                if (endTimeMs) {
+                    klines = klines.slice(-limit);
+                    volume = volume.slice(-limit);
+                }
+                return { klines, volume };
+            };
             
             if (window.tvWs) {
                 window.tvWs.close();
@@ -7000,55 +7204,123 @@ window.addEventListener('DOMContentLoaded', () => {
                     }
                 });
                 window.tvResizeObserver.observe(container);
+
+                window.updateLocalChartData = function(time, open, high, low, close, volume, color) {
+                    if (!window.tvChartData || !window.tvChartData.klines) return;
+                    const klines = window.tvChartData.klines;
+                    const vol = window.tvChartData.volume;
+                    if (klines.length === 0) return;
+                    const lastIdx = klines.length - 1;
+                    if (klines[lastIdx].time === time) {
+                        klines[lastIdx] = { time, open, high, low, close };
+                        vol[lastIdx] = { time, value: volume, color };
+                    } else if (time > klines[lastIdx].time) {
+                        klines.push({ time, open, high, low, close });
+                        vol.push({ time, value: volume, color });
+                    }
+                };
+
+
+
+                window.tvChart.timeScale().subscribeVisibleLogicalRangeChange(async (newLogicalRange) => {
+                    if (newLogicalRange === null) return;
+                    if (newLogicalRange.from < 15 && !window.tvIsLoadingHistory && window.tvHasMoreHistory) {
+                        window.tvIsLoadingHistory = true;
+                        try {
+                            const currentKlines = window.tvChartData.klines;
+                            if (!currentKlines || currentKlines.length === 0) {
+                                window.tvIsLoadingHistory = false;
+                                return;
+                            }
+                            const oldestKline = currentKlines[0];
+                            const oldestTimeSeconds = oldestKline.time;
+                            const endTimeMs = (oldestTimeSeconds - IST_OFFSET) * 1000 - 1;
+                            const pair = window.tvCurrentPair;
+                            const interval = window.tvInterval;
+                            const sourceSym = (window.cachedInstances && window.cachedInstances[pair] && window.cachedInstances[pair].diagnostics) ? window.cachedInstances[pair].diagnostics.sourceSymbol : pair;
+                            const activeTier = activeEnvFilter || 'PRODUCTION';
+                            
+                            window.injectTerminalLog('INFO', pair, `[REST] Pagination: Fetching ${interval} klines for ${sourceSym} before ${new Date(endTimeMs).toISOString().split('T')[0]}...`);
+                            
+                            const { klines: newKlines, volume: newVolume } = await fetchCandles(sourceSym, interval, activeTier, 500, endTimeMs);
+                            
+                            if (newKlines && newKlines.length > 0) {
+                                const mergedKlines = [...newKlines, ...window.tvChartData.klines];
+                                const mergedVolume = [...newVolume, ...window.tvChartData.volume];
+                                
+                                const uniqueKlines = [];
+                                const uniqueVolume = [];
+                                const seenTimes = new Set();
+                                
+                                for (let i = 0; i < mergedKlines.length; i++) {
+                                    const k = mergedKlines[i];
+                                    const v = mergedVolume[i];
+                                    if (!seenTimes.has(k.time)) {
+                                        seenTimes.add(k.time);
+                                        uniqueKlines.push(k);
+                                        uniqueVolume.push(v);
+                                    }
+                                }
+                                
+                                uniqueKlines.sort((a, b) => a.time - b.time);
+                                uniqueVolume.sort((a, b) => a.time - b.time);
+                                
+                                const oldFirstTime = window.tvChartData.klines.length > 0 ? window.tvChartData.klines[0].time : null;
+                                
+                                window.tvChartData.klines = uniqueKlines;
+                                window.tvChartData.volume = uniqueVolume;
+                                
+                                window.tvSeries.setData(window.tvChartData.klines);
+                                window.tvVolumeSeries.setData(window.tvChartData.volume);
+                                
+                                const currentRange = window.tvChart.timeScale().getVisibleLogicalRange();
+                                if (currentRange && oldFirstTime !== null) {
+                                    const shiftCount = uniqueKlines.filter(k => k.time < oldFirstTime).length;
+                                    if (shiftCount > 0) {
+                                        window.tvChart.timeScale().setVisibleLogicalRange({
+                                            from: currentRange.from + shiftCount,
+                                            to: currentRange.to + shiftCount
+                                        });
+                                    }
+                                }
+                                window.injectTerminalLog('SUCCESS', pair, `[REST] Loaded ${newKlines.length} older klines via pagination.`);
+                                if (newKlines.length < 500) {
+                                    window.tvHasMoreHistory = false;
+                                    window.injectTerminalLog('INFO', pair, `[REST] Reached start of historical klines.`);
+                                }
+                            } else {
+                                window.tvHasMoreHistory = false;
+                                window.injectTerminalLog('INFO', pair, `[REST] Reached start of historical klines.`);
+                            }
+                        } catch(e) {
+                            console.error('Failed to paginate historical klines', e);
+                            window.injectTerminalLog('ERROR', window.tvCurrentPair, `[REST] Pagination failed: ${e.message}`);
+                        } finally {
+                            window.tvIsLoadingHistory = false;
+                        }
+                    }
+                });
             } else {
                 window.tvChart.applyOptions({ watermark: { text: pair, color: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.03)' } });
             }
 
             // Clear old data instantly before fetching
+            window.tvChartData = { klines: [], volume: [] };
+            window.tvIsLoadingHistory = false;
+            window.tvHasMoreHistory = true;
             window.tvSeries.setData([]);
             window.tvVolumeSeries.setData([]);
 
-            const IST_OFFSET = 19800; // +5:30 in seconds
             const sourceSym = (window.cachedInstances && window.cachedInstances[pair] && window.cachedInstances[pair].diagnostics) ? window.cachedInstances[pair].diagnostics.sourceSymbol : pair;
 
             try {
-                const TIER_MDS_READ_URLS = {
-                    PRODUCTION: "https://testnet-futures-mds-read.dcxstage.com",
-                    JAPAN: "https://testnet-exchange-mds-read.dcxstage.com",
-                    STAGING: "https://staging-exchange-futures-mds-read.dcxstage.com"
-                };
                 const activeTier = activeEnvFilter || 'PRODUCTION';
                 window.injectTerminalLog('INFO', pair, `[REST] Fetching historical ${interval} klines for ${sourceSym}...`);
-                const proxyPath = `/fapi/v1/klines?symbol=${sourceSym}&interval=${interval}&limit=500`;
-                const res = await fetch(window.getApiUrl('/api/mds-proxy'), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ path: proxyPath, tier: activeTier })
-                });
-                if (!res.ok) {
-                    const text = await res.text();
-                    throw new Error(`HTTP ${res.status}: ${text || 'Empty response'}`);
-                }
-                const data = await res.json();
-                if (data && data.length) {
-                    const formattedKlines = [];
-                    const formattedVolume = [];
-                    
-                    data.forEach(d => {
-                        const time = (d[0] / 1000) + IST_OFFSET;
-                        const open = parseFloat(d[1]);
-                        const high = parseFloat(d[2]);
-                        const low = parseFloat(d[3]);
-                        const close = parseFloat(d[4]);
-                        const volume = parseFloat(d[5]);
-                        const color = close >= open ? 'rgba(16, 185, 129, 0.5)' : 'rgba(244, 63, 94, 0.5)';
-                        
-                        formattedKlines.push({ time, open, high, low, close });
-                        formattedVolume.push({ time, value: volume, color });
-                    });
-                    
-                    if (data.length > 0) {
-                        const samplePrice = data[data.length - 1][4];
+                const { klines: formattedKlines, volume: formattedVolume } = await fetchCandles(sourceSym, interval, activeTier, 500);
+                
+                if (formattedKlines && formattedKlines.length) {
+                    if (formattedKlines.length > 0) {
+                        const samplePrice = formattedKlines[formattedKlines.length - 1].close;
                         const str = String(samplePrice);
                         const split = str.split('.');
                         let prec = 2;
@@ -7065,9 +7337,11 @@ window.addEventListener('DOMContentLoaded', () => {
                         });
                     }
                     
+                    window.tvChartData.klines = formattedKlines;
+                    window.tvChartData.volume = formattedVolume;
                     window.tvSeries.setData(formattedKlines);
                     window.tvVolumeSeries.setData(formattedVolume);
-                    window.injectTerminalLog('SUCCESS', pair, `[REST] Loaded ${data.length} historical klines.`);
+                    window.injectTerminalLog('SUCCESS', pair, `[REST] Loaded ${formattedKlines.length} historical klines.`);
                 }
             } catch(e) {
                 console.error('Failed to fetch historical klines', e);
@@ -7103,6 +7377,9 @@ window.addEventListener('DOMContentLoaded', () => {
                             
                             window.tvSeries.update({ time, open, high, low, close });
                             window.tvVolumeSeries.update({ time, value: volume, color });
+                            if (typeof window.updateLocalChartData === 'function') {
+                                window.updateLocalChartData(time, open, high, low, close, volume, color);
+                            }
                             window.injectTerminalEvent('EVENT', pair, `WS Kline Update: ${k.i} C:${k.c}`, evt, 'kline');
                         }
                     } catch(e) {}
@@ -8456,6 +8733,17 @@ window.renderMarketListTable = function() {
         </tr>`;
     }).join('');
 };
+
+document.addEventListener('mousemove', (e) => {
+    const cards = document.querySelectorAll('.ticker-card, .panel');
+    cards.forEach(card => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        card.style.setProperty('--mouse-x', `${x}px`);
+        card.style.setProperty('--mouse-y', `${y}px`);
+    });
+});
 </script>
 <!-- Market List Modal Screen Overlay -->
 <div id="market-list-overlay" style="position:fixed; inset:0; z-index:1500; background:rgba(0,0,0,.65); backdrop-filter: blur(5px); display:none; opacity: 0; transition: opacity .3s; align-items:center; justify-content:center; padding: 24px;" onclick="window.closeMarketListModal()">

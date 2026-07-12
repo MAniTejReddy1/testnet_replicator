@@ -877,11 +877,21 @@ async function reconnectGlobalUserWs() {
 }
 
 
+let isSwitchingEnvironment = false;
 async function switchEnvironment(newTier) {
     const prevTier = globalActiveTier;
     if (prevTier === newTier) return;
 
-    log.info('SYSTEM', `Switching global environment view from ${prevTier} to ${newTier}...`);
+    if (isSwitchingEnvironment) {
+        while (isSwitchingEnvironment) {
+            await new Promise(r => setTimeout(r, 100));
+        }
+        if (globalActiveTier === newTier) return;
+    }
+    isSwitchingEnvironment = true;
+
+    try {
+        log.info('SYSTEM', `Switching global environment view from ${prevTier} to ${newTier}...`);
 
     // 1. Deactivate instances of the previous tier
     const prevInstances = instances[prevTier];
@@ -917,10 +927,13 @@ async function switchEnvironment(newTier) {
         }
     }
 
-    // 5. Reconnect global private WebSockets and sync portfolios for the new environment
-    await reconnectGlobalUserWs();
-    lastPortfolioSyncTime = 0;
-    await syncAllPortfolios();
+        // 5. Reconnect global private WebSockets and sync portfolios for the new environment
+        await reconnectGlobalUserWs();
+        lastPortfolioSyncTime = 0;
+        await syncAllPortfolios();
+    } finally {
+        isSwitchingEnvironment = false;
+    }
 }
 
 
@@ -3613,7 +3626,6 @@ const server = http.createServer(async (req, res) => {
                 const tierInstances = instances[tier];
                 const inst = tierInstances ? tierInstances.get(sym) : null;
                 if (inst) {
-                    await inst.reloadDepth();
                     broadcastToUI(true);
                 }
                 res.writeHead(200);
@@ -3994,6 +4006,8 @@ const server = http.createServer(async (req, res) => {
                                 log.error('SYSTEM', `Error finalizing switch: ${err.message}`);
                             }
                         })();
+                    } else {
+                        broadcastToUI(true);
                     }
                     res.writeHead(200);
                     return res.end(JSON.stringify({ success: true }));
