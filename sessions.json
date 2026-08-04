@@ -3,6 +3,24 @@
     "id": "admin",
     "email": "admin@coindcx.com",
     "label": "Admin Administrator",
-    "tier": "JAPAN"
+    "tier": "PRODUCTION"
+  },
+  "9dd03d60-9640-4438-b1b4-bbeaec2960c5": {
+    "id": "admin",
+    "email": "admin@coindcx.com",
+    "label": "Admin Administrator",
+    "tier": "QA_STAGING"
+  },
+  "8300bdbc-dd79-4f2f-8b7c-304e1d9b1f10": {
+    "id": "admin",
+    "email": "admin@coindcx.com",
+    "label": "Admin Administrator",
+    "tier": "PRODUCTION"
+  },
+  "5bfa1fd0-c181-40fa-87b4-16d7c92aecfe": {
+    "id": "admin",
+    "email": "admin@coindcx.com",
+    "label": "Admin Administrator",
+    "tier": "PRODUCTION"
   }
 }

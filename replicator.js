@@ -44,26 +44,6 @@ let globalUsers = {
         'user1': {
             label: 'User 1',
             listenKey: process.env.USER1_LISTEN_KEY || "",
-            key: process.env.USER1_KEY || '3cef4baed18692062ff1b99e71adbce1e8558c58ad0113b9',
-            secret: process.env.USER1_SECRET || '754688e515c77a50005dac4ff650e3203311467dbc1a4858bb7e84c5463e7508',
-            email: 'mani.reddy+t7ui62u3@coindcx.com',
-            password: 'Test@123',
-            bearer_token: 'D4-rDgtolGWPsATr9OuMOOfxcc6cvt9_-y5Wt47MBKk'
-        },
-        'user2': {
-            label: 'User 2',
-            listenKey: process.env.USER2_LISTEN_KEY || "",
-            key: process.env.USER2_KEY || '4874d42c94d55e25695cb853dd1cc6de88db4eba327424ba',
-            secret: process.env.USER2_SECRET || 'b8e9788d189989c28dfb1136fad7cbd1f095ecb24fe1ff669e45e0997fd13fd2',
-            email: 'mani.reddy+9jcgxr6r@coindcx.com',
-            password: 'Test@123',
-            bearer_token: 'QhsHol9LMDbCx00KwHMvD2V922mjA0sa7F3_AACF2Ws'
-        }
-    },
-    JAPAN: {
-        'user1': {
-            label: 'User 1',
-            listenKey: process.env.USER1_LISTEN_KEY || "",
             key: process.env.USER1_KEY || 'c8bc870189341e8f7e9c19dabc99d06b632e699e8a0b2422',
             secret: process.env.USER1_SECRET || '937609fba93cdf8ed7e5a865a5be4781d6853cdf4e01eab3ebb804c23e4c21ef',
             email: 'mani.reddy+wuqiibu2@coindcx.com',
@@ -80,14 +60,38 @@ let globalUsers = {
             bearer_token: 'v9l1XJMPJU8mYjQRPKIPrMW2DuzGfyEdacDUD5GVFZI'
         }
     },
-    STAGING: {}
+    QA_STAGING: {
+        'user1': {
+            label: 'User 1',
+            listenKey: process.env.USER1_LISTEN_KEY || "",
+            key: process.env.USER1_KEY || '3cef4baed18692062ff1b99e71adbce1e8558c58ad0113b9',
+            secret: process.env.USER1_SECRET || '754688e515c77a50005dac4ff650e3203311467dbc1a4858bb7e84c5463e7508',
+            email: 'mani.reddy+t7ui62u3@coindcx.com',
+            password: 'Test@123',
+            bearer_token: 'D4-rDgtolGWPsATr9OuMOOfxcc6cvt9_-y5Wt47MBKk'
+        },
+        'user2': {
+            label: 'User 2',
+            listenKey: process.env.USER2_LISTEN_KEY || "",
+            key: process.env.USER2_KEY || '4874d42c94d55e25695cb853dd1cc6de88db4eba327424ba',
+            secret: process.env.USER2_SECRET || 'b8e9788d189989c28dfb1136fad7cbd1f095ecb24fe1ff669e45e0997fd13fd2',
+            email: 'mani.reddy+9jcgxr6r@coindcx.com',
+            password: 'Test@123',
+            bearer_token: 'QhsHol9LMDbCx00KwHMvD2V922mjA0sa7F3_AACF2Ws'
+        }
+    },
+    DEV_STAGING: {}
 };
+globalUsers["QA-STAGING"] = globalUsers.QA_STAGING;
+globalUsers["DEV-STAGING"] = globalUsers.DEV_STAGING;
 
 let globalRoles = {
     PRODUCTION: { makerId: 'user1', takerId: 'user2' },
-    JAPAN: { makerId: 'user1', takerId: 'user2' },
-    STAGING: { makerId: '', takerId: '' }
+    QA_STAGING: { makerId: 'user1', takerId: 'user2' },
+    DEV_STAGING: { makerId: '', takerId: '' }
 };
+globalRoles["QA-STAGING"] = globalRoles.QA_STAGING;
+globalRoles["DEV-STAGING"] = globalRoles.DEV_STAGING;
 
 let globalOrderUpdateCounter = 0;
 
@@ -130,14 +134,6 @@ let maxTerminalLogs = 1000;
 // Global Portfolios (Account level per tier)
 const TIER_URLS = {
     PRODUCTION: {
-        HPO: "https://testnet-futures-hpo.dcxstage.com",
-        MDS_READ: "https://testnet-futures-mds-read.dcxstage.com",
-        PUBLIC_MDN: "https://testnet-public-mdn.dcxstage.com",
-        ONBOARDING: "https://testnet-api.dcxstage.com",
-        RAILS: "https://testnet-rails-api.dcxstage.com",
-        WS_GATEWAY: "wss://testnet-futures-socket-gateway.dcxstage.com"
-    },
-    JAPAN: {
         HPO: "https://testnet-exchange-hpo.dcxstage.com",
         MDS_READ: "https://testnet-exchange-mds-read.dcxstage.com",
         PUBLIC_MDN: "https://testnet-exchange-public-mdn.dcxstage.com",
@@ -145,7 +141,15 @@ const TIER_URLS = {
         RAILS: "https://testnet-exchange-rails-api.dcxstage.com",
         WS_GATEWAY: "wss://testnet-exchange-futures-socket-gateway.dcxstage.com"
     },
-    STAGING: {
+    QA_STAGING: {
+        HPO: "https://testnet-futures-hpo.dcxstage.com",
+        MDS_READ: "https://testnet-futures-mds-read.dcxstage.com",
+        PUBLIC_MDN: "https://testnet-public-mdn.dcxstage.com",
+        ONBOARDING: "https://testnet-api.dcxstage.com",
+        RAILS: "https://testnet-rails-api.dcxstage.com",
+        WS_GATEWAY: "wss://testnet-futures-socket-gateway.dcxstage.com"
+    },
+    DEV_STAGING: {
         HPO: "https://staging-exchange-futures-hpo.dcxstage.com",
         MDS_READ: "https://staging-exchange-futures-mds-read.dcxstage.com",
         PUBLIC_MDN: "https://staging-exchange-public-mdn.dcxstage.com",
@@ -154,10 +158,12 @@ const TIER_URLS = {
         WS_GATEWAY: "wss://testnet-staging-futures-socket-gateway.dcxstage.com"
     }
 };
+TIER_URLS["QA-STAGING"] = TIER_URLS.QA_STAGING;
+TIER_URLS["DEV-STAGING"] = TIER_URLS.DEV_STAGING;
 
-let globalActiveTier = (process.env.ACTIVE_TIER || 'PRODUCTION').toUpperCase();
+let globalActiveTier = (process.env.ACTIVE_TIER || 'PRODUCTION').toUpperCase().replace(/-/g, '_');
 
-if (globalActiveTier && (globalActiveTier === 'JAPAN' || globalActiveTier === 'STAGING')) {
+if (globalActiveTier && (globalActiveTier === 'QA_STAGING' || globalActiveTier === 'DEV_STAGING')) {
     if (process.env.USER1_KEY || process.env.USER2_KEY) {
         globalUsers[globalActiveTier] = {
             'user1': {
@@ -186,15 +192,17 @@ const portfolios = {
         user1: { walletBalance: "0.00", availableBalance: "0.00", unrealizedProfit: "0.00", positions: [], openOrdersCount: 0, error: null },
         user2: { walletBalance: "0.00", availableBalance: "0.00", unrealizedProfit: "0.00", positions: [], openOrdersCount: 0, error: null }
     },
-    JAPAN: {
+    QA_STAGING: {
         user1: { walletBalance: "0.00", availableBalance: "0.00", unrealizedProfit: "0.00", positions: [], openOrdersCount: 0, error: null },
         user2: { walletBalance: "0.00", availableBalance: "0.00", unrealizedProfit: "0.00", positions: [], openOrdersCount: 0, error: null }
     },
-    STAGING: {
+    DEV_STAGING: {
         user1: { walletBalance: "0.00", availableBalance: "0.00", unrealizedProfit: "0.00", positions: [], openOrdersCount: 0, error: null },
         user2: { walletBalance: "0.00", availableBalance: "0.00", unrealizedProfit: "0.00", positions: [], openOrdersCount: 0, error: null }
     }
 };
+portfolios["QA-STAGING"] = portfolios.QA_STAGING;
+portfolios["DEV-STAGING"] = portfolios.DEV_STAGING;
 
 let user1Portfolio = portfolios[globalActiveTier] ? portfolios[globalActiveTier].user1 : portfolios.PRODUCTION.user1;
 let user2Portfolio = portfolios[globalActiveTier] ? portfolios[globalActiveTier].user2 : portfolios.PRODUCTION.user2;
@@ -204,9 +212,11 @@ const PORTFOLIO_SYNC_INTERVAL_MS = 30000;
 // Instrument Data Map (Dynamically loaded, keyed by tier, then symbol)
 const instrumentsMap = {
     PRODUCTION: {},
-    JAPAN: {},
-    STAGING: {}
+    QA_STAGING: {},
+    DEV_STAGING: {}
 };
+instrumentsMap["QA-STAGING"] = instrumentsMap.QA_STAGING;
+instrumentsMap["DEV-STAGING"] = instrumentsMap.DEV_STAGING;
 let sseClients = [];
 let serverTimeOffset = 0;
 
@@ -229,7 +239,7 @@ function pushLog(level, sym, msg, meta = null, tier = null) {
         tier = tierContextStore.getStore();
     }
     if (!tier && sym && sym !== 'SYSTEM') {
-        for (const t of ['PRODUCTION', 'JAPAN', 'STAGING']) {
+        for (const t of ['PRODUCTION', 'QA_STAGING', 'DEV_STAGING']) {
             const inst = instances[t] && instances[t].get(sym);
             if (inst) { tier = t; break; }
         }
@@ -244,7 +254,7 @@ function pushEvent(level, sym, msg, meta = null, cat = 'general', tier = null) {
         tier = tierContextStore.getStore();
     }
     if (!tier && sym && sym !== 'SYSTEM') {
-        for (const t of ['PRODUCTION', 'JAPAN', 'STAGING']) {
+        for (const t of ['PRODUCTION', 'QA_STAGING', 'DEV_STAGING']) {
             const inst = instances[t] && instances[t].get(sym);
             if (inst) { tier = t; break; }
         }
@@ -1217,7 +1227,8 @@ class ReplicatorInstance {
         this.testnetLatency    = 0;
         this.binanceLatency    = 0;
         this.binanceLtp        = "0.0000";
-        this.testnetMarkPrice  = 0;
+        this.testnetLtp        = null;
+        this.testnetMarkPrice  = null;
         this.binanceMarkPrice  = 0;
         this.wsTestnetMarkPrice = null;
         this.wsBinanceMarkPrice = null;
@@ -2599,7 +2610,9 @@ startBinanceDepthWS() {
                 const resS = await fetch(`${mdsReadBase}/fapi/v1/premiumIndex?symbol=${this.symbol}`);
                 if (resS.ok) {
                     const dataS = await resS.json();
-                    if (dataS.markPrice) this.testnetMarkPrice = parseFloat(dataS.markPrice);
+                    const mp = parseFloat(dataS.markPrice);
+                    // Strict: only set from testnet MDS premiumIndex — never copy Binance mark
+                    if (Number.isFinite(mp) && mp > 0) this.testnetMarkPrice = mp;
                     if (dataS.indexPrice) this.testnetIndexPrice = parseFloat(dataS.indexPrice);
                     if (dataS.lastFundingRate) this.stageFundingRate = parseFloat(dataS.lastFundingRate);
                 }
@@ -2619,7 +2632,9 @@ startBinanceDepthWS() {
                 const resLtpS = await fetch(`${mdsReadBase}/fapi/v2/ticker/price?symbol=${this.symbol}`);
                 if (resLtpS.ok) {
                     const dataLtpS = await resLtpS.json();
-                    if (dataLtpS.price) this.testnetLtp = parseFloat(dataLtpS.price);
+                    const ltp = parseFloat(dataLtpS.price);
+                    // Strict: only set from testnet MDS ticker — never copy Binance LTP
+                    if (Number.isFinite(ltp) && ltp > 0) this.testnetLtp = ltp;
                 }
             } catch(e){}
 
@@ -2651,8 +2666,9 @@ startBinanceDepthWS() {
             const res = await fetch(`${mdsReadBase}/fapi/v1/premiumIndex?symbol=${this.symbol}`, { signal: controller.signal });
             if (res.ok) {
                 const data = await res.json();
-                if (data.markPrice) {
-                    this.testnetMarkPrice = parseFloat(data.markPrice);
+                const mp = parseFloat(data.markPrice);
+                if (Number.isFinite(mp) && mp > 0) {
+                    this.testnetMarkPrice = mp;
                 }
                 if (data.indexPrice) {
                     this.testnetIndexPrice = parseFloat(data.indexPrice);
@@ -2698,20 +2714,23 @@ startBinanceDepthWS() {
         this.wsTestnetMarkPrice.on('message', (raw) => {
             try {
                 const data = JSON.parse(raw.toString());
-                if (data.e === 'markPriceUpdate' || data.p) {
-                    this.testnetMarkPrice = parseFloat(data.p || data.markPrice);
-                    if (data.r !== undefined) {
-                        this.stageFundingRate = parseFloat(data.r);
-                    }
-                    if (data.i !== undefined) {
-                        this.testnetIndexPrice = parseFloat(data.i);
-                    }
-                    broadcastToUI();
-                    
-                    if (!this.lastTestnetMarkPriceLogTime || Date.now() - this.lastTestnetMarkPriceLogTime > 5000) {
-                        this.lastTestnetMarkPriceLogTime = Date.now();
-                        pushEvent('EVENT', this.symbol, `Stage Mark Price Update | Price: ${this.testnetMarkPrice.toFixed(2)} | Funding: ${this.stageFundingRate !== null ? this.stageFundingRate.toFixed(8) : '—'}`, data, 'markPrice');
-                    }
+                // Strict: only accept markPriceUpdate (or payload with explicit markPrice). Never treat generic trade `p` as mark.
+                const isMarkEvent = data.e === 'markPriceUpdate' || data.markPrice !== undefined;
+                if (!isMarkEvent) return;
+                const mp = parseFloat(data.markPrice !== undefined ? data.markPrice : data.p);
+                if (!Number.isFinite(mp) || mp <= 0) return;
+                this.testnetMarkPrice = mp;
+                if (data.r !== undefined) {
+                    this.stageFundingRate = parseFloat(data.r);
+                }
+                if (data.i !== undefined) {
+                    this.testnetIndexPrice = parseFloat(data.i);
+                }
+                broadcastToUI();
+
+                if (!this.lastTestnetMarkPriceLogTime || Date.now() - this.lastTestnetMarkPriceLogTime > 5000) {
+                    this.lastTestnetMarkPriceLogTime = Date.now();
+                    pushEvent('EVENT', this.symbol, `Stage Mark Price Update | Price: ${this.testnetMarkPrice.toFixed(2)} | Funding: ${this.stageFundingRate !== null ? this.stageFundingRate.toFixed(8) : '—'}`, data, 'markPrice');
                 }
             } catch(e) { log.debug && log.debug('SYSTEM', e.message); }
         });
@@ -2727,7 +2746,7 @@ startBinanceDepthWS() {
 
     startBinanceMarkPriceWS() {
         if (this.wsBinanceMarkPrice) return;
-        const sym = this.symbol.toLowerCase();
+        const sym = this.sourceSymbol.toLowerCase();
         const streamUrl = `wss://fstream.binance.com/public/ws/${sym}@markPrice`;
         log.info(this.symbol, `[WS] Connecting to Binance Mark Price WS...`);
         this.wsBinanceMarkPrice = new WebSocket(streamUrl);
@@ -2777,7 +2796,8 @@ startBinanceDepthWS() {
             try {
                 const data = JSON.parse(raw.toString());
                 if (data.e === '24hrTicker') {
-                    this.testnetLtp = parseFloat(data.c);
+                    const ltp = parseFloat(data.c);
+                    if (Number.isFinite(ltp) && ltp > 0) this.testnetLtp = ltp;
                     this.stage24h = {
                         high: parseFloat(data.h || 0),
                         low: parseFloat(data.l || 0),
@@ -3022,14 +3042,15 @@ startBinanceDepthWS() {
             log.debug && log.debug('SYSTEM', `Failed to fetch initial Binance price: ${e.message}`);
         }
         
-        // Fetch initial Stage LTP via REST
+        // Fetch initial Stage LTP via REST (strict testnet only)
         try {
             const mdsReadBase = (TIER_URLS[this.tier] && TIER_URLS[this.tier].MDS_READ) || TIER_URLS.PRODUCTION.MDS_READ;
             const res = await fetch(`${mdsReadBase}/fapi/v2/ticker/price?symbol=${this.symbol}`);
             if (res.ok) {
                 const data = await res.json();
-                if (data && data.price) {
-                    this.testnetLtp = parseFloat(data.price);
+                const ltp = parseFloat(data && data.price);
+                if (Number.isFinite(ltp) && ltp > 0) {
+                    this.testnetLtp = ltp;
                 }
             }
         } catch (e) {
@@ -3119,9 +3140,11 @@ for (const key of Object.getOwnPropertyNames(ReplicatorInstance.prototype)) {
 
 const instances = {
     PRODUCTION: new Map(),
-    JAPAN: new Map(),
-    STAGING: new Map()
+    QA_STAGING: new Map(),
+    DEV_STAGING: new Map()
 };
+instances["QA-STAGING"] = instances.QA_STAGING;
+instances["DEV-STAGING"] = instances.DEV_STAGING;
 let manualOverride = false;
 
 // ==========================================
@@ -3185,9 +3208,11 @@ async function getUserPortfolio(userConfig, tier = 'PRODUCTION') {
 
 let globalPortfolios = {
     PRODUCTION: {},
-    JAPAN: {},
-    STAGING: {}
+    QA_STAGING: {},
+    DEV_STAGING: {}
 };
+globalPortfolios["QA-STAGING"] = globalPortfolios.QA_STAGING;
+globalPortfolios["DEV-STAGING"] = globalPortfolios.DEV_STAGING;
 let _prevPortfolioState = {}; // Track previous state for change detection
 
 async function syncAllPortfolios() {
@@ -3226,7 +3251,7 @@ async function syncAllPortfolios() {
 async function globalMasterLoop() {
     try {
         const syncPromises = [];
-        for (const tier of ['PRODUCTION', 'JAPAN', 'STAGING']) {
+        for (const tier of ['PRODUCTION', 'QA_STAGING', 'DEV_STAGING']) {
             const tierInstances = instances[tier] || new Map();
             for (const inst of tierInstances.values()) {
                 if (inst.status === 'RUNNING') syncPromises.push(inst.runDeltaSync());
@@ -3298,7 +3323,7 @@ function buildPayload(isSnapshot = true, sinceTs = 0) {
     // Send full user credentials (including secret) to the UI's User Config panel,
     // per operator request, so accounts can be inspected/copied for external tooling.
     const usersMetadata = {};
-    for (const tier of ['PRODUCTION', 'JAPAN', 'STAGING']) {
+    for (const tier of ['PRODUCTION', 'QA_STAGING', 'DEV_STAGING']) {
         usersMetadata[tier] = {};
         const tierUsers = globalUsers[tier] || {};
         for (const [k, u] of Object.entries(tierUsers)) {
@@ -3905,10 +3930,12 @@ const server = http.createServer(async (req, res) => {
                         return res.end(JSON.stringify({ error: 'Missing path parameter' }));
                     }
                     const TIER_MDS_READ_URLS = {
-                        PRODUCTION: "https://testnet-futures-mds-read.dcxstage.com",
-                        JAPAN: "https://testnet-exchange-mds-read.dcxstage.com",
-                        STAGING: "https://staging-exchange-futures-mds-read.dcxstage.com"
+                        PRODUCTION: "https://testnet-exchange-mds-read.dcxstage.com",
+                        QA_STAGING: "https://testnet-futures-mds-read.dcxstage.com",
+                        DEV_STAGING: "https://staging-exchange-futures-mds-read.dcxstage.com"
                     };
+                    TIER_MDS_READ_URLS["QA-STAGING"] = TIER_MDS_READ_URLS.QA_STAGING;
+                    TIER_MDS_READ_URLS["DEV-STAGING"] = TIER_MDS_READ_URLS.DEV_STAGING;
                     const mdsBase = TIER_MDS_READ_URLS[activeTier] || TIER_MDS_READ_URLS.PRODUCTION;
                     const finalUrl = `${mdsBase}${targetPath}`;
                     try {
@@ -4137,7 +4164,7 @@ const server = http.createServer(async (req, res) => {
 
 async function globalStartupCleanup() {
     log.info('SYSTEM', 'Performing startup safety cleanup of all open orders across accounts (by symbol)...');
-    const tiers = ['PRODUCTION', 'JAPAN', 'STAGING'].filter(t => t === globalActiveTier);
+    const tiers = ['PRODUCTION', 'QA_STAGING', 'DEV_STAGING'].filter(t => t === globalActiveTier);
     for (const tier of tiers) {
         const hpoBase = TIER_URLS[tier] ? TIER_URLS[tier].HPO : null;
         if (!hpoBase) continue;
@@ -4178,7 +4205,7 @@ async function startBots() {
     log.success('SYSTEM', `Starting ${marketConfigs.length} market replicator(s)...`);
     log.success('SYSTEM', '===========================================================');
 
-    const tiers = ['PRODUCTION', 'JAPAN', 'STAGING'];
+    const tiers = ['PRODUCTION', 'QA_STAGING', 'DEV_STAGING'];
     const loadInstPromises = tiers.map(t => loadInstruments(t));
 
     await Promise.allSettled([syncServerTime(), ...loadInstPromises]);
@@ -4292,7 +4319,7 @@ if (ENABLE_LOCAL_UI) {
 
 process.on('SIGINT', async () => {
     log.warn('SYSTEM', 'Termination signal caught. Stopping all engines...');
-    for (const tier of ['PRODUCTION', 'JAPAN', 'STAGING']) {
+    for (const tier of ['PRODUCTION', 'QA_STAGING', 'DEV_STAGING']) {
         const tierInstances = instances[tier] || new Map();
         for (const inst of tierInstances.values()) {
             await inst.stop();

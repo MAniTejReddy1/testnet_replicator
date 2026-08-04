@@ -1772,8 +1772,8 @@
     <!-- Global Environment Switcher Tabs -->
     <div style="display:flex; gap: 4px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 3px; border-radius: 8px; margin-left: 20px;" id="env-switcher">
       <button class="env-tab on" data-env="PRODUCTION" style="background:transparent; border:none; color:var(--text-muted); padding: 4px 10px; font-size: 9px; font-weight:700; font-family:inherit; cursor:pointer; border-radius: 5px; transition: all 0.2s;">PRODUCTION</button>
-      <button class="env-tab" data-env="JAPAN" style="background:transparent; border:none; color:var(--text-muted); padding: 4px 10px; font-size: 9px; font-weight:700; font-family:inherit; cursor:pointer; border-radius: 5px; transition: all 0.2s;">JAPAN</button>
-      <button class="env-tab" data-env="STAGING" style="background:transparent; border:none; color:var(--text-muted); padding: 4px 10px; font-size: 9px; font-weight:700; font-family:inherit; cursor:pointer; border-radius: 5px; transition: all 0.2s;">STAGING</button>
+      <button class="env-tab" data-env="QA_STAGING" style="background:transparent; border:none; color:var(--text-muted); padding: 4px 10px; font-size: 9px; font-weight:700; font-family:inherit; cursor:pointer; border-radius: 5px; transition: all 0.2s;">QA_STAGING</button>
+      <button class="env-tab" data-env="DEV_STAGING" style="background:transparent; border:none; color:var(--text-muted); padding: 4px 10px; font-size: 9px; font-weight:700; font-family:inherit; cursor:pointer; border-radius: 5px; transition: all 0.2s;">DEV_STAGING</button>
     </div>
   </div>
   <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;flex:1 1 auto;justify-content:center;min-width:0;">
@@ -1947,9 +1947,9 @@
     
     <label>Select Tier / Environment</label>
     <select id="cfg-tier" class="trade-input" style="margin-bottom:12px;">
-        <option value="PRODUCTION">PRODUCTION (Testnet Futures)</option>
-        <option value="JAPAN">JAPAN (Testnet Exchange)</option>
-        <option value="STAGING">STAGING (Staging Exchange Futures)</option>
+        <option value="PRODUCTION">PRODUCTION (Testnet Exchange)</option>
+        <option value="QA_STAGING">QA_STAGING (Testnet Futures)</option>
+        <option value="DEV_STAGING">DEV_STAGING (Staging Exchange Futures)</option>
     </select>
     
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
@@ -3850,7 +3850,7 @@ window.addEventListener('DOMContentLoaded', () => {
         };
 
         window.activeTabSymbol = null;
-        window.lastActiveSymbolByEnv = { PRODUCTION: null, JAPAN: null, STAGING: null };
+        window.lastActiveSymbolByEnv = { PRODUCTION: null, QA_STAGING: null, DEV_STAGING: null, JAPAN: null, STAGING: null };
         try {
             const savedSymbols = localStorage.getItem('replicator_last_active_symbols');
             if (savedSymbols) Object.assign(window.lastActiveSymbolByEnv, JSON.parse(savedSymbols));
@@ -6026,16 +6026,19 @@ window.addEventListener('DOMContentLoaded', () => {
             prevBinLtp = binLtp;
             ltpEl.textContent = fmt(binLtp, pPrec);
 
-            const sa = instance.testnetDepth.asks, sb = instance.testnetDepth.bids;
-            const stageLtp = (sa&&sa[0]&&sb&&sb[0]) ? ((parseFloat(sa[0][0])+parseFloat(sb[0][0]))/2).toFixed(pPrec) : binLtp;
+            // Testnet LTP must come strictly from testnet ticker/REST — never fall back to Binance (CoinDCX) price
+            const rawTestnetLtp = diag.testnetLtp;
+            const stageLtp = (rawTestnetLtp !== null && rawTestnetLtp !== undefined && Number(rawTestnetLtp) > 0)
+                ? rawTestnetLtp
+                : null;
             const stageLtpEl = document.getElementById('t-sltp');
-            if (prevStageLtp !== null && flashOn) {
+            if (stageLtp !== null && prevStageLtp !== null && flashOn) {
                 const d = parseFloat(stageLtp) - parseFloat(prevStageLtp);
                 if (d > 0) flash(stageLtpEl, 'fl-g');
                 else if (d < 0) flash(stageLtpEl, 'fl-r');
             }
             prevStageLtp = stageLtp;
-            stageLtpEl.textContent = fmt(stageLtp, pPrec);
+            stageLtpEl.textContent = stageLtp !== null ? fmt(stageLtp, pPrec) : '—';
 
             const binMarkPrice = diag.binanceMarkPrice || binLtp;
             const binMarkPriceEl = document.getElementById('t-bmp');
@@ -6047,15 +6050,19 @@ window.addEventListener('DOMContentLoaded', () => {
             prevBinMarkPrice = binMarkPrice;
             binMarkPriceEl.textContent = fmt(binMarkPrice, pPrec);
 
-            const stageMarkPrice = diag.testnetMarkPrice || stageLtp;
+            // Testnet mark price must come strictly from testnet premiumIndex/WS — never fall back to LTP/Binance
+            const rawTestnetMark = diag.testnetMarkPrice;
+            const stageMarkPrice = (rawTestnetMark !== null && rawTestnetMark !== undefined && Number(rawTestnetMark) > 0)
+                ? rawTestnetMark
+                : null;
             const stageMarkPriceEl = document.getElementById('t-smp');
-            if (prevStageMarkPrice !== null && flashOn) {
+            if (stageMarkPrice !== null && prevStageMarkPrice !== null && flashOn) {
                 const d = parseFloat(stageMarkPrice) - parseFloat(prevStageMarkPrice);
                 if (d > 0) flash(stageMarkPriceEl, 'fl-g');
                 else if (d < 0) flash(stageMarkPriceEl, 'fl-r');
             }
             prevStageMarkPrice = stageMarkPrice;
-            stageMarkPriceEl.textContent = fmt(stageMarkPrice, pPrec);
+            stageMarkPriceEl.textContent = stageMarkPrice !== null ? fmt(stageMarkPrice, pPrec) : '—';
 
             // Index Price Update
             const binIndexPrice = diag.binanceIndexPrice || binLtp;
@@ -6068,15 +6075,19 @@ window.addEventListener('DOMContentLoaded', () => {
             prevBinIndexPrice = binIndexPrice;
             binIndexPriceEl.textContent = fmt(binIndexPrice, pPrec);
 
-            const stageIndexPrice = diag.testnetIndexPrice || stageLtp;
+            // Testnet index price strictly from testnet — never fall back to LTP/Binance
+            const rawTestnetIndex = diag.testnetIndexPrice;
+            const stageIndexPrice = (rawTestnetIndex !== null && rawTestnetIndex !== undefined && Number(rawTestnetIndex) > 0)
+                ? rawTestnetIndex
+                : null;
             const stageIndexPriceEl = document.getElementById('t-sip');
-            if (prevStageIndexPrice !== null && flashOn) {
+            if (stageIndexPrice !== null && prevStageIndexPrice !== null && flashOn) {
                 const d = parseFloat(stageIndexPrice) - parseFloat(prevStageIndexPrice);
                 if (d > 0) flash(stageIndexPriceEl, 'fl-g');
                 else if (d < 0) flash(stageIndexPriceEl, 'fl-r');
             }
             prevStageIndexPrice = stageIndexPrice;
-            stageIndexPriceEl.textContent = fmt(stageIndexPrice, pPrec);
+            stageIndexPriceEl.textContent = stageIndexPrice !== null ? fmt(stageIndexPrice, pPrec) : '—';
 
             // Best Bid Update
             const bBids = instance.binanceDepth ? instance.binanceDepth.bids : [];
@@ -6176,66 +6187,87 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // LTP Drift Update
-            const dAbs = Math.abs(parseFloat(binLtp)-parseFloat(stageLtp)).toFixed(pPrec);
-            const dPct = parseFloat(binLtp)>0 ? ((dAbs/parseFloat(binLtp))*100).toFixed(3) : '0.000';
-            const dp = parseFloat(dPct);
+            // LTP Drift Update (only when both sides have real LTPs)
             const ltpDriftEl = document.getElementById('ltp-drift-badge');
             if (ltpDriftEl) {
-                ltpDriftEl.textContent = `${dPct}%`;
-                if (dp > 0.05) {
-                    ltpDriftEl.style.color = '#f43f5e';
-                    ltpDriftEl.style.borderColor = 'rgba(244,63,94,0.3)';
-                    ltpDriftEl.style.background = 'rgba(244,63,94,0.1)';
-                } else if (dp > 0.02) {
-                    ltpDriftEl.style.color = '#eab308';
-                    ltpDriftEl.style.borderColor = 'rgba(234,179,8,0.3)';
-                    ltpDriftEl.style.background = 'rgba(234,179,8,0.08)';
+                if (stageLtp !== null && parseFloat(binLtp) > 0) {
+                    const dAbs = Math.abs(parseFloat(binLtp)-parseFloat(stageLtp)).toFixed(pPrec);
+                    const dPct = ((dAbs/parseFloat(binLtp))*100).toFixed(3);
+                    const dp = parseFloat(dPct);
+                    ltpDriftEl.textContent = `${dPct}%`;
+                    if (dp > 0.05) {
+                        ltpDriftEl.style.color = '#f43f5e';
+                        ltpDriftEl.style.borderColor = 'rgba(244,63,94,0.3)';
+                        ltpDriftEl.style.background = 'rgba(244,63,94,0.1)';
+                    } else if (dp > 0.02) {
+                        ltpDriftEl.style.color = '#eab308';
+                        ltpDriftEl.style.borderColor = 'rgba(234,179,8,0.3)';
+                        ltpDriftEl.style.background = 'rgba(234,179,8,0.08)';
+                    } else {
+                        ltpDriftEl.style.color = 'var(--text-muted)';
+                        ltpDriftEl.style.borderColor = 'var(--border)';
+                        ltpDriftEl.style.background = 'rgba(255,255,255,0.02)';
+                    }
                 } else {
+                    ltpDriftEl.textContent = 'Drift: —';
                     ltpDriftEl.style.color = 'var(--text-muted)';
                     ltpDriftEl.style.borderColor = 'var(--border)';
                     ltpDriftEl.style.background = 'rgba(255,255,255,0.02)';
                 }
             }
 
-            // Mark Price Drift Update
-            const mpAbs = Math.abs(parseFloat(binMarkPrice)-parseFloat(stageMarkPrice)).toFixed(pPrec);
-            const mpPct = parseFloat(binMarkPrice)>0 ? ((mpAbs/parseFloat(binMarkPrice))*100).toFixed(3) : '0.000';
-            const mpp = parseFloat(mpPct);
+            // Mark Price Drift Update (only when both sides have real mark prices)
             const mpDriftEl = document.getElementById('mp-drift-badge');
             if (mpDriftEl) {
-                mpDriftEl.textContent = `${mpPct}%`;
-                if (mpp > 0.05) {
-                    mpDriftEl.style.color = '#f43f5e';
-                    mpDriftEl.style.borderColor = 'rgba(244,63,94,0.3)';
-                    mpDriftEl.style.background = 'rgba(244,63,94,0.1)';
-                } else if (mpp > 0.02) {
-                    mpDriftEl.style.color = '#eab308';
-                    mpDriftEl.style.borderColor = 'rgba(234,179,8,0.3)';
-                    mpDriftEl.style.background = 'rgba(234,179,8,0.08)';
+                if (stageMarkPrice !== null && parseFloat(binMarkPrice) > 0) {
+                    const mpAbs = Math.abs(parseFloat(binMarkPrice)-parseFloat(stageMarkPrice)).toFixed(pPrec);
+                    const mpPct = ((mpAbs/parseFloat(binMarkPrice))*100).toFixed(3);
+                    const mpp = parseFloat(mpPct);
+                    mpDriftEl.textContent = `${mpPct}%`;
+                    if (mpp > 0.05) {
+                        mpDriftEl.style.color = '#f43f5e';
+                        mpDriftEl.style.borderColor = 'rgba(244,63,94,0.3)';
+                        mpDriftEl.style.background = 'rgba(244,63,94,0.1)';
+                    } else if (mpp > 0.02) {
+                        mpDriftEl.style.color = '#eab308';
+                        mpDriftEl.style.borderColor = 'rgba(234,179,8,0.3)';
+                        mpDriftEl.style.background = 'rgba(234,179,8,0.08)';
+                    } else {
+                        mpDriftEl.style.color = 'var(--text-muted)';
+                        mpDriftEl.style.borderColor = 'var(--border)';
+                        mpDriftEl.style.background = 'rgba(255,255,255,0.02)';
+                    }
                 } else {
+                    mpDriftEl.textContent = 'Drift: —';
                     mpDriftEl.style.color = 'var(--text-muted)';
                     mpDriftEl.style.borderColor = 'var(--border)';
                     mpDriftEl.style.background = 'rgba(255,255,255,0.02)';
                 }
             }
 
-            // Index Price Drift Update
-            const ipAbs = Math.abs(parseFloat(binIndexPrice)-parseFloat(stageIndexPrice)).toFixed(pPrec);
-            const ipPct = parseFloat(binIndexPrice)>0 ? ((ipAbs/parseFloat(binIndexPrice))*100).toFixed(3) : '0.000';
-            const ipp = parseFloat(ipPct);
+            // Index Price Drift Update (only when both sides have real index prices)
             const ipDriftEl = document.getElementById('ip-drift-badge');
             if (ipDriftEl) {
-                ipDriftEl.textContent = `${ipPct}%`;
-                if (ipp > 0.05) {
-                    ipDriftEl.style.color = '#f43f5e';
-                    ipDriftEl.style.borderColor = 'rgba(244,63,94,0.3)';
-                    ipDriftEl.style.background = 'rgba(244,63,94,0.1)';
-                } else if (ipp > 0.02) {
-                    ipDriftEl.style.color = '#eab308';
-                    ipDriftEl.style.borderColor = 'rgba(234,179,8,0.3)';
-                    ipDriftEl.style.background = 'rgba(234,179,8,0.08)';
+                if (stageIndexPrice !== null && parseFloat(binIndexPrice) > 0) {
+                    const ipAbs = Math.abs(parseFloat(binIndexPrice)-parseFloat(stageIndexPrice)).toFixed(pPrec);
+                    const ipPct = ((ipAbs/parseFloat(binIndexPrice))*100).toFixed(3);
+                    const ipp = parseFloat(ipPct);
+                    ipDriftEl.textContent = `${ipPct}%`;
+                    if (ipp > 0.05) {
+                        ipDriftEl.style.color = '#f43f5e';
+                        ipDriftEl.style.borderColor = 'rgba(244,63,94,0.3)';
+                        ipDriftEl.style.background = 'rgba(244,63,94,0.1)';
+                    } else if (ipp > 0.02) {
+                        ipDriftEl.style.color = '#eab308';
+                        ipDriftEl.style.borderColor = 'rgba(234,179,8,0.3)';
+                        ipDriftEl.style.background = 'rgba(234,179,8,0.08)';
+                    } else {
+                        ipDriftEl.style.color = 'var(--text-muted)';
+                        ipDriftEl.style.borderColor = 'var(--border)';
+                        ipDriftEl.style.background = 'rgba(255,255,255,0.02)';
+                    }
                 } else {
+                    ipDriftEl.textContent = 'Drift: —';
                     ipDriftEl.style.color = 'var(--text-muted)';
                     ipDriftEl.style.borderColor = 'var(--border)';
                     ipDriftEl.style.background = 'rgba(255,255,255,0.02)';
@@ -6979,7 +7011,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     metaBadge = '<span class="log-meta-badge">▶ DETAILS</span>';
                 }
 
-                const tierColor = logTier === 'PRODUCTION' ? '#10b981' : logTier === 'JAPAN' ? '#eab308' : '#06b6d4';
+                const tierColor = logTier === 'PRODUCTION' ? '#10b981' : (logTier === 'QA_STAGING' || logTier === 'QA-STAGING' || logTier === 'JAPAN') ? '#eab308' : '#06b6d4';
                 const tierBadge = `<span style="background:rgba(255,255,255,0.04);color:${tierColor};padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;margin-right:6px;border:1px solid rgba(255,255,255,0.06);">${logTier}</span>`;
 
                 const catBadge = (window.activeTermTab === 'events' && l.cat) ? `<span class="log-cat-badge cat-${l.cat}">${l.cat}</span>` : '';
@@ -7350,10 +7382,12 @@ window.addEventListener('DOMContentLoaded', () => {
             
             try {
                 const TIER_WS_GATEWAYS = {
-                    PRODUCTION: "wss://testnet-futures-socket-gateway.dcxstage.com",
-                    JAPAN: "wss://testnet-exchange-futures-socket-gateway.dcxstage.com",
-                    STAGING: "wss://testnet-staging-futures-socket-gateway.dcxstage.com"
+                    PRODUCTION: "wss://testnet-exchange-futures-socket-gateway.dcxstage.com",
+                    QA_STAGING: "wss://testnet-futures-socket-gateway.dcxstage.com",
+                    DEV_STAGING: "wss://testnet-staging-futures-socket-gateway.dcxstage.com"
                 };
+                TIER_WS_GATEWAYS["QA-STAGING"] = TIER_WS_GATEWAYS.QA_STAGING;
+                TIER_WS_GATEWAYS["DEV-STAGING"] = TIER_WS_GATEWAYS.DEV_STAGING;
                 const activeTier = activeEnvFilter || 'PRODUCTION';
                 const gateway = TIER_WS_GATEWAYS[activeTier] || TIER_WS_GATEWAYS.PRODUCTION;
                 const wsUrl = `${gateway}/market/ws/${sourceSym.toLowerCase()}@kline_${interval}`;

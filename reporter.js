@@ -611,8 +611,16 @@ function writeEnvironment() {
             configs = JSON.parse(process.env.MARKET_CONFIGS).map(function(m) { return m.sourceSymbol; }).join(', ');
         }
     } catch(e) {}
+    var tier = (process.env.ACTIVE_TIER || 'PRODUCTION').toUpperCase().replace(/-/g, '_');
+    var tierUrls = {
+        PRODUCTION: "https://testnet-exchange-hpo.dcxstage.com",
+        QA_STAGING: "https://testnet-futures-hpo.dcxstage.com",
+        DEV_STAGING: "https://staging-exchange-futures-hpo.dcxstage.com"
+    };
+    var baseUrl = tierUrls[tier] || tierUrls.PRODUCTION;
     var lines = [
-        'BASE_URL=https://testnet-futures-hpo.dcxstage.com',
+        'BASE_URL=' + baseUrl,
+        'ACTIVE_TIER=' + tier,
         'SYMBOLS=' + configs,
         'STARTED=' + new Date().toISOString(),
         'NODE_VERSION=' + process.version,

@@ -3,23 +3,26 @@ const fetch = require('node-fetch');
 
 const TIER_URLS = {
     PRODUCTION: {
-        ONBOARDING: "https://testnet-api.dcxstage.com",
-        RAILS: "https://testnet-rails-api.dcxstage.com",
-        HPO: "https://testnet-futures-hpo.dcxstage.com"
-    },
-    JAPAN: {
         ONBOARDING: "https://testnet-exchange-api.dcxstage.com",
         RAILS: "https://testnet-exchange-rails-api.dcxstage.com",
         HPO: "https://testnet-exchange-hpo.dcxstage.com"
     },
-    STAGING: {
+    QA_STAGING: {
+        ONBOARDING: "https://testnet-api.dcxstage.com",
+        RAILS: "https://testnet-rails-api.dcxstage.com",
+        HPO: "https://testnet-futures-hpo.dcxstage.com"
+    },
+    DEV_STAGING: {
         ONBOARDING: "https://staging-exchange-api.dcxstage.com",
         RAILS: "https://staging-exchange-rails-api.dcxstage.com",
         HPO: "https://staging-exchange-futures-hpo.dcxstage.com"
     }
 };
+// Aliases for hyphenated environment strings
+TIER_URLS["QA-STAGING"] = TIER_URLS.QA_STAGING;
+TIER_URLS["DEV-STAGING"] = TIER_URLS.DEV_STAGING;
 
-const activeTier = (process.env.ACTIVE_TIER || 'PRODUCTION').toUpperCase();
+const activeTier = (process.env.ACTIVE_TIER || 'PRODUCTION').toUpperCase().replace(/-/g, '_');
 const config = TIER_URLS[activeTier] || TIER_URLS.PRODUCTION;
 
 const apiBase = config.ONBOARDING;
