@@ -346,7 +346,10 @@ async function sendSignedRequest(url, method, payload, userConfig, timeoutMs = 5
             request: { method: method.toUpperCase(), url: shortUrl, payload: payload },
             response: { status: res.status, data: data }
         };
-        log.info(uLabel, `[${method.toUpperCase()}] ${shortUrl} | Status: ${res.status} | Latency: ${latencyMs}ms`, meta, tier);
+        const isPolling = shortUrl.includes('/fapi/v2/account') || shortUrl.includes('/fapi/v2/positionRisk');
+        if (!isPolling || !res.ok) {
+            log.info(uLabel, `[${method.toUpperCase()}] ${shortUrl} | Status: ${res.status} | Latency: ${latencyMs}ms`, meta, tier);
+        }
 
         if (!res.ok || DEBUG) log.debug('REST-API', `[${method.toUpperCase()}] ${finalUrl} | Status: ${res.status} | Body: ${text} | Latency: ${latencyMs}ms`, null, tier);
 
@@ -1006,7 +1009,15 @@ class PrivateWsClient {
             this.reconnectTimers[eventType] = null;
         }
         if (this.sockets[eventType]) {
-            try { this.sockets[eventType].close(); } catch (e) {}
+            try {
+                const s = this.sockets[eventType];
+                this.sockets[eventType] = null;
+                s.removeAllListeners('close');
+                s.removeAllListeners('message');
+                s.removeAllListeners('error');
+                s.on('error', () => {});
+                s.close();
+            } catch (e) {}
         }
 
         const base = (TIER_URLS[this.tier] || TIER_URLS.PRODUCTION).WS_GATEWAY;
@@ -1127,7 +1138,10 @@ class PrivateWsClient {
             log.warn('SYSTEM', `${this.label} [${eventType}] disconnected. Reconnecting in 5s...`, null, this.tier);
             pushEvent('WARN', this.label, `Private WS disconnected: ${eventType}`, { status: 'disconnected', event: eventType }, 'ws', this.tier);
             clearInterval(this.pingIntervals[eventType]);
-            this.reconnectTimers[eventType] = setTimeout(() => this.connectStream(eventType), 5000);
+            if (this.sockets[eventType] === ws) {
+                this.sockets[eventType] = null;
+                this.reconnectTimers[eventType] = setTimeout(() => this.connectStream(eventType), 5000);
+            }
         });
 
         ws.on('error', (err) => {
@@ -1140,16 +1154,17 @@ class PrivateWsClient {
         PRIVATE_WS_EVENTS.forEach(evt => {
             clearInterval(this.pingIntervals[evt]);
             clearTimeout(this.reconnectTimers[evt]);
+            this.reconnectTimers[evt] = null;
             if (this.sockets[evt]) {
                 try {
                     const sock = this.sockets[evt];
+                    this.sockets[evt] = null;
                     sock.removeAllListeners('close');
                     sock.removeAllListeners('message');
                     sock.removeAllListeners('error');
                     sock.on('error', () => {}); // Catch-all to prevent unhandled 'error' event crashes
                     sock.close();
                 } catch (e) {}
-                this.sockets[evt] = null;
             }
         });
     }
@@ -1162,13 +1177,27 @@ function reconnectAllInstancesPrivateWs(tier) {
     }
 }
 
+function deriveSymbols(rawSourceSymbol, rawTargetSymbol) {
+    let targetSym = (rawTargetSymbol || rawSourceSymbol || '').trim().toUpperCase();
+    let sourceSym = rawSourceSymbol ? rawSourceSymbol.trim().toUpperCase() : targetSym;
+
+    if (sourceSym.endsWith('QAUSDT')) {
+        sourceSym = sourceSym.replace('QAUSDT', 'USDT');
+    } else if (targetSym.endsWith('QAUSDT') && sourceSym === targetSym) {
+        sourceSym = targetSym.replace('QAUSDT', 'USDT');
+    }
+
+    return { sourceSymbol: sourceSym, targetSymbol: targetSym };
+}
+
 class ReplicatorInstance {
     constructor(marketConfig) {
         this.tier = (marketConfig.tier || 'PRODUCTION').toUpperCase();
         if (!TIER_URLS[this.tier]) this.tier = 'PRODUCTION';
 
-        this.sourceSymbol = marketConfig.sourceSymbol.toUpperCase();
-        this.targetSymbol = (marketConfig.targetSymbol || marketConfig.sourceSymbol).toUpperCase();
+        const { sourceSymbol, targetSymbol } = deriveSymbols(marketConfig.sourceSymbol, marketConfig.targetSymbol);
+        this.sourceSymbol = sourceSymbol;
+        this.targetSymbol = targetSymbol;
         
         this.symbol = this.targetSymbol; 
         this.status = 'STOPPED';
@@ -1390,7 +1419,8 @@ class ReplicatorInstance {
         const tierRoles = globalRoles[this.tier] || { makerId: '', takerId: '' };
         const userCreds = isTaker ? tierUsers[tierRoles.takerId] : tierUsers[tierRoles.makerId];
         if (!userCreds) {
-            throw new Error(`${isTaker ? 'Taker' : 'Maker'} credentials not configured on ${this.tier}`);
+            log.error(this.symbol, `${isTaker ? 'Taker' : 'Maker'} credentials not configured on ${this.tier}`, null, this.tier);
+            return { success: false, error: `${isTaker ? 'Taker' : 'Maker'} credentials not configured on ${this.tier}` };
         }
         const userLabel = isTaker ? 'USER2_TAKER' : 'USER1_MAKER';
         const bufferedPrice = price ? applyBuffer(String(price), side, isTaker ? 0 : this.bufferPct, this.symbol, this.tier) : null;
@@ -3225,8 +3255,17 @@ async function syncAllPortfolios() {
         const userKeys = Object.keys(tierUsers);
         
         await Promise.all(userKeys.map(async (k) => {
+            const uConfig = tierUsers[k];
+            if (!uConfig || !uConfig.key || !uConfig.secret) return;
+            if (uConfig._authFailedCount && uConfig._authFailedCount >= 3 && Date.now() - (uConfig._lastAuthFail || 0) < 60000) return;
             try {
-                const port = await getUserPortfolio(tierUsers[k], tier);
+                const port = await getUserPortfolio(uConfig, tier);
+                if (port.error && port.error.includes('401')) {
+                    uConfig._authFailedCount = (uConfig._authFailedCount || 0) + 1;
+                    uConfig._lastAuthFail = Date.now();
+                } else {
+                    uConfig._authFailedCount = 0;
+                }
                 if (!globalPortfolios[tier][k]) {
                     globalPortfolios[tier][k] = port;
                 } else {
@@ -3861,8 +3900,7 @@ const server = http.createServer(async (req, res) => {
         req.on('end', async () => {
             try {
                 const parsed = JSON.parse(body);
-                const sym = parsed.symbol ? parsed.symbol.toUpperCase() : null;
-                const targetSym = parsed.targetSymbol ? parsed.targetSymbol.toUpperCase() : sym;
+                const { sourceSymbol: sym, targetSymbol: targetSym } = deriveSymbols(parsed.symbol || parsed.sourceSymbol, parsed.targetSymbol);
                 
                 // Allow specific routes to omit symbol
                 if (!sym && 
@@ -4220,7 +4258,9 @@ async function startBots() {
     startListenKeyKeepalive();
     
     for (const marketConf of marketConfigs) {
-        const targetSym = (marketConf.targetSymbol || marketConf.sourceSymbol).toUpperCase();
+        const { sourceSymbol: srcSym, targetSymbol: targetSym } = deriveSymbols(marketConf.sourceSymbol, marketConf.targetSymbol);
+        marketConf.sourceSymbol = srcSym;
+        marketConf.targetSymbol = targetSym;
         const tier = (marketConf.tier || globalActiveTier).toUpperCase();
         if (!instances[tier]) instances[tier] = new Map();
         if (instances[tier].has(targetSym)) {
