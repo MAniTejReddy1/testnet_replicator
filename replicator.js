@@ -217,6 +217,119 @@ const instrumentsMap = {
 };
 instrumentsMap["QA-STAGING"] = instrumentsMap.QA_STAGING;
 instrumentsMap["DEV-STAGING"] = instrumentsMap.DEV_STAGING;
+
+// Risk Controls Data Map (Dynamically loaded, keyed by tier, then symbol/default)
+const riskControlsMap = {
+    PRODUCTION: {},
+    QA_STAGING: {},
+    DEV_STAGING: {}
+};
+riskControlsMap["QA-STAGING"] = riskControlsMap.QA_STAGING;
+riskControlsMap["DEV-STAGING"] = riskControlsMap.DEV_STAGING;
+
+async function loadRiskControls(tier = 'PRODUCTION') {
+    const urls = TIER_URLS[tier] || TIER_URLS.PRODUCTION;
+    const hpoBase = urls.HPO;
+    try {
+        const res = await fetch(`${hpoBase}/api/v3/qa/app_configs/FUTURES_INSTRUMENT_RISK_CONTROLS`);
+        const json = await res.json();
+        if (json && json.json_value) {
+            riskControlsMap[tier] = json.json_value;
+            log.success('SYSTEM', `[${tier}] Loaded FUTURES_INSTRUMENT_RISK_CONTROLS risk controls.`);
+        }
+    } catch (e) {
+        log.warn('SYSTEM', `[${tier}] Failed to load FUTURES_INSTRUMENT_RISK_CONTROLS: ${e.message}`);
+    }
+}
+
+function getCbBandPct(symbol, tier = 'PRODUCTION', sourceSymbol = null) {
+    const rc = riskControlsMap[tier] || riskControlsMap.PRODUCTION || {};
+    if (!rc || Object.keys(rc).length === 0) return 100;
+
+    const symUpper = symbol ? symbol.toUpperCase() : '';
+    const srcUpper = sourceSymbol ? sourceSymbol.toUpperCase() : '';
+
+    // Direct lookups
+    if (rc[symUpper] && rc[symUpper].circuit_breaker_band_pct !== undefined) {
+        return parseFloat(rc[symUpper].circuit_breaker_band_pct);
+    }
+    if (srcUpper && rc[srcUpper] && rc[srcUpper].circuit_breaker_band_pct !== undefined) {
+        return parseFloat(rc[srcUpper].circuit_breaker_band_pct);
+    }
+
+    // Check constructed CoinDCX format B-<BASE>_<QUOTE> (e.g., B-XRPQA_USDT, B-XRP_USDT)
+    const quoteAssets = ['USDT', 'USDC', 'INR', 'BTC', 'ETH'];
+    let baseAsset = '';
+    let quoteAsset = '';
+    for (const q of quoteAssets) {
+        if (symUpper.endsWith(q)) {
+            quoteAsset = q;
+            baseAsset = symUpper.slice(0, -q.length);
+            break;
+        }
+    }
+
+    if (baseAsset && quoteAsset) {
+        const key1 = `B-${baseAsset}_${quoteAsset}`;
+        if (rc[key1] && rc[key1].circuit_breaker_band_pct !== undefined) {
+            return parseFloat(rc[key1].circuit_breaker_band_pct);
+        }
+        if (baseAsset.endsWith('QA')) {
+            const cleanBase = baseAsset.slice(0, -2);
+            const key2 = `B-${cleanBase}_${quoteAsset}`;
+            if (rc[key2] && rc[key2].circuit_breaker_band_pct !== undefined) {
+                return parseFloat(rc[key2].circuit_breaker_band_pct);
+            }
+        }
+    }
+
+    // Fallback: Fuzzy normalized matching against all keys in rc
+    const cleanTarget = symUpper.replace(/[^A-Z0-9]/g, '');
+    const cleanTargetNoQA = symUpper.replace(/QA/g, '').replace(/[^A-Z0-9]/g, '');
+
+    for (const k of Object.keys(rc)) {
+        if (k === 'default' || k === 'enable_risk_controls') continue;
+        const cleanK = k.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        const cleanKNoB = cleanK.startsWith('B') ? cleanK.substring(1) : cleanK;
+        
+        if (cleanK === cleanTarget || cleanKNoB === cleanTarget || cleanKNoB === cleanTargetNoQA) {
+            if (rc[k] && rc[k].circuit_breaker_band_pct !== undefined) {
+                return parseFloat(rc[k].circuit_breaker_band_pct);
+            }
+        }
+    }
+
+    // Default fallback
+    if (rc.default && rc.default.circuit_breaker_band_pct !== undefined) {
+        return parseFloat(rc.default.circuit_breaker_band_pct);
+    }
+    return 100;
+}
+
+function getMultiplierFraction(val, isUp = true) {
+    if (val === undefined || val === null || isNaN(val)) return 0.05;
+    let num = parseFloat(val);
+    if (num <= 0) return 0.05;
+
+    // Percentage value > 1.5 (e.g., 4.75 => 0.0475, 5.25 => 0.0525, 5 => 0.05, 10 => 0.10)
+    if (num > 1.5) {
+        return num / 100;
+    }
+    // Binance standard multiplierUp ratio (1.0 < num <= 1.5, e.g., 1.05 => 0.05)
+    if (num > 1.0 && num <= 1.5) {
+        return num - 1.0;
+    }
+    // Binance standard multiplierDown ratio (0.5 <= num < 1.0, e.g., 0.95 => 0.05)
+    if (num >= 0.5 && num < 1.0 && !isUp) {
+        return 1.0 - num;
+    }
+    // Already decimal fraction (num < 0.5, e.g., 0.0475, 0.05)
+    if (num < 0.5) {
+        return num;
+    }
+    return 0.05;
+}
+
 let sseClients = [];
 let serverTimeOffset = 0;
 
@@ -558,6 +671,7 @@ async function loadInstruments(tier = 'PRODUCTION') {
         }
         
         log.success('SYSTEM', `[${tier}] Loaded ${Object.keys(instrumentsMap[tier]).length} instruments with limit multipliers.`);
+        await loadRiskControls(tier);
     } catch (e) { log.error('SYSTEM', `[${tier}] Instrument fetch failed: ${e.message}`); }
 }
 
@@ -2682,8 +2796,38 @@ startBinanceDepthWS() {
                 }
             } catch(e){}
 
+            // 4. Fetch real-time Testnet Depth (Orderbook) from MDS_READ (ensures orderbook streams live even when engine is STOPPED or PAUSED)
+            try {
+                const mdsReadBase = (TIER_URLS[this.tier] && TIER_URLS[this.tier].MDS_READ) || TIER_URLS.PRODUCTION.MDS_READ;
+                const depthEndpoints = [
+                    `${mdsReadBase}/fapi/v1/depth?symbol=${this.symbol}&limit=${this.depthLevels}`,
+                    `${mdsReadBase}/api/v1/derivatives/futures/depth?symbol=${this.symbol}&limit=${this.depthLevels}`
+                ];
+                for (const endpoint of depthEndpoints) {
+                    const resD = await fetch(endpoint);
+                    if (resD.ok) {
+                        const dataD = await resD.json();
+                        if (dataD && dataD.bids && dataD.asks) {
+                            this.testnetDepth = { bids: dataD.bids, asks: dataD.asks };
+                            break;
+                        }
+                    }
+                }
+            } catch(e){}
+
+            // 5. Fetch real-time Binance Depth
+            try {
+                const resBinD = await fetch(`https://fapi.binance.com/fapi/v1/depth?symbol=${this.sourceSymbol}&limit=${this.depthLevels}`);
+                if (resBinD.ok) {
+                    const dataBinD = await resBinD.json();
+                    if (dataBinD && dataBinD.bids && dataBinD.asks) {
+                        this.binanceDepth = { bids: dataBinD.bids, asks: dataBinD.asks };
+                    }
+                }
+            } catch(e){}
+
             broadcastToUI();
-        }, 3000);
+        }, 1000);
     }
 
 
@@ -3125,7 +3269,18 @@ startBinanceDepthWS() {
         this.startRestPollingFallback();
     }
 
-    pause() { this.status = 'PAUSED'; log.warn(this.symbol, 'Engine Paused.'); }
+    pause() {
+        this.status = 'PAUSED';
+        log.warn(this.symbol, 'Engine Paused.');
+        this.startBinanceDepthWS();
+        this.startBinanceTradesWS();
+        this.startBinanceMarkPriceWS();
+        this.startBinanceTickerWS();
+        this.startTestnetWS();
+        this.startTestnetTickerWS();
+        this.startTestnetMarkPriceWS();
+        this.startRestPollingFallback();
+    }
 
     async setLeverage(leverage = 5) {
         const hpoBase = TIER_URLS[this.tier].HPO;
@@ -3150,8 +3305,17 @@ startBinanceDepthWS() {
     }
 
     async stop() {
-        this.status = 'STOPPED'; log.warn(this.symbol, 'Engine Stopped.');
+        this.status = 'STOPPED';
+        log.warn(this.symbol, 'Engine Stopped.');
         if (this.cancelOnStop) await this.wipeOrders(); else { this.restingBids = []; this.restingAsks = []; }
+        this.startBinanceDepthWS();
+        this.startBinanceTradesWS();
+        this.startBinanceMarkPriceWS();
+        this.startBinanceTickerWS();
+        this.startTestnetWS();
+        this.startTestnetTickerWS();
+        this.startTestnetMarkPriceWS();
+        this.startRestPollingFallback();
     }
 }
 
@@ -3320,7 +3484,77 @@ function buildPayload(isSnapshot = true, sinceTs = 0) {
     const tierInstances = instances[globalActiveTier] || new Map();
     for (const [sym, inst] of tierInstances.entries()) {
         const tierMap = instrumentsMap[inst.tier] || {};
-        const pData = tierMap[sym] || { pricePrecision: 4, qtyPrecision: 1 };
+        const pData = tierMap[sym] || { pricePrecision: 4, qtyPrecision: 1, multiplierUp: 5, multiplierDown: 5 };
+        const pPrec = pData.pricePrecision !== undefined ? pData.pricePrecision : 4;
+
+        // Circuit Breaker (CB) calculation
+        const cbBandPct = getCbBandPct(sym, inst.tier, inst.sourceSymbol);
+        const rawIndexPrice = parseFloat(inst.testnetIndexPrice || 0);
+        let cbUpperBand = null;
+        let cbLowerBand = null;
+        if (rawIndexPrice > 0 && !isNaN(rawIndexPrice)) {
+            cbUpperBand = (rawIndexPrice * (1 + cbBandPct / 100)).toFixed(pPrec);
+            cbLowerBand = (rawIndexPrice * (1 - cbBandPct / 100)).toFixed(pPrec);
+        }
+
+        // Mark Price calculation
+        const upFraction = getMultiplierFraction(pData.multiplierUp, true);
+        const downFraction = getMultiplierFraction(pData.multiplierDown, false);
+        const rawMarkPrice = parseFloat(inst.testnetMarkPrice || inst.testnetLtp || 0);
+        let markUpperBand = null;
+        let markLowerBand = null;
+        if (rawMarkPrice > 0 && !isNaN(rawMarkPrice)) {
+            markUpperBand = (rawMarkPrice * (1 + upFraction)).toFixed(pPrec);
+            markLowerBand = (rawMarkPrice * (1 - downFraction)).toFixed(pPrec);
+        }
+
+        // Max Buy = min(Mark Upper, CB Upper)
+        // Min Sell = max(Mark Lower, CB Lower)
+        let maxBuyPrice = null;
+        let minSellPrice = null;
+        let maxBuyConstrainedBy = '—';
+        let minSellConstrainedBy = '—';
+
+        if (cbUpperBand !== null && markUpperBand !== null) {
+            const cbUpNum = parseFloat(cbUpperBand);
+            const markUpNum = parseFloat(markUpperBand);
+            if (!isNaN(cbUpNum) && !isNaN(markUpNum)) {
+                if (cbUpNum <= markUpNum) {
+                    maxBuyPrice = cbUpperBand;
+                    maxBuyConstrainedBy = 'min(Mark Up, CB Up) → CB Up';
+                } else {
+                    maxBuyPrice = markUpperBand;
+                    maxBuyConstrainedBy = 'min(Mark Up, CB Up) → Mark Up';
+                }
+            }
+        } else if (cbUpperBand !== null) {
+            maxBuyPrice = cbUpperBand;
+            maxBuyConstrainedBy = 'CB Upper';
+        } else if (markUpperBand !== null) {
+            maxBuyPrice = markUpperBand;
+            maxBuyConstrainedBy = 'Mark Upper';
+        }
+
+        if (cbLowerBand !== null && markLowerBand !== null) {
+            const cbDownNum = parseFloat(cbLowerBand);
+            const markDownNum = parseFloat(markLowerBand);
+            if (!isNaN(cbDownNum) && !isNaN(markDownNum)) {
+                if (cbDownNum >= markDownNum) {
+                    minSellPrice = cbLowerBand;
+                    minSellConstrainedBy = 'max(Mark Dn, CB Dn) → CB Dn';
+                } else {
+                    minSellPrice = markLowerBand;
+                    minSellConstrainedBy = 'max(Mark Dn, CB Dn) → Mark Dn';
+                }
+            }
+        } else if (cbLowerBand !== null) {
+            minSellPrice = cbLowerBand;
+            minSellConstrainedBy = 'CB Lower';
+        } else if (markLowerBand !== null) {
+            minSellPrice = markLowerBand;
+            minSellConstrainedBy = 'Mark Lower';
+        }
+
         activeInstancesMap[sym] = {
             status:       inst.status,
             binanceDepth: inst.binanceDepth,
@@ -3335,11 +3569,22 @@ function buildPayload(isSnapshot = true, sinceTs = 0) {
                 binanceMarkPrice: inst.binanceMarkPrice,
                 binanceIndexPrice: inst.binanceIndexPrice,
                 testnetIndexPrice: inst.testnetIndexPrice,
+                cbBandPct:       cbBandPct,
+                cbUpperBand:     cbUpperBand,
+                cbLowerBand:     cbLowerBand,
+                markUpperPct:    (upFraction * 100).toFixed(2).replace(/\.?0+$/, ''),
+                markLowerPct:    (downFraction * 100).toFixed(2).replace(/\.?0+$/, ''),
+                markUpperBand:   markUpperBand,
+                markLowerBand:   markLowerBand,
+                maxBuyPrice:          maxBuyPrice,
+                minSellPrice:         minSellPrice,
+                maxBuyConstrainedBy:  maxBuyConstrainedBy,
+                minSellConstrainedBy: minSellConstrainedBy,
                 testnetKline:    inst.testnetKline,
                 binanceLatency:  inst.binanceLatency,
                 binanceLtp:      inst.binanceLtp,
                 syncRatio:       inst.totalSyncAttempts > 0 ? ((inst.successfulSyncs / inst.totalSyncAttempts) * 100).toFixed(1) : '100',
-                pricePrecision:  pData.pricePrecision !== undefined ? pData.pricePrecision : 4,
+                pricePrecision:  pPrec,
                 qtyPrecision:    pData.qtyPrecision !== undefined ? pData.qtyPrecision : 1,
                 bufferPct:       inst.bufferPct,
                 minSize:         inst.minSize,
@@ -3534,6 +3779,13 @@ const server = http.createServer(async (req, res) => {
 
     const pathname = (req.url || '').split('?')[0];
 
+    // Debug route for inspecting loaded risk controls
+    if (req.method === 'GET' && pathname === '/api/risk-controls') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(riskControlsMap));
+        return;
+    }
+
     // 1. Handle Auth Routes (No session check required)
     if (req.method === 'POST' && pathname === '/api/auth/login') {
         let body = '';
@@ -3690,6 +3942,8 @@ const server = http.createServer(async (req, res) => {
                 const tierInstances = instances[tier];
                 const inst = tierInstances ? tierInstances.get(sym) : null;
                 if (inst) {
+                    inst.fetchInitialMarkPrices().catch(() => {});
+                    inst.reloadDepth().catch(() => {});
                     broadcastToUI(true);
                 }
                 res.writeHead(200);
@@ -4081,12 +4335,30 @@ const server = http.createServer(async (req, res) => {
                     log.info('SYSTEM', `Manual override set to ${manualOverride}`);
                 } else if (pathname === '/api/users') {
                     if (parsed.action === 'add' || parsed.action === 'update') {
-                        const { id, label, key, secret, listenKey } = parsed.user;
+                        const { id, label, key, secret, listenKey, email, password } = parsed.user;
                         if (!id) throw new Error("User ID is required");
                         globalUsers[globalActiveTier] = globalUsers[globalActiveTier] || {};
-                        globalUsers[globalActiveTier][id] = { label: label || id, key: key || '', secret: secret || '', listenKey: listenKey || '' };
-                        lastPortfolioSyncTime = 0;
+                        globalUsers[globalActiveTier][id] = {
+                            label: label || id,
+                            key: key || '',
+                            secret: secret || '',
+                            listenKey: listenKey || '',
+                            email: email || '',
+                            password: password || ''
+                        };
                         log.info('SYSTEM', `User ${id} saved on ${globalActiveTier}.`);
+                        if (email && password) {
+                            seedBalance(globalUsers[globalActiveTier][id], globalActiveTier).then(async () => {
+                                lastPortfolioSyncTime = 0;
+                                await syncAllPortfolios();
+                                broadcastToUI(true);
+                            }).catch(e => log.error('SYSTEM', `Seed for ${id} failed: ${e.message}`));
+                        }
+                        lastPortfolioSyncTime = 0;
+                        await syncAllPortfolios();
+                        broadcastToUI(true);
+                        res.writeHead(200);
+                        return res.end(JSON.stringify({ success: true }));
                     } else if (parsed.action === 'setRoles') {
                         globalRoles[globalActiveTier] = globalRoles[globalActiveTier] || { makerId: '', takerId: '' };
                         if (parsed.makerId) globalRoles[globalActiveTier].makerId = parsed.makerId;
@@ -4094,6 +4366,10 @@ const server = http.createServer(async (req, res) => {
                         lastPortfolioSyncTime = 0;
                         log.info('SYSTEM', `Roles updated on ${globalActiveTier}: Maker=${globalRoles[globalActiveTier].makerId}, Taker=${globalRoles[globalActiveTier].takerId}`);
                         reconnectAllInstancesPrivateWs(globalActiveTier);
+                        await syncAllPortfolios();
+                        broadcastToUI(true);
+                        res.writeHead(200);
+                        return res.end(JSON.stringify({ success: true }));
                     } else if (parsed.action === 'generate') {
                         const id = parsed.id;
                         if (!id) throw new Error("User ID is required for generation");
@@ -4112,9 +4388,23 @@ const server = http.createServer(async (req, res) => {
                         });
                         const result = JSON.parse(stdout.trim());
                         globalUsers[globalActiveTier] = globalUsers[globalActiveTier] || {};
-                        globalUsers[globalActiveTier][id] = { label: id, key: result.key, secret: result.secret, email: result.email, listenKey: '' };
+                        globalUsers[globalActiveTier][id] = {
+                            label: id,
+                            key: result.key,
+                            secret: result.secret,
+                            email: result.email,
+                            password: result.password || 'Test@123',
+                            listenKey: ''
+                        };
+                        log.info('SYSTEM', `User ${id} generated successfully on ${globalActiveTier}. Seeding initial balance...`);
+                        await seedBalance(globalUsers[globalActiveTier][id], globalActiveTier).catch(e => {
+                            log.error('SYSTEM', `Auto-seed balance for ${id} failed: ${e.message}`);
+                        });
                         lastPortfolioSyncTime = 0;
-                        log.info('SYSTEM', `User ${id} generated successfully on ${globalActiveTier}.`);
+                        await syncAllPortfolios();
+                        broadcastToUI(true);
+                        res.writeHead(200);
+                        return res.end(JSON.stringify({ success: true }));
                     } else if (parsed.action === 'delete') {
                         const id = parsed.id;
                         const tierRoles = globalRoles[globalActiveTier] || { makerId: '', takerId: '' };
@@ -4123,7 +4413,11 @@ const server = http.createServer(async (req, res) => {
                         }
                         if (globalUsers[globalActiveTier]) delete globalUsers[globalActiveTier][id];
                         if (globalPortfolios[globalActiveTier]) delete globalPortfolios[globalActiveTier][id];
+                        lastPortfolioSyncTime = 0;
                         log.info('SYSTEM', `User ${id} deleted from ${globalActiveTier}.`);
+                        broadcastToUI(true);
+                        res.writeHead(200);
+                        return res.end(JSON.stringify({ success: true }));
                     }
                 } else {
                     const inst = (instances[globalActiveTier] || new Map()).get(targetSym);
