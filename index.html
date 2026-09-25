@@ -7192,6 +7192,13 @@ window.addEventListener('DOMContentLoaded', () => {
         window.initTVChart = async (pair, interval = window.tvInterval) => {
             window.tvInterval = interval;
             window.tvCurrentPair = pair;
+            window.tvIsVisible = true;
+
+            const chartContainer = document.getElementById('tv-chart-container');
+            const chevron = document.getElementById('tv-chevron');
+            if (chartContainer) chartContainer.style.display = 'flex';
+            if (chevron) chevron.style.transform = 'rotate(0deg)';
+
             const container = document.getElementById('tv-chart');
             if (container && (container.textContent.includes('No active symbol selected') || !window.tvChart)) {
                 container.innerHTML = '';
