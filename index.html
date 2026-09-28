@@ -7389,12 +7389,19 @@ window.addEventListener('DOMContentLoaded', () => {
                             const endTimeMs = (oldestTimeSeconds - IST_OFFSET) * 1000 - 1;
                             const pair = window.tvCurrentPair;
                             const interval = window.tvInterval;
-                            const sourceSym = (window.cachedInstances && window.cachedInstances[pair] && window.cachedInstances[pair].diagnostics) ? window.cachedInstances[pair].diagnostics.sourceSymbol : pair;
+                            const getKlinesTargetSymbol = (p) => {
+                                if (!p) return 'XRPQAUSDT';
+                                let s = String(p).toUpperCase();
+                                if (s.startsWith('B-')) s = s.substring(2);
+                                s = s.replace(/_/g, '');
+                                return s;
+                            };
+                            const targetKlineSym = getKlinesTargetSymbol(pair);
                             const activeTier = activeEnvFilter || 'PRODUCTION';
                             
-                            window.injectTerminalLog('INFO', pair, `[REST] Pagination: Fetching ${interval} klines for ${sourceSym} before ${new Date(endTimeMs).toISOString().split('T')[0]}...`);
+                            window.injectTerminalLog('INFO', pair, `[REST] Pagination: Fetching ${interval} klines for ${targetKlineSym} before ${new Date(endTimeMs).toISOString().split('T')[0]}...`);
                             
-                            const { klines: newKlines, volume: newVolume } = await fetchCandles(sourceSym, interval, activeTier, 500, endTimeMs);
+                            const { klines: newKlines, volume: newVolume } = await fetchCandles(targetKlineSym, interval, activeTier, 500, endTimeMs);
                             
                             if (newKlines && newKlines.length > 0) {
                                 const mergedKlines = [...newKlines, ...window.tvChartData.klines];
@@ -7463,12 +7470,20 @@ window.addEventListener('DOMContentLoaded', () => {
             window.tvSeries.setData([]);
             window.tvVolumeSeries.setData([]);
 
-            const sourceSym = (window.cachedInstances && window.cachedInstances[pair] && window.cachedInstances[pair].diagnostics) ? window.cachedInstances[pair].diagnostics.sourceSymbol : pair;
+            const getKlinesTargetSymbol = (p) => {
+                if (!p) return 'XRPQAUSDT';
+                let s = String(p).toUpperCase();
+                if (s.startsWith('B-')) s = s.substring(2);
+                s = s.replace(/_/g, '');
+                return s;
+            };
+            const targetKlineSym = getKlinesTargetSymbol(pair);
+            const binanceSourceSym = (window.cachedInstances && window.cachedInstances[pair] && window.cachedInstances[pair].diagnostics) ? window.cachedInstances[pair].diagnostics.sourceSymbol : pair;
 
             try {
                 const activeTier = activeEnvFilter || 'PRODUCTION';
-                window.injectTerminalLog('INFO', pair, `[REST] Fetching historical ${interval} klines for ${sourceSym}...`);
-                const { klines: formattedKlines, volume: formattedVolume } = await fetchCandles(sourceSym, interval, activeTier, 500);
+                window.injectTerminalLog('INFO', pair, `[REST] Fetching historical ${interval} klines for ${targetKlineSym}...`);
+                const { klines: formattedKlines, volume: formattedVolume } = await fetchCandles(targetKlineSym, interval, activeTier, 500);
                 
                 if (formattedKlines && formattedKlines.length) {
                     if (formattedKlines.length > 0) {
@@ -7508,7 +7523,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 };
                 TIER_WS_GATEWAYS["QA-STAGING"] = TIER_WS_GATEWAYS.QA_STAGING;
                 TIER_WS_GATEWAYS["DEV-STAGING"] = TIER_WS_GATEWAYS.DEV_STAGING;
-                const wsUrl = `wss://fstream.binance.com/public/ws/${sourceSym.toLowerCase()}@kline_${interval}`;
+                const wsUrl = `wss://fstream.binance.com/public/ws/${binanceSourceSym.toLowerCase()}@kline_${interval}`;
                 window.tvWs = new WebSocket(wsUrl);
                 window.tvWs.onopen = () => window.injectTerminalEvent('SUCCESS', pair, `[WS] Connected to Kline stream: ${interval}`, null, 'ws');
                 window.tvWs.onerror = () => window.injectTerminalEvent('ERROR', pair, `[WS] Kline stream error: ${interval}`, null, 'ws');

@@ -3918,7 +3918,7 @@ const server = http.createServer(async (req, res) => {
     const session = getSessionUser(req);
     const isHtmlRoute = pathname === '/' || pathname === '/index.html';
 
-    if (!session && !pathname.startsWith('/api/auth/')) {
+    if (!session && !pathname.startsWith('/api/auth/') && !pathname.startsWith('/api/stage/') && !pathname.startsWith('/api/mds-proxy') && !pathname.startsWith('/api/risk-controls')) {
         if (isHtmlRoute) {
             // Render index.html anyway, the frontend will show the glassmorphic auth overlay
         } else {
