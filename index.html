@@ -6653,6 +6653,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
                 if (envChanged || activeTabSymbol !== targetSym) {
                     window.selectTab(targetSym);
+                } else if (activeTabSymbol && !window.tvChart && window.tvIsVisible) {
+                    window.initTVChart(activeTabSymbol);
                 }
 
                 tabContainer.innerHTML = symbols.map(sym => {
@@ -7190,14 +7192,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
         window.tvInterval = '1m';
         window.initTVChart = async (pair, interval = window.tvInterval) => {
+            if (!window.tvIsVisible) return;
             window.tvInterval = interval;
             window.tvCurrentPair = pair;
-            window.tvIsVisible = true;
-
-            const chartContainer = document.getElementById('tv-chart-container');
-            const chevron = document.getElementById('tv-chevron');
-            if (chartContainer) chartContainer.style.display = 'flex';
-            if (chevron) chevron.style.transform = 'rotate(0deg)';
 
             const container = document.getElementById('tv-chart');
             if (container && (container.textContent.includes('No active symbol selected') || !window.tvChart)) {
