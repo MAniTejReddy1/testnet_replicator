@@ -11260,54 +11260,7 @@ document.addEventListener('mousemove', (e) => {
       <!-- ================================================================= -->
       <div id="qa-tab-app" style="display:flex; flex-direction:column; gap:16px;">
         
-        <!-- Quick Testing Presets Bar -->
-        <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:12px 16px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
-            <div style="display:flex; align-items:center; gap:6px;">
-              <span style="font-size:11px; font-weight:800; color:#d8b4fe; text-transform:uppercase; letter-spacing:0.5px;">⚡ 1-Click Testing Presets</span>
-              <span style="font-size:10px; color:var(--text-muted);">(Instant configuration profiles for QA scenarios)</span>
-            </div>
-            <span style="font-size:10px; color:var(--text-muted); font-family:'JetBrains Mono',monospace;">Clicking updates visual form & stages changes</span>
-          </div>
 
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:10px;">
-            <!-- Preset 1: Circuit Breaker Trigger -->
-            <button type="button" onclick="window.applyQaPreset('cb_trigger')" style="background:rgba(244,63,94,0.1); border:1px solid rgba(244,63,94,0.3); border-radius:8px; padding:8px 12px; text-align:left; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.borderColor='#f43f5e';this.style.background='rgba(244,63,94,0.18)';" onmouseout="this.style.borderColor='rgba(244,63,94,0.3)';this.style.background='rgba(244,63,94,0.1)';">
-              <div style="font-size:11.5px; font-weight:800; color:#fca5a5; display:flex; align-items:center; justify-content:space-between;">
-                <span>⚡ Trigger Circuit Breaker</span>
-                <span style="font-size:9px; background:rgba(244,63,94,0.25); padding:1px 5px; border-radius:3px;">Tight</span>
-              </div>
-              <div style="font-size:10px; color:var(--text-muted); margin-top:3px; line-height:1.3;">CB Band: <b>2%</b>, Take: <b>0.5</b>. Easily triggers engine price halts.</div>
-            </button>
-
-            <!-- Preset 2: Stress / Open Flow -->
-            <button type="button" onclick="window.applyQaPreset('stress_open')" style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); border-radius:8px; padding:8px 12px; text-align:left; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.borderColor='#10b981';this.style.background='rgba(16,185,129,0.18)';" onmouseout="this.style.borderColor='rgba(16,185,129,0.3)';this.style.background='rgba(16,185,129,0.1)';">
-              <div style="font-size:11.5px; font-weight:800; color:#6ee7b7; display:flex; align-items:center; justify-content:space-between;">
-                <span>🚀 Stress Flow (No Limit)</span>
-                <span style="font-size:9px; background:rgba(16,185,129,0.25); padding:1px 5px; border-radius:3px;">Permissive</span>
-              </div>
-              <div style="font-size:10px; color:var(--text-muted); margin-top:3px; line-height:1.3;">CB: <b>500%</b>, Take: <b>10</b>, OI: <b>100B</b>. Unblocks high-speed flow.</div>
-            </button>
-
-            <!-- Preset 3: Production Standard Baseline -->
-            <button type="button" onclick="window.applyQaPreset('prod_baseline')" style="background:rgba(99,102,241,0.1); border:1px solid rgba(99,102,241,0.3); border-radius:8px; padding:8px 12px; text-align:left; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.borderColor='#6366f1';this.style.background='rgba(99,102,241,0.18)';" onmouseout="this.style.borderColor='rgba(99,102,241,0.3)';this.style.background='rgba(99,102,241,0.1)';">
-              <div style="font-size:11.5px; font-weight:800; color:#c7d2fe; display:flex; align-items:center; justify-content:space-between;">
-                <span>🛡️ Production Baseline</span>
-                <span style="font-size:9px; background:rgba(99,102,241,0.25); padding:1px 5px; border-radius:3px;">Standard</span>
-              </div>
-              <div style="font-size:10px; color:var(--text-muted); margin-top:3px; line-height:1.3;">CB: <b>100%</b>, Take: <b>1</b>, OI: <b>10B</b>. Resets to clean default.</div>
-            </button>
-
-            <!-- Preset 4: Strict Risk Clamp -->
-            <button type="button" onclick="window.applyQaPreset('strict_clamp')" style="background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.3); border-radius:8px; padding:8px 12px; text-align:left; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.borderColor='#f59e0b';this.style.background='rgba(245,158,11,0.18)';" onmouseout="this.style.borderColor='rgba(245,158,11,0.3)';this.style.background='rgba(245,158,11,0.1)';">
-              <div style="font-size:11.5px; font-weight:800; color:#fde68a; display:flex; align-items:center; justify-content:space-between;">
-                <span>🔒 Strict Risk Clamp</span>
-                <span style="font-size:9px; background:rgba(245,158,11,0.25); padding:1px 5px; border-radius:3px;">Strict</span>
-              </div>
-              <div style="font-size:10px; color:var(--text-muted); margin-top:3px; line-height:1.3;">CB: <b>10%</b>, OI: <b>1M</b>. Tests position & OI limit rejections.</div>
-            </button>
-          </div>
-        </div>
 
         <!-- App Config Sub-bar & Controls -->
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; background:rgba(255,255,255,0.02); border:1px solid var(--border); padding:10px 14px; border-radius:10px;">
@@ -11546,21 +11499,12 @@ document.addEventListener('mousemove', (e) => {
         <!-- Visual Form View -->
         <div id="qa-inst-visual-view" style="display:flex; flex-direction:column; gap:16px;">
           
-          <!-- Card: Interactive Multipliers with Quick Preset Buttons -->
+          <!-- Card: Interactive Multipliers -->
           <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:12px; padding:18px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
               <div style="display:flex; align-items:center; gap:8px;">
                 <div style="width:4px; height:16px; background:#10b981; border-radius:2px;"></div>
                 <span style="font-weight:800; font-size:13.5px; color:var(--text-main); letter-spacing:0.5px;">PRICE MULTIPLIER CONTROLS</span>
-              </div>
-              
-              <!-- Quick Preset Multiplier Buttons -->
-              <div style="display:flex; align-items:center; gap:6px;">
-                <span style="font-size:10px; color:var(--text-muted); font-weight:600;">Presets:</span>
-                <button type="button" onclick="window.setBothMultipliers(1.05)" style="background:rgba(244,63,94,0.15); border:1px solid rgba(244,63,94,0.3); color:#fca5a5; font-size:10px; font-weight:700; padding:2px 7px; border-radius:4px; cursor:pointer;">1.05x (Tight)</button>
-                <button type="button" onclick="window.setBothMultipliers(2.0)" style="background:rgba(245,158,11,0.15); border:1px solid rgba(245,158,11,0.3); color:#fde68a; font-size:10px; font-weight:700; padding:2px 7px; border-radius:4px; cursor:pointer;">2.0x (Moderate)</button>
-                <button type="button" onclick="window.setBothMultipliers(5.0)" style="background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); color:#6ee7b7; font-size:10px; font-weight:700; padding:2px 7px; border-radius:4px; cursor:pointer;">5.0x (Standard)</button>
-                <button type="button" onclick="window.setBothMultipliers(10.0)" style="background:rgba(99,102,241,0.15); border:1px solid rgba(99,102,241,0.3); color:#c7d2fe; font-size:10px; font-weight:700; padding:2px 7px; border-radius:4px; cursor:pointer;">10.0x (Wide)</button>
               </div>
             </div>
 
@@ -12014,39 +11958,7 @@ document.addEventListener('mousemove', (e) => {
         el.dispatchEvent(new Event('input'));
     };
 
-    // =========================================================================
-    // TAB 1: 1-CLICK TESTING PRESETS
-    // =========================================================================
-    window.applyQaPreset = function(presetType) {
-        const jv = qaAppConfigData.json_value || qaAppConfigData;
-        if (!jv.default) jv.default = {};
 
-        if (presetType === 'cb_trigger') {
-            jv.default.circuit_breaker_band_pct = 2;
-            jv.default.market_take_bound = "0.5";
-            window.showQaAppStatus("⚡ Preset Applied: Trigger Circuit Breaker (CB: 2%, Take: 0.5). Ready to patch.", "success");
-        } else if (presetType === 'stress_open') {
-            jv.default.circuit_breaker_band_pct = 500;
-            jv.default.market_take_bound = "10";
-            jv.default.symbol_oi_limit = 100000000000;
-            jv.default.account_oi_limit = 10000000000;
-            window.showQaAppStatus("🚀 Preset Applied: Stress Flow / Open Limits. Ready to patch.", "success");
-        } else if (presetType === 'prod_baseline') {
-            jv.default.circuit_breaker_band_pct = 100;
-            jv.default.market_take_bound = "1";
-            jv.default.symbol_oi_limit = 10000000000;
-            jv.default.account_oi_limit = 100000000;
-            window.showQaAppStatus("🛡️ Preset Applied: Production Baseline. Ready to patch.", "success");
-        } else if (presetType === 'strict_clamp') {
-            jv.default.circuit_breaker_band_pct = 10;
-            jv.default.market_take_bound = "1";
-            jv.default.symbol_oi_limit = 1000000;
-            jv.default.account_oi_limit = 100000;
-            window.showQaAppStatus("🔒 Preset Applied: Strict Risk Clamp. Ready to patch.", "success");
-        }
-        window.renderQaAppConfigForm();
-        window.syncQaAppFormToJson();
-    };
 
     // =========================================================================
     // TAB 1: APP CONFIG FUNCTIONS
@@ -12600,12 +12512,7 @@ document.addEventListener('mousemove', (e) => {
         updatePriceCorridor();
     };
 
-    window.setBothMultipliers = function(val) {
-        qaInstrumentData.multiplier_up = val;
-        qaInstrumentData.multiplier_down = val;
-        window.renderQaInstrumentForm();
-        window.syncQaInstFormToJson();
-    };
+
 
     window.addQaInstCustomField = function() {
         const fieldName = prompt("Enter attribute key name to patch (e.g. tick_size, min_quantity, step_size):");
