@@ -119,7 +119,7 @@
       linear-gradient(90deg, rgba(255,255,255,0.003) 1px, transparent 1px);
     background-size: 100% 100%, 100% 100%, 20px 20px, 20px 20px;
     background-attachment: fixed;
-    padding-top: 135px; /* Offset for fixed header */
+    padding-top: 260px; /* Offset for fixed header + controls + price cards */
     transition: background-image 0.4s var(--ease);
   }
   :root[data-theme="light"] body {
@@ -1871,7 +1871,7 @@
     });
 </script>
 
-<div style="padding: 16px 24px; display:flex; justify-content:space-between; align-items:center; background: var(--panel); backdrop-filter: var(--glass-blur);">
+<div style="padding: 12px 24px; display:flex; justify-content:space-between; align-items:center; background: var(--panel); backdrop-filter: var(--glass-blur); border-bottom: 1px solid var(--border);">
     <div style="display:flex; gap: 10px;">
         <button class="ctrl-btn btn-start"  id="btn-cmd-start"><span style="margin-right:6px">▶</span> START</button>
         <button class="ctrl-btn btn-pause"  id="btn-cmd-pause"><span style="margin-right:6px">⏸</span> PAUSE</button>
@@ -1900,141 +1900,10 @@
             <span id="c-sync" style="color:var(--bid);font-weight:700;">100%</span>
         </div>
         <div id="flag-scenario" class="flag-pill" style="display:none;background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.2);color:var(--ask);box-shadow:0 0 10px rgba(244,63,94,0.1);font-family:'JetBrains Mono',monospace;">SCENARIO IDLE</div>
-            </div>
-</div>
-</div>
-
-<div id="overlay"></div>
-<div id="drawer">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
-    <span style="font-weight:700;color:var(--text-main);font-size:14px;letter-spacing:1px;">MARKET SETTINGS</span>
-    <button id="btn-close" style="color:var(--text-muted);font-size:24px;background:none;border:none;cursor:pointer;transition:color 0.2s;">×</button>
-  </div>
-  <div class="panel" style="padding:16px;margin-bottom:16px;position:relative;z-index:50;">
-    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;font-weight:600;display:flex;align-items:center;justify-content:space-between;">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div style="width:4px;height:12px;background:#10b981;border-radius:2px;"></div>Global Replicator Roles
-      </div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-      <div>
-        <label>Maker User</label>
-        <select id="cfg-role-maker" style="padding:8px 12px;font-size:12px;width:100%;" onchange="window.saveRoles()"></select>
-      </div>
-      <div>
-        <label>Taker User</label>
-        <select id="cfg-role-taker" style="padding:8px 12px;font-size:12px;width:100%;" onchange="window.saveRoles()"></select>
-      </div>
-    </div>
-  </div>
-
-  <div class="panel" style="padding:16px;margin-bottom:16px;position:relative;z-index:40;">
-    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;font-weight:600;display:flex;align-items:center;justify-content:space-between;">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div style="width:4px;height:12px;background:#3b82f6;border-radius:2px;"></div>Configured Accounts
-      </div>
-      <button onclick="window.autoGenerateUser()" style="background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.5);color:#3b82f6;border-radius:4px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;transition:all 0.2s;box-shadow:0 0 10px rgba(59,130,246,0.2);">⚡ Auto-Generate Account</button>
-    </div>
-    
-    <div id="cfg-users-list" style="display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto;margin-bottom:12px;">
-    </div>
-
-    <div style="border-top: 1px solid var(--border); margin-top: 12px; padding-top: 12px;">
-      <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:600;">Add Custom Account</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-        <input id="cfg-manual-id" placeholder="Account ID (e.g. user5)" style="padding:6px 8px;font-size:11px;background:var(--input-bg);border:1px solid var(--border);color:var(--text-main);border-radius:4px;outline:none;">
-        <input id="cfg-manual-label" placeholder="Display Label (e.g. Test)" style="padding:6px 8px;font-size:11px;background:var(--input-bg);border:1px solid var(--border);color:var(--text-main);border-radius:4px;outline:none;">
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-        <input id="cfg-manual-key" placeholder="API Key" style="padding:6px 8px;font-size:11px;background:var(--input-bg);border:1px solid var(--border);color:var(--text-main);border-radius:4px;outline:none;">
-        <input id="cfg-manual-secret" type="password" placeholder="Secret Key" style="padding:6px 8px;font-size:11px;background:var(--input-bg);border:1px solid var(--border);color:var(--text-main);border-radius:4px;outline:none;">
-      </div>
-      <button onclick="window.addManualAccount()" style="width:100%;background:rgba(6,182,212,0.15);border:1px solid rgba(6,182,212,0.5);color:var(--cyan);border-radius:4px;padding:6px 12px;font-size:10px;font-weight:700;cursor:pointer;transition:all 0.2s;text-align:center;">
-        ➕ Save Account Credentials
-      </button>
-    </div>
-  </div>
-  
-  <div class="panel" style="padding:16px;margin-bottom:16px;position:relative;z-index:30;">
-    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;font-weight:600;display:flex;align-items:center;gap:8px;">
-      <div style="width:4px;height:12px;background:var(--cyan);border-radius:2px;"></div>Market & Sizing
-    </div>
-    
-    <label>Source Symbol (CoinDCX)</label>
-    <input id="cfg-symbol" placeholder="e.g. BNBUSDT" style="margin-bottom:12px;">
-    
-    <label>Target Symbol (Testnet - Optional)</label>
-    <input id="cfg-target" placeholder="e.g. BNBQAUSDT (leave empty if same)" style="margin-bottom:12px;">
-    
-    <label>Select Tier / Environment</label>
-    <select id="cfg-tier" class="trade-input" style="margin-bottom:12px;">
-        <option value="PRODUCTION">PRODUCTION (Testnet Exchange)</option>
-        <option value="QA_STAGING">QA_STAGING (Testnet Futures)</option>
-        <option value="DEV_STAGING">DEV_STAGING (Staging Exchange Futures)</option>
-    </select>
-    
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
-      <div><label>Min Maker Size</label><input id="cfg-min" type="number" placeholder="100"></div>
-      <div><label>Max Maker Size</label><input id="cfg-max" type="number" placeholder="500"></div>
-      <div><label>Taker Size</label><input id="cfg-taker-size" type="number" placeholder="10"></div>
-    </div>
-    
-    <label>Depth Levels</label>
-    <input id="cfg-depth" type="number" placeholder="10" style="margin-bottom:4px;">
-  </div>
-  
-  <div class="panel" style="padding:16px;margin-bottom:16px;">
-    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;font-weight:600;display:flex;align-items:center;gap:8px;">
-      <div style="width:4px;height:12px;background:var(--yellow);border-radius:2px;"></div>Execution Controls
-    </div>
-    
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
-      <div><label>Buffer % <span style="color:#64748b;font-weight:400">(0 = off)</span></label><input id="cfg-buffer" type="number" step="0.01" placeholder="0.5"></div>
-      <div><label>Delay ms <span style="color:#64748b;font-weight:400">(0 = inst)</span></label><input id="cfg-delay" type="number" placeholder="5000"></div>
-    </div>
-    
-    <div style="background:var(--input-bg);border-radius:8px;padding:12px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;cursor:pointer;" id="tog-cancel-wrap">
-        <span style="color:var(--text-main);font-size:12px;font-weight:500;">Cancel Orders on Stop</span>
-        <div class="tog off" id="tog-cancel-stop"></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;cursor:pointer;" id="tog-new-user-wrap">
-        <span style="color:var(--text-main);font-size:12px;font-weight:500;">Simulate New User <span style="color:var(--text-muted);font-size:10px;">(120s)</span></span>
-        <div class="tog off" id="tog-new-user"></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;cursor:pointer;" id="tog-maker-raw-wrap">
-        <span style="color:var(--text-main);font-size:12px;font-weight:500;">Maker Use Raw Qty</span>
-        <div class="tog off" id="tog-maker-raw"></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" id="tog-taker-raw-wrap">
-        <span style="color:var(--text-main);font-size:12px;font-weight:500;">Taker Use Raw Qty</span>
-        <div class="tog off" id="tog-taker-raw"></div>
-      </div>
-    </div>
-  </div>
-  
-  <div class="panel" style="padding:16px;margin-bottom:16px;">
-    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;font-weight:600;display:flex;align-items:center;gap:8px;">
-      <div style="width:4px;height:12px;background:var(--bid);border-radius:2px;"></div>Display Options
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-      <label style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--input-bg);padding:10px;border-radius:8px;">
-        <span style="color:var(--text-main);font-size:11px;font-weight:500;">Depth Bars</span><div class="tog on" id="tog-bars"></div>
-      </label>
-      <label style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--input-bg);padding:10px;border-radius:8px;">
-        <span style="color:var(--text-main);font-size:11px;font-weight:500;">Flash FX</span><div class="tog on" id="tog-flash"></div>
-      </label>
-    </div>
-  </div>
-  
-  <button id="btn-apply" class="btn-primary" style="margin-bottom:24px;padding:12px;font-size:13px;">MOUNT & UPDATE MARKET</button>
-  
-
-
-  <div id="cfg-msg" style="font-size:12px;font-weight:600;text-align:center;min-height:20px;margin-bottom:20px;"></div>
 </div>
 
-<div class="ticker-scroll-container" style="display:flex; gap:12px; padding:20px 24px 12px; overflow-x:auto; flex-wrap:nowrap; align-items:stretch; scroll-behavior:smooth;">
+<div class="ticker-scroll-container" style="display:flex; gap:12px; padding:10px 24px 12px; overflow-x:auto; flex-wrap:nowrap; align-items:stretch; scroll-behavior:smooth; background: var(--bg);">
   <div class="ticker-card panel-accent" style="display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px; flex: 0 0 auto; min-width: 170px;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
       <div class="ticker-label">LTP (Last Traded Price)</div>
@@ -2219,8 +2088,154 @@
     </div>
   </div>
 </div>
+</div>
 
-<div id="tv-chart-wrapper" style="display:block; padding: 0 24px 24px;">
+<script>
+    function adjustHeaderOffset() {
+        const hw = document.querySelector('.sticky-header-wrapper');
+        if (hw) {
+            document.body.style.paddingTop = hw.offsetHeight + 'px';
+        }
+    }
+    window.addEventListener('resize', adjustHeaderOffset);
+    if (window.ResizeObserver) {
+        const hw = document.querySelector('.sticky-header-wrapper');
+        if (hw) new ResizeObserver(adjustHeaderOffset).observe(hw);
+    }
+    adjustHeaderOffset();
+</script>
+
+<div id="overlay"></div>
+<div id="drawer">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+    <span style="font-weight:700;color:var(--text-main);font-size:14px;letter-spacing:1px;">MARKET SETTINGS</span>
+    <button id="btn-close" style="color:var(--text-muted);font-size:24px;background:none;border:none;cursor:pointer;transition:color 0.2s;">×</button>
+  </div>
+  <div class="panel" style="padding:16px;margin-bottom:16px;position:relative;z-index:50;">
+    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;font-weight:600;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="width:4px;height:12px;background:#10b981;border-radius:2px;"></div>Global Replicator Roles
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div>
+        <label>Maker User</label>
+        <select id="cfg-role-maker" style="padding:8px 12px;font-size:12px;width:100%;" onchange="window.saveRoles()"></select>
+      </div>
+      <div>
+        <label>Taker User</label>
+        <select id="cfg-role-taker" style="padding:8px 12px;font-size:12px;width:100%;" onchange="window.saveRoles()"></select>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" style="padding:16px;margin-bottom:16px;position:relative;z-index:40;">
+    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;font-weight:600;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="width:4px;height:12px;background:#3b82f6;border-radius:2px;"></div>Configured Accounts
+      </div>
+      <button onclick="window.autoGenerateUser()" style="background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.5);color:#3b82f6;border-radius:4px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;transition:all 0.2s;box-shadow:0 0 10px rgba(59,130,246,0.2);">⚡ Auto-Generate Account</button>
+    </div>
+    
+    <div id="cfg-users-list" style="display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto;margin-bottom:12px;">
+    </div>
+
+    <div style="border-top: 1px solid var(--border); margin-top: 12px; padding-top: 12px;">
+      <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:600;">Add Custom Account</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <input id="cfg-manual-id" placeholder="Account ID (e.g. user5)" style="padding:6px 8px;font-size:11px;background:var(--input-bg);border:1px solid var(--border);color:var(--text-main);border-radius:4px;outline:none;">
+        <input id="cfg-manual-label" placeholder="Display Label (e.g. Test)" style="padding:6px 8px;font-size:11px;background:var(--input-bg);border:1px solid var(--border);color:var(--text-main);border-radius:4px;outline:none;">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+        <input id="cfg-manual-key" placeholder="API Key" style="padding:6px 8px;font-size:11px;background:var(--input-bg);border:1px solid var(--border);color:var(--text-main);border-radius:4px;outline:none;">
+        <input id="cfg-manual-secret" type="password" placeholder="Secret Key" style="padding:6px 8px;font-size:11px;background:var(--input-bg);border:1px solid var(--border);color:var(--text-main);border-radius:4px;outline:none;">
+      </div>
+      <button onclick="window.addManualAccount()" style="width:100%;background:rgba(6,182,212,0.15);border:1px solid rgba(6,182,212,0.5);color:var(--cyan);border-radius:4px;padding:6px 12px;font-size:10px;font-weight:700;cursor:pointer;transition:all 0.2s;text-align:center;">
+        ➕ Save Account Credentials
+      </button>
+    </div>
+  </div>
+  
+  <div class="panel" style="padding:16px;margin-bottom:16px;position:relative;z-index:30;">
+    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;font-weight:600;display:flex;align-items:center;gap:8px;">
+      <div style="width:4px;height:12px;background:var(--cyan);border-radius:2px;"></div>Market & Sizing
+    </div>
+    
+    <label>Source Symbol (CoinDCX)</label>
+    <input id="cfg-symbol" placeholder="e.g. BNBUSDT" style="margin-bottom:12px;">
+    
+    <label>Target Symbol (Testnet - Optional)</label>
+    <input id="cfg-target" placeholder="e.g. BNBQAUSDT (leave empty if same)" style="margin-bottom:12px;">
+    
+    <label>Select Tier / Environment</label>
+    <select id="cfg-tier" class="trade-input" style="margin-bottom:12px;">
+        <option value="PRODUCTION">PRODUCTION (Testnet Exchange)</option>
+        <option value="QA_STAGING">QA_STAGING (Testnet Futures)</option>
+        <option value="DEV_STAGING">DEV_STAGING (Staging Exchange Futures)</option>
+    </select>
+    
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+      <div><label>Min Maker Size</label><input id="cfg-min" type="number" placeholder="100"></div>
+      <div><label>Max Maker Size</label><input id="cfg-max" type="number" placeholder="500"></div>
+      <div><label>Taker Size</label><input id="cfg-taker-size" type="number" placeholder="10"></div>
+    </div>
+    
+    <label>Depth Levels</label>
+    <input id="cfg-depth" type="number" placeholder="10" style="margin-bottom:4px;">
+  </div>
+  
+  <div class="panel" style="padding:16px;margin-bottom:16px;">
+    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;font-weight:600;display:flex;align-items:center;gap:8px;">
+      <div style="width:4px;height:12px;background:var(--yellow);border-radius:2px;"></div>Execution Controls
+    </div>
+    
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+      <div><label>Buffer % <span style="color:#64748b;font-weight:400">(0 = off)</span></label><input id="cfg-buffer" type="number" step="0.01" placeholder="0.5"></div>
+      <div><label>Delay ms <span style="color:#64748b;font-weight:400">(0 = inst)</span></label><input id="cfg-delay" type="number" placeholder="5000"></div>
+    </div>
+    
+    <div style="background:var(--input-bg);border-radius:8px;padding:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;cursor:pointer;" id="tog-cancel-wrap">
+        <span style="color:var(--text-main);font-size:12px;font-weight:500;">Cancel Orders on Stop</span>
+        <div class="tog off" id="tog-cancel-stop"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;cursor:pointer;" id="tog-new-user-wrap">
+        <span style="color:var(--text-main);font-size:12px;font-weight:500;">Simulate New User <span style="color:var(--text-muted);font-size:10px;">(120s)</span></span>
+        <div class="tog off" id="tog-new-user"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;cursor:pointer;" id="tog-maker-raw-wrap">
+        <span style="color:var(--text-main);font-size:12px;font-weight:500;">Maker Use Raw Qty</span>
+        <div class="tog off" id="tog-maker-raw"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" id="tog-taker-raw-wrap">
+        <span style="color:var(--text-main);font-size:12px;font-weight:500;">Taker Use Raw Qty</span>
+        <div class="tog off" id="tog-taker-raw"></div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="panel" style="padding:16px;margin-bottom:16px;">
+    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;font-weight:600;display:flex;align-items:center;gap:8px;">
+      <div style="width:4px;height:12px;background:var(--bid);border-radius:2px;"></div>Display Options
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <label style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--input-bg);padding:10px;border-radius:8px;">
+        <span style="color:var(--text-main);font-size:11px;font-weight:500;">Depth Bars</span><div class="tog on" id="tog-bars"></div>
+      </label>
+      <label style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--input-bg);padding:10px;border-radius:8px;">
+        <span style="color:var(--text-main);font-size:11px;font-weight:500;">Flash FX</span><div class="tog on" id="tog-flash"></div>
+      </label>
+    </div>
+  </div>
+  
+  <button id="btn-apply" class="btn-primary" style="margin-bottom:24px;padding:12px;font-size:13px;">MOUNT & UPDATE MARKET</button>
+  
+
+
+  <div id="cfg-msg" style="font-size:12px;font-weight:600;text-align:center;min-height:20px;margin-bottom:20px;"></div>
+</div>
+
+<div id="tv-chart-wrapper" style="display:block; padding: 14px 24px 24px;">
   <div class="panel" style="display:flex; flex-direction:column; overflow:hidden;">
     <div style="padding:14px 16px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:var(--input-bg); cursor:pointer;" onclick="window.toggleTVChart()">
       <div style="display:flex;align-items:center;gap:12px;">
