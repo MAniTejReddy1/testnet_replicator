@@ -2610,7 +2610,6 @@
     <div class="chip" style="min-height: 46px; display: flex; flex-direction: column; justify-content: center; padding: 6px 14px;"><div class="chip-label">Engine Status</div><div class="chip-val" id="c-eng" style="margin-top:2px;"><span class="c-rose fw-bold">OFFLINE</span></div></div>
     <div class="chip" style="min-height: 46px; display: flex; flex-direction: column; justify-content: center; padding: 6px 14px;"><div class="chip-label">Network Time</div><div class="chip-val" id="c-clock" style="color:var(--text-muted);font-size:12px;margin-top:2px;">—</div></div>
     <button id="btn-theme-toggle" style="background:var(--btn-theme);border:1px solid var(--border);cursor:pointer;font-size:14px;color:var(--text-main);padding:10px 14px;height:46px;border-radius:8px;transition:all 0.3s;display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px rgba(0,0,0,0.1);" title="Toggle Light/Dark Theme">☀</button>
-    <button id="btn-qa-config" class="btn-primary" onclick="window.openQaConfigModal()" style="padding: 10px 16px; width: auto; font-size: 11px; height: 46px; display: flex; align-items: center; justify-content: center; gap: 6px; background: linear-gradient(135deg, rgba(168,85,247,0.25), rgba(139,92,246,0.45)); border: 1px solid rgba(168,85,247,0.5); box-shadow: 0 0 14px rgba(168,85,247,0.2); color: #f3e8ff; font-weight: 700; border-radius: 8px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.filter='brightness(1.15)';" onmouseout="this.style.filter='brightness(1)';" title="QA App Config & Instrument Risk Controls">⚡ QA CONTROLS</button>
     <button id="btn-cfg" class="btn-primary" style="padding: 10px 20px; width: auto; font-size: 11px; height: 46px; display: flex; align-items: center; justify-content: center;">⚙ CONFIGURE</button>
     <button id="btn-logout" class="btn-primary" onclick="window.handleAuthLogout()" style="padding: 10px 20px; width: auto; font-size: 11px; height: 46px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, rgba(244,63,94,0.2), rgba(244,63,94,0.4)); border: 1px solid rgba(244,63,94,0.4); box-shadow: none;">🔒 LOGOUT</button>
   </div>
@@ -2913,6 +2912,24 @@
     <span style="font-weight:700;color:var(--text-main);font-size:14px;letter-spacing:1px;">MARKET SETTINGS</span>
     <button id="btn-close" style="color:var(--text-muted);font-size:24px;background:none;border:none;cursor:pointer;transition:color 0.2s;">×</button>
   </div>
+
+  <!-- QA Risk & Instrument Controls Section -->
+  <div class="panel" style="padding:14px 16px;margin-bottom:16px;position:relative;z-index:55;background:linear-gradient(135deg, rgba(168,85,247,0.12) 0%, rgba(6,182,212,0.06) 100%);border:1px solid rgba(168,85,247,0.35);border-radius:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="width:4px;height:12px;background:#a855f7;border-radius:2px;"></div>
+        <span style="font-size:11px;color:#d8b4fe;text-transform:uppercase;letter-spacing:1px;font-weight:700;">QA Controls & Risk</span>
+      </div>
+      <span style="font-size:9.5px;padding:2px 6px;border-radius:4px;background:rgba(168,85,247,0.25);color:#f3e8ff;font-family:'JetBrains Mono',monospace;font-weight:700;">REST API</span>
+    </div>
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:12px;line-height:1.4;">
+      Directly inspect, customize, and patch Futures Risk Controls and Instrument Multipliers on HPO.
+    </div>
+    <button type="button" id="btn-open-qa-modal-drawer" onclick="window.openQaConfigModal()" style="width:100%;padding:10px 14px;font-size:11px;font-weight:700;background:linear-gradient(135deg, rgba(168,85,247,0.35), rgba(139,92,246,0.55));border:1px solid rgba(168,85,247,0.6);color:#fff;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 0 12px rgba(168,85,247,0.25);transition:all 0.2s;" onmouseover="this.style.filter='brightness(1.15)';" onmouseout="this.style.filter='brightness(1)';">
+      <span>⚡</span> OPEN QA CONTROL PANEL
+    </button>
+  </div>
+
   <div class="panel" style="padding:16px;margin-bottom:16px;position:relative;z-index:50;">
     <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;font-weight:600;display:flex;align-items:center;justify-content:space-between;">
       <div style="display:flex;align-items:center;gap:8px;">
@@ -11163,35 +11180,41 @@ document.addEventListener('mousemove', (e) => {
 </div>
 
 <!-- QA Controls & Risk Configurator Modal Screen Overlay -->
-<div id="qa-config-modal-overlay" class="l2-overlay" style="position:fixed; inset:0; z-index:1550; background:rgba(0,0,0,0.82); backdrop-filter:blur(10px); display:none; opacity:0; transition:opacity .25s ease; align-items:center; justify-content:center; padding:16px;" onclick="window.closeQaConfigModal()">
-  <div class="qa-modal-card" style="background:var(--drawer-bg, #0b0f19); border:1px solid rgba(168,85,247,0.4); border-radius:18px; width:100%; max-width:980px; max-height:92vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 25px 60px -15px rgba(0,0,0,0.85), 0 0 35px rgba(168,85,247,0.22); color:var(--text-main);" onclick="event.stopPropagation()">
+<div id="qa-config-modal-overlay" style="position:fixed; inset:0; z-index:100000; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); display:none; opacity:0; pointer-events:auto !important; transition:opacity .2s ease; align-items:center; justify-content:center; padding:16px; box-sizing:border-box;" onclick="window.closeQaConfigModal()">
+  <div class="qa-modal-card" style="background:var(--drawer-bg, #0b0f19); border:1px solid rgba(168,85,247,0.45); border-radius:18px; width:100%; max-width:980px; max-height:88vh; height:auto; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 25px 60px -15px rgba(0,0,0,0.9), 0 0 40px rgba(168,85,247,0.25); color:var(--text-main); pointer-events:auto !important; position:relative;" onclick="event.stopPropagation()">
     
     <!-- Modal Header -->
-    <div style="padding:16px 22px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:linear-gradient(90deg, rgba(168,85,247,0.12) 0%, rgba(6,182,212,0.08) 100%);">
+    <div style="padding:16px 22px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:linear-gradient(90deg, rgba(168,85,247,0.12) 0%, rgba(6,182,212,0.08) 100%); flex-shrink:0;">
       <div style="display:flex; align-items:center; gap:12px;">
         <div style="width:34px; height:34px; border-radius:10px; background:linear-gradient(135deg, #a855f7, #6366f1); display:flex; align-items:center; justify-content:center; font-size:17px; box-shadow:0 0 15px rgba(168,85,247,0.4);">⚡</div>
         <div>
           <div style="font-weight:800; font-size:16px; letter-spacing:0.5px; display:flex; align-items:center; gap:8px;">
             <span>QA Controls & Risk Configurator</span>
-            <span style="font-size:10px; padding:2px 7px; border-radius:99px; background:rgba(168,85,247,0.2); border:1px solid rgba(168,85,247,0.4); color:#d8b4fe; font-family:'JetBrains Mono',monospace;">HPO QA REST API</span>
+            <span style="font-size:10px; padding:2px 7px; border-radius:99px; background:rgba(168,85,247,0.2); border:1px solid rgba(168,85,247,0.4); color:#d8b4fe; font-family:'JetBrains Mono',monospace;">HPO REST API</span>
           </div>
           <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Directly inspect, add, and patch App Configs and Instrument Multipliers on HPO</div>
         </div>
       </div>
       
-      <div style="display:flex; align-items:center; gap:14px;">
-        <!-- Environment Switcher -->
-        <div style="display:flex; background:rgba(0,0,0,0.4); border:1px solid var(--border); border-radius:8px; padding:2px; gap:2px;">
-          <button id="qa-env-qa" onclick="window.setQaModalEnv('QA_STAGING')" style="border:none; padding:5px 12px; font-size:11px; font-weight:700; border-radius:6px; cursor:pointer; background:#a855f7; color:#fff; transition:all 0.2s;">QA_STAGING</button>
-          <button id="qa-env-dev" onclick="window.setQaModalEnv('DEV_STAGING')" style="border:none; padding:5px 12px; font-size:11px; font-weight:700; border-radius:6px; cursor:pointer; background:transparent; color:var(--text-muted); transition:all 0.2s;">DEV_STAGING</button>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <!-- Global Environment Indicator (No manual switcher, uses active environment) -->
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span style="font-size:10.5px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Global Env:</span>
+          <span id="qa-modal-global-env-badge" style="font-size:11px; font-weight:800; font-family:'JetBrains Mono',monospace; padding:3px 9px; border-radius:6px; background:rgba(168,85,247,0.22); border:1px solid rgba(168,85,247,0.45); color:#d8b4fe;">QA_STAGING</span>
         </div>
         
-        <button type="button" onclick="window.closeQaConfigModal()" style="background:transparent; border:none; color:var(--text-muted); font-size:26px; cursor:pointer; line-height:1; transition:color 0.2s;" onmouseover="this.style.color='#f43f5e'" onmouseout="this.style.color='var(--text-muted)'">&times;</button>
+        <!-- Close Button -->
+        <button type="button" id="qa-modal-close-btn" onclick="window.closeQaConfigModal()" style="background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text-muted); width:32px; height:32px; border-radius:8px; font-size:22px; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; transition:all 0.2s;" onmouseover="this.style.color='#f43f5e';this.style.borderColor='rgba(244,63,94,0.4)';" onmouseout="this.style.color='var(--text-muted)';this.style.borderColor='var(--border)';" title="Close (Esc)">&times;</button>
       </div>
     </div>
 
+    <!-- Production Notice Banner (if active tier is PRODUCTION) -->
+    <div id="qa-prod-warning-banner" style="display:none; padding:10px 22px; background:rgba(239,68,68,0.12); border-bottom:1px solid rgba(239,68,68,0.3); color:#fca5a5; font-size:11.5px; align-items:center; justify-content:space-between; flex-shrink:0;">
+      <span>⚠️ <b>Warning:</b> Current Global Environment is <b>PRODUCTION</b>. QA endpoints are only available on <b>QA_STAGING</b> and <b>DEV_STAGING</b>. Please switch environment at the top navbar.</span>
+    </div>
+
     <!-- Main Tab Navigation -->
-    <div style="display:flex; gap:2px; padding:8px 22px 0; background:rgba(0,0,0,0.2); border-bottom:1px solid var(--border);">
+    <div style="display:flex; gap:2px; padding:8px 22px 0; background:rgba(0,0,0,0.2); border-bottom:1px solid var(--border); flex-shrink:0;">
       <button id="qa-nav-btn-app" onclick="window.switchQaModalTab('app')" style="padding:10px 18px; font-size:12px; font-weight:700; border:none; background:transparent; border-bottom:2px solid #a855f7; color:#d8b4fe; cursor:pointer; display:flex; align-items:center; gap:8px; transition:all 0.2s;">
         <span>🛡 App Config (Risk Controls)</span>
         <span style="font-size:9.5px; opacity:0.8; font-family:'JetBrains Mono',monospace;">PATCH /app_configs</span>
@@ -11203,7 +11226,7 @@ document.addEventListener('mousemove', (e) => {
     </div>
 
     <!-- Scrollable Body Content -->
-    <div style="flex:1; overflow-y:auto; padding:18px 22px; display:flex; flex-direction:column; gap:16px;">
+    <div id="qa-modal-scroll-body" style="flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; padding:18px 22px; display:flex; flex-direction:column; gap:16px;">
       
       <!-- ================= TAB 1: APP CONFIG ================= -->
       <div id="qa-tab-app" style="display:flex; flex-direction:column; gap:16px;">
@@ -11319,13 +11342,16 @@ document.addEventListener('mousemove', (e) => {
         <div id="qa-app-status-banner" style="display:none; padding:10px 14px; border-radius:8px; font-size:12px; font-family:'JetBrains Mono',monospace; justify-content:space-between; align-items:center;"></div>
 
         <!-- Tab 1 Footer -->
-        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:14px; flex-shrink:0;">
           <div style="font-size:11px; color:var(--text-muted);">
             Changes apply to <span id="qa-app-target-env-label" style="color:#d8b4fe; font-weight:700;">QA_STAGING</span> and update replicator circuit breakers instantly.
           </div>
-          <button id="qa-app-apply-btn" onclick="window.applyQaAppConfigPatch()" style="background:linear-gradient(135deg, #a855f7, #7c3aed); border:1px solid rgba(168,85,247,0.6); color:#fff; font-size:12px; font-weight:800; padding:10px 24px; border-radius:8px; cursor:pointer; box-shadow:0 0 16px rgba(168,85,247,0.35); transition:all 0.2s;">
-            ⚡ Apply App Config Patch
-          </button>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <button type="button" onclick="window.closeQaConfigModal()" style="background:transparent; border:1px solid var(--border); color:var(--text-muted); font-size:12px; font-weight:700; padding:10px 18px; border-radius:8px; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.color='var(--text-main)';this.style.borderColor='var(--text-muted)';" onmouseout="this.style.color='var(--text-muted)';this.style.borderColor='var(--border)';">Close</button>
+            <button id="qa-app-apply-btn" onclick="window.applyQaAppConfigPatch()" style="background:linear-gradient(135deg, #a855f7, #7c3aed); border:1px solid rgba(168,85,247,0.6); color:#fff; font-size:12px; font-weight:800; padding:10px 24px; border-radius:8px; cursor:pointer; box-shadow:0 0 16px rgba(168,85,247,0.35); transition:all 0.2s;">
+              ⚡ Apply App Config Patch
+            </button>
+          </div>
         </div>
 
       </div>
@@ -11450,13 +11476,16 @@ document.addEventListener('mousemove', (e) => {
         <div id="qa-inst-status-banner" style="display:none; padding:10px 14px; border-radius:8px; font-size:12px; font-family:'JetBrains Mono',monospace; justify-content:space-between; align-items:center;"></div>
 
         <!-- Tab 2 Footer -->
-        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:14px; flex-shrink:0;">
           <div style="font-size:11px; color:var(--text-muted);">
             Updates <span id="qa-inst-target-symbol-label" style="color:var(--cyan); font-weight:700; font-family:'JetBrains Mono',monospace;">B-XRP_USDT</span> on <span id="qa-inst-target-env-label" style="color:#d8b4fe; font-weight:700;">QA_STAGING</span>.
           </div>
-          <button id="qa-inst-apply-btn" onclick="window.applyQaInstrumentPatch()" style="background:linear-gradient(135deg, #06b6d4, #0284c7); border:1px solid rgba(6,182,212,0.6); color:#fff; font-size:12px; font-weight:800; padding:10px 24px; border-radius:8px; cursor:pointer; box-shadow:0 0 16px rgba(6,182,212,0.35); transition:all 0.2s;">
-            ⚡ Apply Instrument Patch
-          </button>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <button type="button" onclick="window.closeQaConfigModal()" style="background:transparent; border:1px solid var(--border); color:var(--text-muted); font-size:12px; font-weight:700; padding:10px 18px; border-radius:8px; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.color='var(--text-main)';this.style.borderColor='var(--text-muted)';" onmouseout="this.style.color='var(--text-muted)';this.style.borderColor='var(--border)';">Close</button>
+            <button id="qa-inst-apply-btn" onclick="window.applyQaInstrumentPatch()" style="background:linear-gradient(135deg, #06b6d4, #0284c7); border:1px solid rgba(6,182,212,0.6); color:#fff; font-size:12px; font-weight:800; padding:10px 24px; border-radius:8px; cursor:pointer; box-shadow:0 0 16px rgba(6,182,212,0.35); transition:all 0.2s;">
+              ⚡ Apply Instrument Patch
+            </button>
+          </div>
         </div>
 
       </div>
@@ -11470,7 +11499,6 @@ document.addEventListener('mousemove', (e) => {
 // QA CONTROLS & RISK CONFIGURATOR MODAL JAVASCRIPT LOGIC
 // =========================================================================
 (function() {
-    let qaModalActiveEnv = 'QA_STAGING';
     let qaModalActiveTab = 'app'; // 'app' | 'inst'
     let qaAppViewMode = 'form';   // 'form' | 'json'
     let qaInstViewMode = 'form';  // 'form' | 'json'
@@ -11504,8 +11532,20 @@ document.addEventListener('mousemove', (e) => {
         DEV_STAGING: 'https://staging-exchange-futures-hpo.dcxstage.com'
     };
 
+    function getActiveGlobalTier() {
+        if (window.activeEnvFilter) {
+            return window.activeEnvFilter.toUpperCase().replace(/-/g, '_');
+        }
+        const activeTab = document.querySelector('.env-tab.on');
+        if (activeTab && activeTab.getAttribute('data-env')) {
+            return activeTab.getAttribute('data-env').toUpperCase().replace(/-/g, '_');
+        }
+        return (window.activeTier || 'QA_STAGING').toUpperCase().replace(/-/g, '_');
+    }
+
     function getHpoBase() {
-        return HPO_DOMAINS[qaModalActiveEnv] || HPO_DOMAINS.QA_STAGING;
+        const tier = getActiveGlobalTier();
+        return HPO_DOMAINS[tier] || HPO_DOMAINS.QA_STAGING;
     }
 
     function getActiveSymbol() {
@@ -11527,26 +11567,61 @@ document.addEventListener('mousemove', (e) => {
     }
 
     window.openQaConfigModal = function() {
+        // Close Configure drawer if open so modal has complete focus
+        const drawer = document.getElementById('drawer');
+        const overlayDrawer = document.getElementById('overlay');
+        if (drawer) drawer.classList.remove('open');
+        if (overlayDrawer) overlayDrawer.classList.remove('open');
+
         const overlay = document.getElementById('qa-config-modal-overlay');
         if (!overlay) return;
+
+        const currentTier = getActiveGlobalTier();
         
-        // Auto-select active tier if QA/DEV, otherwise QA_STAGING
-        const currentTier = (window.activeTier || 'QA_STAGING').toUpperCase().replace(/-/g, '_');
-        if (currentTier === 'DEV_STAGING') {
-            window.setQaModalEnv('DEV_STAGING');
-        } else {
-            window.setQaModalEnv('QA_STAGING');
+        // Update header environment badge
+        const envBadge = document.getElementById('qa-modal-global-env-badge');
+        const prodBanner = document.getElementById('qa-prod-warning-banner');
+        const appEnvLabel = document.getElementById('qa-app-target-env-label');
+        const instEnvLabel = document.getElementById('qa-inst-target-env-label');
+
+        if (envBadge) {
+            envBadge.textContent = currentTier;
+            if (currentTier === 'DEV_STAGING') {
+                envBadge.style.color = '#06b6d4';
+                envBadge.style.background = 'rgba(6,182,212,0.18)';
+                envBadge.style.borderColor = 'rgba(6,182,212,0.4)';
+            } else if (currentTier === 'PRODUCTION') {
+                envBadge.style.color = '#f87171';
+                envBadge.style.background = 'rgba(239,68,68,0.18)';
+                envBadge.style.borderColor = 'rgba(239,68,68,0.4)';
+            } else {
+                envBadge.style.color = '#d8b4fe';
+                envBadge.style.background = 'rgba(168,85,247,0.22)';
+                envBadge.style.borderColor = 'rgba(168,85,247,0.45)';
+            }
         }
 
+        if (appEnvLabel) appEnvLabel.textContent = currentTier;
+        if (instEnvLabel) instEnvLabel.textContent = currentTier;
+
+        if (prodBanner) {
+            prodBanner.style.display = (currentTier === 'PRODUCTION') ? 'flex' : 'none';
+        }
+
+        // Show modal with clean opacity transition
         overlay.style.display = 'flex';
         void overlay.offsetWidth;
         overlay.style.opacity = '1';
         document.body.style.overflow = 'hidden';
 
+        // Update target URLs
+        window.updateQaAppTargetUrl();
+        window.updateQaInstTargetUrl();
+
         // Populate instrument dropdown from available instruments if any
         window.populateQaInstrumentSymbols();
 
-        // Fetch latest data
+        // Fetch latest data for active global tier
         window.fetchQaAppConfig();
         window.fetchQaInstrument();
     };
@@ -11556,32 +11631,18 @@ document.addEventListener('mousemove', (e) => {
         if (!overlay) return;
         overlay.style.opacity = '0';
         document.body.style.overflow = '';
-        setTimeout(() => { overlay.style.display = 'none'; }, 250);
+        setTimeout(() => { overlay.style.display = 'none'; }, 200);
     };
 
-    window.setQaModalEnv = function(env) {
-        qaModalActiveEnv = env;
-        const btnQa = document.getElementById('qa-env-qa');
-        const btnDev = document.getElementById('qa-env-dev');
-        if (btnQa && btnDev) {
-            if (env === 'QA_STAGING') {
-                btnQa.style.background = '#a855f7'; btnQa.style.color = '#fff';
-                btnDev.style.background = 'transparent'; btnDev.style.color = 'var(--text-muted)';
-            } else {
-                btnDev.style.background = '#06b6d4'; btnDev.style.color = '#fff';
-                btnQa.style.background = 'transparent'; btnQa.style.color = 'var(--text-muted)';
+    // ESC key support to dismiss modal
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const overlay = document.getElementById('qa-config-modal-overlay');
+            if (overlay && (overlay.style.display === 'flex' || overlay.style.opacity === '1')) {
+                window.closeQaConfigModal();
             }
         }
-        const appEnvLabel = document.getElementById('qa-app-target-env-label');
-        if (appEnvLabel) appEnvLabel.textContent = env;
-        const instEnvLabel = document.getElementById('qa-inst-target-env-label');
-        if (instEnvLabel) instEnvLabel.textContent = env;
-
-        window.updateQaAppTargetUrl();
-        window.updateQaInstTargetUrl();
-        window.fetchQaAppConfig();
-        window.fetchQaInstrument();
-    };
+    });
 
     window.switchQaModalTab = function(tab) {
         qaModalActiveTab = tab;
@@ -11701,8 +11762,9 @@ document.addEventListener('mousemove', (e) => {
         const known = ['B-XRP_USDT', 'B-BTC_USDT', 'B-ETH_USDT', 'B-SOL_USDT', 'B-DOGE_USDT'];
         
         const existing = new Set(known);
-        if (window.instrumentsMap && window.instrumentsMap[qaModalActiveEnv]) {
-            Object.keys(window.instrumentsMap[qaModalActiveEnv]).forEach(s => {
+        const tier = getActiveGlobalTier();
+        if (window.instrumentsMap && window.instrumentsMap[tier]) {
+            Object.keys(window.instrumentsMap[tier]).forEach(s => {
                 const bSym = s.startsWith('B-') ? s : `B-${s.replace(/USDT$/, '_USDT')}`;
                 existing.add(bSym);
             });
@@ -11727,9 +11789,10 @@ document.addEventListener('mousemove', (e) => {
     // =========================================================================
     window.fetchQaAppConfig = async function() {
         const key = getActiveAppKey();
+        const tier = getActiveGlobalTier();
         window.updateQaAppTargetUrl();
         try {
-            const res = await fetch(`/api/qa/app-config?tier=${qaModalActiveEnv}&key=${encodeURIComponent(key)}`);
+            const res = await fetch(`/api/qa/app-config?tier=${tier}&key=${encodeURIComponent(key)}`);
             const data = await res.json();
             if (res.ok && data.success && data.data) {
                 if (data.data.json_value) {
@@ -11741,7 +11804,7 @@ document.addEventListener('mousemove', (e) => {
                 }
                 window.renderQaAppConfigForm();
                 window.updateQaAppJsonTextarea();
-                window.showQaAppStatus(`✓ Fetched latest "${key}" from ${qaModalActiveEnv} successfully.`, 'success');
+                window.showQaAppStatus(`✓ Fetched latest "${key}" from ${tier} successfully.`, 'success');
             } else {
                 window.showQaAppStatus(`Error ${res.status}: ${data.error || 'Failed to fetch'}`, 'error');
             }
@@ -12033,6 +12096,7 @@ document.addEventListener('mousemove', (e) => {
     window.applyQaAppConfigPatch = async function() {
         const btn = document.getElementById('qa-app-apply-btn');
         const key = getActiveAppKey();
+        const tier = getActiveGlobalTier();
         const originalText = btn ? btn.innerHTML : '';
         if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Patching HPO...'; }
 
@@ -12046,7 +12110,7 @@ document.addEventListener('mousemove', (e) => {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    tier: qaModalActiveEnv,
+                    tier: tier,
                     key: key,
                     payload: payloadToSend
                 })
@@ -12054,7 +12118,7 @@ document.addEventListener('mousemove', (e) => {
 
             const data = await res.json();
             if (res.ok && data.success) {
-                window.showQaAppStatus(`✓ Success (HTTP ${data.status || 200}): ${key} updated on ${qaModalActiveEnv}! Details sent to Terminal pane.`, 'success');
+                window.showQaAppStatus(`✓ Success (HTTP ${data.status || 200}): ${key} updated on ${tier}! Details sent to Terminal pane.`, 'success');
                 window.showToast ? window.showToast(`[QA] ${key} patched successfully!`) : null;
             } else {
                 const errMsg = data.error ? (typeof data.error === 'object' ? JSON.stringify(data.error) : data.error) : 'Update failed';
@@ -12097,9 +12161,10 @@ document.addEventListener('mousemove', (e) => {
     // =========================================================================
     window.fetchQaInstrument = async function() {
         const sym = getActiveSymbol();
+        const tier = getActiveGlobalTier();
         window.updateQaInstTargetUrl();
         try {
-            const res = await fetch(`/api/qa/instrument?tier=${qaModalActiveEnv}&symbol=${encodeURIComponent(sym)}`);
+            const res = await fetch(`/api/qa/instrument?tier=${tier}&symbol=${encodeURIComponent(sym)}`);
             const data = await res.json();
             if (res.ok && data.success) {
                 if (data.instrument) {
@@ -12119,7 +12184,7 @@ document.addEventListener('mousemove', (e) => {
 
                 window.renderQaInstrumentForm();
                 window.updateQaInstJsonTextarea();
-                window.showQaInstStatus(`✓ Loaded attributes for ${sym} on ${qaModalActiveEnv}.`, 'success');
+                window.showQaInstStatus(`✓ Loaded attributes for ${sym} on ${tier}.`, 'success');
             } else {
                 window.showQaInstStatus(`Error: ${data.error || 'Failed to fetch instrument'}`, 'error');
             }
@@ -12223,6 +12288,7 @@ document.addEventListener('mousemove', (e) => {
     window.applyQaInstrumentPatch = async function() {
         const btn = document.getElementById('qa-inst-apply-btn');
         const sym = getActiveSymbol();
+        const tier = getActiveGlobalTier();
         const cookieInput = document.getElementById('qa-inst-cookies');
         const cookieVal = cookieInput ? cookieInput.value.trim() : '';
         const originalText = btn ? btn.innerHTML : '';
@@ -12233,7 +12299,7 @@ document.addEventListener('mousemove', (e) => {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    tier: qaModalActiveEnv,
+                    tier: tier,
                     symbol: sym,
                     payload: qaInstrumentData,
                     cookie: cookieVal || undefined
@@ -12242,7 +12308,7 @@ document.addEventListener('mousemove', (e) => {
 
             const data = await res.json();
             if (res.ok && data.success) {
-                window.showQaInstStatus(`✓ Success (HTTP ${data.status || 200}): ${sym} patched on ${qaModalActiveEnv}! Details sent to Terminal pane.`, 'success');
+                window.showQaInstStatus(`✓ Success (HTTP ${data.status || 200}): ${sym} patched on ${tier}! Details sent to Terminal pane.`, 'success');
                 window.showToast ? window.showToast(`[QA] ${sym} patched successfully!`) : null;
                 const livePill = document.getElementById('qa-inst-live-pill');
                 if (livePill) livePill.textContent = `Engine: ↑${qaInstrumentData.multiplier_up}x | ↓${qaInstrumentData.multiplier_down}x`;
