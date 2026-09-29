@@ -6,3 +6,4 @@ config.json
 multi-config.json
 .env
 keys.json
+graphify-out/
