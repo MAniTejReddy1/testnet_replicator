@@ -155,7 +155,7 @@ const TIER_URLS = {
         PUBLIC_MDN: "https://testnet-exchange-public-mdn.dcxstage.com",
         ONBOARDING: "https://testnet-exchange-api.dcxstage.com",
         RAILS: "https://testnet-exchange-rails-api.dcxstage.com",
-        WS_GATEWAY: "wss://testnet-futures-socket-gateway.dcxstage.com"
+        WS_GATEWAY: "wss://testnet-exchange-futures-socket-gateway.dcxstage.com"
     },
     QA_STAGING: {
         HPO: "https://testnet-futures-hpo.dcxstage.com",
@@ -171,7 +171,7 @@ const TIER_URLS = {
         PUBLIC_MDN: "https://staging-exchange-public-mdn.dcxstage.com",
         ONBOARDING: "https://staging-exchange-api.dcxstage.com",
         RAILS: "https://staging-exchange-rails-api.dcxstage.com",
-        WS_GATEWAY: "wss://testnet-futures-socket-gateway.dcxstage.com"
+        WS_GATEWAY: "wss://staging-exchange-futures-socket-gateway.dcxstage.com"
     }
 };
 TIER_URLS["QA-STAGING"] = TIER_URLS.QA_STAGING;
