@@ -1963,12 +1963,64 @@
   .term-empty { color:var(--text-muted); margin-bottom:12px; font-style:italic; text-align:center; padding:40px 0; }
 
   /* Terminal right details pane */
-  .term-details { width:380px; display:flex; flex-direction:column; background:var(--panel); border-left:1px solid var(--border); transition:width 0.3s var(--ease); }
-  .term-details.hidden { width:0; overflow:hidden; border-left:none; }
-  .term-details-header { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; border-bottom:1px solid var(--border); background:var(--input-bg); flex-shrink:0; }
-  .term-details-body { flex:1; overflow-y:auto; padding:12px; font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-main); white-space:pre-wrap; word-break:break-all; line-height:1.5; }
-  .term-details-close { background:transparent; border:1px solid var(--border); color:var(--text-muted); border-radius:4px; width:22px; height:22px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:12px; transition:all 0.2s; }
-  .term-details-close:hover { color:var(--text-main); background:var(--hover-bg); }
+  .term-details { width:520px; display:flex; flex-direction:column; background:var(--panel, #0b0f19); border-left:1px solid var(--border); transition:width 0.25s cubic-bezier(0.4, 0, 0.2, 1); z-index:10; position:relative; }
+  .term-details.expanded { width:820px; max-width:62vw; }
+  .term-details.hidden { width:0 !important; overflow:hidden; border-left:none; }
+  .term-details-header { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; border-bottom:1px solid var(--border); background:var(--input-bg, #0d121f); flex-shrink:0; gap:8px; }
+  .term-details-actions { display:flex; align-items:center; gap:6px; }
+  .term-details-btn { background:rgba(255,255,255,0.04); border:1px solid var(--border); color:var(--text-muted); border-radius:5px; height:24px; padding:0 8px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; font-size:10px; font-weight:700; font-family:'Inter',sans-serif; letter-spacing:0.3px; transition:all 0.15s; }
+  .term-details-btn:hover { color:var(--text-main); background:rgba(255,255,255,0.08); border-color:rgba(255,255,255,0.2); }
+  .term-details-btn.active { color:var(--cyan); background:rgba(6,182,212,0.12); border-color:rgba(6,182,212,0.3); }
+  .term-details-close { background:transparent; border:1px solid var(--border); color:var(--text-muted); border-radius:5px; width:24px; height:24px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:12px; transition:all 0.2s; }
+  .term-details-close:hover { color:#f87171; background:rgba(248,113,113,0.1); border-color:rgba(248,113,113,0.3); }
+
+  .term-details-body { flex:1; overflow-y:auto; padding:14px; font-family:'Inter',sans-serif; font-size:11px; color:var(--text-main); line-height:1.5; }
+  
+  /* Details Pane Components */
+  .dp-top-summary { background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:12px; display:flex; flex-direction:column; gap:8px; }
+  .dp-top-row { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+  .dp-endpoint-path { font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; color:var(--text-main); word-break:break-all; }
+  
+  .dp-badge { padding:2px 7px; border-radius:4px; font-size:9.5px; font-weight:800; font-family:'JetBrains Mono',monospace; letter-spacing:0.4px; display:inline-flex; align-items:center; gap:4px; line-height:1.4; }
+  .dp-badge.method-get { background:rgba(56,189,248,0.15); color:#38bdf8; border:1px solid rgba(56,189,248,0.3); }
+  .dp-badge.method-post { background:rgba(52,211,153,0.15); color:#34d399; border:1px solid rgba(52,211,153,0.3); }
+  .dp-badge.method-delete { background:rgba(248,113,113,0.15); color:#f87171; border:1px solid rgba(248,113,113,0.3); }
+  .dp-badge.method-put { background:rgba(251,191,36,0.15); color:#fbbf24; border:1px solid rgba(251,191,36,0.3); }
+  .dp-badge.status-ok { background:rgba(52,211,153,0.15); color:#34d399; border:1px solid rgba(52,211,153,0.35); }
+  .dp-badge.status-err { background:rgba(248,113,113,0.15); color:#f87171; border:1px solid rgba(248,113,113,0.35); }
+  .dp-badge.latency { background:rgba(255,255,255,0.04); color:var(--text-muted); border:1px solid rgba(255,255,255,0.08); }
+  
+  .dp-card { background:rgba(15,20,31,0.6); border:1px solid rgba(255,255,255,0.07); border-radius:8px; padding:12px; margin-bottom:12px; }
+  .dp-card.req-card { border-top:2px solid var(--cyan); }
+  .dp-card.res-card-ok { border-top:2px solid var(--emerald); }
+  .dp-card.res-card-err { border-top:2px solid var(--rose); }
+  
+  .dp-card-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.05); }
+  .dp-card-title { font-size:10.5px; font-weight:800; letter-spacing:0.6px; text-transform:uppercase; display:flex; align-items:center; gap:6px; }
+  .dp-card-title.req { color:var(--cyan); }
+  .dp-card-title.res-ok { color:var(--emerald); }
+  .dp-card-title.res-err { color:var(--rose); }
+  
+  .dp-kv-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(130px, 1fr)); gap:6px; margin-bottom:10px; }
+  .dp-kv-item { background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.05); border-radius:5px; padding:6px 8px; }
+  .dp-kv-label { font-size:9px; color:var(--text-muted); text-transform:uppercase; font-weight:700; letter-spacing:0.4px; margin-bottom:2px; }
+  .dp-kv-val { font-size:11px; font-family:'JetBrains Mono',monospace; font-weight:600; color:var(--text-main); word-break:break-all; }
+  
+  .dp-code-box { background:#070a12; border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:10px; font-family:'JetBrains Mono',monospace; font-size:10.5px; line-height:1.55; overflow-x:auto; white-space:pre; color:#cbd5e1; max-height:360px; overflow-y:auto; }
+  .dp-code-box .json-key { color:#38bdf8; font-weight:600; }
+  .dp-code-box .json-str { color:#34d399; }
+  .dp-code-box .json-num { color:#fbbf24; font-weight:600; }
+  .dp-code-box .json-bool { color:#c084fc; font-weight:700; }
+  .dp-code-box .json-null { color:#94a3b8; font-style:italic; }
+
+  .dp-alert-err { background:rgba(244,63,94,0.1); border:1px solid rgba(244,63,94,0.25); border-radius:6px; padding:8px 10px; margin-bottom:10px; display:flex; align-items:flex-start; gap:8px; color:#fca5a5; font-size:11px; }
+  .dp-alert-ok { background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); border-radius:6px; padding:8px 10px; margin-bottom:10px; display:flex; align-items:center; gap:8px; color:#6ee7b7; font-size:11px; }
+  
+  .dp-details-collapsible { margin-bottom:8px; border:1px solid rgba(255,255,255,0.05); border-radius:5px; overflow:hidden; }
+  .dp-details-collapsible summary { background:rgba(255,255,255,0.02); padding:5px 8px; font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); cursor:pointer; user-select:none; }
+  .dp-details-collapsible summary:hover { color:var(--text-main); background:rgba(255,255,255,0.04); }
+  .dp-details-collapsible[open] summary { border-bottom:1px solid rgba(255,255,255,0.05); }
+  .dp-details-collapsible-content { padding:8px; background:rgba(0,0,0,0.2); }
 
   /* LTP Cross Stream styles */
   .trade-row { cursor:pointer; transition:background 0.15s; }
@@ -3873,13 +3925,18 @@
       <div id="term-details-pane" class="term-details hidden">
         <div class="term-details-header">
           <div class="log-meta-tabs" style="margin-bottom:0;">
-            <button id="dp-tab-payload" class="log-meta-tab active" data-tab="payload" onclick="window.switchDetailsPaneTab('payload')">Request</button>
+            <button id="dp-tab-all" class="log-meta-tab active" data-tab="all" onclick="window.switchDetailsPaneTab('all')">Unified View</button>
+            <button id="dp-tab-payload" class="log-meta-tab" data-tab="payload" onclick="window.switchDetailsPaneTab('payload')">Request</button>
             <button id="dp-tab-response" class="log-meta-tab" data-tab="response" onclick="window.switchDetailsPaneTab('response')">Response</button>
-            <button id="dp-tab-all" class="log-meta-tab" data-tab="all" onclick="window.switchDetailsPaneTab('all')">Full Details</button>
           </div>
-          <button class="term-details-close" onclick="window.closeDetailsPane()">✕</button>
+          <div class="term-details-actions">
+            <button class="term-details-btn" id="btn-copy-curl" title="Copy as cURL command" onclick="window.copyCurlFromDetails(this)">cURL</button>
+            <button class="term-details-btn" id="btn-copy-json" title="Copy formatted JSON" onclick="window.copyJsonFromDetails(this)">Copy JSON</button>
+            <button class="term-details-btn" id="btn-toggle-expand" title="Expand / Contract Panel Width" onclick="window.toggleDetailsPaneExpand(this)">⤢</button>
+            <button class="term-details-close" title="Close Details Pane" onclick="window.closeDetailsPane()">✕</button>
+          </div>
         </div>
-        <div id="term-details-body" class="term-details-body log-meta-pre">
+        <div id="term-details-body" class="term-details-body">
           <div class="term-empty" style="padding:20px 0;">Select a log entry to view details</div>
         </div>
       </div>
@@ -8731,24 +8788,131 @@ window.addEventListener('DOMContentLoaded', () => {
 
         // --- Syntax-highlighted JSON formatter ---
         window.formatJsonHtml = function(data) {
+            if (data === undefined || data === null) return '<span class="json-null">null</span>';
             let str = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+            if (!str) return '<span class="json-null">null</span>';
+            if (typeof data === 'string' && (str.startsWith('{') || str.startsWith('['))) {
+                try { str = JSON.stringify(JSON.parse(str), null, 2); } catch(e) {}
+            }
             str = str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            str = str.replace(/"([^"]+)"(?=\s*:)/g, '"<span class="json-key">$1</span>"');
-            str = str.replace(/:\s*"([^"]*)"/g, ': "<span class="json-str">$1</span>"');
-            str = str.replace(/:\s*(-?\d+\.?\d*)/g, ': <span class="json-num">$1</span>');
-            str = str.replace(/:\s*(true|false)/g, ': <span class="json-bool">$1</span>');
-            str = str.replace(/:\s*(null)/g, ': <span class="json-null">$1</span>');
-            return str;
+            return str.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                let cls = 'json-num';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'json-key';
+                        return '<span class="' + cls + '">' + match.slice(0, -1) + '</span>:';
+                    } else {
+                        cls = 'json-str';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'json-bool';
+                } else if (/null/.test(match)) {
+                    cls = 'json-null';
+                }
+                return '<span class="' + cls + '">' + match + '</span>';
+            });
+        };
+
+        // --- Clipboard Helper ---
+        window.copyToClipboard = function(text, btnElement, successText = '✓ Copied') {
+            if (!text) return;
+            const originalContent = btnElement ? btnElement.innerHTML : null;
+            const finishCopy = () => {
+                if (btnElement) {
+                    btnElement.innerHTML = successText;
+                    btnElement.style.color = '#34d399';
+                    setTimeout(() => {
+                        btnElement.innerHTML = originalContent;
+                        btnElement.style.color = '';
+                    }, 1400);
+                }
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(finishCopy).catch(() => fallbackCopy(text, finishCopy));
+            } else {
+                fallbackCopy(text, finishCopy);
+            }
+        };
+
+        function fallbackCopy(text, callback) {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try {
+                document.execCommand('copy');
+                if (callback) callback();
+            } catch (e) {
+                console.error('Fallback copy failed', e);
+            }
+            document.body.removeChild(ta);
+        }
+
+        window.copyCurlFromDetails = function(btnElement) {
+            if (!window.activeDetailsMeta) return;
+            const req = window.activeDetailsMeta.request || window.activeDetailsMeta.req;
+            if (!req) {
+                window.copyToClipboard(JSON.stringify(window.activeDetailsMeta, null, 2), btnElement, '✓ Copied');
+                return;
+            }
+            const method = (req.method || 'POST').toUpperCase();
+            const url = req.fullUrl || req.url || '';
+            let curl = `curl -X ${method} "${url}"`;
+            if (req.headers && typeof req.headers === 'object') {
+                for (const [k, v] of Object.entries(req.headers)) {
+                    if (v !== undefined && v !== null) {
+                        curl += ` \\\n  -H "${k}: ${v}"`;
+                    }
+                }
+            }
+            const body = req.payload !== undefined ? req.payload : (window.activeDetailsMeta.payload !== undefined ? window.activeDetailsMeta.payload : null);
+            if (body !== null && method !== 'GET') {
+                const bodyStr = typeof body === 'string' ? body : JSON.stringify(body);
+                curl += ` \\\n  --data '${bodyStr.replace(/'/g, `'\\''`)}'`;
+            }
+            window.copyToClipboard(curl, btnElement, '✓ cURL Copied');
+        };
+
+        window.copyJsonFromDetails = function(btnElement) {
+            if (!window.activeDetailsMeta) return;
+            const meta = window.activeDetailsMeta;
+            let dataToCopy = meta;
+            const tab = window.activeDetailsTab || 'all';
+            if (tab === 'payload') {
+                dataToCopy = meta.request || meta.req || meta.payload || meta;
+            } else if (tab === 'response') {
+                dataToCopy = meta.response || meta.res || meta.data || meta;
+            } else {
+                dataToCopy = meta;
+            }
+            const jsonStr = typeof dataToCopy === 'string' ? dataToCopy : JSON.stringify(dataToCopy, null, 2);
+            window.copyToClipboard(jsonStr, btnElement, '✓ Copied');
+        };
+
+        window.toggleDetailsPaneExpand = function(btnElement) {
+            const pane = document.getElementById('term-details-pane');
+            if (!pane) return;
+            pane.classList.toggle('expanded');
+            const isExpanded = pane.classList.contains('expanded');
+            if (btnElement) {
+                btnElement.innerHTML = isExpanded ? '⤡' : '⤢';
+                btnElement.title = isExpanded ? 'Contract Panel Width' : 'Expand Panel Width';
+                btnElement.classList.toggle('active', isExpanded);
+            }
         };
 
         // --- Right-side details pane state ---
         window.activeDetailsMeta = null;
-        window.activeDetailsTab = 'payload';
+        window.activeDetailsLog = null;
+        window.activeDetailsTab = 'all';
         window.selectedLogIdx = null;
 
         // Open the right details pane with the given meta
-        window.openDetailsPane = function(metaObj, logIdx) {
+        window.openDetailsPane = function(metaObj, logIdx, logObj = null) {
             window.activeDetailsMeta = metaObj;
+            window.activeDetailsLog = logObj;
             window.activeDetailsTab = 'all'; // Default to unified full details
             window.selectedLogIdx = logIdx;
 
@@ -8760,7 +8924,7 @@ window.addEventListener('DOMContentLoaded', () => {
             const clickedRow = document.getElementById('tl-' + logIdx);
             if (clickedRow) clickedRow.classList.add('selected');
 
-            // Update tab states: default to 'Full Details'
+            // Update tab states: default to 'Unified View'
             const pTab = document.getElementById('dp-tab-payload');
             const rTab = document.getElementById('dp-tab-response');
             const aTab = document.getElementById('dp-tab-all');
@@ -8773,6 +8937,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
         window.closeDetailsPane = function() {
             window.activeDetailsMeta = null;
+            window.activeDetailsLog = null;
             window.selectedLogIdx = null;
             const pane = document.getElementById('term-details-pane');
             if (pane) pane.classList.add('hidden');
@@ -8794,71 +8959,215 @@ window.addEventListener('DOMContentLoaded', () => {
             const body = document.getElementById('term-details-body');
             if (!body) return;
             if (!window.activeDetailsMeta) {
-                body.innerHTML = '<div class="term-empty" style="padding:20px 0;">Select a log entry to view details</div>';
+                body.innerHTML = '<div class="term-empty" style="padding:24px 0;">Select a log entry with ▶ DETAILS to view inspection data</div>';
                 return;
             }
             const meta = window.activeDetailsMeta;
+            const log = window.activeDetailsLog;
             const tab = window.activeDetailsTab || 'all';
 
-            if (tab === 'payload') {
-                const reqData = meta.request || meta.req || meta.payload || meta;
-                body.innerHTML = `<div style="margin-bottom:8px;font-size:11px;font-weight:700;color:var(--cyan);letter-spacing:0.5px;">▶ REQUEST DETAILS</div>` + window.formatJsonHtml(reqData);
-                return;
-            }
-            if (tab === 'response') {
-                const resData = meta.response || meta.res || meta.data || meta.error || 'No response data';
-                body.innerHTML = `<div style="margin-bottom:8px;font-size:11px;font-weight:700;color:var(--emerald);letter-spacing:0.5px;">◀ SERVER RESPONSE DETAILS</div>` + window.formatJsonHtml(resData);
-                return;
-            }
+            const req = meta.request || meta.req || (meta.url ? meta : null);
+            const res = meta.response || meta.res || (meta.status ? meta : null);
 
-            // --- 'all' tab: Complete Request + Response unified view ---
-            const req = meta.request || meta.req;
-            const res = meta.response || meta.res;
-
-            let html = '';
-            if (req) {
-                const method = req.method || 'API';
-                const url = req.fullUrl || req.url || '';
-                const mColor = method === 'GET' ? '#38bdf8' : (method === 'POST' ? '#34d399' : (method === 'DELETE' ? '#f87171' : '#fbbf24'));
-                html += `
-                <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:12px;margin-bottom:14px;">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.06);">
-                        <div style="display:flex;align-items:center;gap:6px;">
-                            <span style="background:${mColor}22;color:${mColor};border:1px solid ${mColor}44;padding:2px 8px;border-radius:4px;font-weight:800;font-size:10px;">${method}</span>
-                            <span style="font-size:11px;font-weight:700;color:var(--text-main);word-break:break-all;">${url || 'Request'}</span>
-                        </div>
-                        ${req.timestamp ? `<span style="font-size:9.5px;color:var(--text-muted);font-family:monospace;">${new Date(req.timestamp).toLocaleTimeString()}</span>` : ''}
-                    </div>
-                    ${req.headers ? `<div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Request Headers:</div><div style="margin-bottom:10px;overflow-x:auto;">${window.formatJsonHtml(req.headers)}</div>` : ''}
-                    <div style="font-size:10px;color:var(--cyan);margin-bottom:4px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Request Payload:</div>
-                    <div style="overflow-x:auto;">${window.formatJsonHtml(req.payload !== undefined ? req.payload : (meta.payload || req))}</div>
-                </div>`;
-            }
-
-            if (res) {
-                const status = res.status !== undefined ? res.status : 200;
-                const isOk = status >= 200 && status < 300;
-                const sColor = isOk ? '#34d399' : '#f87171';
-                html += `
-                <div style="background:rgba(255,255,255,0.02);border:1px solid ${isOk ? 'rgba(52,211,153,0.2)' : 'rgba(248,113,113,0.2)'};border-radius:8px;padding:12px;">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.06);">
-                        <div style="display:flex;align-items:center;gap:6px;">
-                            <span style="background:${sColor}22;color:${sColor};border:1px solid ${sColor}44;padding:2px 8px;border-radius:4px;font-weight:800;font-size:10px;">HTTP ${status} ${res.statusText || (isOk ? 'OK' : 'Error')}</span>
-                            <span style="font-size:11px;font-weight:700;color:${sColor};">Server Response</span>
-                        </div>
-                        ${res.latencyMs !== undefined ? `<span style="font-size:10px;color:var(--text-muted);font-family:monospace;">Latency: <strong style="color:var(--text-main);">${res.latencyMs}ms</strong></span>` : ''}
-                    </div>
-                    ${res.headers ? `<div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Response Headers:</div><div style="margin-bottom:10px;overflow-x:auto;">${window.formatJsonHtml(res.headers)}</div>` : ''}
-                    <div style="font-size:10px;color:${sColor};margin-bottom:4px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Server Data:</div>
-                    <div style="overflow-x:auto;">${window.formatJsonHtml(res.data !== undefined ? res.data : res)}</div>
-                </div>`;
-            }
-
+            // If neither req nor res exists, format meta directly
             if (!req && !res) {
-                html = `<div style="overflow-x:auto;">${window.formatJsonHtml(meta)}</div>`;
+                const rawMetaStr = typeof meta === 'string' ? meta : JSON.stringify(meta, null, 2);
+                body.innerHTML = `
+                <div class="dp-card">
+                    <div class="dp-card-head">
+                        <span class="dp-card-title req">Inspection Metadata</span>
+                        <button class="dp-copy-btn" onclick="window.copyToClipboard(${JSON.stringify(rawMetaStr).replace(/"/g, '&quot;')}, this)">Copy JSON</button>
+                    </div>
+                    <div class="dp-code-box">${window.formatJsonHtml(meta)}</div>
+                </div>`;
+                return;
             }
 
-            body.innerHTML = html;
+            // --- 1. Top Executive Banner (Method, Status, Latency, Endpoint) ---
+            const method = ((req && req.method) || (meta.method) || 'API').toUpperCase();
+            const url = (req && (req.url || req.fullUrl)) || meta.url || '';
+            const fullUrl = (req && req.fullUrl) || url;
+            const mClass = method === 'GET' ? 'method-get' : (method === 'POST' ? 'method-post' : (method === 'DELETE' ? 'method-delete' : 'method-put'));
+
+            const status = (res && res.status !== undefined) ? res.status : ((meta && meta.status) || 200);
+            const isOk = status >= 200 && status < 300;
+            const statusText = (res && res.statusText) || (isOk ? 'OK' : 'Error');
+            const latencyMs = (res && res.latencyMs !== undefined) ? res.latencyMs : (meta.latencyMs || null);
+            const tsStr = (req && req.timestamp) ? new Date(req.timestamp).toLocaleTimeString() : (log && log.time ? log.time : '');
+
+            // Friendly operation name derived from endpoint path
+            let opName = 'API Request';
+            if (url.includes('/fapi/v1/order') || url.includes('/order')) opName = method === 'DELETE' ? 'Cancel Order' : 'Order Execution';
+            else if (url.includes('/fapi/v1/allOrders')) opName = 'Order History Query';
+            else if (url.includes('/fapi/v1/openOrders')) opName = 'Open Orders Query';
+            else if (url.includes('/fapi/v1/leverage')) opName = 'Adjust Leverage';
+            else if (url.includes('/fapi/v1/positionMargin')) opName = 'Adjust Position Margin';
+            else if (url.includes('/fapi/v2/positionRisk')) opName = 'Position Risk Inspection';
+            else if (url.includes('/fapi/v2/account') || url.includes('/balance')) opName = 'Account Balance Query';
+            else if (url.includes('seed_balance') || url.includes('seed-balance')) opName = 'Wallet Seed / Top-Up';
+            else if (url.includes('authenticate')) opName = 'User Authentication';
+
+            let topHtml = `
+            <div class="dp-top-summary">
+                <div class="dp-top-row">
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <span class="dp-badge ${mClass}">${method}</span>
+                        <span style="font-weight:700;font-size:12px;color:var(--text-main);">${opName}</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <span class="dp-badge ${isOk ? 'status-ok' : 'status-err'}">HTTP ${status} ${statusText}</span>
+                        ${latencyMs !== null ? `<span class="dp-badge latency">⚡ ${latencyMs}ms</span>` : ''}
+                    </div>
+                </div>
+                <div class="dp-top-row" style="padding-top:4px;border-top:1px solid rgba(255,255,255,0.04);">
+                    <div class="dp-endpoint-path" title="${fullUrl}">${url || fullUrl}</div>
+                    ${tsStr ? `<span style="font-size:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;">${tsStr}</span>` : ''}
+                </div>
+            </div>`;
+
+            // --- 2. Key Parameter Summary Grid ---
+            const reqPayload = (req && req.payload !== undefined) ? req.payload : (meta.payload !== undefined ? meta.payload : null);
+            const resData = (res && res.data !== undefined) ? res.data : (res || null);
+
+            let kvItems = [];
+            const addKv = (label, val, highlightColor = null) => {
+                if (val === undefined || val === null || val === '') return;
+                let displayVal = String(val);
+                let style = highlightColor ? `color:${highlightColor};font-weight:700;` : '';
+                kvItems.push(`<div class="dp-kv-item"><div class="dp-kv-label">${label}</div><div class="dp-kv-val" style="${style}">${displayVal}</div></div>`);
+            };
+
+            const probeObj = Object.assign({}, (typeof reqPayload === 'object' && reqPayload) || {}, (typeof resData === 'object' && resData) || {});
+            
+            if (probeObj.symbol) addKv('Symbol', probeObj.symbol, 'var(--cyan)');
+            if (probeObj.side) {
+                const sColor = probeObj.side === 'BUY' ? 'var(--emerald)' : 'var(--rose)';
+                addKv('Side', probeObj.side, sColor);
+            }
+            if (probeObj.type || probeObj.orderType) addKv('Order Type', probeObj.type || probeObj.orderType);
+            if (probeObj.price && probeObj.price !== '0' && probeObj.price !== 0) addKv('Price', '$' + probeObj.price, '#fbbf24');
+            if (probeObj.origQty || probeObj.quantity || probeObj.qty) addKv('Orig Qty', probeObj.origQty || probeObj.quantity || probeObj.qty);
+            if (probeObj.executedQty) addKv('Executed Qty', probeObj.executedQty, 'var(--emerald)');
+            if (probeObj.orderId) addKv('Order ID', probeObj.orderId);
+            if (probeObj.status) {
+                const stColor = probeObj.status === 'FILLED' ? 'var(--emerald)' : (probeObj.status === 'CANCELED' ? 'var(--rose)' : 'var(--cyan)');
+                addKv('Status', probeObj.status, stColor);
+            }
+            if (probeObj.leverage) addKv('Leverage', probeObj.leverage + 'x', 'var(--yellow)');
+            if (probeObj.amount) addKv('Amount', probeObj.amount);
+            if (probeObj.currency_short_name || probeObj.currency) addKv('Currency', probeObj.currency_short_name || probeObj.currency, 'var(--cyan)');
+            if (probeObj.marginType) addKv('Margin Type', probeObj.marginType);
+
+            let kvHtml = kvItems.length ? `<div class="dp-kv-grid">${kvItems.join('')}</div>` : '';
+
+            // --- 3. Error Callout or Success Banner ---
+            let alertHtml = '';
+            let isError = !isOk;
+            let errMessage = '';
+            if (resData && typeof resData === 'object') {
+                if (resData.code !== undefined && resData.code < 0) {
+                    isError = true;
+                    errMessage = `[Code ${resData.code}] ${resData.msg || resData.message || resData.error || ''}`;
+                } else if (resData.error || resData.message) {
+                    if (!isOk) errMessage = resData.error || resData.message;
+                }
+            } else if (typeof resData === 'string' && !isOk) {
+                errMessage = resData;
+            }
+
+            if (isError && errMessage) {
+                alertHtml = `
+                <div class="dp-alert-err">
+                    <span style="font-size:15px;line-height:1;">⚠</span>
+                    <div style="flex:1;">
+                        <div style="font-weight:700;font-size:10.5px;letter-spacing:0.5px;text-transform:uppercase;">Server Error Response</div>
+                        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;margin-top:2px;word-break:break-all;">${errMessage}</div>
+                    </div>
+                </div>`;
+            } else if (isOk && (opName.includes('Order') || opName.includes('Seed') || opName.includes('Leverage'))) {
+                alertHtml = `
+                <div class="dp-alert-ok">
+                    <span style="font-size:14px;color:var(--emerald);">✓</span>
+                    <div style="font-weight:600;font-size:10.5px;">${opName} successfully processed by server.</div>
+                </div>`;
+            }
+
+            // --- 4. Render Request Card ---
+            let reqCardHtml = '';
+            if (req) {
+                const reqHeaders = req.headers;
+                let headersHtml = '';
+                if (reqHeaders && typeof reqHeaders === 'object' && Object.keys(reqHeaders).length > 0) {
+                    headersHtml = `
+                    <details class="dp-details-collapsible">
+                        <summary>Request Headers (${Object.keys(reqHeaders).length})</summary>
+                        <div class="dp-details-collapsible-content">
+                            <div class="dp-code-box" style="max-height:160px;">${window.formatJsonHtml(reqHeaders)}</div>
+                        </div>
+                    </details>`;
+                }
+
+                const payloadContent = reqPayload !== null ? reqPayload : 'No payload body (Empty)';
+                const payloadCode = window.formatJsonHtml(payloadContent);
+                const rawPayloadStr = typeof payloadContent === 'string' ? payloadContent : JSON.stringify(payloadContent, null, 2);
+
+                reqCardHtml = `
+                <div class="dp-card req-card">
+                    <div class="dp-card-head">
+                        <span class="dp-card-title req">▶ Complete Request Details</span>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <button class="dp-copy-btn" onclick="window.copyCurlFromDetails(this)">cURL</button>
+                            <button class="dp-copy-btn" onclick="window.copyToClipboard(${JSON.stringify(rawPayloadStr).replace(/"/g, '&quot;')}, this)">Copy Payload</button>
+                        </div>
+                    </div>
+                    ${headersHtml}
+                    <div class="dp-section-subhead">Payload / Parameters:</div>
+                    <div class="dp-code-box">${payloadCode}</div>
+                </div>`;
+            }
+
+            // --- 5. Render Response Card ---
+            let resCardHtml = '';
+            if (res) {
+                const resHeaders = res.headers;
+                let headersHtml = '';
+                if (resHeaders && typeof resHeaders === 'object' && Object.keys(resHeaders).length > 0) {
+                    headersHtml = `
+                    <details class="dp-details-collapsible">
+                        <summary>Response Headers (${Object.keys(resHeaders).length})</summary>
+                        <div class="dp-details-collapsible-content">
+                            <div class="dp-code-box" style="max-height:160px;">${window.formatJsonHtml(resHeaders)}</div>
+                        </div>
+                    </details>`;
+                }
+
+                const resContent = resData !== null ? resData : 'No response data';
+                const resCode = window.formatJsonHtml(resContent);
+                const rawResStr = typeof resContent === 'string' ? resContent : JSON.stringify(resContent, null, 2);
+
+                resCardHtml = `
+                <div class="dp-card ${isOk ? 'res-card-ok' : 'res-card-err'}">
+                    <div class="dp-card-head">
+                        <span class="dp-card-title ${isOk ? 'res-ok' : 'res-err'}">◀ Server Response Details</span>
+                        <button class="dp-copy-btn" onclick="window.copyToClipboard(${JSON.stringify(rawResStr).replace(/"/g, '&quot;')}, this)">Copy Response JSON</button>
+                    </div>
+                    ${headersHtml}
+                    <div class="dp-section-subhead">Server Response Body:</div>
+                    <div class="dp-code-box">${resCode}</div>
+                </div>`;
+            }
+
+            // --- Assemble Tab Output ---
+            let contentHtml = topHtml + alertHtml + kvHtml;
+            if (tab === 'payload') {
+                contentHtml += reqCardHtml || '<div class="term-empty" style="padding:20px 0;">No request details available for this entry.</div>';
+            } else if (tab === 'response') {
+                contentHtml += resCardHtml || '<div class="term-empty" style="padding:20px 0;">No server response recorded for this entry.</div>';
+            } else {
+                contentHtml += reqCardHtml + resCardHtml;
+            }
+
+            body.innerHTML = contentHtml;
         };
 
         window.renderTerminalLogs = function(logs) {
@@ -8940,7 +9249,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     row.onclick = function() {
                         const logData = logs[idx];
                         if (logData && logData.meta) {
-                            window.openDetailsPane(logData.meta, idx);
+                            window.openDetailsPane(logData.meta, idx, logData);
                         }
                     };
                 });
