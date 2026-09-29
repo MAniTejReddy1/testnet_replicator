@@ -449,7 +449,7 @@ function pushLog(level, sym, msg, meta = null, tier = null) {
     }
     if (!tier) tier = globalActiveTier;
     terminalLogs.push({ time: getISTTimeString(), level, sym, msg, ts: Date.now(), meta, tier });
-    if (terminalLogs.length > 200) terminalLogs.shift();
+    if (terminalLogs.length > 1000) terminalLogs.shift();
 }
 
 function pushEvent(level, sym, msg, meta = null, cat = 'general', tier = null) {
@@ -555,12 +555,25 @@ async function sendSignedRequest(url, method, payload, userConfig, timeoutMs = 5
                 catch (e) { data = { error: text || 'Invalid JSON response from server' }; }
 
                 const shortUrl = parsedUrl.pathname;
+                const ok = res.statusCode >= 200 && res.statusCode < 300;
                 const meta = {
-                    request: { method: method.toUpperCase(), url: shortUrl, payload: payload },
-                    response: { status: res.statusCode, data: data }
+                    request: {
+                        method: method.toUpperCase(),
+                        url: shortUrl,
+                        fullUrl: finalUrl,
+                        headers: headers,
+                        payload: payload,
+                        timestamp: new Date(startTime).toISOString()
+                    },
+                    response: {
+                        status: res.statusCode,
+                        statusText: res.statusMessage || (ok ? 'OK' : 'Error'),
+                        latencyMs: latencyMs,
+                        headers: res.headers,
+                        data: data
+                    }
                 };
                 const isPolling = shortUrl.includes('/fapi/v2/account') || shortUrl.includes('/fapi/v2/positionRisk');
-                const ok = res.statusCode >= 200 && res.statusCode < 300;
                 if (!isPolling || !ok) {
                     log.info(uLabel, `[${method.toUpperCase()}] ${shortUrl} | Status: ${res.statusCode} | Latency: ${latencyMs}ms`, meta, tier);
                 }
@@ -605,7 +618,7 @@ async function seedBalance(userCreds, tier = 'PRODUCTION') {
     
     // If there is already an active seeding request for this user on this tier, wait for it / return it
     if (activeSeedPromises.has(cacheKey)) {
-        log.info('SYSTEM', `[SEED][${tier}] Seeding already in progress for ${userIdentifier}. Reusing existing promise.`);
+        log.info('SYSTEM', `[SEED][${tier}] Seeding already in progress for ${userIdentifier}. Reusing existing promise.`, null, tier);
         return activeSeedPromises.get(cacheKey);
     }
     
@@ -636,75 +649,120 @@ async function runSeedBalance(userCreds, tier) {
         // Reuse cached token if it's less than 5 minutes old
         if (cached && (Date.now() - cached.ts < 5 * 60 * 1000)) {
             bearerToken = cached.token;
-            log.info('SYSTEM', `[SEED][${tier}] Reusing cached auth token for ${userIdentifier}`);
+            log.info('SYSTEM', `[SEED][${tier}] Reusing cached auth token for ${userIdentifier}`, null, tier);
         } else if (userCreds.email && userCreds.password) {
             // Step 1: Login to get bearer token
-            log.info('SYSTEM', `[SEED][${tier}] Authenticating ` + userCreds.email + ' to get bearer token...');
+            log.info('SYSTEM', `[SEED][${tier}] Authenticating ${userCreds.email} to get bearer token...`, null, tier);
+            const authStartTime = Date.now();
+            const loginReqPayload = { email: userCreds.email, password: userCreds.password, pe: false, piie: false };
             const loginRes = await fetch(AUTH_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'User-Agent': 'PostmanRuntime/7.32.3' },
-                body: JSON.stringify({ email: userCreds.email, password: userCreds.password, pe: false, piie: false })
+                body: JSON.stringify(loginReqPayload)
             });
+            const authLatency = Date.now() - authStartTime;
             const loginData = await loginRes.json().catch(() => ({}));
             bearerToken = loginData.auth_token || loginData.token;
 
+            const authMeta = {
+                request: {
+                    method: 'POST',
+                    url: '/api/v3/authenticate',
+                    fullUrl: AUTH_URL,
+                    headers: { 'Content-Type': 'application/json', 'User-Agent': 'PostmanRuntime/7.32.3' },
+                    payload: { email: userCreds.email, password: '***', pe: false, piie: false },
+                    timestamp: new Date(authStartTime).toISOString()
+                },
+                response: {
+                    status: loginRes.status,
+                    statusText: loginRes.statusText || (loginRes.ok ? 'OK' : 'Error'),
+                    latencyMs: authLatency,
+                    data: loginData
+                }
+            };
+            log.info('SYSTEM', `[POST] /api/v3/authenticate [SEED-AUTH] | Status: ${loginRes.status} | Latency: ${authLatency}ms`, authMeta, tier);
+
             if (!bearerToken && userCreds.bearer_token) {
-                log.info('SYSTEM', `[SEED][${tier}] Login response did not contain token, using preconfigured bearer_token.`);
+                log.info('SYSTEM', `[SEED][${tier}] Login response did not contain token, using preconfigured bearer_token.`, null, tier);
                 bearerToken = userCreds.bearer_token;
             } else if (!bearerToken) {
-                log.warn('SYSTEM', `[SEED][${tier}] Login failed — no auth_token in response: ` + JSON.stringify(loginData));
+                log.warn('SYSTEM', `[SEED][${tier}] Login failed — no auth_token in response: ` + JSON.stringify(loginData), authMeta, tier);
                 emitOrderEvent('seed:failed', { user: userIdentifier, tier, error: 'Login failed: ' + JSON.stringify(loginData) });
                 lastSeedResult.set(cacheKey, { ok: false, error: 'Authentication failed for ' + userCreds.email });
                 return false;
             }
             if (bearerToken) {
-                log.success('SYSTEM', `[SEED][${tier}] Got bearer token.`);
+                log.success('SYSTEM', `[SEED][${tier}] Got bearer token.`, null, tier);
                 cachedAuthTokens.set(cacheKey, { token: bearerToken, ts: Date.now() });
             }
         } else if (userCreds.bearer_token) {
             bearerToken = userCreds.bearer_token;
-            log.info('SYSTEM', `[SEED][${tier}] Using preconfigured bearer_token for ${userIdentifier}`);
+            log.info('SYSTEM', `[SEED][${tier}] Using preconfigured bearer_token for ${userIdentifier}`, null, tier);
         } else {
-            log.warn('SYSTEM', `[SEED][${tier}] No email/password or bearer_token configured for this user — cannot seed balance.`);
+            log.warn('SYSTEM', `[SEED][${tier}] No email/password or bearer_token configured for this user — cannot seed balance.`, null, tier);
             emitOrderEvent('seed:failed', { user: userIdentifier, tier, error: 'No email/password configured' });
             lastSeedResult.set(cacheKey, { ok: false, error: 'No email/password or bearer_token configured for ' + userIdentifier });
             return false;
         }
 
         // Step 2: Call seed_balance with bearer token
-        log.info('SYSTEM', `[SEED][${tier}] Calling seed_balance (${SEED_URL})...`);
+        log.info('SYSTEM', `[SEED][${tier}] Calling seed_balance (${SEED_URL})...`, null, tier);
+        const seedStartTime = Date.now();
+        const seedPayload = { currency_short_name: 'USDT' };
+        const seedHeaders = {
+            'Content-Type': 'application/json',
+            'Authorization': bearerToken || '',
+            'User-Agent': 'PostmanRuntime/7.32.3'
+        };
         const seedRes = await fetch(SEED_URL, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': bearerToken,
-                'User-Agent': 'PostmanRuntime/7.32.3'
-            },
-            body: JSON.stringify({ currency_short_name: 'USDT' })
+            headers: seedHeaders,
+            body: JSON.stringify(seedPayload)
         });
+        const seedLatency = Date.now() - seedStartTime;
         
         // Handle token expiration/invalid token (401/403) by clearing cache and retrying once
         if ((seedRes.status === 401 || seedRes.status === 403) && cached) {
-            log.warn('SYSTEM', `[SEED][${tier}] Cached token rejected with status ${seedRes.status}. Clearing cache and retrying authentication...`);
+            log.warn('SYSTEM', `[SEED][${tier}] Cached token rejected with status ${seedRes.status}. Clearing cache and retrying authentication...`, null, tier);
             cachedAuthTokens.delete(cacheKey);
             return runSeedBalance(userCreds, tier); // Recursive retry with cleared cache
         }
         
         const seedData = await seedRes.json().catch(function() { return {}; });
+        const seedMeta = {
+            request: {
+                method: 'POST',
+                url: '/api/v1/derivatives/futures/wallets/seed_balance',
+                fullUrl: SEED_URL,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': bearerToken ? (bearerToken.substring(0, 16) + '... [TRUNCATED]') : 'None',
+                    'User-Agent': 'PostmanRuntime/7.32.3'
+                },
+                payload: seedPayload,
+                timestamp: new Date(seedStartTime).toISOString()
+            },
+            response: {
+                status: seedRes.status,
+                statusText: seedRes.statusText || (seedRes.ok ? 'OK' : 'Error'),
+                latencyMs: seedLatency,
+                data: seedData
+            }
+        };
 
         if (seedRes.ok || seedRes.status < 400) {
-            log.success('SYSTEM', `[SEED][${tier}] seed_balance succeeded — wallet topped up.`);
+            log.success('SYSTEM', `[POST] /api/v1/wallets/seed_balance | Status: ${seedRes.status} | Latency: ${seedLatency}ms | Topped Up`, seedMeta, tier);
             emitOrderEvent('seed:success', { user: userIdentifier, tier });
             lastSeedResult.set(cacheKey, { ok: true, message: 'Seed balance succeeded — wallet topped up with USDT.' });
             return true;
         }
-        log.warn('SYSTEM', `[SEED][${tier}] seed_balance returned non-OK [` + seedRes.status + ']: ' + JSON.stringify(seedData));
+        log.warn('SYSTEM', `[POST] /api/v1/wallets/seed_balance | Status: ${seedRes.status} | Latency: ${seedLatency}ms | Failed`, seedMeta, tier);
         emitOrderEvent('seed:failed', { user: userIdentifier, tier, error: JSON.stringify(seedData) });
         const errMsg = (seedData && (seedData.message || seedData.error || seedData.description)) || ('HTTP ' + seedRes.status);
         lastSeedResult.set(cacheKey, { ok: false, error: errMsg });
         return false;
     } catch (err) {
-        log.error('SYSTEM', `[SEED][${tier}] seed_balance threw: ` + err.message);
+        log.error('SYSTEM', `[SEED][${tier}] seed_balance threw: ` + err.message, null, tier);
         emitOrderEvent('seed:failed', { user: userIdentifier, tier, error: err.message });
         lastSeedResult.set(cacheKey, { ok: false, error: err.message });
         return false;
@@ -4539,12 +4597,33 @@ const server = http.createServer(async (req, res) => {
                         }));
                     }
 
-                    log.info('SYSTEM', `[SEED] Manual add funds requested for ${userCreds.label || userId} on tier ${tier}...`);
+                    const reqStartTime = Date.now();
+                    log.info('SYSTEM', `[SEED] Manual add funds requested for ${userCreds.label || userId} on tier ${tier}...`, null, tier);
                     const seeded = await seedBalance(userCreds, tier);
                     const cacheKey = `${userCreds.email || userCreds.label || 'user'}_${tier}`;
                     const resInfo = lastSeedResult.get(cacheKey);
+                    const endpointLatency = Date.now() - reqStartTime;
+                    const endpointMeta = {
+                        request: {
+                            method: 'POST',
+                            url: '/api/portfolio/seed-balance',
+                            fullUrl: pathname,
+                            headers: req.headers,
+                            payload: parsed,
+                            timestamp: new Date(reqStartTime).toISOString()
+                        },
+                        response: {
+                            status: seeded ? 200 : 400,
+                            statusText: seeded ? 'OK' : 'Bad Request',
+                            latencyMs: endpointLatency,
+                            data: seeded 
+                                ? { success: true, message: `Funds added successfully for ${userCreds.label || userId} on ${tier}` }
+                                : { success: false, error: resInfo?.error || `Seed balance API failed for ${userCreds.label || userId} on ${tier}` }
+                        }
+                    };
 
                     if (seeded) {
+                        log.success('SYSTEM', `[POST] /api/portfolio/seed-balance | User: ${userCreds.label || userId} | Status: 200 | Latency: ${endpointLatency}ms`, endpointMeta, tier);
                         lastPortfolioSyncTime = 0;
                         await syncAllPortfolios(tier);
                         broadcastToUI(true);
@@ -4554,6 +4633,7 @@ const server = http.createServer(async (req, res) => {
                             message: `Funds added successfully for ${userCreds.label || userId} on ${tier}` 
                         }));
                     } else {
+                        log.warn('SYSTEM', `[POST] /api/portfolio/seed-balance | User: ${userCreds.label || userId} | Status: 400 | Latency: ${endpointLatency}ms | ${resInfo?.error || 'Failed'}`, endpointMeta, tier);
                         res.writeHead(400, { 'Content-Type': 'application/json' });
                         return res.end(JSON.stringify({ 
                             success: false, 
@@ -4563,9 +4643,28 @@ const server = http.createServer(async (req, res) => {
                 } else if (pathname === '/api/portfolio/refresh') {
                     let tier = (parsed.tier || globalActiveTier).toUpperCase().replace(/-/g, '_');
                     if (!TIER_URLS[tier]) tier = globalActiveTier;
+                    const refStartTime = Date.now();
                     lastPortfolioSyncTime = 0;
                     await syncAllPortfolios(tier);
                     broadcastToUI(true);
+                    const refLatency = Date.now() - refStartTime;
+                    const refMeta = {
+                        request: {
+                            method: 'POST',
+                            url: '/api/portfolio/refresh',
+                            fullUrl: pathname,
+                            headers: req.headers,
+                            payload: parsed,
+                            timestamp: new Date(refStartTime).toISOString()
+                        },
+                        response: {
+                            status: 200,
+                            statusText: 'OK',
+                            latencyMs: refLatency,
+                            data: { success: true, message: `Portfolios refreshed for ${tier}` }
+                        }
+                    };
+                    log.info('SYSTEM', `[POST] /api/portfolio/refresh | Tier: ${tier} | Latency: ${refLatency}ms`, refMeta, tier);
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     return res.end(JSON.stringify({ 
                         success: true, 

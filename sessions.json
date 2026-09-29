@@ -22,5 +22,17 @@
     "email": "admin@coindcx.com",
     "label": "Admin Administrator",
     "tier": "PRODUCTION"
+  },
+  "f75406fe-fd26-432a-acf1-48a1eb5b3d17": {
+    "id": "admin",
+    "email": "admin@coindcx.com",
+    "label": "Admin Administrator",
+    "tier": "DEV_STAGING"
+  },
+  "8006ec48-74f0-43be-b9e9-544a30048626": {
+    "id": "admin",
+    "email": "admin@coindcx.com",
+    "label": "Admin Administrator",
+    "tier": "DEV_STAGING"
   }
 }

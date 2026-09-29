@@ -1477,6 +1477,8 @@
     margin-bottom: 12px;
     overflow-x: auto;
     padding-bottom: 2px;
+    flex-shrink: 0 !important;
+    min-height: 28px;
   }
   .term-type-selector::-webkit-scrollbar {
     display: none;
@@ -1667,6 +1669,15 @@
     padding: 7px 6px;
     min-width: 0;
   }
+  .term-input::-webkit-outer-spin-button,
+  .term-input::-webkit-inner-spin-button {
+    -webkit-appearance: none !important;
+    margin: 0 !important;
+  }
+  .term-input[type=number] {
+    -moz-appearance: textfield !important;
+    appearance: textfield !important;
+  }
   .term-input-unit {
     font-size: 9.5px;
     font-weight: 700;
@@ -1770,6 +1781,15 @@
     color: #0f172a;
   }
 
+  .term-scroll-body {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+  .term-scroll-body > * {
+    flex-shrink: 0 !important;
+  }
   .term-scroll-body::-webkit-scrollbar {
     width: 5px;
   }
@@ -3856,8 +3876,9 @@
       <div id="term-details-pane" class="term-details hidden">
         <div class="term-details-header">
           <div class="log-meta-tabs" style="margin-bottom:0;">
-            <button id="dp-tab-payload" class="log-meta-tab active" data-tab="payload" onclick="window.switchDetailsPaneTab('payload')">Payload</button>
+            <button id="dp-tab-payload" class="log-meta-tab active" data-tab="payload" onclick="window.switchDetailsPaneTab('payload')">Request</button>
             <button id="dp-tab-response" class="log-meta-tab" data-tab="response" onclick="window.switchDetailsPaneTab('response')">Response</button>
+            <button id="dp-tab-all" class="log-meta-tab" data-tab="all" onclick="window.switchDetailsPaneTab('all')">Full Details</button>
           </div>
           <button class="term-details-close" onclick="window.closeDetailsPane()">✕</button>
         </div>
@@ -4673,7 +4694,7 @@ window.addEventListener('DOMContentLoaded', () => {
                             const amt  = parseFloat(document.getElementById('fapi-marg-amt')?.value);
                             const type = document.getElementById('fapi-marg-add')?.checked ? 1 : 2;
                             if (!amt || amt <= 0) throw new Error('Invalid margin amount');
-                            await execApi('/fapi/v1/positionMargin', { symbol, amount: amt, type, positionSide: currentSide });
+                            await execApi('/fapi/v1/positionMargin', { symbol, amount: amt, type });
                             showToast(`✓ Margin ${type===1?'added':'reduced'}: ${amt} USDT on ${symbol}`);
                         } else {
                             showToast('✓ Liq Price viewed');
@@ -8614,8 +8635,12 @@ window.addEventListener('DOMContentLoaded', () => {
 
         window.switchDetailsPaneTab = function(tab) {
             window.activeDetailsTab = tab;
-            document.getElementById('dp-tab-payload').classList.toggle('active', tab === 'payload');
-            document.getElementById('dp-tab-response').classList.toggle('active', tab === 'response');
+            const pTab = document.getElementById('dp-tab-payload');
+            const rTab = document.getElementById('dp-tab-response');
+            const aTab = document.getElementById('dp-tab-all');
+            if (pTab) pTab.classList.toggle('active', tab === 'payload');
+            if (rTab) rTab.classList.toggle('active', tab === 'response');
+            if (aTab) aTab.classList.toggle('active', tab === 'all');
             window.renderDetailsPaneContent();
         };
 
@@ -8627,12 +8652,10 @@ window.addEventListener('DOMContentLoaded', () => {
             }
             const meta = window.activeDetailsMeta;
             let displayData;
-            if (meta.req || meta.res || meta.request || meta.response) {
-                if (window.activeDetailsTab === 'payload') {
-                    displayData = meta.req || meta.request || meta;
-                } else {
-                    displayData = meta.res || meta.response || meta.error || 'No response data';
-                }
+            if (window.activeDetailsTab === 'payload') {
+                displayData = meta.request || meta.req || meta;
+            } else if (window.activeDetailsTab === 'response') {
+                displayData = meta.response || meta.res || meta.data || meta.error || 'No response data';
             } else {
                 displayData = meta;
             }
@@ -8654,8 +8677,9 @@ window.addEventListener('DOMContentLoaded', () => {
             let count = 0;
             for (let i = 0; i < logs.length; i++) {
                 const l = logs[i];
-                const logTier = l.tier || 'PRODUCTION';
-                if (logTier !== activeEnvFilter) continue;
+                const logTier = (l.tier || 'ALL').toUpperCase().replace(/-/g, '_');
+                const curEnv = (activeEnvFilter || 'PRODUCTION').toUpperCase().replace(/-/g, '_');
+                if (logTier !== 'ALL' && logTier !== 'SYSTEM' && logTier !== curEnv) continue;
                 if (l.ts && l.ts < window.terminalClearTs) continue;
                 if (window.activeTermTab === 'err' && l.level !== 'ERROR' && l.level !== 'CRITICAL') continue;
                 if (window.activeTermTab === 'info' && l.level !== 'INFO') continue;
@@ -8679,7 +8703,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 else if (l.level === 'EVENT') msgClass = ' event-msg';
 
                 const hasMeta = !!l.meta;
-                const isApiCall = hasMeta && (l.meta.req || l.meta.res || l.meta.request || l.meta.response);
+                const isApiCall = hasMeta && (l.meta.req || l.meta.res || l.meta.request || l.meta.response || typeof l.meta === 'object');
                 const showDetails = window.activeTermTab === 'events' ? hasMeta : isApiCall;
                 const isSelected = window.selectedLogIdx === i;
                 const rowClass = 'term-log-row' + (showDetails ? ' has-meta' : '') + (isSelected ? ' selected' : '');
