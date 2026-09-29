@@ -155,7 +155,7 @@ const TIER_URLS = {
         PUBLIC_MDN: "https://staging-exchange-public-mdn.dcxstage.com",
         ONBOARDING: "https://staging-exchange-api.dcxstage.com",
         RAILS: "https://staging-exchange-rails-api.dcxstage.com",
-        WS_GATEWAY: "wss://testnet-staging-futures-socket-gateway.dcxstage.com"
+        WS_GATEWAY: "wss://staging-exchange-futures-socket-gateway.dcxstage.com"
     }
 };
 TIER_URLS["QA-STAGING"] = TIER_URLS.QA_STAGING;
