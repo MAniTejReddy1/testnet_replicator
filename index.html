@@ -1918,6 +1918,27 @@
   :root[data-theme="light"] .term-panel-bg::before { background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.01) 2px, rgba(0,0,0,0.01) 4px); }
   .term-content { position:relative; z-index:2; flex:1; overflow-y:auto; padding:12px; font-family:'JetBrains Mono',monospace; font-size:12px; line-height:1.6; white-space:pre-wrap; }
 
+  /* Terminal Panel Collapse State */
+  #term-panel {
+    height: 400px;
+    transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  #term-panel.collapsed {
+    height: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+  }
+  #term-panel.collapsed #term-body-wrap,
+  #term-panel.collapsed #event-filter-bar {
+    display: none !important;
+  }
+  #term-panel.collapsed #term-header {
+    border-bottom: none !important;
+  }
+  #term-panel:not(.collapsed) #term-collapsed-pill {
+    display: none !important;
+  }
+
   /* Terminal log rows */
   .term-log-row { padding:5px 10px; margin-bottom:1px; border-radius:4px; cursor:default; transition:background-color 0.15s; border-left:2px solid transparent; }
   .term-log-row:hover { background:var(--row-hover); }
@@ -3871,35 +3892,39 @@
 </div>
 
 <div style="display:flex;flex-direction:column;gap:16px;padding:0 24px 24px;">
-  <div class="panel" style="background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;height:400px;box-shadow:var(--shadow);transition:height 0.3s;" id="term-panel">
-    <div style="background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:12px;min-height:48px;">
-      <div style="font-family:'Inter',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;margin-right:12px;">Terminal</div>
+  <div class="panel collapsed" style="background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow);" id="term-panel">
+    <div id="term-header" style="background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:12px;min-height:48px;cursor:pointer;" onclick="window.toggleTerminalCollapse()">
+      <div style="font-family:'Inter',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;margin-right:12px;display:flex;align-items:center;gap:6px;">
+        <span>Terminal</span>
+        <span id="term-collapsed-pill" style="display:inline-block;font-size:9px;background:rgba(255,255,255,0.06);color:var(--text-muted);padding:1px 6px;border-radius:4px;font-weight:600;letter-spacing:0.5px;">COLLAPSED</span>
+      </div>
       <div style="display:flex;gap:8px;">
-        <div id="term-tab-live" class="term-tab on" onclick="event.stopPropagation(); window.setTermTab('live')">
+        <div id="term-tab-live" class="term-tab on" onclick="event.stopPropagation(); window.setTermTab('live'); window.expandTerminal();">
           <span style="color:var(--cyan)">⚡</span> All Logs
         </div>
-        <div id="term-tab-info" class="term-tab tab-info" onclick="event.stopPropagation(); window.setTermTab('info')">
+        <div id="term-tab-info" class="term-tab tab-info" onclick="event.stopPropagation(); window.setTermTab('info'); window.expandTerminal();">
           <span style="color:#3b82f6">ℹ</span> Info
         </div>
-        <div id="term-tab-success" class="term-tab tab-success" onclick="event.stopPropagation(); window.setTermTab('success')">
+        <div id="term-tab-success" class="term-tab tab-success" onclick="event.stopPropagation(); window.setTermTab('success'); window.expandTerminal();">
           <span style="color:var(--emerald)">✔</span> Success
         </div>
-        <div id="term-tab-err" class="term-tab tab-err" onclick="event.stopPropagation(); window.setTermTab('err')">
+        <div id="term-tab-err" class="term-tab tab-err" onclick="event.stopPropagation(); window.setTermTab('err'); window.expandTerminal();">
           <span style="color:#ef4444">⚠</span> Errors
         </div>
-        <div id="term-tab-events" class="term-tab tab-events" onclick="event.stopPropagation(); window.setTermTab('events')">
+        <div id="term-tab-events" class="term-tab tab-events" onclick="event.stopPropagation(); window.setTermTab('events'); window.expandTerminal();">
           <span style="color:var(--purple)">🔌</span> Events
         </div>
       </div>
       <div style="flex:1;"></div>
-      <div style="display:flex;align-items:center;gap:12px;">
+      <div style="display:flex;align-items:center;gap:12px;" onclick="event.stopPropagation();">
         <input id="term-search" type="text" placeholder="Search logs..." style="width:160px;padding:6px 10px;font-size:11px;background:var(--input-bg);border:1px solid var(--border);color:var(--text-main);border-radius:6px;outline:none;" oninput="window.renderTerminalLogs(window.activeTermTab === 'events' ? window.cachedTerminalEvents : window.cachedTerminalLogs)">
-        <button class="term-clear-btn" onclick="event.stopPropagation(); window.clearTerminal()">CLEAR</button>
-        <div style="display:flex;align-items:center;gap:6px;cursor:pointer;padding-right:8px;border-right:1px solid var(--border);" onclick="event.stopPropagation(); window.toggleAutoScroll()">
+        <button class="term-clear-btn" onclick="window.clearTerminal()">CLEAR</button>
+        <div style="display:flex;align-items:center;gap:6px;cursor:pointer;padding-right:8px;border-right:1px solid var(--border);" onclick="window.toggleAutoScroll()">
             <span style="font-size:9px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Auto-Scroll</span>
             <div id="term-scroll-tog" class="tog on" style="transform:scale(0.8)"></div>
         </div>
         <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted);font-weight:500;opacity:0.5;">~/replicator/daemon</div>
+        <button id="term-collapse-btn" class="term-clear-btn" style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:4px 10px;background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.12);" onclick="window.toggleTerminalCollapse()" title="Expand Terminal"><span id="term-collapse-icon" style="font-size:9px;">▲</span> <span id="term-collapse-text" style="font-size:10px;letter-spacing:0.5px;">EXPAND</span></button>
       </div>
     </div>
     
@@ -8744,6 +8769,49 @@ window.addEventListener('DOMContentLoaded', () => {
         let _userScrolledUp = false;
         let _programmaticScroll = false;
 
+        // --- Terminal Panel Collapse/Expand State (Default Collapsed) ---
+        window.isTermCollapsed = true;
+
+        window.toggleTerminalCollapse = function(forceExpand = null) {
+            const termPanel = document.getElementById('term-panel');
+            const collapseIcon = document.getElementById('term-collapse-icon');
+            const collapseText = document.getElementById('term-collapse-text');
+            const collapseBtn = document.getElementById('term-collapse-btn');
+            if (!termPanel) return;
+
+            if (forceExpand === true) {
+                window.isTermCollapsed = false;
+            } else if (forceExpand === false) {
+                window.isTermCollapsed = true;
+            } else {
+                window.isTermCollapsed = !window.isTermCollapsed;
+            }
+
+            if (window.isTermCollapsed) {
+                termPanel.classList.add('collapsed');
+                if (collapseIcon) collapseIcon.textContent = '▲';
+                if (collapseText) collapseText.textContent = 'EXPAND';
+                if (collapseBtn) collapseBtn.title = 'Expand Terminal';
+            } else {
+                termPanel.classList.remove('collapsed');
+                if (collapseIcon) collapseIcon.textContent = '▼';
+                if (collapseText) collapseText.textContent = 'COLLAPSE';
+                if (collapseBtn) collapseBtn.title = 'Collapse Terminal';
+                
+                // Re-scroll to bottom if auto-scroll is enabled
+                setTimeout(() => {
+                    const term = document.getElementById('live-terminal');
+                    if (term && !_userScrolledUp && terminalAutoScroll) {
+                        term.scrollTop = term.scrollHeight;
+                    }
+                }, 80);
+            }
+        };
+
+        window.expandTerminal = function() {
+            window.toggleTerminalCollapse(true);
+        };
+
         window.toggleAutoScroll = function() {
             terminalAutoScroll = !terminalAutoScroll;
             _userScrolledUp = !terminalAutoScroll;
@@ -8918,6 +8986,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
             const pane = document.getElementById('term-details-pane');
             if (pane) pane.classList.remove('hidden');
+            if (window.expandTerminal) window.expandTerminal();
 
             // Highlight selected row
             document.querySelectorAll('.term-log-row.selected').forEach(r => r.classList.remove('selected'));
