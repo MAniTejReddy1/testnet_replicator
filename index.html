@@ -11180,271 +11180,263 @@ document.addEventListener('mousemove', (e) => {
 </div>
 
 <!-- ========================================================================= -->
-<!-- QA ENGINE & RISK CONTROL CENTER (UPGRADED PRO v3.2)                        -->
+<!-- QA CONTROL PANEL (CLEAN & MINIMALIST)                                      -->
 <!-- ========================================================================= -->
-<div id="qa-config-modal-overlay" style="position:fixed; inset:0; z-index:100000; background:rgba(4,7,15,0.88); backdrop-filter:blur(14px); display:none; opacity:0; pointer-events:auto !important; transition:opacity .22s cubic-bezier(0.16, 1, 0.3, 1); align-items:center; justify-content:center; padding:18px; box-sizing:border-box;" onclick="window.closeQaConfigModal()">
+<div id="qa-config-modal-overlay" style="position:fixed; inset:0; z-index:100000; background:rgba(0,0,0,0.75); backdrop-filter:blur(8px); display:none; opacity:0; pointer-events:auto !important; transition:opacity .2s ease; align-items:center; justify-content:center; padding:16px; box-sizing:border-box;" onclick="window.closeQaConfigModal()">
   
-  <div class="qa-modal-card" style="background:linear-gradient(180deg, #0d1222 0%, #080c16 100%); border:1px solid rgba(168,85,247,0.38); border-radius:18px; width:100%; max-width:1080px; max-height:90vh; height:auto; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 30px 90px -15px rgba(0,0,0,0.95), 0 0 50px rgba(168,85,247,0.22), inset 0 1px 0 rgba(255,255,255,0.08); color:var(--text-main); pointer-events:auto !important; position:relative;" onclick="event.stopPropagation()">
+  <div class="qa-modal-card" style="background:#0d1117; border:1px solid #30363d; border-radius:12px; width:100%; max-width:1040px; max-height:90vh; height:auto; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 24px 64px rgba(0,0,0,0.85); color:#f0f6fc; pointer-events:auto !important; position:relative;" onclick="event.stopPropagation()">
     
-    <!-- Top Cyberpunk Accent Glow Line -->
-    <div style="height:3px; width:100%; background:linear-gradient(90deg, #a855f7 0%, #6366f1 35%, #06b6d4 70%, #10b981 100%); flex-shrink:0;"></div>
-
     <!-- Modal Header -->
-    <div style="padding:16px 24px; border-bottom:1px solid rgba(255,255,255,0.07); display:flex; justify-content:space-between; align-items:center; background:linear-gradient(90deg, rgba(168,85,247,0.12) 0%, rgba(6,182,212,0.06) 100%); flex-shrink:0; flex-wrap:wrap; gap:12px;">
+    <div style="padding:14px 20px; border-bottom:1px solid #21262d; display:flex; justify-content:space-between; align-items:center; background:#161b22; flex-shrink:0; flex-wrap:wrap; gap:12px;">
       <div style="display:flex; align-items:center; gap:12px;">
-        <div style="width:38px; height:38px; border-radius:10px; background:linear-gradient(135deg, #a855f7 0%, #6366f1 50%, #06b6d4 100%); display:flex; align-items:center; justify-content:center; font-size:19px; box-shadow:0 0 18px rgba(168,85,247,0.5); flex-shrink:0;">⚡</div>
+        <div style="width:32px; height:32px; border-radius:6px; background:#21262d; border:1px solid #30363d; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0;">⚡</div>
         <div>
-          <div style="font-weight:800; font-size:16.5px; letter-spacing:0.5px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-            <span>QA Risk & Engine Control Center</span>
-            <span style="font-size:9.5px; padding:2px 7px; border-radius:99px; background:rgba(168,85,247,0.25); border:1px solid rgba(168,85,247,0.5); color:#f3e8ff; font-family:'JetBrains Mono',monospace; font-weight:700;">PRO v3.2</span>
-            <span style="font-size:9.5px; padding:2px 7px; border-radius:99px; background:rgba(6,182,212,0.15); border:1px solid rgba(6,182,212,0.35); color:#a5f3fc; font-family:'JetBrains Mono',monospace;">HPO REST API</span>
+          <div style="font-weight:600; font-size:15px; color:#f0f6fc; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span>QA Control Panel</span>
+            <span style="font-size:10px; padding:1px 6px; border-radius:4px; background:#21262d; border:1px solid #30363d; color:#8b949e; font-family:'JetBrains Mono',monospace;">HPO REST API</span>
           </div>
-          <div style="font-size:11px; color:var(--text-muted); margin-top:2px; display:flex; align-items:center; gap:8px;">
-            <span>Inspect, simulate, and patch Risk Controls & Instrument Multipliers in real-time</span>
+          <div style="font-size:11px; color:#8b949e; margin-top:2px;">
+            Configure risk controls and instrument multipliers
           </div>
         </div>
       </div>
       
-      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
         <!-- Global Env Status Pill -->
-        <div style="display:flex; align-items:center; gap:6px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.08); padding:4px 10px; border-radius:8px;">
-          <span style="width:7px; height:7px; border-radius:50%; background:#10b981; box-shadow:0 0 8px #10b981; display:inline-block;" id="qa-env-pulse-dot"></span>
-          <span style="font-size:10px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Global Env:</span>
-          <span id="qa-modal-global-env-badge" style="font-size:11px; font-weight:800; font-family:'JetBrains Mono',monospace; color:#d8b4fe;">QA_STAGING</span>
+        <div style="display:flex; align-items:center; gap:6px; background:#0d1117; border:1px solid #30363d; padding:4px 10px; border-radius:6px;">
+          <span style="width:7px; height:7px; border-radius:50%; background:#3fb950; display:inline-block;" id="qa-env-pulse-dot"></span>
+          <span style="font-size:10px; font-weight:600; color:#8b949e; text-transform:uppercase;">Env:</span>
+          <span id="qa-modal-global-env-badge" style="font-size:11px; font-weight:600; font-family:'JetBrains Mono',monospace; color:#f0f6fc;">QA_STAGING</span>
         </div>
 
         <!-- HPO Latency Badge -->
-        <div id="qa-hpo-latency-badge" style="font-size:10.5px; font-weight:700; font-family:'JetBrains Mono',monospace; padding:4px 9px; border-radius:6px; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.3); color:#34d399; display:flex; align-items:center; gap:5px;" title="HPO Gateway Response Time">
-          <span>⚡</span> <span id="qa-hpo-latency-val">Ready</span>
+        <div id="qa-hpo-latency-badge" style="font-size:11px; font-family:'JetBrains Mono',monospace; padding:4px 8px; border-radius:6px; background:#0d1117; border:1px solid #30363d; color:#8b949e;" title="HPO Gateway Response Time">
+          <span id="qa-hpo-latency-val">Ready</span>
         </div>
 
         <!-- Shortcuts Pill -->
-        <div style="display:flex; gap:4px; font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--text-muted);" class="qa-shortcuts-hint">
-          <span style="background:rgba(255,255,255,0.06); padding:3px 6px; border-radius:4px; border:1px solid rgba(255,255,255,0.1);">[Esc] Exit</span>
-          <span style="background:rgba(255,255,255,0.06); padding:3px 6px; border-radius:4px; border:1px solid rgba(255,255,255,0.1);">[⌘+↵] Patch</span>
+        <div style="display:flex; gap:4px; font-size:10px; font-family:'JetBrains Mono',monospace; color:#8b949e;" class="qa-shortcuts-hint">
+          <span style="background:#21262d; padding:3px 6px; border-radius:4px; border:1px solid #30363d;">[Esc]</span>
+          <span style="background:#21262d; padding:3px 6px; border-radius:4px; border:1px solid #30363d;">[⌘+↵]</span>
         </div>
 
         <!-- Close Button -->
-        <button type="button" id="qa-modal-close-btn" onclick="window.closeQaConfigModal()" style="background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text-muted); width:32px; height:32px; border-radius:8px; font-size:22px; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; transition:all 0.2s;" onmouseover="this.style.color='#f43f5e';this.style.borderColor='rgba(244,63,94,0.4)';" onmouseout="this.style.color='var(--text-muted)';this.style.borderColor='var(--border)';" title="Close (Esc)">&times;</button>
+        <button type="button" id="qa-modal-close-btn" onclick="window.closeQaConfigModal()" style="background:#21262d; border:1px solid #30363d; color:#8b949e; width:30px; height:30px; border-radius:6px; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; transition:all 0.15s;" onmouseover="this.style.color='#f0f6fc';this.style.borderColor='#8b949e';" onmouseout="this.style.color='#8b949e';this.style.borderColor='#30363d';" title="Close (Esc)">&times;</button>
       </div>
     </div>
 
     <!-- Production Notice Banner (if active tier is PRODUCTION) -->
-    <div id="qa-prod-warning-banner" style="display:none; padding:10px 24px; background:rgba(239,68,68,0.14); border-bottom:1px solid rgba(239,68,68,0.35); color:#fca5a5; font-size:11.5px; align-items:center; justify-content:space-between; flex-shrink:0;">
-      <span>⚠️ <b>Warning:</b> Current Global Environment is <b>PRODUCTION</b>. QA API endpoints are only available on <b>QA_STAGING</b> and <b>DEV_STAGING</b>. Please switch environment at the top navbar.</span>
+    <div id="qa-prod-warning-banner" style="display:none; padding:10px 20px; background:rgba(248,81,73,0.1); border-bottom:1px solid rgba(248,81,73,0.3); color:#f85149; font-size:11.5px; align-items:center; justify-content:space-between; flex-shrink:0;">
+      <span>⚠️ <b>Warning:</b> Current Global Environment is <b>PRODUCTION</b>. QA API endpoints are only available on <b>QA_STAGING</b> and <b>DEV_STAGING</b>. Please switch environment in the top navbar.</span>
     </div>
 
     <!-- Main Navigation Bar -->
-    <div style="display:flex; gap:2px; padding:6px 24px 0; background:rgba(0,0,0,0.35); border-bottom:1px solid rgba(255,255,255,0.07); flex-shrink:0; overflow-x:auto;">
-      <button id="qa-nav-btn-app" onclick="window.switchQaModalTab('app')" style="padding:11px 18px; font-size:12px; font-weight:700; border:none; background:transparent; border-bottom:2px solid #a855f7; color:#d8b4fe; cursor:pointer; display:flex; align-items:center; gap:8px; transition:all 0.2s; white-space:nowrap;">
-        <span>🛡️ Risk Controls (App Config)</span>
-        <span id="qa-nav-app-count" style="font-size:9.5px; padding:1px 6px; border-radius:99px; background:rgba(168,85,247,0.25); color:#e9d5ff; font-family:'JetBrains Mono',monospace;">0 overrides</span>
+    <div style="display:flex; gap:4px; padding:0 20px; background:#161b22; border-bottom:1px solid #21262d; flex-shrink:0; overflow-x:auto;">
+      <button id="qa-nav-btn-app" onclick="window.switchQaModalTab('app')" style="padding:10px 16px; font-size:12px; font-weight:600; border:none; background:transparent; border-bottom:2px solid #388bfd; color:#f0f6fc; cursor:pointer; display:flex; align-items:center; gap:8px; transition:all 0.15s; white-space:nowrap;">
+        <span>Risk Controls (App Config)</span>
+        <span id="qa-nav-app-count" style="font-size:10px; padding:1px 6px; border-radius:10px; background:#21262d; color:#8b949e; font-family:'JetBrains Mono',monospace; border:1px solid #30363d;">0 overrides</span>
       </button>
 
-      <button id="qa-nav-btn-inst" onclick="window.switchQaModalTab('inst')" style="padding:11px 18px; font-size:12px; font-weight:700; border:none; background:transparent; border-bottom:2px solid transparent; color:var(--text-muted); cursor:pointer; display:flex; align-items:center; gap:8px; transition:all 0.2s; white-space:nowrap;">
-        <span>📊 Multipliers & Exchange Info</span>
-        <span id="qa-nav-inst-mult" style="font-size:9.5px; padding:1px 6px; border-radius:99px; background:rgba(6,182,212,0.18); color:#a5f3fc; font-family:'JetBrains Mono',monospace;">5.0x / 5.0x</span>
+      <button id="qa-nav-btn-inst" onclick="window.switchQaModalTab('inst')" style="padding:10px 16px; font-size:12px; font-weight:600; border:none; background:transparent; border-bottom:2px solid transparent; color:#8b949e; cursor:pointer; display:flex; align-items:center; gap:8px; transition:all 0.15s; white-space:nowrap;">
+        <span>Instrument Multipliers</span>
+        <span id="qa-nav-inst-mult" style="font-size:10px; padding:1px 6px; border-radius:10px; background:#21262d; color:#8b949e; font-family:'JetBrains Mono',monospace; border:1px solid #30363d;">5.0x / 5.0x</span>
       </button>
 
-      <button id="qa-nav-btn-history" onclick="window.switchQaModalTab('history')" style="padding:11px 18px; font-size:12px; font-weight:700; border:none; background:transparent; border-bottom:2px solid transparent; color:var(--text-muted); cursor:pointer; display:flex; align-items:center; gap:8px; transition:all 0.2s; white-space:nowrap;">
-        <span>📜 Audit & Patch Log</span>
-        <span id="qa-nav-history-count" style="font-size:9.5px; padding:1px 6px; border-radius:99px; background:rgba(255,255,255,0.08); color:var(--text-muted); font-family:'JetBrains Mono',monospace;">0</span>
+      <button id="qa-nav-btn-history" onclick="window.switchQaModalTab('history')" style="padding:10px 16px; font-size:12px; font-weight:600; border:none; background:transparent; border-bottom:2px solid transparent; color:#8b949e; cursor:pointer; display:flex; align-items:center; gap:8px; transition:all 0.15s; white-space:nowrap;">
+        <span>Audit Log</span>
+        <span id="qa-nav-history-count" style="font-size:10px; padding:1px 6px; border-radius:10px; background:#21262d; color:#8b949e; font-family:'JetBrains Mono',monospace; border:1px solid #30363d;">0</span>
       </button>
     </div>
 
     <!-- Scrollable Modal Body -->
-    <div id="qa-modal-scroll-body" style="flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; padding:20px 24px; display:flex; flex-direction:column; gap:18px;">
+    <div id="qa-modal-scroll-body" style="flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; padding:18px 20px; display:flex; flex-direction:column; gap:16px;">
       
       <!-- ================================================================= -->
       <!-- TAB 1: RISK CONTROLS (APP CONFIG)                                 -->
       <!-- ================================================================= -->
-      <div id="qa-tab-app" style="display:flex; flex-direction:column; gap:16px;">
+      <div id="qa-tab-app" style="display:flex; flex-direction:column; gap:14px;">
         
-
-
         <!-- App Config Sub-bar & Controls -->
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; background:rgba(255,255,255,0.02); border:1px solid var(--border); padding:10px 14px; border-radius:10px;">
-          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-            <span style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Config Key:</span>
-            <select id="qa-app-key-select" onchange="window.handleQaAppKeyChange()" style="background:var(--input-bg); border:1px solid var(--border); color:var(--text-main); font-size:12px; font-weight:700; padding:6px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; background:#161b22; border:1px solid #30363d; padding:10px 14px; border-radius:8px;">
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span style="font-size:11px; font-weight:600; color:#8b949e; text-transform:uppercase;">Config Key:</span>
+            <select id="qa-app-key-select" onchange="window.handleQaAppKeyChange()" style="background:#0d1117; border:1px solid #30363d; color:#f0f6fc; font-size:12px; font-weight:600; padding:6px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace;">
               <option value="FUTURES_INSTRUMENT_RISK_CONTROLS">FUTURES_INSTRUMENT_RISK_CONTROLS</option>
               <option value="MARGIN_RISK_RULES">MARGIN_RISK_RULES</option>
               <option value="CUSTOM">[Enter Custom Key...]</option>
             </select>
-            <input id="qa-app-custom-key" type="text" placeholder="Custom Config Key..." style="display:none; background:var(--input-bg); border:1px solid var(--border); color:var(--text-main); font-size:12px; padding:6px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace; width:220px;" oninput="window.updateQaAppTargetUrl()" />
+            <input id="qa-app-custom-key" type="text" placeholder="Custom Config Key..." style="display:none; background:#0d1117; border:1px solid #30363d; color:#f0f6fc; font-size:12px; padding:6px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace; width:220px;" oninput="window.updateQaAppTargetUrl()" />
           </div>
 
           <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
             <!-- View Mode Switcher -->
-            <div style="display:flex; background:rgba(0,0,0,0.3); border:1px solid var(--border); border-radius:6px; padding:2px;">
-              <button id="qa-app-view-form-btn" onclick="window.switchQaAppView('form')" style="border:none; padding:5px 12px; font-size:11px; font-weight:700; border-radius:4px; cursor:pointer; background:rgba(168,85,247,0.25); color:#d8b4fe;">Visual Form</button>
-              <button id="qa-app-view-json-btn" onclick="window.switchQaAppView('json')" style="border:none; padding:5px 12px; font-size:11px; font-weight:700; border-radius:4px; cursor:pointer; background:transparent; color:var(--text-muted);">Raw JSON Editor</button>
+            <div style="display:flex; background:#0d1117; border:1px solid #30363d; border-radius:6px; padding:2px;">
+              <button id="qa-app-view-form-btn" onclick="window.switchQaAppView('form')" style="border:none; padding:5px 12px; font-size:11px; font-weight:600; border-radius:4px; cursor:pointer; background:#21262d; color:#f0f6fc;">Form</button>
+              <button id="qa-app-view-json-btn" onclick="window.switchQaAppView('json')" style="border:none; padding:5px 12px; font-size:11px; font-weight:600; border-radius:4px; cursor:pointer; background:transparent; color:#8b949e;">Raw JSON</button>
             </div>
 
-            <button onclick="window.fetchQaAppConfig()" style="background:rgba(6,182,212,0.12); border:1px solid rgba(6,182,212,0.3); color:var(--cyan); padding:6px 12px; font-size:11px; font-weight:700; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:5px; transition:all 0.2s;" title="Fetch latest config from HPO">
+            <button onclick="window.fetchQaAppConfig()" style="background:#21262d; border:1px solid #30363d; color:#c9d1d9; padding:6px 12px; font-size:11px; font-weight:500; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:5px; transition:all 0.15s;" onmouseover="this.style.background='#30363d';this.style.color='#fff';" onmouseout="this.style.background='#21262d';this.style.color='#c9d1d9';" title="Fetch latest config from HPO">
               <span>↻</span> Reload
             </button>
-            <button onclick="window.copyQaAppConfigCurl()" style="background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text-main); padding:6px 12px; font-size:11px; font-weight:700; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:5px; transition:all 0.2s;" title="Copy cURL command to clipboard">
+            <button onclick="window.copyQaAppConfigCurl()" style="background:#21262d; border:1px solid #30363d; color:#c9d1d9; padding:6px 12px; font-size:11px; font-weight:500; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:5px; transition:all 0.15s;" onmouseover="this.style.background='#30363d';this.style.color='#fff';" onmouseout="this.style.background='#21262d';this.style.color='#c9d1d9';" title="Copy cURL command to clipboard">
               <span>📋</span> cURL
             </button>
-            <button onclick="window.exportQaAppJson()" style="background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text-main); padding:6px 12px; font-size:11px; font-weight:700; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:5px;" title="Export JSON to file">
+            <button onclick="window.exportQaAppJson()" style="background:#21262d; border:1px solid #30363d; color:#c9d1d9; padding:6px 12px; font-size:11px; font-weight:500; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:5px; transition:all 0.15s;" onmouseover="this.style.background='#30363d';this.style.color='#fff';" onmouseout="this.style.background='#21262d';this.style.color='#c9d1d9';" title="Export JSON to file">
               <span>💾</span> Export
             </button>
           </div>
         </div>
 
         <!-- Target Endpoint Info & Staged Changes Indicator -->
-        <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; font-family:'JetBrains Mono',monospace; background:rgba(0,0,0,0.3); border:1px dashed rgba(255,255,255,0.12); padding:9px 14px; border-radius:8px; flex-wrap:wrap; gap:8px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; font-family:'JetBrains Mono',monospace; background:#0d1117; border:1px solid #21262d; padding:8px 12px; border-radius:6px; flex-wrap:wrap; gap:8px;">
           <div style="display:flex; align-items:center; gap:8px;">
-            <span style="color:#a855f7; font-weight:800; background:rgba(168,85,247,0.15); padding:2px 6px; border-radius:4px;">PATCH</span>
-            <span id="qa-app-target-url" style="color:var(--text-muted);">https://testnet-futures-hpo.dcxstage.com/api/v3/qa/app_configs/FUTURES_INSTRUMENT_RISK_CONTROLS</span>
+            <span style="color:#8b949e; font-weight:700; background:#21262d; border:1px solid #30363d; padding:2px 6px; border-radius:4px; font-size:10px;">PATCH</span>
+            <span id="qa-app-target-url" style="color:#8b949e;">https://testnet-futures-hpo.dcxstage.com/api/v3/qa/app_configs/FUTURES_INSTRUMENT_RISK_CONTROLS</span>
           </div>
           <div style="display:flex; align-items:center; gap:10px;">
-            <span id="qa-app-diff-indicator" style="display:none; color:#fbbf24; font-weight:700; font-size:10.5px; cursor:pointer;" onclick="window.toggleQaDiffViewer()">⚠️ Pending Changes Staged (View Diff)</span>
-            <span id="qa-app-sync-indicator" style="color:#10b981; font-weight:700; font-size:10.5px;">✓ In Sync with HPO</span>
+            <span id="qa-app-diff-indicator" style="display:none; color:#d29922; font-weight:600; font-size:11px; cursor:pointer;" onclick="window.toggleQaDiffViewer()">⚠️ Staged Changes (View Diff)</span>
+            <span id="qa-app-sync-indicator" style="color:#3fb950; font-weight:600; font-size:11px;">✓ In Sync with HPO</span>
           </div>
         </div>
 
         <!-- Staged Diff Inspector (Collapsible) -->
-        <div id="qa-app-diff-viewer" style="display:none; background:rgba(0,0,0,0.45); border:1px solid rgba(251,191,36,0.35); border-radius:10px; padding:12px 16px;">
+        <div id="qa-app-diff-viewer" style="display:none; background:#161b22; border:1px solid #30363d; border-radius:8px; padding:12px 14px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-            <span style="font-size:11px; font-weight:800; color:#fbbf24; font-family:'JetBrains Mono',monospace;">🔍 STAGED CHANGES vs LIVE HPO CONFIG</span>
-            <button onclick="window.toggleQaDiffViewer()" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:14px;">✕</button>
+            <span style="font-size:11px; font-weight:600; color:#d29922; font-family:'JetBrains Mono',monospace;">Live vs Staged Differences</span>
+            <button onclick="window.toggleQaDiffViewer()" style="background:transparent; border:none; color:#8b949e; cursor:pointer; font-size:14px;">✕</button>
           </div>
-          <div id="qa-app-diff-content" style="font-family:'JetBrains Mono',monospace; font-size:11.5px; line-height:1.6; max-height:150px; overflow-y:auto;"></div>
+          <div id="qa-app-diff-content" style="font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.6; max-height:140px; overflow-y:auto; color:#c9d1d9;"></div>
         </div>
 
         <!-- Visual Form View -->
-        <div id="qa-app-visual-view" style="display:flex; flex-direction:column; gap:16px;">
+        <div id="qa-app-visual-view" style="display:flex; flex-direction:column; gap:14px;">
           
           <!-- Card: Default Risk Controls -->
-          <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:12px; padding:18px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
-              <div style="display:flex; align-items:center; gap:8px;">
-                <div style="width:4px; height:16px; background:#a855f7; border-radius:2px;"></div>
-                <span style="font-weight:800; font-size:13.5px; color:var(--text-main); letter-spacing:0.5px;">DEFAULT RISK CONTROLS (default)</span>
-                <span style="font-size:10.5px; color:var(--text-muted);">(Baseline rules for all markets unless pair-specific override exists)</span>
+          <div style="background:#161b22; border:1px solid #30363d; border-radius:8px; padding:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+              <div>
+                <span style="font-weight:600; font-size:13px; color:#f0f6fc;">Default Risk Controls</span>
+                <span style="font-size:11px; color:#8b949e; margin-left:6px;">(Global rules applied across all markets)</span>
               </div>
               
-              <div style="display:flex; gap:6px;">
-                <button type="button" onclick="window.addQaAppDefaultCustomField()" style="background:rgba(168,85,247,0.18); border:1px solid rgba(168,85,247,0.45); color:#d8b4fe; font-size:11px; font-weight:700; padding:5px 12px; border-radius:6px; cursor:pointer;">+ Add Parameter</button>
+              <div>
+                <button type="button" onclick="window.addQaAppDefaultCustomField()" style="background:#21262d; border:1px solid #30363d; color:#c9d1d9; font-size:11px; font-weight:500; padding:4px 10px; border-radius:6px; cursor:pointer; transition:all 0.15s;" onmouseover="this.style.background='#30363d';this.style.color='#fff';" onmouseout="this.style.background='#21262d';this.style.color='#c9d1d9';">+ Add Parameter</button>
               </div>
             </div>
 
-            <!-- Standard 4 Grid Inputs with Steppers & Clear Explanations -->
-            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px;" id="qa-app-default-fields">
+            <!-- Standard 4 Grid Inputs with Clean Styling -->
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px;" id="qa-app-default-fields">
               
               <!-- Circuit Breaker Band -->
-              <div style="background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:12px;">
-                <label style="font-size:11.5px; color:#d8b4fe; font-weight:700; display:flex; justify-content:space-between; margin-bottom:5px;">
+              <div style="background:#0d1117; border:1px solid #21262d; border-radius:6px; padding:12px;">
+                <label style="font-size:11.5px; color:#c9d1d9; font-weight:600; display:flex; justify-content:space-between; margin-bottom:6px;">
                   <span>Circuit Breaker Band (%)</span>
-                  <span style="font-size:10px; color:var(--text-muted);">cb_pct</span>
+                  <span style="font-size:10px; color:#6e7681; font-family:monospace;">cb_pct</span>
                 </label>
                 <div style="display:flex; gap:6px;">
-                  <input id="qa-def-circuit_breaker_band_pct" type="text" placeholder="100" style="flex:1; background:var(--input-bg); border:1px solid var(--border); color:#fff; font-size:13px; font-weight:700; padding:8px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace;" oninput="window.syncQaAppFormToJson()" />
-                  <button type="button" onclick="window.adjustStep('qa-def-circuit_breaker_band_pct', -5)" style="background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text-main); width:28px; border-radius:5px; cursor:pointer; font-weight:700;">-</button>
-                  <button type="button" onclick="window.adjustStep('qa-def-circuit_breaker_band_pct', +5)" style="background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text-main); width:28px; border-radius:5px; cursor:pointer; font-weight:700;">+</button>
+                  <input id="qa-def-circuit_breaker_band_pct" type="text" placeholder="100" style="flex:1; background:#161b22; border:1px solid #30363d; color:#f0f6fc; font-size:12.5px; font-weight:600; padding:6px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace;" oninput="window.syncQaAppFormToJson()" />
+                  <button type="button" onclick="window.adjustStep('qa-def-circuit_breaker_band_pct', -5)" style="background:#21262d; border:1px solid #30363d; color:#c9d1d9; width:28px; border-radius:4px; cursor:pointer; font-weight:600;">-</button>
+                  <button type="button" onclick="window.adjustStep('qa-def-circuit_breaker_band_pct', +5)" style="background:#21262d; border:1px solid #30363d; color:#c9d1d9; width:28px; border-radius:4px; cursor:pointer; font-weight:600;">+</button>
                 </div>
-                <div style="font-size:10px; color:var(--text-muted); margin-top:5px; line-height:1.3;">Maximum allowed price deviation from index price.</div>
+                <div style="font-size:10.5px; color:#8b949e; margin-top:5px; line-height:1.3;">Maximum allowed price deviation from index price.</div>
               </div>
 
               <!-- Market Take Bound -->
-              <div style="background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:12px;">
-                <label style="font-size:11.5px; color:#06b6d4; font-weight:700; display:flex; justify-content:space-between; margin-bottom:5px;">
+              <div style="background:#0d1117; border:1px solid #21262d; border-radius:6px; padding:12px;">
+                <label style="font-size:11.5px; color:#c9d1d9; font-weight:600; display:flex; justify-content:space-between; margin-bottom:6px;">
                   <span>Market Take Bound</span>
-                  <span style="font-size:10px; color:var(--text-muted);">take_bound</span>
+                  <span style="font-size:10px; color:#6e7681; font-family:monospace;">take_bound</span>
                 </label>
                 <div style="display:flex; gap:6px;">
-                  <input id="qa-def-market_take_bound" type="text" placeholder="1" style="flex:1; background:var(--input-bg); border:1px solid var(--border); color:#fff; font-size:13px; font-weight:700; padding:8px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace;" oninput="window.syncQaAppFormToJson()" />
-                  <button type="button" onclick="window.adjustStep('qa-def-market_take_bound', -0.5)" style="background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text-main); width:28px; border-radius:5px; cursor:pointer; font-weight:700;">-</button>
-                  <button type="button" onclick="window.adjustStep('qa-def-market_take_bound', +0.5)" style="background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text-main); width:28px; border-radius:5px; cursor:pointer; font-weight:700;">+</button>
+                  <input id="qa-def-market_take_bound" type="text" placeholder="1" style="flex:1; background:#161b22; border:1px solid #30363d; color:#f0f6fc; font-size:12.5px; font-weight:600; padding:6px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace;" oninput="window.syncQaAppFormToJson()" />
+                  <button type="button" onclick="window.adjustStep('qa-def-market_take_bound', -0.5)" style="background:#21262d; border:1px solid #30363d; color:#c9d1d9; width:28px; border-radius:4px; cursor:pointer; font-weight:600;">-</button>
+                  <button type="button" onclick="window.adjustStep('qa-def-market_take_bound', +0.5)" style="background:#21262d; border:1px solid #30363d; color:#c9d1d9; width:28px; border-radius:4px; cursor:pointer; font-weight:600;">+</button>
                 </div>
-                <div style="font-size:10px; color:var(--text-muted); margin-top:5px; line-height:1.3;">Slippage guard on market/take orders.</div>
+                <div style="font-size:10.5px; color:#8b949e; margin-top:5px; line-height:1.3;">Slippage guard on market/take orders.</div>
               </div>
 
               <!-- Symbol OI Limit -->
-              <div style="background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:12px;">
-                <label style="font-size:11.5px; color:#10b981; font-weight:700; display:flex; justify-content:space-between; margin-bottom:5px;">
+              <div style="background:#0d1117; border:1px solid #21262d; border-radius:6px; padding:12px;">
+                <label style="font-size:11.5px; color:#c9d1d9; font-weight:600; display:flex; justify-content:space-between; margin-bottom:6px;">
                   <span>Symbol OI Limit (USDT)</span>
-                  <span style="font-size:10px; color:var(--text-muted);">sym_oi</span>
+                  <span style="font-size:10px; color:#6e7681; font-family:monospace;">sym_oi</span>
                 </label>
-                <input id="qa-def-symbol_oi_limit" type="text" placeholder="10000000000" style="width:100%; box-sizing:border-box; background:var(--input-bg); border:1px solid var(--border); color:#fff; font-size:13px; font-weight:700; padding:8px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace;" oninput="window.syncQaAppFormToJson()" />
-                <div style="font-size:10px; color:var(--text-muted); margin-top:5px; line-height:1.3;">Global Open Interest ceiling across all accounts.</div>
+                <input id="qa-def-symbol_oi_limit" type="text" placeholder="10000000000" style="width:100%; box-sizing:border-box; background:#161b22; border:1px solid #30363d; color:#f0f6fc; font-size:12.5px; font-weight:600; padding:6px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace;" oninput="window.syncQaAppFormToJson()" />
+                <div style="font-size:10.5px; color:#8b949e; margin-top:5px; line-height:1.3;">Global Open Interest ceiling across all accounts.</div>
               </div>
 
               <!-- Account OI Limit -->
-              <div style="background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:12px;">
-                <label style="font-size:11.5px; color:#f59e0b; font-weight:700; display:flex; justify-content:space-between; margin-bottom:5px;">
+              <div style="background:#0d1117; border:1px solid #21262d; border-radius:6px; padding:12px;">
+                <label style="font-size:11.5px; color:#c9d1d9; font-weight:600; display:flex; justify-content:space-between; margin-bottom:6px;">
                   <span>Account OI Limit (USDT)</span>
-                  <span style="font-size:10px; color:var(--text-muted);">user_oi</span>
+                  <span style="font-size:10px; color:#6e7681; font-family:monospace;">user_oi</span>
                 </label>
-                <input id="qa-def-account_oi_limit" type="text" placeholder="100000000" style="width:100%; box-sizing:border-box; background:var(--input-bg); border:1px solid var(--border); color:#fff; font-size:13px; font-weight:700; padding:8px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace;" oninput="window.syncQaAppFormToJson()" />
-                <div style="font-size:10px; color:var(--text-muted); margin-top:5px; line-height:1.3;">Single account position size threshold.</div>
+                <input id="qa-def-account_oi_limit" type="text" placeholder="100000000" style="width:100%; box-sizing:border-box; background:#161b22; border:1px solid #30363d; color:#f0f6fc; font-size:12.5px; font-weight:600; padding:6px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace;" oninput="window.syncQaAppFormToJson()" />
+                <div style="font-size:10.5px; color:#8b949e; margin-top:5px; line-height:1.3;">Single account position size threshold.</div>
               </div>
 
             </div>
 
             <!-- Dynamic extra fields for default -->
-            <div id="qa-app-default-extra-fields" style="display:flex; flex-direction:column; gap:8px; margin-top:12px;"></div>
+            <div id="qa-app-default-extra-fields" style="display:flex; flex-direction:column; gap:8px; margin-top:10px;"></div>
           </div>
 
-          <!-- Card: Symbol Overrides with Search & Quick Chips -->
-          <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:12px; padding:18px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+          <!-- Card: Pair-Specific Overrides -->
+          <div style="background:#161b22; border:1px solid #30363d; border-radius:8px; padding:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
               <div style="display:flex; align-items:center; gap:8px;">
-                <div style="width:4px; height:16px; background:#06b6d4; border-radius:2px;"></div>
-                <span style="font-weight:800; font-size:13.5px; color:var(--text-main); letter-spacing:0.5px;">PAIR-SPECIFIC OVERRIDES</span>
-                <span id="qa-app-overrides-count" style="font-size:10px; padding:2px 7px; border-radius:99px; background:rgba(6,182,212,0.18); color:var(--cyan); font-weight:800; font-family:'JetBrains Mono',monospace;">0 pairs</span>
+                <span style="font-weight:600; font-size:13px; color:#f0f6fc;">Pair-Specific Overrides</span>
+                <span id="qa-app-overrides-count" style="font-size:10px; padding:1px 6px; border-radius:10px; background:#21262d; color:#8b949e; font-family:'JetBrains Mono',monospace; border:1px solid #30363d;">0 pairs</span>
               </div>
               
               <!-- Search & Add Symbol Controls -->
               <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                <input id="qa-app-search-symbols" type="text" placeholder="🔍 Filter pairs..." oninput="window.filterQaAppSymbols()" style="background:var(--input-bg); border:1px solid var(--border); color:var(--text-main); font-size:11px; padding:6px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace; width:130px;" />
-                <input id="qa-app-new-symbol-input" type="text" placeholder="e.g. B-XRP_USDT" style="background:var(--input-bg); border:1px solid var(--border); color:var(--text-main); font-size:11px; padding:6px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace; width:130px;" />
-                <button type="button" onclick="window.addQaAppSymbolOverride()" style="background:rgba(6,182,212,0.18); border:1px solid rgba(6,182,212,0.5); color:var(--cyan); font-size:11px; font-weight:700; padding:6px 12px; border-radius:6px; cursor:pointer; transition:all 0.2s;">+ Add Pair</button>
+                <input id="qa-app-search-symbols" type="text" placeholder="Filter pairs..." oninput="window.filterQaAppSymbols()" style="background:#0d1117; border:1px solid #30363d; color:#f0f6fc; font-size:11px; padding:5px 8px; border-radius:5px; outline:none; font-family:'JetBrains Mono',monospace; width:120px;" />
+                <input id="qa-app-new-symbol-input" type="text" placeholder="e.g. B-XRP_USDT" style="background:#0d1117; border:1px solid #30363d; color:#f0f6fc; font-size:11px; padding:5px 8px; border-radius:5px; outline:none; font-family:'JetBrains Mono',monospace; width:120px;" />
+                <button type="button" onclick="window.addQaAppSymbolOverride()" style="background:#21262d; border:1px solid #30363d; color:#c9d1d9; font-size:11px; font-weight:500; padding:5px 10px; border-radius:5px; cursor:pointer; transition:all 0.15s;" onmouseover="this.style.background='#30363d';this.style.color='#fff';" onmouseout="this.style.background='#21262d';this.style.color='#c9d1d9';">+ Add Pair</button>
               </div>
             </div>
 
-            <!-- Quick Add Chips for Popular Markets -->
-            <div style="display:flex; align-items:center; gap:6px; margin-bottom:14px; flex-wrap:wrap;">
-              <span style="font-size:10.5px; color:var(--text-muted); font-weight:600;">Quick Add:</span>
-              <button type="button" onclick="window.quickAddSymbolOverride('B-XRP_USDT')" class="qa-symbol-chip" style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); color:var(--text-main); font-size:10px; font-weight:700; padding:2px 8px; border-radius:4px; cursor:pointer; font-family:'JetBrains Mono',monospace;">+ XRP</button>
-              <button type="button" onclick="window.quickAddSymbolOverride('B-BTC_USDT')" class="qa-symbol-chip" style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); color:var(--text-main); font-size:10px; font-weight:700; padding:2px 8px; border-radius:4px; cursor:pointer; font-family:'JetBrains Mono',monospace;">+ BTC</button>
-              <button type="button" onclick="window.quickAddSymbolOverride('B-ETH_USDT')" class="qa-symbol-chip" style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); color:var(--text-main); font-size:10px; font-weight:700; padding:2px 8px; border-radius:4px; cursor:pointer; font-family:'JetBrains Mono',monospace;">+ ETH</button>
-              <button type="button" onclick="window.quickAddSymbolOverride('B-SOL_USDT')" class="qa-symbol-chip" style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); color:var(--text-main); font-size:10px; font-weight:700; padding:2px 8px; border-radius:4px; cursor:pointer; font-family:'JetBrains Mono',monospace;">+ SOL</button>
-              <button type="button" onclick="window.quickAddSymbolOverride('B-DOGE_USDT')" class="qa-symbol-chip" style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); color:var(--text-main); font-size:10px; font-weight:700; padding:2px 8px; border-radius:4px; cursor:pointer; font-family:'JetBrains Mono',monospace;">+ DOGE</button>
+            <!-- Quick Add Chips -->
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:12px; flex-wrap:wrap;">
+              <span style="font-size:10.5px; color:#8b949e;">Quick add:</span>
+              <button type="button" onclick="window.quickAddSymbolOverride('B-XRP_USDT')" class="qa-symbol-chip" style="background:#0d1117; border:1px solid #30363d; color:#8b949e; font-size:10px; font-weight:500; padding:2px 8px; border-radius:4px; cursor:pointer; font-family:'JetBrains Mono',monospace;" onmouseover="this.style.color='#f0f6fc';this.style.borderColor='#8b949e';" onmouseout="this.style.color='#8b949e';this.style.borderColor='#30363d';">+ XRP</button>
+              <button type="button" onclick="window.quickAddSymbolOverride('B-BTC_USDT')" class="qa-symbol-chip" style="background:#0d1117; border:1px solid #30363d; color:#8b949e; font-size:10px; font-weight:500; padding:2px 8px; border-radius:4px; cursor:pointer; font-family:'JetBrains Mono',monospace;" onmouseover="this.style.color='#f0f6fc';this.style.borderColor='#8b949e';" onmouseout="this.style.color='#8b949e';this.style.borderColor='#30363d';">+ BTC</button>
+              <button type="button" onclick="window.quickAddSymbolOverride('B-ETH_USDT')" class="qa-symbol-chip" style="background:#0d1117; border:1px solid #30363d; color:#8b949e; font-size:10px; font-weight:500; padding:2px 8px; border-radius:4px; cursor:pointer; font-family:'JetBrains Mono',monospace;" onmouseover="this.style.color='#f0f6fc';this.style.borderColor='#8b949e';" onmouseout="this.style.color='#8b949e';this.style.borderColor='#30363d';">+ ETH</button>
+              <button type="button" onclick="window.quickAddSymbolOverride('B-SOL_USDT')" class="qa-symbol-chip" style="background:#0d1117; border:1px solid #30363d; color:#8b949e; font-size:10px; font-weight:500; padding:2px 8px; border-radius:4px; cursor:pointer; font-family:'JetBrains Mono',monospace;" onmouseover="this.style.color='#f0f6fc';this.style.borderColor='#8b949e';" onmouseout="this.style.color='#8b949e';this.style.borderColor='#30363d';">+ SOL</button>
+              <button type="button" onclick="window.quickAddSymbolOverride('B-DOGE_USDT')" class="qa-symbol-chip" style="background:#0d1117; border:1px solid #30363d; color:#8b949e; font-size:10px; font-weight:500; padding:2px 8px; border-radius:4px; cursor:pointer; font-family:'JetBrains Mono',monospace;" onmouseover="this.style.color='#f0f6fc';this.style.borderColor='#8b949e';" onmouseout="this.style.color='#8b949e';this.style.borderColor='#30363d';">+ DOGE</button>
             </div>
 
             <!-- Overrides Container -->
-            <div id="qa-app-symbols-container" style="display:flex; flex-direction:column; gap:12px;"></div>
+            <div id="qa-app-symbols-container" style="display:flex; flex-direction:column; gap:10px;"></div>
           </div>
 
         </div>
 
         <!-- Raw JSON Editor View -->
-        <div id="qa-app-json-view" style="display:none; flex-direction:column; gap:10px;">
+        <div id="qa-app-json-view" style="display:none; flex-direction:column; gap:8px;">
           <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-size:11px; color:var(--text-muted); font-weight:600;">Direct JSON Payload (Two-way live synchronized):</span>
+            <span style="font-size:11px; color:#8b949e;">Direct JSON Payload (live-synchronized):</span>
             <div style="display:flex; gap:8px; align-items:center;">
-              <span id="qa-app-json-syntax-badge" style="font-size:10.5px; font-family:'JetBrains Mono',monospace; color:#10b981; font-weight:700;">✓ Valid JSON</span>
-              <button type="button" onclick="window.formatQaAppJson()" style="background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text-main); font-size:10.5px; padding:3px 8px; border-radius:4px; cursor:pointer;">Prettify</button>
+              <span id="qa-app-json-syntax-badge" style="font-size:10.5px; font-family:'JetBrains Mono',monospace; color:#3fb950; font-weight:600;">✓ Valid JSON</span>
+              <button type="button" onclick="window.formatQaAppJson()" style="background:#21262d; border:1px solid #30363d; color:#c9d1d9; font-size:10.5px; padding:3px 8px; border-radius:4px; cursor:pointer;">Prettify</button>
             </div>
           </div>
-          <textarea id="qa-app-raw-json" rows="18" style="width:100%; box-sizing:border-box; background:rgba(0,0,0,0.5); border:1px solid var(--border); color:#a5f3fc; font-family:'JetBrains Mono',monospace; font-size:12px; padding:14px; border-radius:8px; outline:none; line-height:1.5; resize:vertical;" oninput="window.syncQaAppJsonToForm()"></textarea>
+          <textarea id="qa-app-raw-json" rows="18" style="width:100%; box-sizing:border-box; background:#0d1117; border:1px solid #30363d; color:#f0f6fc; font-family:'JetBrains Mono',monospace; font-size:11.5px; padding:12px; border-radius:6px; outline:none; line-height:1.5; resize:vertical;" oninput="window.syncQaAppJsonToForm()"></textarea>
         </div>
 
         <!-- Status Toast Banner -->
-        <div id="qa-app-status-banner" style="display:none; padding:10px 16px; border-radius:8px; font-size:12px; font-family:'JetBrains Mono',monospace; justify-content:space-between; align-items:center;"></div>
+        <div id="qa-app-status-banner" style="display:none; padding:10px 14px; border-radius:6px; font-size:11.5px; font-family:'JetBrains Mono',monospace; justify-content:space-between; align-items:center;"></div>
 
         <!-- Tab 1 Footer -->
-        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:14px; flex-shrink:0; flex-wrap:wrap; gap:10px;">
-          <div style="font-size:11px; color:var(--text-muted);">
-            Target: <span id="qa-app-target-env-label" style="color:#d8b4fe; font-weight:700;">QA_STAGING</span>. Replicators automatically synchronize after engine patch.
+        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #21262d; padding-top:14px; flex-shrink:0; flex-wrap:wrap; gap:10px;">
+          <div style="font-size:11px; color:#8b949e;">
+            Target: <span id="qa-app-target-env-label" style="color:#f0f6fc; font-weight:600;">QA_STAGING</span>. Replicators automatically synchronize after engine patch.
           </div>
           <div style="display:flex; gap:10px; align-items:center;">
-            <button type="button" onclick="window.closeQaConfigModal()" style="background:transparent; border:1px solid var(--border); color:var(--text-muted); font-size:12px; font-weight:700; padding:10px 18px; border-radius:8px; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.color='var(--text-main)';this.style.borderColor='var(--text-muted)';" onmouseout="this.style.color='var(--text-muted)';this.style.borderColor='var(--border)';">Close</button>
-            <button type="button" id="qa-app-apply-btn" onclick="window.applyQaAppConfigPatch()" style="background:linear-gradient(135deg, #a855f7 0%, #7c3aed 100%); border:1px solid rgba(168,85,247,0.7); color:#fff; font-size:12px; font-weight:800; padding:10px 24px; border-radius:8px; cursor:pointer; box-shadow:0 0 20px rgba(168,85,247,0.4); transition:all 0.2s;" onmouseover="this.style.filter='brightness(1.15)';" onmouseout="this.style.filter='brightness(1)';">
-              ⚡ Apply App Config Patch
+            <button type="button" onclick="window.closeQaConfigModal()" style="background:#21262d; border:1px solid #30363d; color:#c9d1d9; font-size:12px; font-weight:500; padding:8px 16px; border-radius:6px; cursor:pointer; transition:all 0.15s;" onmouseover="this.style.background='#30363d';this.style.color='#fff';" onmouseout="this.style.background='#21262d';this.style.color='#c9d1d9';">Close</button>
+            <button type="button" id="qa-app-apply-btn" onclick="window.applyQaAppConfigPatch()" style="background:#238636; border:1px solid rgba(240,246,252,0.1); color:#fff; font-size:12px; font-weight:600; padding:8px 20px; border-radius:6px; cursor:pointer; transition:all 0.15s;" onmouseover="this.style.background='#2ea043';" onmouseout="this.style.background='#238636';">
+              Apply App Config Patch
             </button>
           </div>
         </div>
@@ -11454,13 +11446,13 @@ document.addEventListener('mousemove', (e) => {
       <!-- ================================================================= -->
       <!-- TAB 2: INSTRUMENT ATTRIBUTES & MULTIPLIERS                         -->
       <!-- ================================================================= -->
-      <div id="qa-tab-inst" style="display:none; flex-direction:column; gap:16px;">
+      <div id="qa-tab-inst" style="display:none; flex-direction:column; gap:14px;">
         
         <!-- Instrument Sub-bar & Quick Symbol Selector -->
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; background:rgba(255,255,255,0.02); border:1px solid var(--border); padding:10px 14px; border-radius:10px;">
-          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-            <span style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Market Symbol:</span>
-            <select id="qa-inst-symbol-select" onchange="window.handleQaInstSymbolSelect()" style="background:var(--input-bg); border:1px solid var(--border); color:var(--text-main); font-size:12px; font-weight:700; padding:6px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; background:#161b22; border:1px solid #30363d; padding:10px 14px; border-radius:8px;">
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span style="font-size:11px; font-weight:600; color:#8b949e; text-transform:uppercase;">Market Symbol:</span>
+            <select id="qa-inst-symbol-select" onchange="window.handleQaInstSymbolSelect()" style="background:#0d1117; border:1px solid #30363d; color:#f0f6fc; font-size:12px; font-weight:600; padding:6px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace;">
               <option value="B-XRP_USDT">B-XRP_USDT</option>
               <option value="B-BTC_USDT">B-BTC_USDT</option>
               <option value="B-ETH_USDT">B-ETH_USDT</option>
@@ -11468,173 +11460,170 @@ document.addEventListener('mousemove', (e) => {
               <option value="B-DOGE_USDT">B-DOGE_USDT</option>
               <option value="CUSTOM">[Enter Custom Symbol...]</option>
             </select>
-            <input id="qa-inst-custom-symbol" type="text" placeholder="e.g. B-ACT_USDT" style="display:none; background:var(--input-bg); border:1px solid var(--border); color:var(--text-main); font-size:12px; padding:6px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace; width:160px;" oninput="window.updateQaInstTargetUrl()" />
+            <input id="qa-inst-custom-symbol" type="text" placeholder="e.g. B-ACT_USDT" style="display:none; background:#0d1117; border:1px solid #30363d; color:#f0f6fc; font-size:12px; padding:6px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace; width:160px;" oninput="window.updateQaInstTargetUrl()" />
           </div>
 
           <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
             <!-- View Mode Switcher -->
-            <div style="display:flex; background:rgba(0,0,0,0.3); border:1px solid var(--border); border-radius:6px; padding:2px;">
-              <button id="qa-inst-view-form-btn" onclick="window.switchQaInstView('form')" style="border:none; padding:5px 12px; font-size:11px; font-weight:700; border-radius:4px; cursor:pointer; background:rgba(168,85,247,0.25); color:#d8b4fe;">Visual Form</button>
-              <button id="qa-inst-view-json-btn" onclick="window.switchQaInstView('json')" style="border:none; padding:5px 12px; font-size:11px; font-weight:700; border-radius:4px; cursor:pointer; background:transparent; color:var(--text-muted);">Raw JSON Editor</button>
+            <div style="display:flex; background:#0d1117; border:1px solid #30363d; border-radius:6px; padding:2px;">
+              <button id="qa-inst-view-form-btn" onclick="window.switchQaInstView('form')" style="border:none; padding:5px 12px; font-size:11px; font-weight:600; border-radius:4px; cursor:pointer; background:#21262d; color:#f0f6fc;">Form</button>
+              <button id="qa-inst-view-json-btn" onclick="window.switchQaInstView('json')" style="border:none; padding:5px 12px; font-size:11px; font-weight:600; border-radius:4px; cursor:pointer; background:transparent; color:#8b949e;">Raw JSON</button>
             </div>
 
-            <button onclick="window.fetchQaInstrument()" style="background:rgba(6,182,212,0.12); border:1px solid rgba(6,182,212,0.3); color:var(--cyan); padding:6px 12px; font-size:11px; font-weight:700; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:5px; transition:all 0.2s;" title="Fetch live exchangeInfo and multipliers from HPO">
+            <button onclick="window.fetchQaInstrument()" style="background:#21262d; border:1px solid #30363d; color:#c9d1d9; padding:6px 12px; font-size:11px; font-weight:500; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:5px; transition:all 0.15s;" onmouseover="this.style.background='#30363d';this.style.color='#fff';" onmouseout="this.style.background='#21262d';this.style.color='#c9d1d9';" title="Fetch live exchangeInfo and multipliers from HPO">
               <span>↻</span> Fetch Info
             </button>
-            <button onclick="window.copyQaInstrumentCurl()" style="background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text-main); padding:6px 12px; font-size:11px; font-weight:700; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:5px; transition:all 0.2s;" title="Copy cURL command to clipboard">
+            <button onclick="window.copyQaInstrumentCurl()" style="background:#21262d; border:1px solid #30363d; color:#c9d1d9; padding:6px 12px; font-size:11px; font-weight:500; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:5px; transition:all 0.15s;" onmouseover="this.style.background='#30363d';this.style.color='#fff';" onmouseout="this.style.background='#21262d';this.style.color='#c9d1d9';" title="Copy cURL command to clipboard">
               <span>📋</span> cURL
             </button>
           </div>
         </div>
 
         <!-- Target Endpoint Info Banner -->
-        <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; font-family:'JetBrains Mono',monospace; background:rgba(0,0,0,0.3); border:1px dashed rgba(255,255,255,0.12); padding:9px 14px; border-radius:8px; flex-wrap:wrap; gap:8px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; font-family:'JetBrains Mono',monospace; background:#0d1117; border:1px solid #21262d; padding:8px 12px; border-radius:6px; flex-wrap:gap:8px;">
           <div style="display:flex; align-items:center; gap:8px;">
-            <span style="color:#a855f7; font-weight:800; background:rgba(168,85,247,0.15); padding:2px 6px; border-radius:4px;">PATCH</span>
-            <span id="qa-inst-target-url" style="color:var(--text-muted);">https://testnet-futures-hpo.dcxstage.com/api/v3/qa/instruments/B-XRP_USDT</span>
+            <span style="color:#8b949e; font-weight:700; background:#21262d; border:1px solid #30363d; padding:2px 6px; border-radius:4px; font-size:10px;">PATCH</span>
+            <span id="qa-inst-target-url" style="color:#8b949e;">https://testnet-futures-hpo.dcxstage.com/api/v3/qa/instruments/B-XRP_USDT</span>
           </div>
-          <div id="qa-inst-live-pill" style="font-size:10.5px; color:#10b981; font-weight:800; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); padding:2px 8px; border-radius:4px;">Engine Live: ↑5.00x | ↓5.00x</div>
+          <div id="qa-inst-live-pill" style="font-size:11px; color:#3fb950; font-weight:600; background:#161b22; border:1px solid #30363d; padding:2px 8px; border-radius:4px;">Engine Live: ↑5.00x | ↓5.00x</div>
         </div>
 
         <!-- Visual Form View -->
-        <div id="qa-inst-visual-view" style="display:flex; flex-direction:column; gap:16px;">
+        <div id="qa-inst-visual-view" style="display:flex; flex-direction:column; gap:14px;">
           
-          <!-- Card: Interactive Multipliers -->
-          <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:12px; padding:18px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
-              <div style="display:flex; align-items:center; gap:8px;">
-                <div style="width:4px; height:16px; background:#10b981; border-radius:2px;"></div>
-                <span style="font-weight:800; font-size:13.5px; color:var(--text-main); letter-spacing:0.5px;">PRICE MULTIPLIER CONTROLS</span>
+          <!-- Card: Multipliers -->
+          <div style="background:#161b22; border:1px solid #30363d; border-radius:8px; padding:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+              <div>
+                <span style="font-weight:600; font-size:13px; color:#f0f6fc;">Price Multipliers</span>
+                <span style="font-size:11px; color:#8b949e; margin-left:6px;">(Defines order acceptance corridor around mark price)</span>
               </div>
             </div>
 
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
               <!-- Multiplier Up -->
-              <div style="background:rgba(16,185,129,0.05); border:1px solid rgba(16,185,129,0.25); border-radius:10px; padding:14px;">
-                <label style="font-size:12px; color:#34d399; font-weight:800; display:flex; justify-content:space-between; margin-bottom:8px;">
-                  <span>multiplier_up (Upper Price Cap)</span>
-                  <span id="qa-inst-curr-up" style="font-size:11px; color:var(--text-muted); font-family:'JetBrains Mono',monospace;">Current: 5.0</span>
+              <div style="background:#0d1117; border:1px solid #21262d; border-radius:6px; padding:14px;">
+                <label style="font-size:12px; color:#c9d1d9; font-weight:600; display:flex; justify-content:space-between; margin-bottom:8px;">
+                  <span>Buy Ceiling (multiplier_up)</span>
+                  <span id="qa-inst-curr-up" style="font-size:11px; color:#8b949e; font-family:'JetBrains Mono',monospace;">Current: 5.0</span>
                 </label>
                 <div style="display:flex; gap:8px; align-items:center;">
-                  <input id="qa-inst-multiplier_up" type="number" step="0.05" min="1.0" max="100" placeholder="5.0" style="flex:1; background:var(--input-bg); border:1px solid var(--border); color:#34d399; font-size:15px; font-weight:800; padding:8px 12px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace;" oninput="window.syncQaInstFormToJson()" />
-                  <button type="button" onclick="window.adjustStep('qa-inst-multiplier_up', -0.5)" style="background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text-main); width:32px; height:36px; border-radius:6px; cursor:pointer; font-weight:700;">-</button>
-                  <button type="button" onclick="window.adjustStep('qa-inst-multiplier_up', +0.5)" style="background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text-main); width:32px; height:36px; border-radius:6px; cursor:pointer; font-weight:700;">+</button>
+                  <input id="qa-inst-multiplier_up" type="number" step="0.05" min="1.0" max="100" placeholder="5.0" style="flex:1; background:#161b22; border:1px solid #30363d; color:#f0f6fc; font-size:14px; font-weight:600; padding:8px 12px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace;" oninput="window.syncQaInstFormToJson()" />
+                  <button type="button" onclick="window.adjustStep('qa-inst-multiplier_up', -0.5)" style="background:#21262d; border:1px solid #30363d; color:#c9d1d9; width:32px; height:36px; border-radius:6px; cursor:pointer; font-weight:600;">-</button>
+                  <button type="button" onclick="window.adjustStep('qa-inst-multiplier_up', +0.5)" style="background:#21262d; border:1px solid #30363d; color:#c9d1d9; width:32px; height:36px; border-radius:6px; cursor:pointer; font-weight:600;">+</button>
                 </div>
-                <div style="font-size:10.5px; color:var(--text-muted); margin-top:6px; line-height:1.4;">
-                  Controls <b>Maximum Buy Order Price</b>: <span style="font-family:'JetBrains Mono',monospace; color:#34d399;">Mark Price &times; multiplier_up</span>
+                <div style="font-size:11px; color:#8b949e; margin-top:6px;">
+                  Max Buy Order Price = <span style="font-family:'JetBrains Mono',monospace; color:#c9d1d9;">Mark Price &times; multiplier_up</span>
                 </div>
               </div>
 
               <!-- Multiplier Down -->
-              <div style="background:rgba(239,68,68,0.05); border:1px solid rgba(239,68,68,0.25); border-radius:10px; padding:14px;">
-                <label style="font-size:12px; color:#f87171; font-weight:800; display:flex; justify-content:space-between; margin-bottom:8px;">
-                  <span>multiplier_down (Lower Price Floor)</span>
-                  <span id="qa-inst-curr-down" style="font-size:11px; color:var(--text-muted); font-family:'JetBrains Mono',monospace;">Current: 5.0</span>
+              <div style="background:#0d1117; border:1px solid #21262d; border-radius:6px; padding:14px;">
+                <label style="font-size:12px; color:#c9d1d9; font-weight:600; display:flex; justify-content:space-between; margin-bottom:8px;">
+                  <span>Sell Floor (multiplier_down)</span>
+                  <span id="qa-inst-curr-down" style="font-size:11px; color:#8b949e; font-family:'JetBrains Mono',monospace;">Current: 5.0</span>
                 </label>
                 <div style="display:flex; gap:8px; align-items:center;">
-                  <input id="qa-inst-multiplier_down" type="number" step="0.05" min="1.0" max="100" placeholder="5.0" style="flex:1; background:var(--input-bg); border:1px solid var(--border); color:#f87171; font-size:15px; font-weight:800; padding:8px 12px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace;" oninput="window.syncQaInstFormToJson()" />
-                  <button type="button" onclick="window.adjustStep('qa-inst-multiplier_down', -0.5)" style="background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text-main); width:32px; height:36px; border-radius:6px; cursor:pointer; font-weight:700;">-</button>
-                  <button type="button" onclick="window.adjustStep('qa-inst-multiplier_down', +0.5)" style="background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text-main); width:32px; height:36px; border-radius:6px; cursor:pointer; font-weight:700;">+</button>
+                  <input id="qa-inst-multiplier_down" type="number" step="0.05" min="1.0" max="100" placeholder="5.0" style="flex:1; background:#161b22; border:1px solid #30363d; color:#f0f6fc; font-size:14px; font-weight:600; padding:8px 12px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace;" oninput="window.syncQaInstFormToJson()" />
+                  <button type="button" onclick="window.adjustStep('qa-inst-multiplier_down', -0.5)" style="background:#21262d; border:1px solid #30363d; color:#c9d1d9; width:32px; height:36px; border-radius:6px; cursor:pointer; font-weight:600;">-</button>
+                  <button type="button" onclick="window.adjustStep('qa-inst-multiplier_down', +0.5)" style="background:#21262d; border:1px solid #30363d; color:#c9d1d9; width:32px; height:36px; border-radius:6px; cursor:pointer; font-weight:600;">+</button>
                 </div>
-                <div style="font-size:10.5px; color:var(--text-muted); margin-top:6px; line-height:1.4;">
-                  Controls <b>Minimum Sell Order Price</b>: <span style="font-family:'JetBrains Mono',monospace; color:#f87171;">Mark Price &divide; multiplier_down</span>
+                <div style="font-size:11px; color:#8b949e; margin-top:6px;">
+                  Min Sell Order Price = <span style="font-family:'JetBrains Mono',monospace; color:#c9d1d9;">Mark Price &divide; multiplier_down</span>
                 </div>
               </div>
             </div>
 
-            <!-- Graphical Price Corridor Visualizer -->
-            <div style="margin-top:14px; background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:12px 16px;">
+            <!-- Price Corridor Visualizer -->
+            <div style="margin-top:12px; background:#0d1117; border:1px solid #21262d; border-radius:6px; padding:12px 14px;">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:11px; font-family:'JetBrains Mono',monospace;">
-                <span style="color:#f87171; font-weight:700;">Floor: <span id="qa-inst-band-min">$0.50</span> (-80.0%)</span>
-                <span style="color:#fbbf24; font-weight:700;">Mark Price: <span id="qa-inst-band-mark">$2.50</span> (Anchor)</span>
-                <span style="color:#34d399; font-weight:700;">Cap: <span id="qa-inst-band-max">$12.50</span> (+400.0%)</span>
+                <span style="color:#8b949e;">Floor: <span id="qa-inst-band-min" style="color:#f0f6fc; font-weight:600;">$0.50</span> (-80.0%)</span>
+                <span style="color:#8b949e;">Mark Price: <span id="qa-inst-band-mark" style="color:#f0f6fc; font-weight:600;">$2.50</span> (Anchor)</span>
+                <span style="color:#8b949e;">Cap: <span id="qa-inst-band-max" style="color:#f0f6fc; font-weight:600;">$12.50</span> (+400.0%)</span>
               </div>
-              <div style="height:8px; width:100%; background:rgba(255,255,255,0.08); border-radius:4px; position:relative; overflow:hidden;">
-                <div style="position:absolute; left:20%; right:15%; top:0; bottom:0; background:linear-gradient(90deg, #f87171 0%, #fbbf24 45%, #34d399 100%); opacity:0.85; border-radius:4px;"></div>
-                <div style="position:absolute; left:50%; top:0; bottom:0; width:3px; background:#fff; box-shadow:0 0 8px #fff; transform:translateX(-50%);"></div>
+              <div style="height:6px; width:100%; background:#21262d; border-radius:3px; position:relative; overflow:hidden;">
+                <div style="position:absolute; left:20%; right:15%; top:0; bottom:0; background:#388bfd; opacity:0.5; border-radius:3px;"></div>
+                <div style="position:absolute; left:50%; top:0; bottom:0; width:2px; background:#f0f6fc; transform:translateX(-50%);"></div>
               </div>
-              <div style="font-size:9.5px; color:var(--text-muted); text-align:center; margin-top:6px;">
-                Permitted Order Range Corridor for <span id="qa-corridor-sym" style="color:var(--cyan); font-weight:700;">B-XRP_USDT</span>. Orders outside this corridor are rejected by HPO engine.
+              <div style="font-size:10px; color:#8b949e; text-align:center; margin-top:6px;">
+                Permitted Order Range for <span id="qa-corridor-sym" style="color:#f0f6fc; font-weight:600;">B-XRP_USDT</span>. Orders outside this corridor are rejected by HPO engine.
               </div>
             </div>
           </div>
 
           <!-- Card: Custom Instrument Attributes -->
-          <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:12px; padding:18px;">
+          <div style="background:#161b22; border:1px solid #30363d; border-radius:8px; padding:16px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-              <div style="display:flex; align-items:center; gap:8px;">
-                <div style="width:4px; height:16px; background:#a855f7; border-radius:2px;"></div>
-                <span style="font-weight:800; font-size:13.5px; color:var(--text-main); letter-spacing:0.5px;">CUSTOM INSTRUMENT ATTRIBUTES</span>
-                <span style="font-size:10.5px; color:var(--text-muted);">(Extend with any HPO parameter e.g. tick_size, min_quantity, step_size)</span>
+              <div>
+                <span style="font-weight:600; font-size:13px; color:#f0f6fc;">Custom Instrument Attributes</span>
+                <span style="font-size:11px; color:#8b949e; margin-left:6px;">(e.g. tick_size, min_quantity, step_size)</span>
               </div>
-              <button type="button" onclick="window.addQaInstCustomField()" style="background:rgba(168,85,247,0.18); border:1px solid rgba(168,85,247,0.45); color:#d8b4fe; font-size:11px; font-weight:700; padding:5px 12px; border-radius:6px; cursor:pointer;">+ Add Attribute</button>
+              <button type="button" onclick="window.addQaInstCustomField()" style="background:#21262d; border:1px solid #30363d; color:#c9d1d9; font-size:11px; font-weight:500; padding:4px 10px; border-radius:6px; cursor:pointer; transition:all 0.15s;" onmouseover="this.style.background='#30363d';this.style.color='#fff';" onmouseout="this.style.background='#21262d';this.style.color='#c9d1d9';">+ Add Attribute</button>
             </div>
 
             <div id="qa-inst-custom-fields-container" style="display:flex; flex-direction:column; gap:8px;">
-              <div id="qa-inst-empty-fields-note" style="font-size:11px; color:var(--text-muted); font-style:italic;">No custom attributes added yet. Click "+ Add Attribute" to patch additional parameters.</div>
+              <div id="qa-inst-empty-fields-note" style="font-size:11px; color:#8b949e; font-style:italic;">No custom attributes added yet. Click "+ Add Attribute" to patch additional parameters.</div>
             </div>
           </div>
 
-          <!-- Optional Cookies Accordion (Auto-persisted in localStorage) -->
-          <details style="background:rgba(0,0,0,0.25); border:1px solid var(--border); border-radius:8px; padding:10px 14px;">
-            <summary style="font-size:11px; font-weight:700; color:var(--text-muted); cursor:pointer; outline:none;">Optional Cloudflare / Session Cookies (Auto-persisted)</summary>
-            <div style="margin-top:10px;">
-              <input id="qa-inst-cookies" type="text" placeholder="__cf_bm=...; _cfuvid=..." onchange="window.saveQaCookies(this.value)" style="width:100%; box-sizing:border-box; background:var(--input-bg); border:1px solid var(--border); color:var(--text-main); font-size:11px; padding:8px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace;" />
-              <div style="font-size:10px; color:var(--text-muted); margin-top:4px;">Automatically saved to your browser so you don't need to re-type it.</div>
+          <!-- Optional Cookies Accordion -->
+          <details style="background:#0d1117; border:1px solid #21262d; border-radius:6px; padding:8px 12px;">
+            <summary style="font-size:11px; font-weight:600; color:#8b949e; cursor:pointer; outline:none;">Optional Cloudflare / Session Cookies (Auto-persisted)</summary>
+            <div style="margin-top:8px;">
+              <input id="qa-inst-cookies" type="text" placeholder="__cf_bm=...; _cfuvid=..." onchange="window.saveQaCookies(this.value)" style="width:100%; box-sizing:border-box; background:#161b22; border:1px solid #30363d; color:#f0f6fc; font-size:11px; padding:6px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace;" />
+              <div style="font-size:10.5px; color:#8b949e; margin-top:4px;">Automatically saved locally in your browser.</div>
             </div>
           </details>
 
         </div>
 
         <!-- Raw JSON Editor View -->
-        <div id="qa-inst-json-view" style="display:none; flex-direction:column; gap:10px;">
+        <div id="qa-inst-json-view" style="display:none; flex-direction:column; gap:8px;">
           <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-size:11px; color:var(--text-muted); font-weight:600;">Edit RAW JSON directly:</span>
+            <span style="font-size:11px; color:#8b949e;">Edit RAW JSON directly:</span>
             <div style="display:flex; gap:8px; align-items:center;">
-              <span id="qa-inst-json-syntax-badge" style="font-size:10.5px; font-family:'JetBrains Mono',monospace; color:#10b981; font-weight:700;">✓ Valid JSON</span>
-              <button type="button" onclick="window.formatQaInstJson()" style="background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text-main); font-size:10.5px; padding:3px 8px; border-radius:4px; cursor:pointer;">Prettify</button>
+              <span id="qa-inst-json-syntax-badge" style="font-size:10.5px; font-family:'JetBrains Mono',monospace; color:#3fb950; font-weight:600;">✓ Valid JSON</span>
+              <button type="button" onclick="window.formatQaInstJson()" style="background:#21262d; border:1px solid #30363d; color:#c9d1d9; font-size:10.5px; padding:3px 8px; border-radius:4px; cursor:pointer;">Prettify</button>
             </div>
           </div>
-          <textarea id="qa-inst-raw-json" rows="14" style="width:100%; box-sizing:border-box; background:rgba(0,0,0,0.5); border:1px solid var(--border); color:#a5f3fc; font-family:'JetBrains Mono',monospace; font-size:12px; padding:14px; border-radius:8px; outline:none; line-height:1.5; resize:vertical;" oninput="window.syncQaInstJsonToForm()"></textarea>
+          <textarea id="qa-inst-raw-json" rows="14" style="width:100%; box-sizing:border-box; background:#0d1117; border:1px solid #30363d; color:#f0f6fc; font-family:'JetBrains Mono',monospace; font-size:11.5px; padding:12px; border-radius:6px; outline:none; line-height:1.5; resize:vertical;" oninput="window.syncQaInstJsonToForm()"></textarea>
         </div>
 
         <!-- Status Toast Banner -->
-        <div id="qa-inst-status-banner" style="display:none; padding:10px 16px; border-radius:8px; font-size:12px; font-family:'JetBrains Mono',monospace; justify-content:space-between; align-items:center;"></div>
+        <div id="qa-inst-status-banner" style="display:none; padding:10px 14px; border-radius:6px; font-size:11.5px; font-family:'JetBrains Mono',monospace; justify-content:space-between; align-items:center;"></div>
 
         <!-- Tab 2 Footer -->
-        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:14px; flex-shrink:0; flex-wrap:wrap; gap:10px;">
-          <div style="font-size:11px; color:var(--text-muted);">
-            Target: <span id="qa-inst-target-symbol-label" style="color:var(--cyan); font-weight:700; font-family:'JetBrains Mono',monospace;">B-XRP_USDT</span> on <span id="qa-inst-target-env-label" style="color:#d8b4fe; font-weight:700;">QA_STAGING</span>.
+        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #21262d; padding-top:14px; flex-shrink:0; flex-wrap:wrap; gap:10px;">
+          <div style="font-size:11px; color:#8b949e;">
+            Target: <span id="qa-inst-target-symbol-label" style="color:#f0f6fc; font-weight:600; font-family:'JetBrains Mono',monospace;">B-XRP_USDT</span> on <span id="qa-inst-target-env-label" style="color:#f0f6fc; font-weight:600;">QA_STAGING</span>.
           </div>
           <div style="display:flex; gap:10px; align-items:center;">
-            <button type="button" onclick="window.closeQaConfigModal()" style="background:transparent; border:1px solid var(--border); color:var(--text-muted); font-size:12px; font-weight:700; padding:10px 18px; border-radius:8px; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.color='var(--text-main)';this.style.borderColor='var(--text-muted)';" onmouseout="this.style.color='var(--text-muted)';this.style.borderColor='var(--border)';">Close</button>
-            <button type="button" id="qa-inst-apply-btn" onclick="window.applyQaInstrumentPatch()" style="background:linear-gradient(135deg, #06b6d4 0%, #0284c7 100%); border:1px solid rgba(6,182,212,0.7); color:#fff; font-size:12px; font-weight:800; padding:10px 24px; border-radius:8px; cursor:pointer; box-shadow:0 0 20px rgba(6,182,212,0.4); transition:all 0.2s;" onmouseover="this.style.filter='brightness(1.15)';" onmouseout="this.style.filter='brightness(1)';">
-              ⚡ Apply Instrument Patch
+            <button type="button" onclick="window.closeQaConfigModal()" style="background:#21262d; border:1px solid #30363d; color:#c9d1d9; font-size:12px; font-weight:500; padding:8px 16px; border-radius:6px; cursor:pointer; transition:all 0.15s;" onmouseover="this.style.background='#30363d';this.style.color='#fff';" onmouseout="this.style.background='#21262d';this.style.color='#c9d1d9';">Close</button>
+            <button type="button" id="qa-inst-apply-btn" onclick="window.applyQaInstrumentPatch()" style="background:#238636; border:1px solid rgba(240,246,252,0.1); color:#fff; font-size:12px; font-weight:600; padding:8px 20px; border-radius:6px; cursor:pointer; transition:all 0.15s;" onmouseover="this.style.background='#2ea043';" onmouseout="this.style.background='#238636';">
+              Apply Instrument Patch
             </button>
           </div>
         </div>
 
       </div>
 
-
       <!-- ================================================================= -->
-      <!-- TAB 4: AUDIT & PATCH HISTORY TRAIL                                -->
+      <!-- TAB 3: AUDIT LOG                                                  -->
       <!-- ================================================================= -->
       <div id="qa-tab-history" style="display:none; flex-direction:column; gap:14px;">
         
-        <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:12px; padding:18px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+        <div style="background:#161b22; border:1px solid #30363d; border-radius:8px; padding:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
             <div style="display:flex; align-items:center; gap:8px;">
-              <div style="width:4px; height:16px; background:#6366f1; border-radius:2px;"></div>
-              <span style="font-weight:800; font-size:13.5px; color:var(--text-main); letter-spacing:0.5px;">QA PATCH AUDIT LOG (SESSION)</span>
-              <span id="qa-history-summary-count" style="font-size:10px; padding:2px 7px; border-radius:99px; background:rgba(99,102,241,0.2); color:#c7d2fe; font-weight:700;">0 entries</span>
+              <span style="font-weight:600; font-size:13px; color:#f0f6fc;">Session Audit Log</span>
+              <span id="qa-history-summary-count" style="font-size:10px; padding:1px 6px; border-radius:10px; background:#21262d; color:#8b949e; font-family:monospace; border:1px solid #30363d;">0 entries</span>
             </div>
             
-            <button type="button" onclick="window.clearQaHistory()" style="background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text-muted); font-size:11px; padding:4px 10px; border-radius:5px; cursor:pointer;">Clear Log</button>
+            <button type="button" onclick="window.clearQaHistory()" style="background:#21262d; border:1px solid #30363d; color:#8b949e; font-size:11px; padding:4px 10px; border-radius:5px; cursor:pointer; transition:all 0.15s;" onmouseover="this.style.color='#f0f6fc';this.style.borderColor='#8b949e';" onmouseout="this.style.color='#8b949e';this.style.borderColor='#30363d';">Clear Log</button>
           </div>
 
           <div id="qa-history-list" style="display:flex; flex-direction:column; gap:8px; max-height:420px; overflow-y:auto;">
-            <div style="font-size:11.5px; color:var(--text-muted); font-style:italic; padding:12px 0; text-align:center;">
+            <div style="font-size:11.5px; color:#8b949e; font-style:italic; padding:12px 0; text-align:center;">
               No patches recorded in this session yet. Applying an App Config or Instrument patch will record an audit snapshot here with 1-click Rollback capability.
             </div>
           </div>
@@ -11648,7 +11637,7 @@ document.addEventListener('mousemove', (e) => {
 
 <script>
 // =========================================================================
-// QA RISK & ENGINE CONTROL CENTER (UPGRADED PRO v3.2 JAVASCRIPT LOGIC)
+// QA RISK & ENGINE CONTROL CENTER (UPGRADED JAVASCRIPT LOGIC)
 // =========================================================================
 (function() {
     let qaModalActiveTab = 'app'; // 'app' | 'inst' | 'history'
@@ -11736,7 +11725,7 @@ document.addEventListener('mousemove', (e) => {
 
         const currentTier = getActiveGlobalTier();
         
-        // Update header environment badge & pulsing dot
+        // Update header environment badge & dot
         const envBadge = document.getElementById('qa-modal-global-env-badge');
         const pulseDot = document.getElementById('qa-env-pulse-dot');
         const prodBanner = document.getElementById('qa-prod-warning-banner');
@@ -11745,15 +11734,12 @@ document.addEventListener('mousemove', (e) => {
 
         if (envBadge) {
             envBadge.textContent = currentTier;
-            if (currentTier === 'DEV_STAGING') {
-                envBadge.style.color = '#06b6d4';
-                if (pulseDot) { pulseDot.style.background = '#06b6d4'; pulseDot.style.boxShadow = '0 0 8px #06b6d4'; }
-            } else if (currentTier === 'PRODUCTION') {
-                envBadge.style.color = '#f87171';
-                if (pulseDot) { pulseDot.style.background = '#f87171'; pulseDot.style.boxShadow = '0 0 8px #f87171'; }
+            if (currentTier === 'PRODUCTION') {
+                envBadge.style.color = '#f85149';
+                if (pulseDot) pulseDot.style.background = '#f85149';
             } else {
-                envBadge.style.color = '#d8b4fe';
-                if (pulseDot) { pulseDot.style.background = '#10b981'; pulseDot.style.boxShadow = '0 0 8px #10b981'; }
+                envBadge.style.color = '#f0f6fc';
+                if (pulseDot) pulseDot.style.background = '#3fb950';
             }
         }
 
@@ -11822,12 +11808,12 @@ document.addEventListener('mousemove', (e) => {
             const pane = document.getElementById('qa-tab-' + t);
             if (btn && pane) {
                 if (t === tab) {
-                    btn.style.borderBottomColor = (t === 'app' ? '#a855f7' : t === 'inst' ? '#06b6d4' : '#6366f1');
-                    btn.style.color = '#fff';
+                    btn.style.borderBottomColor = '#388bfd';
+                    btn.style.color = '#f0f6fc';
                     pane.style.display = 'flex';
                 } else {
                     btn.style.borderBottomColor = 'transparent';
-                    btn.style.color = 'var(--text-muted)';
+                    btn.style.color = '#8b949e';
                     pane.style.display = 'none';
                 }
             }
@@ -11842,14 +11828,14 @@ document.addEventListener('mousemove', (e) => {
         const jsonView = document.getElementById('qa-app-json-view');
 
         if (view === 'form') {
-            btnForm.style.background = 'rgba(168,85,247,0.25)'; btnForm.style.color = '#d8b4fe';
-            btnJson.style.background = 'transparent'; btnJson.style.color = 'var(--text-muted)';
+            btnForm.style.background = '#21262d'; btnForm.style.color = '#f0f6fc';
+            btnJson.style.background = 'transparent'; btnJson.style.color = '#8b949e';
             formView.style.display = 'flex';
             jsonView.style.display = 'none';
             window.renderQaAppConfigForm();
         } else {
-            btnJson.style.background = 'rgba(168,85,247,0.25)'; btnJson.style.color = '#d8b4fe';
-            btnForm.style.background = 'transparent'; btnForm.style.color = 'var(--text-muted)';
+            btnJson.style.background = '#21262d'; btnJson.style.color = '#f0f6fc';
+            btnForm.style.background = 'transparent'; btnForm.style.color = '#8b949e';
             formView.style.display = 'none';
             jsonView.style.display = 'flex';
             window.updateQaAppJsonTextarea();
@@ -11864,14 +11850,14 @@ document.addEventListener('mousemove', (e) => {
         const jsonView = document.getElementById('qa-inst-json-view');
 
         if (view === 'form') {
-            btnForm.style.background = 'rgba(168,85,247,0.25)'; btnForm.style.color = '#d8b4fe';
-            btnJson.style.background = 'transparent'; btnJson.style.color = 'var(--text-muted)';
+            btnForm.style.background = '#21262d'; btnForm.style.color = '#f0f6fc';
+            btnJson.style.background = 'transparent'; btnJson.style.color = '#8b949e';
             formView.style.display = 'flex';
             jsonView.style.display = 'none';
             window.renderQaInstrumentForm();
         } else {
-            btnJson.style.background = 'rgba(168,85,247,0.25)'; btnJson.style.color = '#d8b4fe';
-            btnForm.style.background = 'transparent'; btnForm.style.color = 'var(--text-muted)';
+            btnJson.style.background = '#21262d'; btnJson.style.color = '#f0f6fc';
+            btnForm.style.background = 'transparent'; btnForm.style.color = '#8b949e';
             formView.style.display = 'none';
             jsonView.style.display = 'flex';
             window.updateQaInstJsonTextarea();
@@ -11918,7 +11904,6 @@ document.addEventListener('mousemove', (e) => {
 
     window.populateQaInstrumentSymbols = function() {
         const select = document.getElementById('qa-inst-symbol-select');
-
         if (!select) return;
         const known = ['B-XRP_USDT', 'B-BTC_USDT', 'B-ETH_USDT', 'B-SOL_USDT', 'B-DOGE_USDT'];
         const existing = new Set(known);
@@ -11941,8 +11926,6 @@ document.addEventListener('mousemove', (e) => {
         optCustom.value = 'CUSTOM';
         optCustom.textContent = '[Enter Custom Symbol...]';
         select.appendChild(optCustom);
-
-
     };
 
     window.saveQaCookies = function(val) {
@@ -11957,8 +11940,6 @@ document.addEventListener('mousemove', (e) => {
         el.value = (Math.round(v * 100) / 100).toString();
         el.dispatchEvent(new Event('input'));
     };
-
-
 
     // =========================================================================
     // TAB 1: APP CONFIG FUNCTIONS
@@ -11986,7 +11967,7 @@ document.addEventListener('mousemove', (e) => {
                 window.renderQaAppConfigForm();
                 window.updateQaAppJsonTextarea();
                 checkAndRenderDiff();
-                window.showQaAppStatus('✓ Fetched latest "' + key + '" from ' + tier + ' successfully in ' + elapsed + 'ms.', 'success');
+                window.showQaAppStatus('✓ Loaded "' + key + '" from ' + tier + ' (' + elapsed + 'ms)', 'success');
             } else {
                 window.showQaAppStatus('Error ' + res.status + ': ' + (data.error || 'Failed to fetch'), 'error');
             }
@@ -12047,25 +12028,25 @@ document.addEventListener('mousemove', (e) => {
             if (navCount) navCount.textContent = countStr;
 
             if (overrideKeys.length === 0) {
-                symCont.innerHTML = '<div style="font-size:11px; color:var(--text-muted); font-style:italic; padding:6px 0;">No pair-specific overrides configured. Default rules apply to all markets.</div>';
+                symCont.innerHTML = '<div style="font-size:11px; color:#8b949e; font-style:italic; padding:6px 0;">No pair-specific overrides configured. Default rules apply to all markets.</div>';
             } else {
                 overrideKeys.forEach(sym => {
                     const symObj = jv[sym] || {};
                     const card = document.createElement('div');
                     card.className = 'qa-pair-card';
                     card.setAttribute('data-symbol', sym);
-                    card.style.cssText = 'background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:12px; display:flex; flex-direction:column; gap:10px; transition:border-color 0.2s;';
+                    card.style.cssText = 'background:#0d1117; border:1px solid #21262d; border-radius:6px; padding:12px; display:flex; flex-direction:column; gap:10px;';
                     
                     const header = document.createElement('div');
                     header.style.cssText = 'display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;';
                     header.innerHTML = `
                         <div style="display:flex; align-items:center; gap:8px;">
-                            <span style="font-size:12px; font-weight:800; font-family:'JetBrains Mono',monospace; color:var(--cyan); background:rgba(6,182,212,0.12); padding:2px 8px; border-radius:5px; border:1px solid rgba(6,182,212,0.35);">${sym}</span>
-                            <span style="font-size:10px; color:var(--text-muted);">${Object.keys(symObj).length} field(s)</span>
+                            <span style="font-size:11.5px; font-weight:700; font-family:'JetBrains Mono',monospace; color:#f0f6fc; background:#21262d; padding:2px 8px; border-radius:4px; border:1px solid #30363d;">${sym}</span>
+                            <span style="font-size:10.5px; color:#8b949e;">${Object.keys(symObj).length} parameter(s)</span>
                         </div>
                         <div style="display:flex; align-items:center; gap:6px;">
-                            <button type="button" onclick="window.addQaAppSymbolField('${sym}')" style="background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text-main); font-size:10px; font-weight:700; padding:3px 8px; border-radius:4px; cursor:pointer;">+ Add Field</button>
-                            <button type="button" onclick="window.removeQaAppSymbolOverride('${sym}')" style="background:rgba(244,63,94,0.15); border:1px solid rgba(244,63,94,0.35); color:#f87171; font-size:10px; font-weight:700; padding:3px 8px; border-radius:4px; cursor:pointer;">✕ Remove</button>
+                            <button type="button" onclick="window.addQaAppSymbolField('${sym}')" style="background:#21262d; border:1px solid #30363d; color:#c9d1d9; font-size:10.5px; font-weight:500; padding:3px 8px; border-radius:4px; cursor:pointer;">+ Add Field</button>
+                            <button type="button" onclick="window.removeQaAppSymbolOverride('${sym}')" style="background:#21262d; border:1px solid #30363d; color:#f85149; font-size:10.5px; font-weight:500; padding:3px 8px; border-radius:4px; cursor:pointer;">✕ Remove</button>
                         </div>
                     `;
                     card.appendChild(header);
@@ -12083,8 +12064,8 @@ document.addEventListener('mousemove', (e) => {
                     knowns.forEach(kDef => {
                         const col = document.createElement('div');
                         col.innerHTML = `
-                            <label style="font-size:10.5px; color:var(--text-muted); font-weight:600; display:block; margin-bottom:3px;">${kDef.label}</label>
-                            <input type="text" placeholder="${kDef.placeholder}" value="${symObj[kDef.key] !== undefined ? symObj[kDef.key] : ''}" style="width:100%; box-sizing:border-box; background:var(--input-bg); border:1px solid var(--border); color:var(--text-main); font-size:11.5px; padding:6px 8px; border-radius:5px; outline:none; font-family:'JetBrains Mono',monospace;" />
+                            <label style="font-size:10.5px; color:#8b949e; font-weight:600; display:block; margin-bottom:3px;">${kDef.label}</label>
+                            <input type="text" placeholder="${kDef.placeholder}" value="${symObj[kDef.key] !== undefined ? symObj[kDef.key] : ''}" style="width:100%; box-sizing:border-box; background:#161b22; border:1px solid #30363d; color:#f0f6fc; font-size:11.5px; padding:5px 8px; border-radius:4px; outline:none; font-family:'JetBrains Mono',monospace;" />
                         `;
                         const inp = col.querySelector('input');
                         inp.oninput = () => {
@@ -12102,7 +12083,7 @@ document.addEventListener('mousemove', (e) => {
                     const customKeys = Object.keys(symObj).filter(k => !knowns.some(kd => kd.key === k));
                     if (customKeys.length > 0) {
                         const customCont = document.createElement('div');
-                        customCont.style.cssText = 'display:flex; flex-direction:column; gap:6px; margin-top:4px; border-top:1px dashed rgba(255,255,255,0.06); padding-top:6px;';
+                        customCont.style.cssText = 'display:flex; flex-direction:column; gap:6px; margin-top:4px; border-top:1px solid #21262d; padding-top:6px;';
                         customKeys.forEach(ck => {
                             customCont.appendChild(createFieldRow(sym, ck, symObj[ck], (newK, newV) => {
                                 delete symObj[ck];
@@ -12135,24 +12116,26 @@ document.addEventListener('mousemove', (e) => {
 
     function createFieldRow(parentScope, key, value, onUpdate, onDelete) {
         const row = document.createElement('div');
-        row.style.cssText = 'display:grid; grid-template-columns:140px 1fr 30px; gap:8px; align-items:center;';
+        row.style.cssText = 'display:grid; grid-template-columns:140px 1fr 28px; gap:8px; align-items:center;';
         
         const kInput = document.createElement('input');
         kInput.type = 'text';
         kInput.value = key;
         kInput.placeholder = 'Field name...';
-        kInput.style.cssText = 'background:var(--input-bg); border:1px solid var(--border); color:var(--text-main); font-size:11px; padding:5px 8px; border-radius:5px; outline:none; font-family:monospace;';
+        kInput.style.cssText = 'background:#161b22; border:1px solid #30363d; color:#c9d1d9; font-size:11px; padding:5px 8px; border-radius:4px; outline:none; font-family:monospace;';
 
         const vInput = document.createElement('input');
         vInput.type = 'text';
         vInput.value = typeof value === 'object' ? JSON.stringify(value) : value;
         vInput.placeholder = 'Value...';
-        vInput.style.cssText = 'background:var(--input-bg); border:1px solid var(--border); color:#a5f3fc; font-size:11px; padding:5px 8px; border-radius:5px; outline:none; font-family:monospace;';
+        vInput.style.cssText = 'background:#161b22; border:1px solid #30363d; color:#f0f6fc; font-size:11px; padding:5px 8px; border-radius:4px; outline:none; font-family:monospace;';
 
         const delBtn = document.createElement('button');
         delBtn.type = 'button';
         delBtn.textContent = '✕';
-        delBtn.style.cssText = 'background:rgba(244,63,94,0.15); border:1px solid rgba(244,63,94,0.3); color:#f87171; border-radius:5px; cursor:pointer; font-size:11px; height:28px; width:28px;';
+        delBtn.style.cssText = 'background:#21262d; border:1px solid #30363d; color:#8b949e; border-radius:4px; cursor:pointer; font-size:11px; height:28px; width:28px;';
+        delBtn.onmouseover = () => { delBtn.style.color = '#f85149'; };
+        delBtn.onmouseout = () => { delBtn.style.color = '#8b949e'; };
         delBtn.onclick = onDelete;
 
         const updateHandler = () => {
@@ -12186,7 +12169,7 @@ document.addEventListener('mousemove', (e) => {
     window.addQaAppDefaultCustomField = function() {
         const jv = qaAppConfigData.json_value || qaAppConfigData;
         if (!jv.default) jv.default = {};
-        const fieldName = prompt("Enter new field name for default risk controls (e.g. max_leverage, min_notional):");
+        const fieldName = prompt("Enter parameter name for default risk controls (e.g. max_leverage, min_notional):");
         if (fieldName && fieldName.trim()) {
             jv.default[fieldName.trim()] = "";
             window.renderQaAppConfigForm();
@@ -12197,7 +12180,7 @@ document.addEventListener('mousemove', (e) => {
     window.addQaAppSymbolField = function(sym) {
         const jv = qaAppConfigData.json_value || qaAppConfigData;
         if (!jv[sym]) jv[sym] = {};
-        const fieldName = prompt(`Enter new field name for ${sym} (e.g. circuit_breaker_band_pct):`);
+        const fieldName = prompt("Enter parameter name for " + sym + ":");
         if (fieldName && fieldName.trim()) {
             jv[sym][fieldName.trim()] = "";
             window.renderQaAppConfigForm();
@@ -12222,7 +12205,7 @@ document.addEventListener('mousemove', (e) => {
     window.quickAddSymbolOverride = function(sym) {
         const jv = qaAppConfigData.json_value || qaAppConfigData;
         if (jv[sym]) {
-            alert(`Override for ${sym} already exists.`);
+            alert("Override for " + sym + " already exists.");
             return;
         }
         jv[sym] = { circuit_breaker_band_pct: 5 };
@@ -12231,7 +12214,7 @@ document.addEventListener('mousemove', (e) => {
     };
 
     window.removeQaAppSymbolOverride = function(sym) {
-        if (!confirm(`Are you sure you want to remove the override for ${sym}?`)) return;
+        if (!confirm("Are you sure you want to remove the override for " + sym + "?")) return;
         const jv = qaAppConfigData.json_value || qaAppConfigData;
         delete jv[sym];
         window.renderQaAppConfigForm();
@@ -12314,11 +12297,11 @@ document.addEventListener('mousemove', (e) => {
             if (isModified) {
                 diffPill.style.display = 'inline-block';
                 syncBadge.textContent = '⚡ Staged Edits';
-                syncBadge.style.color = '#fbbf24';
+                syncBadge.style.color = '#d29922';
             } else {
                 diffPill.style.display = 'none';
                 syncBadge.textContent = '✓ In Sync with HPO';
-                syncBadge.style.color = '#10b981';
+                syncBadge.style.color = '#3fb950';
             }
         }
 
@@ -12332,10 +12315,10 @@ document.addEventListener('mousemove', (e) => {
                 const oVal = JSON.stringify(origJv[k] || {});
                 const cVal = JSON.stringify(currJv[k] || {});
                 if (oVal !== cVal) {
-                    diffHtml += `<div style="margin-bottom:6px;"><b style="color:#d8b4fe;">[${k}]</b>:<br><span style="color:#f87171;">- ${oVal}</span><br><span style="color:#34d399;">+ ${cVal}</span></div>`;
+                    diffHtml += `<div style="margin-bottom:6px;"><span style="color:#f0f6fc; font-weight:600;">[${k}]</span><br><span style="color:#f85149;">- ${oVal}</span><br><span style="color:#3fb950;">+ ${cVal}</span></div>`;
                 }
             });
-            diffContent.innerHTML = diffHtml || '<div>Whitespace or order changes.</div>';
+            diffContent.innerHTML = diffHtml || '<div>Whitespace or key order changes.</div>';
         }
     }
 
@@ -12351,7 +12334,7 @@ document.addEventListener('mousemove', (e) => {
         const key = getActiveAppKey();
         const tier = getActiveGlobalTier();
         const originalText = btn ? btn.innerHTML : '';
-        if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Patching HPO Engine...'; }
+        if (btn) { btn.disabled = true; btn.innerHTML = 'Applying...'; }
         const t0 = performance.now();
 
         try {
@@ -12387,7 +12370,7 @@ document.addEventListener('mousemove', (e) => {
                     payload: payloadToSend
                 });
 
-                window.showQaAppStatus(`✓ Success (HTTP ${data.status || 200} in ${elapsed}ms): ${key} updated on ${tier}! Replicators notified.`, 'success');
+                window.showQaAppStatus(`✓ Success (HTTP ${data.status || 200} in ${elapsed}ms): ${key} updated on ${tier}`, 'success');
                 window.showToast ? window.showToast(`[QA] ${key} patched successfully!`) : null;
             } else {
                 const errMsg = data.error ? (typeof data.error === 'object' ? JSON.stringify(data.error) : data.error) : 'Update failed';
@@ -12425,13 +12408,13 @@ document.addEventListener('mousemove', (e) => {
         banner.style.display = 'flex';
         banner.textContent = msg;
         if (type === 'success') {
-            banner.style.background = 'rgba(16,185,129,0.15)';
-            banner.style.border = '1px solid rgba(16,185,129,0.4)';
-            banner.style.color = '#34d399';
+            banner.style.background = 'rgba(63,185,80,0.1)';
+            banner.style.border = '1px solid rgba(63,185,80,0.3)';
+            banner.style.color = '#3fb950';
         } else {
-            banner.style.background = 'rgba(239,68,68,0.15)';
-            banner.style.border = '1px solid rgba(239,68,68,0.4)';
-            banner.style.color = '#f87171';
+            banner.style.background = 'rgba(248,81,73,0.1)';
+            banner.style.border = '1px solid rgba(248,81,73,0.3)';
+            banner.style.color = '#f85149';
         }
     };
 
@@ -12470,7 +12453,7 @@ document.addEventListener('mousemove', (e) => {
                 window.renderQaInstrumentForm();
                 window.updateQaInstJsonTextarea();
                 updatePriceCorridor();
-                window.showQaInstStatus(`✓ Loaded attributes for ${sym} on ${tier} in ${elapsed}ms.`, 'success');
+                window.showQaInstStatus(`✓ Loaded attributes for ${sym} on ${tier} (${elapsed}ms)`, 'success');
             } else {
                 window.showQaInstStatus(`Error: ${data.error || 'Failed to fetch instrument'}`, 'error');
             }
@@ -12511,8 +12494,6 @@ document.addEventListener('mousemove', (e) => {
         }
         updatePriceCorridor();
     };
-
-
 
     window.addQaInstCustomField = function() {
         const fieldName = prompt("Enter attribute key name to patch (e.g. tick_size, min_quantity, step_size):");
@@ -12581,7 +12562,6 @@ document.addEventListener('mousemove', (e) => {
         const maxEl = document.getElementById('qa-inst-band-max');
         const sym = getActiveSymbol();
         
-        // Approximate anchor mark price based on symbol
         let anchorMark = 2.50;
         if (sym.includes('BTC')) anchorMark = 95000.0;
         else if (sym.includes('ETH')) anchorMark = 3200.0;
@@ -12608,7 +12588,7 @@ document.addEventListener('mousemove', (e) => {
         const cookieInput = document.getElementById('qa-inst-cookies');
         const cookieVal = cookieInput ? cookieInput.value.trim() : '';
         const originalText = btn ? btn.innerHTML : '';
-        if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Patching Instrument...'; }
+        if (btn) { btn.disabled = true; btn.innerHTML = 'Applying...'; }
         const t0 = performance.now();
 
         try {
@@ -12638,7 +12618,7 @@ document.addEventListener('mousemove', (e) => {
                     payload: qaInstrumentData
                 });
 
-                window.showQaInstStatus(`✓ Success (HTTP ${data.status || 200} in ${elapsed}ms): ${sym} patched on ${tier}! Replicators updated.`, 'success');
+                window.showQaInstStatus(`✓ Success (HTTP ${data.status || 200} in ${elapsed}ms): ${sym} patched on ${tier}`, 'success');
                 window.showToast ? window.showToast(`[QA] ${sym} patched successfully!`) : null;
                 const livePill = document.getElementById('qa-inst-live-pill');
                 if (livePill) livePill.textContent = `Engine Live: ↑${qaInstrumentData.multiplier_up}x | ↓${qaInstrumentData.multiplier_down}x`;
@@ -12671,18 +12651,18 @@ document.addEventListener('mousemove', (e) => {
         banner.style.display = 'flex';
         banner.textContent = msg;
         if (type === 'success') {
-            banner.style.background = 'rgba(16,185,129,0.15)';
-            banner.style.border = '1px solid rgba(16,185,129,0.4)';
-            banner.style.color = '#34d399';
+            banner.style.background = 'rgba(63,185,80,0.1)';
+            banner.style.border = '1px solid rgba(63,185,80,0.3)';
+            banner.style.color = '#3fb950';
         } else {
-            banner.style.background = 'rgba(239,68,68,0.15)';
-            banner.style.border = '1px solid rgba(239,68,68,0.4)';
-            banner.style.color = '#f87171';
+            banner.style.background = 'rgba(248,81,73,0.1)';
+            banner.style.border = '1px solid rgba(248,81,73,0.3)';
+            banner.style.color = '#f85149';
         }
     };
 
     // =========================================================================
-    // TAB 4: AUDIT & PATCH HISTORY LOG
+    // TAB 3: AUDIT & PATCH HISTORY LOG
     // =========================================================================
     function recordPatchHistory(record) {
         qaPatchHistory.unshift(record);
@@ -12699,24 +12679,24 @@ document.addEventListener('mousemove', (e) => {
 
         if (!list) return;
         if (qaPatchHistory.length === 0) {
-            list.innerHTML = '<div style="font-size:11.5px; color:var(--text-muted); font-style:italic; padding:12px 0; text-align:center;">No patches recorded in this session yet.</div>';
+            list.innerHTML = '<div style="font-size:11.5px; color:#8b949e; font-style:italic; padding:12px 0; text-align:center;">No patches recorded in this session yet.</div>';
             return;
         }
 
         list.innerHTML = '';
         qaPatchHistory.forEach((rec, idx) => {
             const item = document.createElement('div');
-            item.style.cssText = 'background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;';
+            item.style.cssText = 'background:#0d1117; border:1px solid #21262d; border-radius:6px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;';
             item.innerHTML = `
                 <div style="display:flex; align-items:center; gap:10px;">
-                    <span style="font-size:10px; font-weight:800; font-family:'JetBrains Mono',monospace; background:rgba(99,102,241,0.2); color:#c7d2fe; padding:2px 6px; border-radius:4px;">${rec.type}</span>
+                    <span style="font-size:10px; font-weight:700; font-family:'JetBrains Mono',monospace; background:#21262d; color:#c9d1d9; padding:2px 6px; border-radius:4px; border:1px solid #30363d;">${rec.type}</span>
                     <div>
-                        <div style="font-size:12px; font-weight:800; color:var(--text-main); font-family:'JetBrains Mono',monospace;">${rec.target} on ${rec.tier}</div>
-                        <div style="font-size:10px; color:var(--text-muted);">${rec.timestamp} &bull; HTTP ${rec.status} &bull; ${rec.elapsed}ms</div>
+                        <div style="font-size:12px; font-weight:600; color:#f0f6fc; font-family:'JetBrains Mono',monospace;">${rec.target} on ${rec.tier}</div>
+                        <div style="font-size:10px; color:#8b949e;">${rec.timestamp} &bull; HTTP ${rec.status} &bull; ${rec.elapsed}ms</div>
                     </div>
                 </div>
                 <div style="display:flex; align-items:center; gap:6px;">
-                    <button type="button" onclick="window.replayQaPatch(${idx})" style="background:rgba(168,85,247,0.18); border:1px solid rgba(168,85,247,0.45); color:#d8b4fe; font-size:10.5px; font-weight:700; padding:4px 10px; border-radius:5px; cursor:pointer;" title="Re-stage and patch this exact snapshot">Replay / Rollback</button>
+                    <button type="button" onclick="window.replayQaPatch(${idx})" style="background:#21262d; border:1px solid #30363d; color:#c9d1d9; font-size:10.5px; font-weight:500; padding:4px 10px; border-radius:4px; cursor:pointer;" title="Re-stage and patch this exact snapshot">Replay / Rollback</button>
                 </div>
             `;
             list.appendChild(item);
@@ -12754,10 +12734,10 @@ document.addEventListener('mousemove', (e) => {
         if (!badge) return;
         if (isValid) {
             badge.textContent = '✓ Valid JSON';
-            badge.style.color = '#10b981';
+            badge.style.color = '#3fb950';
         } else {
             badge.textContent = `✕ Syntax Error: ${errMsg || 'Invalid JSON'}`;
-            badge.style.color = '#f87171';
+            badge.style.color = '#f85149';
         }
     }
 
@@ -12783,6 +12763,7 @@ document.addEventListener('mousemove', (e) => {
 
 })();
 </script>
+
 
 </body>
 </html>
