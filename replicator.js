@@ -4340,16 +4340,18 @@ const server = http.createServer(async (req, res) => {
                     !pathname.startsWith('/api/manual-override') && 
                     !pathname.startsWith('/api/env') && 
                     !pathname.startsWith('/api/mds-proxy') && 
-                    !pathname.startsWith('/fapi/v1/openOrders')
+                    !pathname.startsWith('/api/portfolio') &&
+                    !pathname.startsWith('/fapi/')
                 ) {
                     throw new Error("Symbol is required");
                 }
                 if (pathname.startsWith('/fapi/')) {
                     const userId = req.headers['x-replicator-user'];
                     if (!userId) { res.writeHead(400); return res.end(JSON.stringify({ error: "Missing x-replicator-user header" })); }
-                    const tierUsers = globalUsers[globalActiveTier] || {};
+                    const targetTier = (req.headers['x-replicator-tier'] || globalActiveTier).toUpperCase().replace(/-/g, '_');
+                    const tierUsers = globalUsers[targetTier] || globalUsers[globalActiveTier] || {};
                     const userCreds = tierUsers[userId];
-                    if (!userCreds) { res.writeHead(400); return res.end(JSON.stringify({ error: "Invalid user ID" })); }
+                    if (!userCreds) { res.writeHead(400); return res.end(JSON.stringify({ error: `Invalid user ID "${userId}" for tier ${targetTier}` })); }
                     try {
                         const httpMethod = parsed._method || 'POST';
                         delete parsed._method;
@@ -4357,8 +4359,8 @@ const server = http.createServer(async (req, res) => {
                             delete parsed.offset;
                             delete parsed.limit;
                         }
-                        const hpoBase = TIER_URLS[globalActiveTier].HPO;
-                        const apiRes = await sendSignedRequest(`${hpoBase}${req.url}`, httpMethod, parsed, userCreds, 50000, globalActiveTier);
+                        const hpoBase = (TIER_URLS[targetTier] || TIER_URLS[globalActiveTier]).HPO;
+                        const apiRes = await sendSignedRequest(`${hpoBase}${req.url}`, httpMethod, parsed, userCreds, 50000, targetTier);
                         if (apiRes.ok || (apiRes.status >= 200 && apiRes.status < 300)) {
                             // Force an immediate UI portfolio refresh in the global loop
                             lastPortfolioSyncTime = 0;

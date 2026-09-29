@@ -1168,16 +1168,16 @@
   .pg-btn:disabled { opacity: 0.5; cursor: not-allowed; border-color: var(--glass-border); color: var(--text-muted); }
 
   /* Premium Portfolio Action Buttons */
-  .act-btn { padding:6px 12px; font-size:10px; font-weight:700; border-radius:99px; cursor:pointer; transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border:1px solid transparent; font-family:'Inter', sans-serif; }
+  .act-btn { padding:3px 7px; font-size:9.5px; font-weight:700; border-radius:4px; cursor:pointer; transition:all 0.2s cubic-bezier(0.4, 0, 0.2, 1); border:1px solid var(--border); font-family:'Inter', sans-serif; line-height:1.2; }
   .act-btn:active { transform: scale(0.95); }
-  .act-lev  { color:var(--text-main); background:var(--row-bg); }
-  .act-lev:hover { background:rgba(255,255,255,0.1); }
-  .act-marg { color:var(--text-main); background:var(--row-bg); }
-  .act-marg:hover { background:rgba(255,255,255,0.1); }
-  .act-red  { color:var(--yellow); background:rgba(234,179,8,0.05); }
-  .act-red:hover { background:rgba(234,179,8,0.15); box-shadow:0 0 12px rgba(234,179,8,0.1); }
-  .act-cls  { color:var(--rose); background:rgba(244,63,94,0.05); }
-  .act-cls:hover { background:rgba(244,63,94,0.15); box-shadow:0 0 12px rgba(244,63,94,0.1); }
+  .act-lev  { color:var(--text-main); background:var(--row-bg); border-color:var(--border); }
+  .act-lev:hover { background:rgba(255,255,255,0.1); border-color:var(--cyan); color:var(--cyan); }
+  .act-marg { color:var(--text-main); background:var(--row-bg); border-color:var(--border); }
+  .act-marg:hover { background:rgba(255,255,255,0.1); border-color:var(--cyan); color:var(--cyan); }
+  .act-red  { color:var(--yellow); background:rgba(234,179,8,0.08); border-color:rgba(234,179,8,0.3); }
+  .act-red:hover { background:rgba(234,179,8,0.2); box-shadow:0 0 10px rgba(234,179,8,0.2); }
+  .act-cls  { color:var(--rose); background:rgba(244,63,94,0.08); border-color:rgba(244,63,94,0.3); }
+  .act-cls:hover { background:rgba(244,63,94,0.2); box-shadow:0 0 10px rgba(244,63,94,0.2); }
 
   /* Add Funds Button in Portfolio */
   .btn-add-funds {
@@ -1216,7 +1216,7 @@
   /* Advanced Portfolio Redesign Styles */
   .port-kpi-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 8px;
     padding: 10px 16px;
     background: rgba(0, 0, 0, 0.2);
@@ -1256,13 +1256,19 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  .port-search-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-left: 8px;
+  }
   .port-search-input {
     background: var(--input-bg);
     border: 1px solid var(--border);
     border-radius: 4px;
     color: var(--text-main);
     font-size: 10.5px;
-    padding: 3px 8px;
+    padding: 3px 22px 3px 8px;
     outline: none;
     width: 105px;
     font-family: 'Inter', sans-serif;
@@ -1272,6 +1278,47 @@
     width: 135px;
     border-color: var(--cyan);
     box-shadow: 0 0 8px rgba(6, 182, 212, 0.2);
+  }
+  .port-search-clear {
+    position: absolute;
+    right: 5px;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 11px;
+    padding: 2px 4px;
+    line-height: 1;
+    display: none;
+    transition: color 0.15s ease;
+  }
+  .port-search-clear:hover {
+    color: var(--rose);
+  }
+
+  /* Sticky Portfolio Table Headers & Compact Cell Styling */
+  #u1-scroll table, #u2-scroll table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+  #u1-scroll table th, #u2-scroll table th {
+    padding: 8px 10px;
+    font-size: 9.5px;
+    font-weight: 700;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    background: var(--input-bg);
+    border-bottom: 1px solid var(--border);
+    z-index: 2;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  }
+  #u1-scroll table td, #u2-scroll table td {
+    padding: 8px 10px;
+    font-size: 11px;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--border);
   }
   .port-refresh-btn {
     background: var(--input-bg);
@@ -3556,16 +3603,17 @@
       <button id="tab-u1-pos" class="tab on" style="flex:1" onclick="window.setPortTab('u1', 'pos')">Positions <span id="count-u1-pos" class="tab-count-badge"></span></button>
       <button id="tab-u1-open" class="tab" style="flex:1" onclick="window.setPortTab('u1', 'open')">Open Orders <span id="count-u1-open" class="tab-count-badge"></span></button>
       <button id="tab-u1-hist" class="tab" style="flex:1" onclick="window.setPortTab('u1', 'hist')">History <span id="count-u1-hist" class="tab-count-badge"></span></button>
-      <div style="margin-left:8px;">
+      <div class="port-search-wrap">
         <input type="text" id="search-u1" class="port-search-input" placeholder="🔍 Symbol..." oninput="window.setPortSearch('u1', this.value)">
+        <button id="clear-search-u1" class="port-search-clear" onclick="window.clearPortSearch('u1')" title="Clear search">✕</button>
       </div>
     </div>
     <div id="u1-body-wrap" style="display:flex;flex-direction:column;flex:1;min-height:0;">
       <div id="u1-err" class="err-banner" style="display:none;flex-shrink:0;"></div>
       <div style="flex:1;overflow-y:auto;overflow-x:auto;" id="u1-scroll">
         <table>
-          <thead><tr><th>Symbol</th><th style="text-align:right;">Lev</th><th style="text-align:right;">Margin</th><th style="text-align:right;">Size</th><th style="text-align:right;">Unreal. PnL</th><th style="text-align:right;">Entry</th><th style="text-align:right;">Mark</th><th style="text-align:right;">Liq.</th><th style="text-align:right;width:160px;">Actions</th></tr></thead>
-          <tbody id="u1-body"><tr><td colspan="9" style="text-align:center;padding:40px 0;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;font-family:'Inter',sans-serif;font-weight:600;">No active positions</td></tr></tbody>
+          <thead><tr><th>Symbol</th><th style="text-align:right;">Lev</th><th style="text-align:right;">Margin</th><th style="text-align:right;">Size</th><th style="text-align:right;">Unreal. PnL (ROI)</th><th style="text-align:right;">Entry / Mark</th><th style="text-align:right;">Liq. Price</th><th style="text-align:right;width:160px;">Actions</th></tr></thead>
+          <tbody id="u1-body"><tr><td colspan="8" style="text-align:center;padding:40px 0;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;font-family:'Inter',sans-serif;font-weight:600;">No active positions</td></tr></tbody>
         </table>
       </div>
       <div id="u1-pagination" style="display:none;align-items:center;justify-content:center;gap:12px;padding:10px;background:var(--input-bg);border-top:1px solid var(--border);">
@@ -3623,16 +3671,17 @@
       <button id="tab-u2-pos" class="tab on" style="flex:1" onclick="window.setPortTab('u2', 'pos')">Positions <span id="count-u2-pos" class="tab-count-badge"></span></button>
       <button id="tab-u2-open" class="tab" style="flex:1" onclick="window.setPortTab('u2', 'open')">Open Orders <span id="count-u2-open" class="tab-count-badge"></span></button>
       <button id="tab-u2-hist" class="tab" style="flex:1" onclick="window.setPortTab('u2', 'hist')">History <span id="count-u2-hist" class="tab-count-badge"></span></button>
-      <div style="margin-left:8px;">
+      <div class="port-search-wrap">
         <input type="text" id="search-u2" class="port-search-input" placeholder="🔍 Symbol..." oninput="window.setPortSearch('u2', this.value)">
+        <button id="clear-search-u2" class="port-search-clear" onclick="window.clearPortSearch('u2')" title="Clear search">✕</button>
       </div>
     </div>
     <div id="u2-body-wrap" style="display:flex;flex-direction:column;flex:1;min-height:0;">
       <div id="u2-err" class="err-banner" style="display:none;flex-shrink:0;"></div>
       <div style="flex:1;overflow-y:auto;overflow-x:auto;" id="u2-scroll">
         <table>
-          <thead><tr><th>Symbol</th><th style="text-align:right;">Lev</th><th style="text-align:right;">Margin</th><th style="text-align:right;">Size</th><th style="text-align:right;">Unreal. PnL</th><th style="text-align:right;">Entry</th><th style="text-align:right;">Mark</th><th style="text-align:right;">Liq.</th><th style="text-align:right;width:160px;">Actions</th></tr></thead>
-          <tbody id="u2-body"><tr><td colspan="9" style="text-align:center;padding:40px 0;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;font-family:'Inter',sans-serif;font-weight:600;">No active positions</td></tr></tbody>
+          <thead><tr><th>Symbol</th><th style="text-align:right;">Lev</th><th style="text-align:right;">Margin</th><th style="text-align:right;">Size</th><th style="text-align:right;">Unreal. PnL (ROI)</th><th style="text-align:right;">Entry / Mark</th><th style="text-align:right;">Liq. Price</th><th style="text-align:right;width:160px;">Actions</th></tr></thead>
+          <tbody id="u2-body"><tr><td colspan="8" style="text-align:center;padding:40px 0;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;font-family:'Inter',sans-serif;font-weight:600;">No active positions</td></tr></tbody>
         </table>
       </div>
       <div id="u2-pagination" style="display:none;align-items:center;justify-content:center;gap:12px;padding:10px;background:var(--input-bg);border-top:1px solid var(--border);">
@@ -3795,12 +3844,12 @@ window.addEventListener('DOMContentLoaded', () => {
 
         window.fetchedOrders = { 'u1': { open: [], hist: [] }, 'u2': { open: [], hist: [] } };
         window.fetchOrders = async function(u, tab) {
-            if (tab === 'pos' || !activeTabSymbol) return;
+            if (tab === 'pos') return;
             
             if (window[u + 'Tab'] === tab) {
                 const bodyEl = document.getElementById(u + '-body');
                 if (bodyEl) {
-                    const colSpan = tab === 'hist' ? 8 : (tab === 'open' ? 10 : 9);
+                    const colSpan = tab === 'hist' ? 7 : (tab === 'open' ? 9 : 8);
                     bodyEl.innerHTML = '<tr><td colspan="'+colSpan+'" style="text-align:center;padding:40px 0;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Loading...</td></tr>';
                 }
             }
@@ -3808,35 +3857,26 @@ window.addEventListener('DOMContentLoaded', () => {
             const endpoint = tab === 'open' ? '/fapi/v1/openOrders' : '/fapi/v1/allOrders';
             const userTag = u === 'u1' ? '1' : '2';
             const selectedUser = document.getElementById('sel-port-' + u)?.value || ('user' + userTag);
+            const activeTier = activeEnvFilter || (window.payload && window.payload.tier) || 'PRODUCTION';
             
             try {
-                if (tab === 'open') {
-                    const reqBody = { _method: 'GET' };
-                    if (activeTabSymbol) reqBody.symbol = activeTabSymbol;
-                    const res = await fetch(window.getApiUrl(endpoint), {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'x-replicator-user': selectedUser },
-                        body: JSON.stringify(reqBody)
-                    });
-                    if (res.ok) {
-                        const data = await res.json();
-                        window.fetchedOrders[u][tab] = Array.isArray(data) ? data : [];
-                    } else {
-                        window.fetchedOrders[u][tab] = [];
-                    }
+                const reqBody = { _method: 'GET' };
+                if (activeTabSymbol) reqBody.symbol = activeTabSymbol;
+                if (tab === 'hist') reqBody.limit = 500;
+                const res = await fetch(window.getApiUrl(endpoint), {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'x-replicator-user': selectedUser,
+                        'x-replicator-tier': activeTier
+                    },
+                    body: JSON.stringify(reqBody)
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    window.fetchedOrders[u][tab] = Array.isArray(data) ? data : [];
                 } else {
-                    const reqBody = { _method: 'GET', symbol: activeTabSymbol, limit: 500 };
-                    const res = await fetch(window.getApiUrl(endpoint), {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'x-replicator-user': selectedUser },
-                        body: JSON.stringify(reqBody)
-                    });
-                    if (res.ok) {
-                        const data = await res.json();
-                        window.fetchedOrders[u][tab] = Array.isArray(data) ? data : [];
-                    } else {
-                        window.fetchedOrders[u][tab] = [];
-                    }
+                    window.fetchedOrders[u][tab] = [];
                 }
             } catch (e) {
                 window.fetchedOrders[u][tab] = [];
@@ -3844,7 +3884,7 @@ window.addEventListener('DOMContentLoaded', () => {
             
             const countSpan = document.getElementById('count-' + u + '-' + tab);
             if (countSpan) {
-                countSpan.textContent = window.fetchedOrders[u][tab].length ? ` (${window.fetchedOrders[u][tab].length})` : '';
+                countSpan.textContent = window.fetchedOrders[u][tab].length ? `(${window.fetchedOrders[u][tab].length})` : '';
             }
             
             window.renderPortfolios();
@@ -4092,8 +4132,16 @@ window.addEventListener('DOMContentLoaded', () => {
         window.portSearch = { u1: '', u2: '' };
         window.setPortSearch = function(panelId, val) {
             window.portSearch[panelId] = (val || '').trim().toUpperCase();
+            const clearBtn = document.getElementById('clear-search-' + panelId);
+            if (clearBtn) clearBtn.style.display = val ? 'block' : 'none';
             if (window.pagination) window.pagination[panelId] = 1;
             window.renderPortfolios();
+        };
+
+        window.clearPortSearch = function(panelId) {
+            const input = document.getElementById('search-' + panelId);
+            if (input) input.value = '';
+            window.setPortSearch(panelId, '');
         };
 
         window.refreshPortfolio = async function(panelId) {
@@ -4107,9 +4155,9 @@ window.addEventListener('DOMContentLoaded', () => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ tier: activeTier })
                 });
-                const curTab = window[panelId + 'Tab'];
-                if (curTab && curTab !== 'pos' && typeof window.fetchOrders === 'function') {
-                    window.fetchOrders(panelId, curTab);
+                if (typeof window.fetchOrders === 'function') {
+                    window.fetchOrders('u1', window.u1Tab || 'pos');
+                    window.fetchOrders('u2', window.u2Tab || 'pos');
                 }
                 showToast(`↻ Portfolio refreshed [${activeTier}]`);
             } catch (err) {
@@ -4118,6 +4166,9 @@ window.addEventListener('DOMContentLoaded', () => {
                 setTimeout(() => {
                     if (btn) btn.classList.remove('spin-icon');
                     window.renderPortfolios();
+                    if (typeof window.updateTerminalAccountInfo === 'function') {
+                        window.updateTerminalAccountInfo();
+                    }
                 }, 400);
             }
         };
@@ -4149,6 +4200,13 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (res.ok && data.success) {
                     showToast('✅ ' + (data.message || `USDT added successfully for ${userId} [${activeTier}]`));
                     window.renderPortfolios();
+                    if (typeof window.updateTerminalAccountInfo === 'function') {
+                        window.updateTerminalAccountInfo();
+                    }
+                    if (typeof window.fetchOrders === 'function') {
+                        window.fetchOrders('u1', window.u1Tab || 'pos');
+                        window.fetchOrders('u2', window.u2Tab || 'pos');
+                    }
                 } else {
                     showToast('❌ ' + (data.error || 'Failed to add USDT via seed balance API'), true);
                 }
@@ -4344,13 +4402,19 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         };
 
-                window.fapiAction = async function(action, userId, symbol, currentSide, extraParam) {
+        window.fapiAction = async function(action, userId, symbol, currentSide, extraParam) {
+            const activeTier = activeEnvFilter || (window.payload && window.payload.tier) || 'PRODUCTION';
+            const userToAct = userId || window.tradeUser || document.getElementById('sel-trade-user')?.value || 'user1';
 
             // ── Helper: execute the actual API call ────────────────────────────
             const execApi = async (endpoint, payload) => {
                 const res = await fetch(window.getApiUrl(endpoint), {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-replicator-user': userId },
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'x-replicator-user': userToAct,
+                        'x-replicator-tier': activeTier
+                    },
                     body: JSON.stringify(payload)
                 });
                 const data = await res.json();
@@ -4361,11 +4425,10 @@ window.addEventListener('DOMContentLoaded', () => {
             };
 
             // Retrieve live position details if they exist in active portfolio payload
-            const activeTier = (window.globalActiveTier || 'PRODUCTION').toUpperCase();
             const tierPorts = (window.payload && window.payload.portfolios && window.payload.portfolios[activeTier]) || {};
-            const port = tierPorts[userId] || {};
+            const port = tierPorts[userToAct] || {};
             const pos = (port.positions || []).find(p => p.symbol === symbol) || {};
-            const leverage = pos.leverage || 1;
+            const leverage = pos.leverage || 5;
             const entryPrice = parseFloat(pos.entryPrice || 0);
             const markPrice = parseFloat(pos.markPrice || window.fetchedBinanceLtp?.[symbol] || 0);
             const posAmt = parseFloat(pos.positionAmt || 0);
@@ -4705,9 +4768,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
             // ── CANCEL: Cancel Order ──────────────────────────────────────────
             } else if (action === 'cancel') {
-                const p1UserId = document.getElementById('sel-port-u1')?.value;
-                const p2UserId = document.getElementById('sel-port-u2')?.value;
-                const u = (userId === p1UserId) ? 'u1' : (userId === p2UserId ? 'u2' : null);
                 window.openL2Modal(
                     'Cancel Order',
                     symbol, subheaderHtml,
@@ -4720,7 +4780,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     async () => {
                         await execApi('/fapi/v1/order', { symbol, _method: 'DELETE', orderId: currentSide });
                         showToast(`✓ Order cancelled`);
-                        if (u) window.fetchOrders(u, 'open');
+                        window.fetchOrders('u1', 'open');
+                        window.fetchOrders('u2', 'open');
                     }
                 );
 
@@ -4728,13 +4789,13 @@ window.addEventListener('DOMContentLoaded', () => {
             } else if (action === 'edit') {
                 let currentOrderPrice = '';
                 let currentOrderQty = '';
-                const p1UserId = document.getElementById('sel-port-u1')?.value;
-                const p2UserId = document.getElementById('sel-port-u2')?.value;
-                const u = (userId === p1UserId) ? 'u1' : (userId === p2UserId ? 'u2' : null);
-                if (u && window.fetchedOrders?.[u]?.open) {
-                    const order = window.fetchedOrders[u].open.find(o => String(o.orderId) === String(currentSide));
-                    if (order) { currentOrderPrice = order.price; currentOrderQty = order.origQty; }
-                }
+                ['u1', 'u2'].forEach(panel => {
+                    const order = window.fetchedOrders?.[panel]?.open?.find(o => String(o.orderId) === String(currentSide));
+                    if (order) { 
+                        if (order.price !== undefined && order.price !== null) currentOrderPrice = order.price;
+                        if (order.origQty !== undefined && order.origQty !== null) currentOrderQty = order.origQty; 
+                    }
+                });
 
                 window.openL2Modal(
                     'Edit Order',
@@ -4756,7 +4817,8 @@ window.addEventListener('DOMContentLoaded', () => {
                         if (extraParam) p.side = extraParam;
                         await execApi('/fapi/v1/order', p);
                         showToast(`✓ Order updated: ${qty} @ ${price}`);
-                        if (u) window.fetchOrders(u, 'open');
+                        window.fetchOrders('u1', 'open');
+                        window.fetchOrders('u2', 'open');
                     }
                 );
             }
@@ -6314,14 +6376,16 @@ window.addEventListener('DOMContentLoaded', () => {
         window.stepTermPrice = function(direction) {
             const priceInput = document.getElementById('trade-price');
             if (!priceInput) return;
+            const inst = cachedInstances[activeTabSymbol];
+            const precision = (typeof pPrec !== 'undefined' && pPrec !== null) ? pPrec : (inst?.diagnostics?.pricePrecision !== undefined ? inst.diagnostics.pricePrecision : 4);
+            const step = Math.pow(10, -precision);
             let cur = parseFloat(priceInput.value);
-            const step = Math.pow(10, -(pPrec || 4));
             if (isNaN(cur) || cur <= 0) {
-                const inst = cachedInstances[activeTabSymbol];
-                cur = parseFloat(inst?.diagnostics?.testnetLtp || inst?.diagnostics?.binanceLtp || 0);
+                const diag = inst?.diagnostics || {};
+                cur = parseFloat(diag.testnetLtp) || parseFloat(diag.binanceLtp) || 0;
             }
-            cur = Math.max(0, cur + (direction * step));
-            priceInput.value = cur.toFixed(pPrec || 4);
+            cur = Math.max(step, cur + (direction * step));
+            priceInput.value = cur.toFixed(precision);
             window.calcTermEstimates();
         };
 
@@ -6329,6 +6393,7 @@ window.addEventListener('DOMContentLoaded', () => {
             const inst = cachedInstances[activeTabSymbol];
             if (!inst) return;
             const diag = inst.diagnostics || {};
+            const precision = (typeof pPrec !== 'undefined' && pPrec !== null) ? pPrec : (diag.pricePrecision !== undefined ? diag.pricePrecision : 4);
             let p = 0;
             if (source === 'mark') {
                 p = parseFloat(diag.testnetMarkPrice) || parseFloat(diag.binanceMarkPrice) || parseFloat(diag.testnetLtp) || 0;
@@ -6338,18 +6403,19 @@ window.addEventListener('DOMContentLoaded', () => {
             if (p > 0) {
                 const stopInput = document.getElementById('trade-stop-price');
                 if (stopInput) {
-                    stopInput.value = p.toFixed(pPrec || 4);
+                    stopInput.value = p.toFixed(precision);
                     window.calcTermEstimates();
                 }
             }
         };
 
         window.setTermQtyPct = function(pct) {
-            if (!activeTabSymbol) return;
+            if (!activeTabSymbol) return showToast('Select a market first', true);
             const inst = cachedInstances[activeTabSymbol];
             const activeTier = activeEnvFilter || (window.payload && window.payload.tier) || 'PRODUCTION';
             const tierPorts = (window.payload && window.payload.portfolios && window.payload.portfolios[activeTier]) || {};
-            const port = tierPorts[window.tradeUser] || {};
+            const uId = window.tradeUser || document.getElementById('sel-trade-user')?.value || 'user1';
+            const port = tierPorts[uId] || {};
             const avail = parseFloat(port.availableBalance || 0);
             
             const pos = (port.positions || []).find(p => p.symbol === activeTabSymbol) || {};
@@ -6357,18 +6423,31 @@ window.addEventListener('DOMContentLoaded', () => {
 
             let price = parseFloat(document.getElementById('trade-price')?.value);
             if (!price || isNaN(price) || price <= 0) {
-                price = parseFloat(inst?.diagnostics?.testnetLtp) || parseFloat(inst?.diagnostics?.binanceLtp) || 0;
+                const stopVal = parseFloat(document.getElementById('trade-stop-price')?.value);
+                if (stopVal && !isNaN(stopVal) && stopVal > 0) price = stopVal;
+            }
+            if (!price || isNaN(price) || price <= 0) {
+                const diag = inst?.diagnostics || {};
+                price = parseFloat(diag.testnetLtp) || parseFloat(diag.binanceLtp) || parseFloat(diag.testnetMarkPrice) || parseFloat(diag.binanceMarkPrice) || 0;
+            }
+            if (!price || isNaN(price) || price <= 0) {
+                const tLtp = parseFloat(document.getElementById('t-sltp')?.textContent);
+                const bLtp = parseFloat(document.getElementById('t-bltp')?.textContent);
+                price = (!isNaN(tLtp) && tLtp > 0) ? tLtp : ((!isNaN(bLtp) && bLtp > 0) ? bLtp : 0);
             }
 
-            if (price <= 0 || avail <= 0) {
-                return showToast('⚠ No price or available balance to calculate percentage', true);
+            if (avail <= 0) {
+                return showToast('⚠ No available USDT balance. Click "+ USDT" to add funds.', true);
+            }
+            if (price <= 0) {
+                return showToast('⚠ Awaiting market price feed to calculate quantity percentage', true);
             }
 
             // Max buying power with 1% safety margin
             const maxBuyingPower = avail * leverage * 0.99;
             const maxBaseQty = maxBuyingPower / price;
             const targetQty = (maxBaseQty * pct) / 100;
-            const precision = qPrec !== undefined ? qPrec : 2;
+            const precision = (typeof qPrec !== 'undefined' && qPrec !== null) ? qPrec : (inst?.diagnostics?.qtyPrecision !== undefined ? inst.diagnostics.qtyPrecision : 2);
             const finalQty = Math.max(Math.pow(10, -precision), parseFloat(targetQty.toFixed(precision)));
 
             const qtyInput = document.getElementById('trade-qty');
@@ -6381,10 +6460,11 @@ window.addEventListener('DOMContentLoaded', () => {
         window.stepTermQty = function(direction) {
             const qtyInput = document.getElementById('trade-qty');
             if (!qtyInput) return;
-            let cur = parseFloat(qtyInput.value) || 0;
-            const precision = qPrec !== undefined ? qPrec : 2;
+            const inst = cachedInstances[activeTabSymbol];
+            const precision = (typeof qPrec !== 'undefined' && qPrec !== null) ? qPrec : (inst?.diagnostics?.qtyPrecision !== undefined ? inst.diagnostics.qtyPrecision : 2);
             const step = Math.pow(10, -precision);
-            cur = Math.max(0, cur + (direction * step));
+            let cur = parseFloat(qtyInput.value) || 0;
+            cur = Math.max(step, cur + (direction * step));
             qtyInput.value = cur.toFixed(precision);
             window.calcTermEstimates();
         };
@@ -6393,13 +6473,24 @@ window.addEventListener('DOMContentLoaded', () => {
             const inst = cachedInstances[activeTabSymbol];
             const activeTier = activeEnvFilter || (window.payload && window.payload.tier) || 'PRODUCTION';
             const tierPorts = (window.payload && window.payload.portfolios && window.payload.portfolios[activeTier]) || {};
-            const port = tierPorts[window.tradeUser] || {};
+            const uId = window.tradeUser || document.getElementById('sel-trade-user')?.value || 'user1';
+            const port = tierPorts[uId] || {};
             const pos = (port.positions || []).find(p => p.symbol === activeTabSymbol) || {};
             const leverage = parseFloat(pos.leverage) || 5;
 
             let price = parseFloat(document.getElementById('trade-price')?.value);
             if (!price || isNaN(price) || price <= 0) {
-                price = parseFloat(inst?.diagnostics?.testnetLtp) || parseFloat(inst?.diagnostics?.binanceLtp) || 0;
+                const stopVal = parseFloat(document.getElementById('trade-stop-price')?.value);
+                if (stopVal && !isNaN(stopVal) && stopVal > 0) price = stopVal;
+            }
+            if (!price || isNaN(price) || price <= 0) {
+                const diag = inst?.diagnostics || {};
+                price = parseFloat(diag.testnetLtp) || parseFloat(diag.binanceLtp) || parseFloat(diag.testnetMarkPrice) || parseFloat(diag.binanceMarkPrice) || 0;
+            }
+            if (!price || isNaN(price) || price <= 0) {
+                const tLtp = parseFloat(document.getElementById('t-sltp')?.textContent);
+                const bLtp = parseFloat(document.getElementById('t-bltp')?.textContent);
+                price = (!isNaN(tLtp) && tLtp > 0) ? tLtp : ((!isNaN(bLtp) && bLtp > 0) ? bLtp : 0);
             }
             const qty = parseFloat(document.getElementById('trade-qty')?.value) || 0;
 
@@ -6419,7 +6510,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     const liqPrice = isLong 
                         ? price * (1 - (1 / leverage) + 0.005)
                         : price * (1 + (1 / leverage) - 0.005);
-                    if (estLiqEl) estLiqEl.textContent = Math.max(0, liqPrice).toFixed(pPrec || 4);
+                    const precision = (typeof pPrec !== 'undefined' && pPrec !== null) ? pPrec : 4;
+                    if (estLiqEl) estLiqEl.textContent = Math.max(0, liqPrice).toFixed(precision) + ' USDT';
                 } else {
                     if (estLiqEl) estLiqEl.textContent = 'None (1x)';
                 }
@@ -6455,11 +6547,12 @@ window.addEventListener('DOMContentLoaded', () => {
 
         window.openTerminalLevModal = function() {
             if (!activeTabSymbol) return showToast('Select a market first', true);
-            window.fapiAction('lev', window.tradeUser || 'user1', activeTabSymbol);
+            const userToAct = window.tradeUser || document.getElementById('sel-trade-user')?.value || 'user1';
+            window.fapiAction('lev', userToAct, activeTabSymbol);
         };
 
         window.seedTerminalUserBalance = async function() {
-            const userId = window.tradeUser || 'user1';
+            const userId = window.tradeUser || document.getElementById('sel-trade-user')?.value || 'user1';
             const activeTier = activeEnvFilter || (window.payload && window.payload.tier) || 'PRODUCTION';
             try {
                 showToast(`Seeding USDT for ${userId} [${activeTier}]...`);
@@ -6473,6 +6566,10 @@ window.addEventListener('DOMContentLoaded', () => {
                     showToast('✅ ' + (data.message || `USDT added for ${userId}`));
                     window.renderPortfolios();
                     window.updateTerminalAccountInfo();
+                    if (typeof window.fetchOrders === 'function') {
+                        window.fetchOrders('u1', window.u1Tab || 'pos');
+                        window.fetchOrders('u2', window.u2Tab || 'pos');
+                    }
                 } else {
                     showToast('❌ ' + (data.error || 'Failed to add USDT'), true);
                 }
@@ -6502,7 +6599,7 @@ window.addEventListener('DOMContentLoaded', () => {
             const activeTier = activeEnvFilter || (window.payload && window.payload.tier) || 'PRODUCTION';
             const tierRoles = (window.payload && window.payload.roles && window.payload.roles[activeTier]) || {};
             const tierPorts = (window.payload && window.payload.portfolios && window.payload.portfolios[activeTier]) || {};
-            const uId = window.tradeUser || 'user1';
+            const uId = window.tradeUser || document.getElementById('sel-trade-user')?.value || 'user1';
             const port = tierPorts[uId] || {};
 
             // Role badge
@@ -6575,6 +6672,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
         window.submitManualTrade = async function(side) {
             if (!activeTabSymbol) return showToast('✗ Select a market first', true);
+            const activeTier = activeEnvFilter || (window.payload && window.payload.tier) || 'PRODUCTION';
+            const userToTrade = window.tradeUser || document.getElementById('sel-trade-user')?.value || 'user1';
             const type = document.getElementById('trade-type').value;
             const qty = parseFloat(document.getElementById('trade-qty').value);
             const price = parseFloat(document.getElementById('trade-price').value);
@@ -6619,14 +6718,25 @@ window.addEventListener('DOMContentLoaded', () => {
             try {
                 const res = await fetch(window.getApiUrl('/fapi/v1/order'), {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-replicator-user': window.tradeUser.toString() },
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'x-replicator-user': userToTrade.toString(),
+                        'x-replicator-tier': activeTier
+                    },
                     body: JSON.stringify(payload)
                 });
                 const data = await res.json();
                 if (data.error || data.msg || data.code < 0) {
                     showToast(`✗ Order Failed: ${data.error || data.msg}`, true);
                 } else {
-                    showToast(`✓ Order Placed (${side} ${qty})`);
+                    showToast(`✓ Order Placed (${side} ${qty} ${payload.symbol})`);
+                    if (typeof window.fetchOrders === 'function') {
+                        window.fetchOrders('u1', 'open');
+                        window.fetchOrders('u2', 'open');
+                    }
+                    if (typeof window.renderPortfolios === 'function') {
+                        window.renderPortfolios();
+                    }
                 }
             } catch (err) {
                 showToast(`✗ Request Failed: ${err.message}`, true);
@@ -6635,10 +6745,16 @@ window.addEventListener('DOMContentLoaded', () => {
 
         window.submitClosePosition = async function() {
             if (!activeTabSymbol) return showToast('✗ Select a market first', true);
+            const activeTier = activeEnvFilter || (window.payload && window.payload.tier) || 'PRODUCTION';
+            const userToTrade = window.tradeUser || document.getElementById('sel-trade-user')?.value || 'user1';
             try {
                 const res = await fetch(window.getApiUrl('/fapi/v1/exitPosition'), {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-replicator-user': window.tradeUser.toString() },
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'x-replicator-user': userToTrade.toString(),
+                        'x-replicator-tier': activeTier
+                    },
                     body: JSON.stringify({ symbol: activeTabSymbol, timestamp: Date.now() })
                 });
                 const data = await res.json();
@@ -6646,6 +6762,13 @@ window.addEventListener('DOMContentLoaded', () => {
                     showToast(`✗ Close Failed: ${data.error || data.msg}`, true);
                 } else {
                     showToast(`✓ Position Closed successfully`);
+                    if (typeof window.fetchOrders === 'function') {
+                        window.fetchOrders('u1', 'open');
+                        window.fetchOrders('u2', 'open');
+                    }
+                    if (typeof window.renderPortfolios === 'function') {
+                        window.renderPortfolios();
+                    }
                 }
             } catch (err) {
                 showToast(`✗ Request Failed: ${err.message}`, true);
@@ -6731,6 +6854,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
             if (cachedInstances && cachedInstances[sym] && cachedGlobalData) {
                 renderSymbolData(cachedInstances[sym], cachedGlobalData);
+            }
+            if (typeof window.updateTerminalAccountInfo === 'function') {
+                window.updateTerminalAccountInfo();
             }
             
             // Re-fetch orders for all tabs to update counts
@@ -7136,13 +7262,13 @@ window.addEventListener('DOMContentLoaded', () => {
 
             let rawData = [];
             if (tab === 'open') {
-                theadEl.innerHTML = '<tr><th>Symbol</th><th style="text-align:right;">Side</th><th style="text-align:right;">Price</th><th style="text-align:right;">Avg Price</th><th style="text-align:right;">Progress</th><th style="text-align:right;">Type</th><th style="text-align:right;">Status</th><th style="text-align:right;">Time</th><th style="text-align:right;width:170px;"><div style="display:flex;justify-content:flex-end;align-items:center;gap:6px;"><span>Actions</span><button class="act-btn act-cls" style="background:var(--rose);color:#fff;border-radius:4px;padding:2px 6px;font-size:9.5px;font-weight:700;line-height:1;" onclick="window.cancelAllOpenOrders(\''+panelId+'\')">CANCEL ALL</button></div></th></tr>';
+                theadEl.innerHTML = '<tr><th style="width:115px;">Symbol</th><th style="text-align:right;width:60px;">Side</th><th style="text-align:right;width:85px;">Price</th><th style="text-align:right;width:85px;">Avg Price</th><th style="text-align:right;width:115px;">Progress</th><th style="text-align:right;width:80px;">Type</th><th style="text-align:right;width:75px;">Status</th><th style="text-align:right;width:80px;">Time</th><th style="text-align:right;width:150px;"><div style="display:flex;justify-content:flex-end;align-items:center;gap:6px;"><span>Actions</span><button class="act-btn act-cls" style="background:var(--rose);color:#fff;border-radius:4px;padding:2px 6px;font-size:9.5px;font-weight:700;line-height:1;" onclick="window.cancelAllOpenOrders(\''+panelId+'\')">CANCEL ALL</button></div></th></tr>';
                 rawData = allOpenOrders;
             } else if (tab === 'hist') {
-                theadEl.innerHTML = '<tr><th>Symbol</th><th style="text-align:right;">Side</th><th style="text-align:right;">Price</th><th style="text-align:right;">Avg Price</th><th style="text-align:right;">Filled / Orig</th><th style="text-align:right;">Status</th><th style="text-align:right;">Time</th></tr>';
+                theadEl.innerHTML = '<tr><th style="width:130px;">Symbol</th><th style="text-align:right;width:70px;">Side</th><th style="text-align:right;width:95px;">Price</th><th style="text-align:right;width:95px;">Avg Price</th><th style="text-align:right;width:120px;">Filled / Orig</th><th style="text-align:right;width:85px;">Status</th><th style="text-align:right;width:90px;">Time</th></tr>';
                 rawData = [...allHistOrders].sort((a,b) => (b.time || b.updateTime || 0) - (a.time || a.updateTime || 0));
             } else {
-                theadEl.innerHTML = '<tr><th>Symbol</th><th style="text-align:right;">Lev</th><th style="text-align:right;">Margin</th><th style="text-align:right;">Size</th><th style="text-align:right;">Unreal. PnL (ROI)</th><th style="text-align:right;">Entry / Mark</th><th style="text-align:right;">Liq. Price</th><th style="text-align:right;width:160px;">Actions</th></tr>';
+                theadEl.innerHTML = '<tr><th style="width:130px;">Symbol</th><th style="text-align:right;width:55px;">Lev</th><th style="text-align:right;width:80px;">Margin</th><th style="text-align:right;width:75px;">Size</th><th style="text-align:right;width:130px;">Unreal. PnL (ROI)</th><th style="text-align:right;width:125px;">Entry / Mark</th><th style="text-align:right;width:90px;">Liq. Price</th><th style="text-align:right;width:160px;">Actions</th></tr>';
                 rawData = allPositions;
             }
 
