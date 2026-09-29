@@ -2148,28 +2148,38 @@
       </div>
     </div>
   </div>
-  <div class="ticker-card" style="border-color:rgba(16,185,129,0.35); box-shadow:0 0 20px rgba(16,185,129,0.08); display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px; flex: 0 0 auto; min-width: 200px; background: linear-gradient(135deg, rgba(16,185,129,0.04) 0%, rgba(239,68,68,0.04) 100%);">
+  <div class="ticker-card" style="border-color:rgba(16,185,129,0.35); box-shadow:0 0 20px rgba(16,185,129,0.08); display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px; flex: 0 0 auto; min-width: 280px; background: linear-gradient(135deg, rgba(16,185,129,0.04) 0%, rgba(239,68,68,0.04) 100%);">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
       <div class="ticker-label" style="display:flex; align-items:center; gap:5px; color:#34d399;">
         <span style="font-weight:700;">Order Limits</span>
         <span style="font-size:8.5px; background:rgba(16,185,129,0.18); color:#10b981; padding:1px 4px; border-radius:3px; font-weight:800;">PROTECTION</span>
       </div>
-      <div id="order-limits-badge" style="font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700; color:var(--text-muted); background:rgba(255,255,255,0.04); padding:2px 5px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">Strictest</div>
+      <div id="order-limits-badge" style="font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700; color:var(--text-muted); background:rgba(255,255,255,0.04); padding:2px 5px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">Bound: —</div>
     </div>
-    <div style="display:flex; flex-direction:column; gap:6px;">
-      <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid #10b981; padding-left:8px; height: 24px;">
-        <div style="display:flex; flex-direction:column;">
-          <span style="font-size:9.5px; color:#10b981; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">Max Buy</span>
-          <span id="t-max-buy-by" style="font-size:8px; color:var(--text-muted); margin-top:-2px; white-space:nowrap; max-width:95px; overflow:hidden; text-overflow:ellipsis;">—</span>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; width:100%;">
+      <!-- Limit Orders Column -->
+      <div style="display:flex; flex-direction:column; gap:4px; border-right:1px solid rgba(255,255,255,0.05); padding-right:8px;">
+        <div style="font-size:9px; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:2px;">Limit Bounds</div>
+        <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid #10b981; padding-left:6px; height: 20px;">
+          <span style="font-size:9px; color:#10b981; font-weight:800;">Max Buy</span>
+          <span class="ticker-val" id="t-max-buy" style="color:#10b981; font-size:13.5px; font-weight:900; font-family:'JetBrains Mono',monospace;">—</span>
         </div>
-        <span class="ticker-val" id="t-max-buy" style="color:#10b981; font-size:15px; font-weight:900; font-family:'JetBrains Mono',monospace; line-height: 1;">—</span>
+        <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid #ef4444; padding-left:6px; height: 20px;">
+          <span style="font-size:9px; color:#ef4444; font-weight:800;">Min Sell</span>
+          <span class="ticker-val" id="t-min-sell" style="color:#ef4444; font-size:13.5px; font-weight:900; font-family:'JetBrains Mono',monospace;">—</span>
+        </div>
       </div>
-      <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid #ef4444; padding-left:8px; height: 24px;">
-        <div style="display:flex; flex-direction:column;">
-          <span style="font-size:9.5px; color:#ef4444; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">Min Sell</span>
-          <span id="t-min-sell-by" style="font-size:8px; color:var(--text-muted); margin-top:-2px; white-space:nowrap; max-width:95px; overflow:hidden; text-overflow:ellipsis;">—</span>
+      <!-- Market Orders Column -->
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        <div style="font-size:9px; color:var(--cyan); font-weight:700; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:2px;">Market Bounds</div>
+        <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid #34d399; padding-left:6px; height: 20px;">
+          <span style="font-size:9px; color:#34d399; font-weight:800;">Mkt Buy</span>
+          <span class="ticker-val" id="t-mkt-buy" style="color:#34d399; font-size:13.5px; font-weight:900; font-family:'JetBrains Mono',monospace;">—</span>
         </div>
-        <span class="ticker-val" id="t-min-sell" style="color:#ef4444; font-size:15px; font-weight:900; font-family:'JetBrains Mono',monospace; line-height: 1;">—</span>
+        <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid #f87171; padding-left:6px; height: 20px;">
+          <span style="font-size:9px; color:#f87171; font-weight:800;">Mkt Sell</span>
+          <span class="ticker-val" id="t-mkt-sell" style="color:#f87171; font-size:13.5px; font-weight:900; font-family:'JetBrains Mono',monospace;">—</span>
+        </div>
       </div>
     </div>
   </div>
@@ -6191,16 +6201,20 @@ window.addEventListener('DOMContentLoaded', () => {
                 cbBadgeEl.textContent = (diag.cbBandPct !== undefined && diag.cbBandPct !== null) ? `Band: ±${diag.cbBandPct}%` : 'Band: —';
             }
 
-            // Order Price Limits Update (Max Buy / Min Sell)
+            // Order Price Limits Update (Max Buy / Min Sell & Market Buy / Market Sell)
             const maxBuyEl = document.getElementById('t-max-buy');
             const minSellEl = document.getElementById('t-min-sell');
-            const maxBuyByEl = document.getElementById('t-max-buy-by');
-            const minSellByEl = document.getElementById('t-min-sell-by');
+            const mktBuyEl = document.getElementById('t-mkt-buy');
+            const mktSellEl = document.getElementById('t-mkt-sell');
+            const orderLimitsBadgeEl = document.getElementById('order-limits-badge');
 
             if (maxBuyEl) maxBuyEl.textContent = (diag.maxBuyPrice !== null && diag.maxBuyPrice !== undefined) ? fmt(diag.maxBuyPrice, pPrec) : '—';
             if (minSellEl) minSellEl.textContent = (diag.minSellPrice !== null && diag.minSellPrice !== undefined) ? fmt(diag.minSellPrice, pPrec) : '—';
-            if (maxBuyByEl) maxBuyByEl.textContent = diag.maxBuyConstrainedBy || '—';
-            if (minSellByEl) minSellByEl.textContent = diag.minSellConstrainedBy || '—';
+            if (mktBuyEl) mktBuyEl.textContent = (diag.marketBuyPrice !== null && diag.marketBuyPrice !== undefined) ? fmt(diag.marketBuyPrice, pPrec) : '—';
+            if (mktSellEl) mktSellEl.textContent = (diag.marketSellPrice !== null && diag.marketSellPrice !== undefined) ? fmt(diag.marketSellPrice, pPrec) : '—';
+            if (orderLimitsBadgeEl) {
+                orderLimitsBadgeEl.textContent = (diag.marketTakeBoundPct !== undefined && diag.marketTakeBoundPct !== null) ? `Bound: ±${diag.marketTakeBoundPct}%` : 'Bound: —';
+            }
 
             // Best Bid Update
             const bBids = instance.binanceDepth ? instance.binanceDepth.bids : [];
@@ -6594,6 +6608,11 @@ window.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('t-stage-24h-high').textContent = "—";
                 document.getElementById('t-stage-24h-low').textContent = "—";
                 document.getElementById('t-stage-24h-vol').textContent = "—";
+                if (document.getElementById('t-max-buy')) document.getElementById('t-max-buy').textContent = "—";
+                if (document.getElementById('t-min-sell')) document.getElementById('t-min-sell').textContent = "—";
+                if (document.getElementById('t-mkt-buy')) document.getElementById('t-mkt-buy').textContent = "—";
+                if (document.getElementById('t-mkt-sell')) document.getElementById('t-mkt-sell').textContent = "—";
+                if (document.getElementById('order-limits-badge')) document.getElementById('order-limits-badge').textContent = "Bound: —";
                 
                 // Clear orderbooks
                 document.getElementById('bin-bids').innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted);">No active market</div>';

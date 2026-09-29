@@ -306,6 +306,80 @@ function getCbBandPct(symbol, tier = 'PRODUCTION', sourceSymbol = null) {
     return 100;
 }
 
+function getMarketTakeBound(symbol, tier = 'PRODUCTION', sourceSymbol = null) {
+    const rc = riskControlsMap[tier] || riskControlsMap.PRODUCTION || {};
+    if (!rc || Object.keys(rc).length === 0) return 0.05;
+
+    const symUpper = symbol ? symbol.toUpperCase() : '';
+    const srcUpper = sourceSymbol ? sourceSymbol.toUpperCase() : '';
+
+    const parseBound = (val) => {
+        if (val === undefined || val === null) return null;
+        let v = parseFloat(val);
+        if (isNaN(v)) return null;
+        if (v > 1.5) v = v / 100;
+        return v;
+    };
+
+    if (rc[symUpper] && rc[symUpper].market_take_bound !== undefined) {
+        const res = parseBound(rc[symUpper].market_take_bound);
+        if (res !== null) return res;
+    }
+    if (srcUpper && rc[srcUpper] && rc[srcUpper].market_take_bound !== undefined) {
+        const res = parseBound(rc[srcUpper].market_take_bound);
+        if (res !== null) return res;
+    }
+
+    const quoteAssets = ['USDT', 'USDC', 'INR', 'BTC', 'ETH'];
+    let baseAsset = '';
+    let quoteAsset = '';
+    for (const q of quoteAssets) {
+        if (symUpper.endsWith(q)) {
+            quoteAsset = q;
+            baseAsset = symUpper.slice(0, -q.length);
+            break;
+        }
+    }
+
+    if (baseAsset && quoteAsset) {
+        const key1 = `B-${baseAsset}_${quoteAsset}`;
+        if (rc[key1] && rc[key1].market_take_bound !== undefined) {
+            const res = parseBound(rc[key1].market_take_bound);
+            if (res !== null) return res;
+        }
+        if (baseAsset.endsWith('QA')) {
+            const cleanBase = baseAsset.slice(0, -2);
+            const key2 = `B-${cleanBase}_${quoteAsset}`;
+            if (rc[key2] && rc[key2].market_take_bound !== undefined) {
+                const res = parseBound(rc[key2].market_take_bound);
+                if (res !== null) return res;
+            }
+        }
+    }
+
+    const cleanTarget = symUpper.replace(/[^A-Z0-9]/g, '');
+    const cleanTargetNoQA = symUpper.replace(/QA/g, '').replace(/[^A-Z0-9]/g, '');
+
+    for (const k of Object.keys(rc)) {
+        if (k === 'default' || k === 'enable_risk_controls') continue;
+        const cleanK = k.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        const cleanKNoB = cleanK.startsWith('B') ? cleanK.substring(1) : cleanK;
+        
+        if (cleanK === cleanTarget || cleanKNoB === cleanTarget || cleanKNoB === cleanTargetNoQA) {
+            if (rc[k] && rc[k].market_take_bound !== undefined) {
+                const res = parseBound(rc[k].market_take_bound);
+                if (res !== null) return res;
+            }
+        }
+    }
+
+    if (rc.default && rc.default.market_take_bound !== undefined) {
+        const res = parseBound(rc.default.market_take_bound);
+        if (res !== null) return res;
+    }
+    return 0.05;
+}
+
 function getMultiplierFraction(val, isUp = true) {
     if (val === undefined || val === null || isNaN(val)) return 0.05;
     let num = parseFloat(val);
@@ -3555,6 +3629,29 @@ function buildPayload(isSnapshot = true, sinceTs = 0) {
             minSellConstrainedBy = 'Mark Lower';
         }
 
+        // Market Take Bound Calculations:
+        // Market buy = min(max_buy, Mark * (1 + marketTakeBound))
+        // Market sell = max(min_sell, Mark * (1 - marketTakeBound))
+        const marketTakeBoundVal = getMarketTakeBound(sym, inst.tier, inst.sourceSymbol);
+        let marketBuyPrice = null;
+        let marketSellPrice = null;
+        if (rawMarkPrice > 0 && !isNaN(rawMarkPrice)) {
+            const mktBoundUpper = rawMarkPrice * (1 + marketTakeBoundVal);
+            const mktBoundLower = rawMarkPrice * (1 - marketTakeBoundVal);
+
+            if (maxBuyPrice !== null && !isNaN(parseFloat(maxBuyPrice))) {
+                marketBuyPrice = Math.min(parseFloat(maxBuyPrice), mktBoundUpper).toFixed(pPrec);
+            } else {
+                marketBuyPrice = mktBoundUpper.toFixed(pPrec);
+            }
+
+            if (minSellPrice !== null && !isNaN(parseFloat(minSellPrice))) {
+                marketSellPrice = Math.max(parseFloat(minSellPrice), mktBoundLower).toFixed(pPrec);
+            } else {
+                marketSellPrice = mktBoundLower.toFixed(pPrec);
+            }
+        }
+
         activeInstancesMap[sym] = {
             status:       inst.status,
             binanceDepth: inst.binanceDepth,
@@ -3578,6 +3675,9 @@ function buildPayload(isSnapshot = true, sinceTs = 0) {
                 markLowerBand:   markLowerBand,
                 maxBuyPrice:          maxBuyPrice,
                 minSellPrice:         minSellPrice,
+                marketTakeBoundPct:   (marketTakeBoundVal * 100).toFixed(2).replace(/\.?0+$/, ''),
+                marketBuyPrice:       marketBuyPrice,
+                marketSellPrice:      marketSellPrice,
                 maxBuyConstrainedBy:  maxBuyConstrainedBy,
                 minSellConstrainedBy: minSellConstrainedBy,
                 testnetKline:    inst.testnetKline,
