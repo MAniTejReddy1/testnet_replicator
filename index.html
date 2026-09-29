@@ -8607,20 +8607,24 @@ window.addEventListener('DOMContentLoaded', () => {
         // Open the right details pane with the given meta
         window.openDetailsPane = function(metaObj, logIdx) {
             window.activeDetailsMeta = metaObj;
-            window.activeDetailsTab = 'payload';
+            window.activeDetailsTab = 'all'; // Default to unified full details
             window.selectedLogIdx = logIdx;
 
             const pane = document.getElementById('term-details-pane');
-            pane.classList.remove('hidden');
+            if (pane) pane.classList.remove('hidden');
 
             // Highlight selected row
             document.querySelectorAll('.term-log-row.selected').forEach(r => r.classList.remove('selected'));
             const clickedRow = document.getElementById('tl-' + logIdx);
             if (clickedRow) clickedRow.classList.add('selected');
 
-            // Update tab states
-            document.getElementById('dp-tab-payload').classList.add('active');
-            document.getElementById('dp-tab-response').classList.remove('active');
+            // Update tab states: default to 'Full Details'
+            const pTab = document.getElementById('dp-tab-payload');
+            const rTab = document.getElementById('dp-tab-response');
+            const aTab = document.getElementById('dp-tab-all');
+            if (pTab) pTab.classList.remove('active');
+            if (rTab) rTab.classList.remove('active');
+            if (aTab) aTab.classList.add('active');
 
             window.renderDetailsPaneContent();
         };
@@ -8629,7 +8633,7 @@ window.addEventListener('DOMContentLoaded', () => {
             window.activeDetailsMeta = null;
             window.selectedLogIdx = null;
             const pane = document.getElementById('term-details-pane');
-            pane.classList.add('hidden');
+            if (pane) pane.classList.add('hidden');
             document.querySelectorAll('.term-log-row.selected').forEach(r => r.classList.remove('selected'));
         };
 
@@ -8646,20 +8650,73 @@ window.addEventListener('DOMContentLoaded', () => {
 
         window.renderDetailsPaneContent = function() {
             const body = document.getElementById('term-details-body');
+            if (!body) return;
             if (!window.activeDetailsMeta) {
                 body.innerHTML = '<div class="term-empty" style="padding:20px 0;">Select a log entry to view details</div>';
                 return;
             }
             const meta = window.activeDetailsMeta;
-            let displayData;
-            if (window.activeDetailsTab === 'payload') {
-                displayData = meta.request || meta.req || meta;
-            } else if (window.activeDetailsTab === 'response') {
-                displayData = meta.response || meta.res || meta.data || meta.error || 'No response data';
-            } else {
-                displayData = meta;
+            const tab = window.activeDetailsTab || 'all';
+
+            if (tab === 'payload') {
+                const reqData = meta.request || meta.req || meta.payload || meta;
+                body.innerHTML = `<div style="margin-bottom:8px;font-size:11px;font-weight:700;color:var(--cyan);letter-spacing:0.5px;">▶ REQUEST DETAILS</div>` + window.formatJsonHtml(reqData);
+                return;
             }
-            body.innerHTML = window.formatJsonHtml(displayData);
+            if (tab === 'response') {
+                const resData = meta.response || meta.res || meta.data || meta.error || 'No response data';
+                body.innerHTML = `<div style="margin-bottom:8px;font-size:11px;font-weight:700;color:var(--emerald);letter-spacing:0.5px;">◀ SERVER RESPONSE DETAILS</div>` + window.formatJsonHtml(resData);
+                return;
+            }
+
+            // --- 'all' tab: Complete Request + Response unified view ---
+            const req = meta.request || meta.req;
+            const res = meta.response || meta.res;
+
+            let html = '';
+            if (req) {
+                const method = req.method || 'API';
+                const url = req.fullUrl || req.url || '';
+                const mColor = method === 'GET' ? '#38bdf8' : (method === 'POST' ? '#34d399' : (method === 'DELETE' ? '#f87171' : '#fbbf24'));
+                html += `
+                <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:12px;margin-bottom:14px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.06);">
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <span style="background:${mColor}22;color:${mColor};border:1px solid ${mColor}44;padding:2px 8px;border-radius:4px;font-weight:800;font-size:10px;">${method}</span>
+                            <span style="font-size:11px;font-weight:700;color:var(--text-main);word-break:break-all;">${url || 'Request'}</span>
+                        </div>
+                        ${req.timestamp ? `<span style="font-size:9.5px;color:var(--text-muted);font-family:monospace;">${new Date(req.timestamp).toLocaleTimeString()}</span>` : ''}
+                    </div>
+                    ${req.headers ? `<div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Request Headers:</div><div style="margin-bottom:10px;overflow-x:auto;">${window.formatJsonHtml(req.headers)}</div>` : ''}
+                    <div style="font-size:10px;color:var(--cyan);margin-bottom:4px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Request Payload:</div>
+                    <div style="overflow-x:auto;">${window.formatJsonHtml(req.payload !== undefined ? req.payload : (meta.payload || req))}</div>
+                </div>`;
+            }
+
+            if (res) {
+                const status = res.status !== undefined ? res.status : 200;
+                const isOk = status >= 200 && status < 300;
+                const sColor = isOk ? '#34d399' : '#f87171';
+                html += `
+                <div style="background:rgba(255,255,255,0.02);border:1px solid ${isOk ? 'rgba(52,211,153,0.2)' : 'rgba(248,113,113,0.2)'};border-radius:8px;padding:12px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.06);">
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <span style="background:${sColor}22;color:${sColor};border:1px solid ${sColor}44;padding:2px 8px;border-radius:4px;font-weight:800;font-size:10px;">HTTP ${status} ${res.statusText || (isOk ? 'OK' : 'Error')}</span>
+                            <span style="font-size:11px;font-weight:700;color:${sColor};">Server Response</span>
+                        </div>
+                        ${res.latencyMs !== undefined ? `<span style="font-size:10px;color:var(--text-muted);font-family:monospace;">Latency: <strong style="color:var(--text-main);">${res.latencyMs}ms</strong></span>` : ''}
+                    </div>
+                    ${res.headers ? `<div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Response Headers:</div><div style="margin-bottom:10px;overflow-x:auto;">${window.formatJsonHtml(res.headers)}</div>` : ''}
+                    <div style="font-size:10px;color:${sColor};margin-bottom:4px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Server Data:</div>
+                    <div style="overflow-x:auto;">${window.formatJsonHtml(res.data !== undefined ? res.data : res)}</div>
+                </div>`;
+            }
+
+            if (!req && !res) {
+                html = `<div style="overflow-x:auto;">${window.formatJsonHtml(meta)}</div>`;
+            }
+
+            body.innerHTML = html;
         };
 
         window.renderTerminalLogs = function(logs) {
@@ -8679,7 +8736,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 const l = logs[i];
                 const logTier = (l.tier || 'ALL').toUpperCase().replace(/-/g, '_');
                 const curEnv = (activeEnvFilter || 'PRODUCTION').toUpperCase().replace(/-/g, '_');
-                if (logTier !== 'ALL' && logTier !== 'SYSTEM' && logTier !== curEnv) continue;
+                if (logTier !== 'ALL' && logTier !== 'SYSTEM' && logTier !== curEnv && l.sym !== 'SYSTEM') continue;
                 if (l.ts && l.ts < window.terminalClearTs) continue;
                 if (window.activeTermTab === 'err' && l.level !== 'ERROR' && l.level !== 'CRITICAL') continue;
                 if (window.activeTermTab === 'info' && l.level !== 'INFO') continue;

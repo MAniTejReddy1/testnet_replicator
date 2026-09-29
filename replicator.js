@@ -528,6 +528,18 @@ async function sendSignedRequest(url, method, payload, userConfig, timeoutMs = 5
     if (!userConfig || !userConfig.key || !userConfig.secret) {
         return { ok: false, status: 401, error: 'User credentials missing', latencyMs: 0 };
     }
+    if (!tier && userConfig) {
+        for (const [t, uMap] of Object.entries(globalUsers)) {
+            for (const [uid, u] of Object.entries(uMap || {})) {
+                if (u && (u === userConfig || (u.key && u.key === userConfig.key))) {
+                    tier = t;
+                    break;
+                }
+            }
+            if (tier) break;
+        }
+    }
+    if (!tier) tier = globalActiveTier;
     const { finalUrl, payloadStr, headers } = signAndPrepare(url, method, payload, userConfig);
     const startTime = Date.now();
     const uLabel = userConfig ? (userConfig.label || 'User') : 'System';
@@ -576,6 +588,7 @@ async function sendSignedRequest(url, method, payload, userConfig, timeoutMs = 5
                 const isPolling = shortUrl.includes('/fapi/v2/account') || shortUrl.includes('/fapi/v2/positionRisk');
                 if (!isPolling || !ok) {
                     log.info(uLabel, `[${method.toUpperCase()}] ${shortUrl} | Status: ${res.statusCode} | Latency: ${latencyMs}ms`, meta, tier);
+                    broadcastToUI(true);
                 }
 
                 if (!ok || DEBUG) log.debug('REST-API', `[${method.toUpperCase()}] ${finalUrl} | Status: ${res.statusCode} | Body: ${text} | Latency: ${latencyMs}ms`, null, tier);
@@ -4417,12 +4430,16 @@ const server = http.createServer(async (req, res) => {
                             delete parsed.offset;
                             delete parsed.limit;
                         }
+                        if (pathname === '/fapi/v1/positionMargin') {
+                            delete parsed.positionSide;
+                        }
                         const hpoBase = (TIER_URLS[targetTier] || TIER_URLS[globalActiveTier]).HPO;
                         const apiRes = await sendSignedRequest(`${hpoBase}${req.url}`, httpMethod, parsed, userCreds, 50000, targetTier);
                         if (apiRes.ok || (apiRes.status >= 200 && apiRes.status < 300)) {
                             // Force an immediate UI portfolio refresh in the global loop
                             lastPortfolioSyncTime = 0;
                         }
+                        broadcastToUI(true);
                         res.writeHead(apiRes.status || 200, { 'Content-Type': 'application/json' });
                         return res.end(JSON.stringify(apiRes.data || {}));
                     } catch (e) {
@@ -4634,6 +4651,7 @@ const server = http.createServer(async (req, res) => {
                         }));
                     } else {
                         log.warn('SYSTEM', `[POST] /api/portfolio/seed-balance | User: ${userCreds.label || userId} | Status: 400 | Latency: ${endpointLatency}ms | ${resInfo?.error || 'Failed'}`, endpointMeta, tier);
+                        broadcastToUI(true);
                         res.writeHead(400, { 'Content-Type': 'application/json' });
                         return res.end(JSON.stringify({ 
                             success: false, 
