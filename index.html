@@ -1372,6 +1372,415 @@
   /* PnL Glow classes */
   .pnl-pos { color: var(--bid); text-shadow: 0 0 12px rgba(16,185,129,0.4); }
   .pnl-neg { color: var(--ask); text-shadow: 0 0 12px rgba(244,63,94,0.4); }
+
+  /* ==========================================================================
+     ADVANCED ORDER TERMINAL REDESIGN STYLES
+     ========================================================================== */
+  .term-side-selector {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+    background: rgba(0, 0, 0, 0.25);
+    padding: 3px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  :root[data-theme="light"] .term-side-selector {
+    background: rgba(0, 0, 0, 0.04);
+  }
+  .term-side-tab {
+    flex: 1;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 800;
+    cursor: pointer;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 0.5px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .term-side-tab:hover:not(.active) {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.04);
+  }
+  .term-side-tab.term-tab-buy.active {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #ffffff;
+    box-shadow: 0 0 16px rgba(16, 185, 129, 0.45);
+  }
+  .term-side-tab.term-tab-sell.active {
+    background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+    color: #ffffff;
+    box-shadow: 0 0 16px rgba(244, 63, 94, 0.45);
+  }
+  .term-side-icon {
+    font-size: 10px;
+  }
+
+  .term-type-selector {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 12px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+  .term-type-selector::-webkit-scrollbar {
+    display: none;
+  }
+  .term-type-pill {
+    padding: 5px 9px;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 5px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    font-family: 'Inter', sans-serif;
+  }
+  .term-type-pill:hover {
+    color: var(--text-main);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+  .term-type-pill.active {
+    background: rgba(6, 182, 212, 0.15);
+    color: var(--cyan);
+    border-color: rgba(6, 182, 212, 0.5);
+    box-shadow: 0 0 8px rgba(6, 182, 212, 0.2);
+  }
+
+  .term-account-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    background: var(--input-bg);
+    padding: 7px 10px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    margin-bottom: 6px;
+  }
+  .term-user-select {
+    background: transparent;
+    color: var(--text-main);
+    border: none;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    outline: none;
+    padding: 0;
+    max-width: 130px;
+  }
+  .term-lev-badge {
+    background: rgba(168, 85, 247, 0.15);
+    border: 1px solid rgba(168, 85, 247, 0.35);
+    color: #c084fc;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    transition: all 0.2s ease;
+  }
+  .term-lev-badge:hover {
+    background: rgba(168, 85, 247, 0.25);
+    border-color: #c084fc;
+    box-shadow: 0 0 8px rgba(168, 85, 247, 0.3);
+  }
+  .term-quick-add-btn {
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #10b981;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .term-quick-add-btn:hover {
+    background: rgba(16, 185, 129, 0.25);
+    color: #fff;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.3);
+  }
+
+  .term-balance-row {
+    display: flex;
+    align-items: center;
+    font-size: 10px;
+    padding: 0 4px;
+    margin-bottom: 10px;
+    gap: 6px;
+    color: var(--text-muted);
+  }
+  .term-bal-label {
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .term-bal-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    color: var(--emerald);
+  }
+  .term-bal-divider {
+    opacity: 0.3;
+  }
+  .term-pos-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    color: var(--text-dim);
+  }
+
+  .term-input-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .term-quick-chips {
+    display: flex;
+    gap: 4px;
+  }
+  .term-chip {
+    font-size: 8.5px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .term-chip:hover {
+    color: var(--cyan);
+    border-color: var(--cyan);
+    background: rgba(6, 182, 212, 0.1);
+  }
+
+  .term-input-box {
+    display: flex;
+    align-items: center;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0 4px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .term-input-box:focus-within {
+    border-color: var(--cyan);
+    box-shadow: 0 0 10px rgba(6, 182, 212, 0.25);
+  }
+  .term-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-main);
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 7px 6px;
+    min-width: 0;
+  }
+  .term-input-unit {
+    font-size: 9.5px;
+    font-weight: 700;
+    color: var(--text-muted);
+    padding: 0 6px;
+    font-family: 'Inter', sans-serif;
+  }
+  .term-stepper-btn {
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    transition: all 0.15s ease;
+  }
+  .term-stepper-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-main);
+    border-color: var(--text-muted);
+  }
+
+  .term-advanced-accordion {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 10px;
+    background: rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+  }
+  :root[data-theme="light"] .term-advanced-accordion {
+    background: rgba(0, 0, 0, 0.02);
+  }
+  .term-advanced-hdr {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+    transition: color 0.2s ease;
+    user-select: none;
+  }
+  .term-advanced-hdr:hover {
+    color: var(--text-main);
+  }
+  .term-advanced-body {
+    padding: 8px 10px;
+    border-top: 1px solid var(--border);
+  }
+  .term-mini-label {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 3px;
+    display: block;
+    text-transform: uppercase;
+  }
+  .term-mini-select {
+    width: 100%;
+    padding: 5px 8px;
+    font-size: 10.5px;
+    border-radius: 5px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    color: var(--text-main);
+    outline: none;
+  }
+
+  .term-preflight-card {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 10px;
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  :root[data-theme="light"] .term-preflight-card {
+    background: rgba(0, 0, 0, 0.02);
+  }
+  .term-preflight-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10px;
+  }
+  .term-pf-label {
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+  .term-pf-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    color: var(--text-main);
+  }
+
+  .term-main-action-btn {
+    width: 100%;
+    padding: 11px 16px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    cursor: pointer;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: 'Inter', sans-serif;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .term-main-action-btn.btn-buy-theme {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #ffffff;
+    box-shadow: 0 4px 18px rgba(16, 185, 129, 0.35);
+  }
+  .term-main-action-btn.btn-buy-theme:hover {
+    box-shadow: 0 6px 24px rgba(16, 185, 129, 0.55);
+    transform: translateY(-1px);
+  }
+  .term-main-action-btn.btn-sell-theme {
+    background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+    color: #ffffff;
+    box-shadow: 0 4px 18px rgba(244, 63, 94, 0.35);
+  }
+  .term-main-action-btn.btn-sell-theme:hover {
+    box-shadow: 0 6px 24px rgba(244, 63, 94, 0.55);
+    transform: translateY(-1px);
+  }
+  .term-main-action-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .term-exit-btn {
+    padding: 8px 12px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    border-radius: 6px;
+    border: 1px solid rgba(168, 85, 247, 0.4);
+    background: rgba(168, 85, 247, 0.12);
+    color: #c084fc;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+  }
+  .term-exit-btn:hover {
+    background: rgba(168, 85, 247, 0.22);
+    border-color: #c084fc;
+    color: #fff;
+    box-shadow: 0 0 12px rgba(168, 85, 247, 0.3);
+  }
+  .term-reset-btn {
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--input-bg);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .term-reset-btn:hover {
+    color: var(--text-main);
+    border-color: var(--text-muted);
+  }
   
   /* Terminal Specifics */
   .term-panel-bg { background: linear-gradient(180deg, rgba(2,6,23,1) 0%, rgba(9,9,11,1) 100%); position:relative; overflow:hidden; }
@@ -2873,7 +3282,7 @@
 </div>
 
 <div style="display:grid;grid-template-columns:35% 35% 30%;gap:16px;padding:24px;">
-  <div class="panel" style="display:flex;flex-direction:column;height:550px;overflow:hidden;">
+  <div class="panel" style="display:flex;flex-direction:column;height:590px;overflow:hidden;">
     <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);">
       <div><div class="sec-label">Source</div><div class="sec-title" style="color:var(--yellow)">CoinDCX Perpetual</div></div>
       <div id="bin-spread-badge" style="font-size:11px;padding:4px 10px;border-radius:99px;background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);color:#c084fc;font-weight:600;letter-spacing:1px;">Spread —</div>
@@ -2884,7 +3293,7 @@
     <div style="flex:1;min-height:0;overflow-y:auto;padding:4px 0;" id="bin-bids"></div>
   </div>
   
-  <div class="panel panel-accent" style="display:flex;flex-direction:column;height:550px;overflow:hidden;">
+  <div class="panel panel-accent" style="display:flex;flex-direction:column;height:590px;overflow:hidden;">
     <div style="padding:14px 16px;border-bottom:1px solid rgba(6,182,212,0.15);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);">
       <div><div class="sec-label">Target · Testnet WS</div><div class="sec-title" style="color:var(--cyan)">Testnet Orderbook</div></div>
       <div id="stage-spread-badge" style="font-size:11px;padding:4px 10px;border-radius:99px;background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.3);color:var(--cyan);font-weight:600;letter-spacing:1px;">Spread —</div>
@@ -2895,76 +3304,205 @@
     <div style="flex:1;min-height:0;overflow-y:auto;padding:4px 0;" id="stage-bids"></div>
   </div>
   
-  <div class="panel panel-accent" style="display:flex;flex-direction:column;border-color:rgba(16,185,129,0.3);box-shadow:0 0 20px rgba(16,185,129,0.05);">
-    <div style="padding:14px 16px;border-bottom:1px solid rgba(16,185,129,0.15);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);">
-      <div><div class="sec-label" style="color:var(--text-muted)">Manual Execution</div><div class="sec-title" style="color:#10b981;display:flex;align-items:center;gap:8px;"><div style="width:4px;height:14px;background:#10b981;border-radius:2px;box-shadow:0 0 10px rgba(16,185,129,0.5);"></div>Order Terminal</div></div>
+  <div class="panel panel-accent" style="display:flex;flex-direction:column;height:590px;overflow:hidden;border-color:rgba(16,185,129,0.3);box-shadow:0 0 20px rgba(16,185,129,0.05);" id="order-terminal-panel">
+    <!-- Header -->
+    <div style="padding:12px 16px;border-bottom:1px solid rgba(16,185,129,0.15);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);flex-shrink:0;">
+      <div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+          <span class="sec-label" style="color:var(--text-muted);margin:0;font-size:10px;">Execution</span>
+          <span id="term-active-symbol" class="badge" style="background:rgba(6,182,212,0.1);color:var(--cyan);border:1px solid rgba(6,182,212,0.3);font-size:9px;padding:1px 6px;">MARKET</span>
+        </div>
+        <div class="sec-title" style="color:#10b981;display:flex;align-items:center;gap:8px;font-size:15px;">
+          <div style="width:5px;height:15px;background:#10b981;border-radius:2px;box-shadow:0 0 10px rgba(16,185,129,0.5);"></div>Order Terminal
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span id="term-lock-status" style="font-size:9.5px;color:var(--text-muted);font-weight:700;letter-spacing:0.5px;">AUTO-SYNC</span>
+        <div class="tog off" id="tog-manual-lock" onclick="window.toggleManualLock()" title="Lock / pause auto-replication to execute manual trades cleanly"></div>
+      </div>
     </div>
-    <div style="padding:16px;flex:1;display:flex;flex-direction:column;">
-      <div style="margin-bottom:12px;">
-        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:6px;"><label>Select Account</label></div>
-        <select id="sel-trade-user" style="padding:10px 12px;font-size:12px;width:100%;margin-bottom:4px;" onchange="window.setTradeUser(this.value)"></select>
+
+    <!-- Scrollable Terminal Body -->
+    <div style="padding:14px 16px;flex:1;display:flex;flex-direction:column;overflow-y:auto;min-height:0;">
+      <!-- Account & Quick Balances Strip -->
+      <div class="term-account-bar">
+        <div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1;">
+          <select id="sel-trade-user" class="term-user-select" onchange="window.setTradeUser(this.value)"></select>
+          <span id="term-user-role-badge" class="port-role-badge role-maker">MAKER</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button class="term-lev-badge" id="term-lev-badge" onclick="window.openTerminalLevModal()" title="Change Account Leverage">5× LEV</button>
+          <button class="term-quick-add-btn" onclick="window.seedTerminalUserBalance()" title="Add USDT to this selected account">+ USDT</button>
+        </div>
       </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;background:var(--input-bg);padding:8px 12px;border-radius:8px;">
-          <span style="font-size:11px;color:var(--text-muted);font-weight:600;">Manual Override Lock</span>
-          <div class="tog off" id="tog-manual-lock" onclick="window.toggleManualLock()"></div>
+      <div class="term-balance-row">
+        <span class="term-bal-label">Avail:</span>
+        <span id="term-avail-bal" class="term-bal-val">0.00 USDT</span>
+        <span class="term-bal-divider">|</span>
+        <span class="term-bal-label">Pos:</span>
+        <span id="term-pos-badge" class="term-pos-val">None</span>
       </div>
-      <div style="margin-bottom:12px;">
-        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:6px;"><label>Order Type</label></div>
-        <select id="trade-type" style="padding:10px 12px;font-size:12px;margin-bottom:12px;width:100%;" onchange="window.updateTradeFormUI()">
-          <option value="MARKET">Market</option>
-          <option value="LIMIT">Limit</option>
-          <option value="STOP">Stop</option>
-          <option value="STOP_MARKET">Stop Market</option>
-          <option value="TAKE_PROFIT">Take Profit</option>
-          <option value="TAKE_PROFIT_MARKET">Take Profit Market</option>
-          <option value="TRAILING_STOP_MARKET">Trailing Stop Market</option>
-        </select>
-        
-        <div id="trade-qty-wrap">
-          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:6px;"><label>Quantity (Base)</label></div>
-          <input id="trade-qty" type="number" step="0.001" placeholder="0.0" style="margin-bottom:12px;font-size:14px;padding:10px 12px;width:100%;background:var(--input-bg);border:1px solid var(--border);color:var(--text-main);border-radius:6px;outline:none;">
+
+      <!-- Segmented Side Selector (BUY / LONG vs SELL / SHORT) -->
+      <div class="term-side-selector">
+        <button id="term-tab-buy" class="term-side-tab term-tab-buy active" onclick="window.setTermSide('BUY')">
+          <span class="term-side-icon">▲</span> BUY / LONG
+        </button>
+        <button id="term-tab-sell" class="term-side-tab term-tab-sell" onclick="window.setTermSide('SELL')">
+          <span class="term-side-icon">▼</span> SELL / SHORT
+        </button>
+      </div>
+
+      <!-- Order Type Pill Selector -->
+      <div class="term-type-selector">
+        <button class="term-type-pill active" data-type="MARKET" onclick="window.setTermType('MARKET')">Market</button>
+        <button class="term-type-pill" data-type="LIMIT" onclick="window.setTermType('LIMIT')">Limit</button>
+        <button class="term-type-pill" data-type="STOP_MARKET" onclick="window.setTermType('STOP_MARKET')">Stop Mkt</button>
+        <button class="term-type-pill" data-type="STOP" onclick="window.setTermType('STOP')">Stop Lmt</button>
+        <button class="term-type-pill" data-type="TRAILING_STOP_MARKET" onclick="window.setTermType('TRAILING_STOP_MARKET')">Trailing</button>
+      </div>
+
+      <!-- Under-the-hood synced select for trade-type -->
+      <select id="trade-type" style="display:none;" onchange="window.updateTradeFormUI()">
+        <option value="MARKET">Market</option>
+        <option value="LIMIT">Limit</option>
+        <option value="STOP">Stop</option>
+        <option value="STOP_MARKET">Stop Market</option>
+        <option value="TAKE_PROFIT">Take Profit</option>
+        <option value="TAKE_PROFIT_MARKET">Take Profit Market</option>
+        <option value="TRAILING_STOP_MARKET">Trailing Stop Market</option>
+      </select>
+
+      <!-- Order Price (Limit / Stop Limit) -->
+      <div id="trade-price-wrap" style="display:none;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <label class="term-input-label">Order Price</label>
+          <div class="term-quick-chips">
+            <span class="term-chip" onclick="window.setTermPriceFrom('ltp')">Last</span>
+            <span class="term-chip" onclick="window.setTermPriceFrom('bid')">Bid 1</span>
+            <span class="term-chip" onclick="window.setTermPriceFrom('ask')">Ask 1</span>
+            <span class="term-chip" onclick="window.setTermPriceFrom('mid')">Mid</span>
+          </div>
         </div>
-        <div id="trade-price-wrap" style="display:none;">
-          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:6px;"><label>Price (USDT)</label></div>
-          <input id="trade-price" type="number" step="0.1" placeholder="0.0" style="margin-bottom:12px;font-size:14px;padding:10px 12px;width:100%;background:var(--input-bg);border:1px solid var(--border);color:var(--text-main);border-radius:6px;outline:none;">
+        <div class="term-input-box">
+          <button class="term-stepper-btn" onclick="window.stepTermPrice(-1)">−</button>
+          <input id="trade-price" type="number" step="any" placeholder="0.00" oninput="window.calcTermEstimates()" class="term-input">
+          <span class="term-input-unit">USDT</span>
+          <button class="term-stepper-btn" onclick="window.stepTermPrice(1)">+</button>
         </div>
-        <div id="trade-stop-price-wrap" style="display:none;">
-          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:6px;"><label>Stop Price (USDT)</label></div>
-          <input id="trade-stop-price" type="number" step="0.1" placeholder="0.0" style="margin-bottom:12px;font-size:14px;padding:10px 12px;width:100%;background:var(--input-bg);border:1px solid var(--border);color:var(--text-main);border-radius:6px;outline:none;">
+      </div>
+
+      <!-- Stop Price (Stop / Take Profit) -->
+      <div id="trade-stop-price-wrap" style="display:none;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <label class="term-input-label">Trigger Price</label>
+          <div class="term-quick-chips">
+            <span class="term-chip" onclick="window.setTermStopPriceFrom('mark')">Mark</span>
+            <span class="term-chip" onclick="window.setTermStopPriceFrom('last')">Last</span>
+          </div>
         </div>
-        <div id="trade-callback-wrap" style="display:none;">
-          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:6px;"><label>Callback Rate (%)</label></div>
-          <input id="trade-callback-rate" type="number" step="0.1" placeholder="1.0" style="margin-bottom:12px;font-size:14px;padding:10px 12px;width:100%;background:var(--input-bg);border:1px solid var(--border);color:var(--text-main);border-radius:6px;outline:none;">
+        <div class="term-input-box">
+          <input id="trade-stop-price" type="number" step="any" placeholder="0.00" oninput="window.calcTermEstimates()" class="term-input">
+          <span class="term-input-unit">USDT</span>
         </div>
-        <div id="trade-tif-wrap" style="display:none;">
-          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:6px;"><label>Time in Force</label></div>
-          <select id="trade-tif" style="padding:10px 12px;font-size:12px;margin-bottom:12px;width:100%;">
-            <option value="GTC">GTC (Good Till Cancel)</option>
-            <option value="IOC">IOC (Immediate or Cancel)</option>
-            <option value="FOK">FOK (Fill or Kill)</option>
-            <option value="GTX">GTX (Post Only)</option>
-          </select>
+      </div>
+
+      <!-- Trailing Callback Rate -->
+      <div id="trade-callback-wrap" style="display:none;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <label class="term-input-label">Callback Rate (0.1% - 5.0%)</label>
         </div>
-        <div id="trade-stp-wrap" style="display:block;">
-          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:6px;"><label>Self-Trade Prevention (STP)</label></div>
-          <select id="trade-stp" style="padding:10px 12px;font-size:12px;margin-bottom:12px;width:100%;">
-            <option value="NONE">NONE (Default)</option>
-            <option value="EXPIRE_TAKER">EXPIRE_TAKER</option>
-            <option value="EXPIRE_MAKER">EXPIRE_MAKER</option>
-            <option value="EXPIRE_BOTH">EXPIRE_BOTH</option>
-          </select>
+        <div class="term-input-box">
+          <input id="trade-callback-rate" type="number" step="0.1" min="0.1" max="5.0" placeholder="1.0" class="term-input">
+          <span class="term-input-unit">%</span>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);padding:8px 12px;border-radius:8px;margin-bottom:8px;">
+      </div>
+
+      <!-- Order Quantity & Percentage Slider/Pills -->
+      <div id="trade-qty-wrap" style="margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <label class="term-input-label">Quantity (<span id="term-base-asset">BASE</span>)</label>
+          <div class="term-quick-chips">
+            <span class="term-chip" onclick="window.setTermQtyPct(25)">25%</span>
+            <span class="term-chip" onclick="window.setTermQtyPct(50)">50%</span>
+            <span class="term-chip" onclick="window.setTermQtyPct(75)">75%</span>
+            <span class="term-chip" onclick="window.setTermQtyPct(100)">100%</span>
+          </div>
+        </div>
+        <div class="term-input-box">
+          <button class="term-stepper-btn" onclick="window.stepTermQty(-1)">−</button>
+          <input id="trade-qty" type="number" step="any" placeholder="0.00" oninput="window.calcTermEstimates()" class="term-input">
+          <span id="term-qty-asset-label" class="term-input-unit">QTY</span>
+          <button class="term-stepper-btn" onclick="window.stepTermQty(1)">+</button>
+        </div>
+      </div>
+
+      <!-- Advanced Execution Accordion -->
+      <div class="term-advanced-accordion" id="term-advanced-acc">
+        <div class="term-advanced-hdr" onclick="window.toggleTermAdvanced()">
+          <span>⚙ Advanced Execution (TIF, STP, Reduce Only)</span>
+          <span id="term-adv-icon">▾</span>
+        </div>
+        <div class="term-advanced-body" id="term-advanced-body" style="display:none;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+            <div id="trade-tif-wrap">
+              <label class="term-mini-label">Time In Force</label>
+              <select id="trade-tif" class="term-mini-select">
+                <option value="GTC">GTC (Good Till Cancel)</option>
+                <option value="IOC">IOC (Immediate/Cancel)</option>
+                <option value="FOK">FOK (Fill or Kill)</option>
+                <option value="GTX">GTX (Post Only)</option>
+              </select>
+            </div>
+            <div id="trade-stp-wrap">
+              <label class="term-mini-label">Self-Trade Prev. (STP)</label>
+              <select id="trade-stp" class="term-mini-select">
+                <option value="NONE">NONE (Default)</option>
+                <option value="EXPIRE_TAKER">EXPIRE_TAKER</option>
+                <option value="EXPIRE_MAKER">EXPIRE_MAKER</option>
+                <option value="EXPIRE_BOTH">EXPIRE_BOTH</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);padding:6px 10px;border-radius:6px;border:1px solid var(--border);">
             <span style="font-size:11px;color:var(--text-muted);font-weight:600;">Reduce Only</span>
-            <input type="checkbox" id="trade-reduce-only" style="cursor:pointer;width:16px;height:16px;accent-color:var(--cyan);">
+            <input type="checkbox" id="trade-reduce-only" style="cursor:pointer;width:15px;height:15px;accent-color:var(--cyan);">
+          </div>
         </div>
       </div>
-      <div style="flex:1;"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
-        <button id="btn-buy" class="btn-success" style="padding:14px;font-size:13px;font-weight:700;letter-spacing:1px;box-shadow:0 0 15px rgba(16,185,129,0.2);" onclick="window.submitManualTrade('BUY')">BUY / LONG</button>
-        <button id="btn-sell" class="btn-primary btn-sell-custom" style="padding:14px;font-size:13px;font-weight:700;letter-spacing:1px;" onclick="window.submitManualTrade('SELL')">SELL / SHORT</button>
+
+      <!-- Pre-flight Estimates Card -->
+      <div class="term-preflight-card">
+        <div class="term-preflight-row">
+          <span class="term-pf-label">Order Value:</span>
+          <span id="term-est-val" class="term-pf-val">≈ 0.00 USDT</span>
+        </div>
+        <div class="term-preflight-row">
+          <span class="term-pf-label">Est. Margin:</span>
+          <span id="term-est-cost" class="term-pf-val" style="color:var(--cyan);">≈ 0.00 USDT</span>
+        </div>
+        <div class="term-preflight-row">
+          <span class="term-pf-label">Est. Liq Price:</span>
+          <span id="term-est-liq" class="term-pf-val" style="color:var(--yellow);">—</span>
+        </div>
       </div>
-      <button id="btn-close-position" class="btn-purple" style="width:100%;padding:10px;font-size:11px;font-weight:700;letter-spacing:1px;box-shadow:0 0 15px rgba(168,85,247,0.2);margin-top:auto;" onclick="window.submitClosePosition()">⚡ CLOSE / EXIT POSITION</button>
+
+      <!-- Hidden Legacy Action Buttons for API / Script compatibility -->
+      <button id="btn-buy" style="display:none;" onclick="window.submitManualTrade('BUY')"></button>
+      <button id="btn-sell" style="display:none;" onclick="window.submitManualTrade('SELL')"></button>
+
+      <!-- Bottom Action Area -->
+      <div style="margin-top:auto;display:flex;flex-direction:column;gap:8px;padding-top:4px;">
+        <button id="term-main-btn" class="term-main-action-btn btn-buy-theme" onclick="window.submitManualTradeFromTerminal()">
+          <span id="term-btn-icon">⚡</span> <span id="term-btn-text">BUY / LONG</span>
+        </button>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:8px;">
+          <button id="btn-close-position" class="term-exit-btn" onclick="window.submitClosePosition()" title="Instantly close any open position for this account and symbol">
+            ⚡ CLOSE / EXIT POSITION
+          </button>
+          <button class="term-reset-btn" onclick="window.resetTermForm()" title="Reset order inputs">✕</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -3546,6 +4084,9 @@ window.addEventListener('DOMContentLoaded', () => {
                 renderPortfolio(port1, document.getElementById('u1-err'), document.getElementById('u1-chips'), document.getElementById('u1-title'), document.getElementById('u1-body'), p1, window.u1Tab, 'u1');
                 renderPortfolio(port2, document.getElementById('u2-err'), document.getElementById('u2-chips'), document.getElementById('u2-title'), document.getElementById('u2-body'), p2, window.u2Tab, 'u2');
             }
+            if (typeof window.updateTerminalAccountInfo === 'function') {
+                window.updateTerminalAccountInfo();
+            }
         };
 
         window.portSearch = { u1: '', u2: '' };
@@ -3748,6 +4289,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
         window.setTradeUser = function(val) {
             window.tradeUser = val;
+            if (typeof window.updateTerminalAccountInfo === 'function') {
+                window.updateTerminalAccountInfo();
+            }
         };
         window.togglePanel = function(id) {
             const wrap = document.getElementById(id + '-body-wrap');
@@ -5653,7 +6197,12 @@ window.addEventListener('DOMContentLoaded', () => {
         window.toggleManualLock = async function() {
             window.manualLockState = !window.manualLockState;
             const el = document.getElementById('tog-manual-lock');
-            el.className = window.manualLockState ? 'tog on' : 'tog off';
+            if (el) el.className = window.manualLockState ? 'tog on' : 'tog off';
+            const statusEl = document.getElementById('term-lock-status');
+            if (statusEl) {
+                statusEl.textContent = window.manualLockState ? 'OVERRIDE LOCKED' : 'AUTO-SYNC';
+                statusEl.style.color = window.manualLockState ? '#f59e0b' : 'var(--text-muted)';
+            }
             
             try {
                 await fetch(window.getApiUrl('/api/manual-override'), {
@@ -5664,8 +6213,45 @@ window.addEventListener('DOMContentLoaded', () => {
             } catch(e) { showToast('✗ Error setting manual override', true); }
         };
 
+        window.termActiveSide = 'BUY';
+        window.setTermSide = function(side) {
+            window.termActiveSide = side;
+            const buyTab = document.getElementById('term-tab-buy');
+            const sellTab = document.getElementById('term-tab-sell');
+            const mainBtn = document.getElementById('term-main-btn');
+            const btnIcon = document.getElementById('term-btn-icon');
+            const btnText = document.getElementById('term-btn-text');
+
+            if (side === 'BUY') {
+                if (buyTab) buyTab.classList.add('active');
+                if (sellTab) sellTab.classList.remove('active');
+                if (mainBtn) mainBtn.className = 'term-main-action-btn btn-buy-theme';
+                if (btnIcon) btnIcon.textContent = '▲';
+                if (btnText) btnText.textContent = `BUY / LONG ${activeTabSymbol || ''}`;
+            } else {
+                if (buyTab) buyTab.classList.remove('active');
+                if (sellTab) sellTab.classList.add('active');
+                if (mainBtn) mainBtn.className = 'term-main-action-btn btn-sell-theme';
+                if (btnIcon) btnIcon.textContent = '▼';
+                if (btnText) btnText.textContent = `SELL / SHORT ${activeTabSymbol || ''}`;
+            }
+            window.calcTermEstimates();
+        };
+
+        window.setTermType = function(type) {
+            const selectEl = document.getElementById('trade-type');
+            if (selectEl) selectEl.value = type;
+            
+            document.querySelectorAll('.term-type-pill').forEach(pill => {
+                if (pill.dataset.type === type) pill.classList.add('active');
+                else pill.classList.remove('active');
+            });
+            window.updateTradeFormUI();
+            window.calcTermEstimates();
+        };
+
         window.updateTradeFormUI = function() {
-            const type = document.getElementById('trade-type').value;
+            const type = document.getElementById('trade-type')?.value || 'MARKET';
             
             const priceWrap = document.getElementById('trade-price-wrap');
             const stopPriceWrap = document.getElementById('trade-stop-price-wrap');
@@ -5673,25 +6259,318 @@ window.addEventListener('DOMContentLoaded', () => {
             const tifWrap = document.getElementById('trade-tif-wrap');
             const qtyWrap = document.getElementById('trade-qty-wrap');
 
-            // Reset visibility
-            priceWrap.style.display = 'none';
-            stopPriceWrap.style.display = 'none';
-            callbackWrap.style.display = 'none';
-            tifWrap.style.display = 'none';
-            qtyWrap.style.display = 'block';
+            if (priceWrap) priceWrap.style.display = 'none';
+            if (stopPriceWrap) stopPriceWrap.style.display = 'none';
+            if (callbackWrap) callbackWrap.style.display = 'none';
+            if (tifWrap) tifWrap.style.display = 'none';
+            if (qtyWrap) qtyWrap.style.display = 'block';
 
             if (type === 'LIMIT') {
-                priceWrap.style.display = 'block';
-                tifWrap.style.display = 'block';
+                if (priceWrap) priceWrap.style.display = 'block';
+                if (tifWrap) tifWrap.style.display = 'block';
             } else if (type === 'STOP' || type === 'TAKE_PROFIT') {
-                priceWrap.style.display = 'block';
-                stopPriceWrap.style.display = 'block';
-                tifWrap.style.display = 'block';
+                if (priceWrap) priceWrap.style.display = 'block';
+                if (stopPriceWrap) stopPriceWrap.style.display = 'block';
+                if (tifWrap) tifWrap.style.display = 'block';
             } else if (type === 'STOP_MARKET' || type === 'TAKE_PROFIT_MARKET') {
-                stopPriceWrap.style.display = 'block';
+                if (stopPriceWrap) stopPriceWrap.style.display = 'block';
             } else if (type === 'TRAILING_STOP_MARKET') {
-                callbackWrap.style.display = 'block';
+                if (callbackWrap) callbackWrap.style.display = 'block';
             }
+            
+            // Sync pill selection
+            document.querySelectorAll('.term-type-pill').forEach(pill => {
+                if (pill.dataset.type === type) pill.classList.add('active');
+                else pill.classList.remove('active');
+            });
+        };
+
+        window.setTermPriceFrom = function(source) {
+            const inst = cachedInstances[activeTabSymbol];
+            if (!inst) return;
+            const diag = inst.diagnostics || {};
+            const testnetDepth = inst.testnetDepth || { bids: [], asks: [] };
+            const binDepth = inst.binanceDepth || { bids: [], asks: [] };
+            let p = 0;
+
+            const ltp = parseFloat(diag.testnetLtp) || parseFloat(diag.binanceLtp) || 0;
+            const bid1 = parseFloat(testnetDepth.bids[0]?.[0]) || parseFloat(binDepth.bids[0]?.[0]) || ltp;
+            const ask1 = parseFloat(testnetDepth.asks[0]?.[0]) || parseFloat(binDepth.asks[0]?.[0]) || ltp;
+
+            if (source === 'ltp') p = ltp;
+            else if (source === 'bid') p = bid1;
+            else if (source === 'ask') p = ask1;
+            else if (source === 'mid') p = (bid1 + ask1) / 2;
+
+            if (p > 0) {
+                const priceInput = document.getElementById('trade-price');
+                if (priceInput) {
+                    priceInput.value = p.toFixed(pPrec || 4);
+                    window.calcTermEstimates();
+                }
+            }
+        };
+
+        window.stepTermPrice = function(direction) {
+            const priceInput = document.getElementById('trade-price');
+            if (!priceInput) return;
+            let cur = parseFloat(priceInput.value);
+            const step = Math.pow(10, -(pPrec || 4));
+            if (isNaN(cur) || cur <= 0) {
+                const inst = cachedInstances[activeTabSymbol];
+                cur = parseFloat(inst?.diagnostics?.testnetLtp || inst?.diagnostics?.binanceLtp || 0);
+            }
+            cur = Math.max(0, cur + (direction * step));
+            priceInput.value = cur.toFixed(pPrec || 4);
+            window.calcTermEstimates();
+        };
+
+        window.setTermStopPriceFrom = function(source) {
+            const inst = cachedInstances[activeTabSymbol];
+            if (!inst) return;
+            const diag = inst.diagnostics || {};
+            let p = 0;
+            if (source === 'mark') {
+                p = parseFloat(diag.testnetMarkPrice) || parseFloat(diag.binanceMarkPrice) || parseFloat(diag.testnetLtp) || 0;
+            } else {
+                p = parseFloat(diag.testnetLtp) || parseFloat(diag.binanceLtp) || 0;
+            }
+            if (p > 0) {
+                const stopInput = document.getElementById('trade-stop-price');
+                if (stopInput) {
+                    stopInput.value = p.toFixed(pPrec || 4);
+                    window.calcTermEstimates();
+                }
+            }
+        };
+
+        window.setTermQtyPct = function(pct) {
+            if (!activeTabSymbol) return;
+            const inst = cachedInstances[activeTabSymbol];
+            const activeTier = activeEnvFilter || (window.payload && window.payload.tier) || 'PRODUCTION';
+            const tierPorts = (window.payload && window.payload.portfolios && window.payload.portfolios[activeTier]) || {};
+            const port = tierPorts[window.tradeUser] || {};
+            const avail = parseFloat(port.availableBalance || 0);
+            
+            const pos = (port.positions || []).find(p => p.symbol === activeTabSymbol) || {};
+            const leverage = parseFloat(pos.leverage) || 5;
+
+            let price = parseFloat(document.getElementById('trade-price')?.value);
+            if (!price || isNaN(price) || price <= 0) {
+                price = parseFloat(inst?.diagnostics?.testnetLtp) || parseFloat(inst?.diagnostics?.binanceLtp) || 0;
+            }
+
+            if (price <= 0 || avail <= 0) {
+                return showToast('⚠ No price or available balance to calculate percentage', true);
+            }
+
+            // Max buying power with 1% safety margin
+            const maxBuyingPower = avail * leverage * 0.99;
+            const maxBaseQty = maxBuyingPower / price;
+            const targetQty = (maxBaseQty * pct) / 100;
+            const precision = qPrec !== undefined ? qPrec : 2;
+            const finalQty = Math.max(Math.pow(10, -precision), parseFloat(targetQty.toFixed(precision)));
+
+            const qtyInput = document.getElementById('trade-qty');
+            if (qtyInput) {
+                qtyInput.value = finalQty;
+                window.calcTermEstimates();
+            }
+        };
+
+        window.stepTermQty = function(direction) {
+            const qtyInput = document.getElementById('trade-qty');
+            if (!qtyInput) return;
+            let cur = parseFloat(qtyInput.value) || 0;
+            const precision = qPrec !== undefined ? qPrec : 2;
+            const step = Math.pow(10, -precision);
+            cur = Math.max(0, cur + (direction * step));
+            qtyInput.value = cur.toFixed(precision);
+            window.calcTermEstimates();
+        };
+
+        window.calcTermEstimates = function() {
+            const inst = cachedInstances[activeTabSymbol];
+            const activeTier = activeEnvFilter || (window.payload && window.payload.tier) || 'PRODUCTION';
+            const tierPorts = (window.payload && window.payload.portfolios && window.payload.portfolios[activeTier]) || {};
+            const port = tierPorts[window.tradeUser] || {};
+            const pos = (port.positions || []).find(p => p.symbol === activeTabSymbol) || {};
+            const leverage = parseFloat(pos.leverage) || 5;
+
+            let price = parseFloat(document.getElementById('trade-price')?.value);
+            if (!price || isNaN(price) || price <= 0) {
+                price = parseFloat(inst?.diagnostics?.testnetLtp) || parseFloat(inst?.diagnostics?.binanceLtp) || 0;
+            }
+            const qty = parseFloat(document.getElementById('trade-qty')?.value) || 0;
+
+            const estValEl = document.getElementById('term-est-val');
+            const estCostEl = document.getElementById('term-est-cost');
+            const estLiqEl = document.getElementById('term-est-liq');
+
+            if (price > 0 && qty > 0) {
+                const totalVal = price * qty;
+                const marginReq = leverage > 0 ? (totalVal / leverage) : totalVal;
+                
+                if (estValEl) estValEl.textContent = `≈ ${totalVal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} USDT`;
+                if (estCostEl) estCostEl.textContent = `≈ ${marginReq.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} USDT`;
+
+                if (leverage > 1) {
+                    const isLong = (window.termActiveSide || 'BUY') === 'BUY';
+                    const liqPrice = isLong 
+                        ? price * (1 - (1 / leverage) + 0.005)
+                        : price * (1 + (1 / leverage) - 0.005);
+                    if (estLiqEl) estLiqEl.textContent = Math.max(0, liqPrice).toFixed(pPrec || 4);
+                } else {
+                    if (estLiqEl) estLiqEl.textContent = 'None (1x)';
+                }
+            } else {
+                if (estValEl) estValEl.textContent = '≈ 0.00 USDT';
+                if (estCostEl) estCostEl.textContent = '≈ 0.00 USDT';
+                if (estLiqEl) estLiqEl.textContent = '—';
+            }
+        };
+
+        window.toggleTermAdvanced = function() {
+            const body = document.getElementById('term-advanced-body');
+            const icon = document.getElementById('term-adv-icon');
+            if (body) {
+                const isOpen = body.style.display !== 'none';
+                body.style.display = isOpen ? 'none' : 'block';
+                if (icon) icon.textContent = isOpen ? '▾' : '▴';
+            }
+        };
+
+        window.resetTermForm = function() {
+            const qtyInput = document.getElementById('trade-qty');
+            const priceInput = document.getElementById('trade-price');
+            const stopPriceInput = document.getElementById('trade-stop-price');
+            const cbInput = document.getElementById('trade-callback-rate');
+            if (qtyInput) qtyInput.value = '';
+            if (priceInput) priceInput.value = '';
+            if (stopPriceInput) stopPriceInput.value = '';
+            if (cbInput) cbInput.value = '1.0';
+            window.calcTermEstimates();
+            showToast('Form inputs reset');
+        };
+
+        window.openTerminalLevModal = function() {
+            if (!activeTabSymbol) return showToast('Select a market first', true);
+            window.fapiAction('lev', window.tradeUser || 'user1', activeTabSymbol);
+        };
+
+        window.seedTerminalUserBalance = async function() {
+            const userId = window.tradeUser || 'user1';
+            const activeTier = activeEnvFilter || (window.payload && window.payload.tier) || 'PRODUCTION';
+            try {
+                showToast(`Seeding USDT for ${userId} [${activeTier}]...`);
+                const res = await fetch(window.getApiUrl('/api/portfolio/seed-balance'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, tier: activeTier, currency: 'USDT', asset: 'USDT' })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok && data.success) {
+                    showToast('✅ ' + (data.message || `USDT added for ${userId}`));
+                    window.renderPortfolios();
+                    window.updateTerminalAccountInfo();
+                } else {
+                    showToast('❌ ' + (data.error || 'Failed to add USDT'), true);
+                }
+            } catch (e) {
+                showToast('❌ Error: ' + e.message, true);
+            }
+        };
+
+        window.submitManualTradeFromTerminal = async function() {
+            const btn = document.getElementById('term-main-btn');
+            const origHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '⏳ Submitting Order...';
+            }
+            try {
+                await window.submitManualTrade(window.termActiveSide || 'BUY');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = origHtml;
+                }
+            }
+        };
+
+        window.updateTerminalAccountInfo = function() {
+            const activeTier = activeEnvFilter || (window.payload && window.payload.tier) || 'PRODUCTION';
+            const tierRoles = (window.payload && window.payload.roles && window.payload.roles[activeTier]) || {};
+            const tierPorts = (window.payload && window.payload.portfolios && window.payload.portfolios[activeTier]) || {};
+            const uId = window.tradeUser || 'user1';
+            const port = tierPorts[uId] || {};
+
+            // Role badge
+            const roleBadge = document.getElementById('term-user-role-badge');
+            if (roleBadge) {
+                if (tierRoles.makerId && String(tierRoles.makerId) === String(uId)) {
+                    roleBadge.className = 'port-role-badge role-maker';
+                    roleBadge.textContent = 'MAKER';
+                } else if (tierRoles.takerId && String(tierRoles.takerId) === String(uId)) {
+                    roleBadge.className = 'port-role-badge role-taker';
+                    roleBadge.textContent = 'TAKER';
+                } else {
+                    roleBadge.className = 'port-role-badge role-user';
+                    roleBadge.textContent = 'ACCOUNT';
+                }
+            }
+
+            // Available USDT
+            const availEl = document.getElementById('term-avail-bal');
+            if (availEl) {
+                const avail = parseFloat(port.availableBalance || 0);
+                availEl.textContent = `${avail.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT`;
+            }
+
+            // Active Position
+            const pos = (port.positions || []).find(p => p.symbol === activeTabSymbol);
+            const posBadge = document.getElementById('term-pos-badge');
+            const levBadge = document.getElementById('term-lev-badge');
+            if (pos && parseFloat(pos.size) !== 0) {
+                if (posBadge) {
+                    const isLong = pos.side === 'LONG';
+                    posBadge.className = isLong ? 'pos-side-pill pos-long' : 'pos-side-pill pos-short';
+                    posBadge.textContent = `${pos.side} ${pos.size}`;
+                }
+                if (levBadge && pos.leverage) {
+                    levBadge.textContent = `${pos.leverage}× LEV`;
+                }
+            } else {
+                if (posBadge) {
+                    posBadge.className = 'term-pos-val';
+                    posBadge.textContent = 'None';
+                }
+                if (levBadge) {
+                    levBadge.textContent = '5× LEV';
+                }
+            }
+
+            // Symbol tags
+            const symTag = document.getElementById('term-active-symbol');
+            if (symTag) symTag.textContent = activeTabSymbol || 'MARKET';
+
+            // Base Asset name
+            let base = 'BASE';
+            if (activeTabSymbol) {
+                base = activeTabSymbol.replace(/QAUSDT$/i, '').replace(/USDT$/i, '');
+            }
+            const baseAssetEl = document.getElementById('term-base-asset');
+            if (baseAssetEl) baseAssetEl.textContent = base;
+            const qtyAssetLabel = document.getElementById('term-qty-asset-label');
+            if (qtyAssetLabel) qtyAssetLabel.textContent = base;
+
+            // Action button text
+            const btnText = document.getElementById('term-btn-text');
+            if (btnText) {
+                btnText.textContent = `${window.termActiveSide || 'BUY'} / ${(window.termActiveSide || 'BUY') === 'BUY' ? 'LONG' : 'SHORT'} ${activeTabSymbol || ''}`;
+            }
+
+            window.calcTermEstimates();
         };
 
         window.submitManualTrade = async function(side) {
@@ -6394,6 +7273,9 @@ window.addEventListener('DOMContentLoaded', () => {
             const srcStr = (diag.sourceSymbol && diag.sourceSymbol !== activeTabSymbol) ? ' (SRC: ' + diag.sourceSymbol + ')' : '';
             const activeTier = instance.tier || 'PRODUCTION';
             document.getElementById('c-pair').textContent = activeTabSymbol + srcStr + ' [' + activeTier + ']';
+            if (typeof window.updateTerminalAccountInfo === 'function') {
+                window.updateTerminalAccountInfo();
+            }
 
             const scEl = document.getElementById('flag-scenario');
             if (instance.scenarioStatus && instance.scenarioStatus.phase !== 'IDLE') {
