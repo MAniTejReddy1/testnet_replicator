@@ -155,7 +155,7 @@ const TIER_URLS = {
         PUBLIC_MDN: "https://testnet-exchange-public-mdn.dcxstage.com",
         ONBOARDING: "https://testnet-exchange-api.dcxstage.com",
         RAILS: "https://testnet-exchange-rails-api.dcxstage.com",
-        WS_GATEWAY: "wss://testnet-exchange-futures-socket-gateway.dcxstage.com"
+        WS_GATEWAY: "wss://testnet-futures-socket-gateway.dcxstage.com"
     },
     QA_STAGING: {
         HPO: "https://testnet-futures-hpo.dcxstage.com",
@@ -171,7 +171,7 @@ const TIER_URLS = {
         PUBLIC_MDN: "https://staging-exchange-public-mdn.dcxstage.com",
         ONBOARDING: "https://staging-exchange-api.dcxstage.com",
         RAILS: "https://staging-exchange-rails-api.dcxstage.com",
-        WS_GATEWAY: "wss://staging-exchange-futures-socket-gateway.dcxstage.com"
+        WS_GATEWAY: "wss://testnet-futures-socket-gateway.dcxstage.com"
     }
 };
 TIER_URLS["QA-STAGING"] = TIER_URLS.QA_STAGING;
@@ -1227,6 +1227,7 @@ class PrivateWsClient {
         this.sockets = {};       // keyed by event type
         this.pingIntervals = {};
         this.reconnectTimers = {};
+        this.reconnectDelays = {};
         if (this.listenKey) {
             PRIVATE_WS_EVENTS.forEach(evt => this.connectStream(evt));
         }
@@ -1256,6 +1257,7 @@ class PrivateWsClient {
         this.sockets[eventType] = ws;
 
         ws.on('open', () => {
+            this.reconnectDelays[eventType] = 5000;
             log.success('SYSTEM', `${this.label} [${eventType}] connected.`, null, this.tier);
             pushEvent('SUCCESS', this.label, `Private WS connected: ${eventType}`, { status: 'connected', event: eventType }, 'ws', this.tier);
             this.pingIntervals[eventType] = setInterval(() => {
@@ -1364,12 +1366,14 @@ class PrivateWsClient {
         });
 
         ws.on('close', () => {
-            log.warn('SYSTEM', `${this.label} [${eventType}] disconnected. Reconnecting in 5s...`, null, this.tier);
+            const delay = this.reconnectDelays[eventType] || 5000;
+            this.reconnectDelays[eventType] = Math.min(Math.round(delay * 1.5), 30000);
+            log.warn('SYSTEM', `${this.label} [${eventType}] disconnected. Reconnecting in ${Math.round(delay / 1000)}s...`, null, this.tier);
             pushEvent('WARN', this.label, `Private WS disconnected: ${eventType}`, { status: 'disconnected', event: eventType }, 'ws', this.tier);
             clearInterval(this.pingIntervals[eventType]);
             if (this.sockets[eventType] === ws) {
                 this.sockets[eventType] = null;
-                this.reconnectTimers[eventType] = setTimeout(() => this.connectStream(eventType), 5000);
+                this.reconnectTimers[eventType] = setTimeout(() => this.connectStream(eventType), delay);
             }
         });
 
@@ -3145,50 +3149,35 @@ startBinanceDepthWS() {
     async cleanOpenOrders(user, tier, symbolFilter = null) {
         if (!user) return;
         const hpoBase = TIER_URLS[tier].HPO;
-        let offset = 0;
-        const limit = 500;
-        const seenIds = new Set();
-        while (true) {
-            const query = { limit: limit, offset: offset };
-            const res = await sendSignedRequest(`${hpoBase}/fapi/v1/openOrders`, 'GET', query, user, 60000, tier);
-            if (!res.ok || !Array.isArray(res.data) || res.data.length === 0) break;
-            
-            const chunk = res.data;
-            let newCount = 0;
-            const toCancel = [];
-            for (const o of chunk) {
-                const id = o.orderId || o.id;
-                if (!seenIds.has(id)) {
-                    seenIds.add(id);
-                    newCount++;
-                    if (!symbolFilter || o.symbol === symbolFilter) {
-                        toCancel.push({ id, symbol: o.symbol });
+        const query = symbolFilter ? { symbol: symbolFilter } : {};
+        const res = await sendSignedRequest(`${hpoBase}/fapi/v1/openOrders`, 'GET', query, user, 60000, tier);
+        if (!res.ok || !Array.isArray(res.data) || res.data.length === 0) return;
+        
+        const chunk = res.data;
+        const toCancel = [];
+        for (const o of chunk) {
+            const id = o.orderId || o.id;
+            if (!symbolFilter || o.symbol === symbolFilter) {
+                toCancel.push({ id, symbol: o.symbol });
+            }
+        }
+        
+        if (toCancel.length > 0) {
+            const results = await Promise.allSettled(toCancel.map(o => {
+                return sendSignedRequest(`${hpoBase}/fapi/v1/order`, 'DELETE', { symbol: o.symbol, orderId: o.id }, user, 10000, tier);
+            }));
+            let editInProgressCount = 0;
+            for (const r of results) {
+                if (r.status === 'fulfilled' && !r.value.ok && r.value.data) {
+                    const msg = String(r.value.data.msg || '').toLowerCase();
+                    if (msg.includes('edit is in progress') || msg.includes('edit_in_progress')) {
+                        editInProgressCount++;
                     }
                 }
             }
-            
-            if (toCancel.length > 0) {
-                const results = await Promise.allSettled(toCancel.map(o => {
-                    return sendSignedRequest(`${hpoBase}/fapi/v1/order`, 'DELETE', { symbol: o.symbol, orderId: o.id }, user, 10000, tier);
-                }));
-                let editInProgressCount = 0;
-                for (const r of results) {
-                    if (r.status === 'fulfilled' && !r.value.ok && r.value.data) {
-                        const msg = String(r.value.data.msg || '').toLowerCase();
-                        if (msg.includes('edit is in progress') || msg.includes('edit_in_progress')) {
-                            editInProgressCount++;
-                        }
-                    }
-                }
-                if (editInProgressCount > 5) {
-                    log.error(symbolFilter || 'SYSTEM', `Detected ${editInProgressCount} orders stuck in EDIT_IN_PROGRESS. Aborting further cancels as these orders are un-cancellable by API.`);
-                    break;
-                }
+            if (editInProgressCount > 5) {
+                log.error(symbolFilter || 'SYSTEM', `Detected ${editInProgressCount} orders stuck in EDIT_IN_PROGRESS. Aborting further cancels as these orders are un-cancellable by API.`);
             }
-            
-            if (newCount === 0 || chunk.length < limit) break;
-            offset += limit;
-            if (offset > 10000) break;
         }
     }
 
@@ -4316,6 +4305,10 @@ const server = http.createServer(async (req, res) => {
                     try {
                         const httpMethod = parsed._method || 'POST';
                         delete parsed._method;
+                        if (pathname === '/fapi/v1/openOrders') {
+                            delete parsed.offset;
+                            delete parsed.limit;
+                        }
                         const hpoBase = TIER_URLS[globalActiveTier].HPO;
                         const apiRes = await sendSignedRequest(`${hpoBase}${req.url}`, httpMethod, parsed, userCreds, 50000, globalActiveTier);
                         if (apiRes.ok || (apiRes.status >= 200 && apiRes.status < 300)) {

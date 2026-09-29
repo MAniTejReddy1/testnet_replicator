@@ -3000,35 +3000,19 @@ window.addEventListener('DOMContentLoaded', () => {
             
             try {
                 if (tab === 'open') {
-                    let allOpenOrders = [];
-                    let offset = 0;
-                    const limit = 500;
-                    const seenIds = new Set();
-                    while (true) {
-                        const reqBody = { _method: 'GET', limit: limit, offset: offset };
-                        const res = await fetch(window.getApiUrl(endpoint), {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'x-replicator-user': selectedUser },
-                            body: JSON.stringify(reqBody)
-                        });
-                        if (!res.ok) break;
+                    const reqBody = { _method: 'GET' };
+                    if (activeTabSymbol) reqBody.symbol = activeTabSymbol;
+                    const res = await fetch(window.getApiUrl(endpoint), {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'x-replicator-user': selectedUser },
+                        body: JSON.stringify(reqBody)
+                    });
+                    if (res.ok) {
                         const data = await res.json();
-                        if (!Array.isArray(data) || data.length === 0) break;
-                        
-                        let newCount = 0;
-                        for (const o of data) {
-                            const id = o.orderId || o.id;
-                            if (!seenIds.has(id)) {
-                                seenIds.add(id);
-                                allOpenOrders.push(o);
-                                newCount++;
-                            }
-                        }
-                        if (newCount === 0 || data.length < limit) break;
-                        offset += limit;
-                        if (offset > 10000) break;
+                        window.fetchedOrders[u][tab] = Array.isArray(data) ? data : [];
+                    } else {
+                        window.fetchedOrders[u][tab] = [];
                     }
-                    window.fetchedOrders[u][tab] = allOpenOrders;
                 } else {
                     const reqBody = { _method: 'GET', symbol: activeTabSymbol, limit: 500 };
                     const res = await fetch(window.getApiUrl(endpoint), {
@@ -7542,9 +7526,9 @@ window.addEventListener('DOMContentLoaded', () => {
             
             try {
                 const TIER_WS_GATEWAYS = {
-                    PRODUCTION: "wss://testnet-exchange-futures-socket-gateway.dcxstage.com",
+                    PRODUCTION: "wss://testnet-futures-socket-gateway.dcxstage.com",
                     QA_STAGING: "wss://testnet-futures-socket-gateway.dcxstage.com",
-                    DEV_STAGING: "wss://staging-exchange-futures-socket-gateway.dcxstage.com"
+                    DEV_STAGING: "wss://testnet-futures-socket-gateway.dcxstage.com"
                 };
                 TIER_WS_GATEWAYS["QA-STAGING"] = TIER_WS_GATEWAYS.QA_STAGING;
                 TIER_WS_GATEWAYS["DEV-STAGING"] = TIER_WS_GATEWAYS.DEV_STAGING;
