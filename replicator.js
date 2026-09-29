@@ -445,9 +445,11 @@ function pushLog(level, sym, msg, meta = null, tier = null) {
             if (inst) { tier = t; break; }
         }
     }
-    if (!tier) tier = globalActiveTier;
+    if (meta && meta.response && meta.response.raw) {
+        delete meta.response.raw;
+    }
     terminalLogs.push({ time: getISTTimeString(), level, sym, msg, ts: Date.now(), meta, tier });
-    if (terminalLogs.length > 1000) terminalLogs.shift();
+    if (terminalLogs.length > 250) terminalLogs.shift();
 }
 
 function pushEvent(level, sym, msg, meta = null, cat = 'general', tier = null) {
@@ -3870,8 +3872,8 @@ function buildPayload(isSnapshot = true, sinceTs = 0) {
         activeTier: globalActiveTier,
         instruments: instrumentsMap,
         tierUrls: TIER_URLS,
-        terminalLogs,
-        terminalEvents: isSnapshot ? terminalEvents : terminalEvents.filter(e => e.ts > sinceTs),
+        terminalLogs: isSnapshot ? terminalLogs.slice(-150) : terminalLogs.filter(l => l.ts > sinceTs),
+        terminalEvents: isSnapshot ? terminalEvents.slice(-200) : terminalEvents.filter(e => e.ts > sinceTs),
         orderUpdateCounter: globalOrderUpdateCounter
     });
 }
@@ -4165,7 +4167,7 @@ const server = http.createServer(async (req, res) => {
     const session = getSessionUser(req);
     const isHtmlRoute = pathname === '/' || pathname === '/index.html';
 
-    if (!session && !pathname.startsWith('/api/auth/') && !pathname.startsWith('/api/stage/') && !pathname.startsWith('/api/mds-proxy') && !pathname.startsWith('/api/risk-controls')) {
+    if (!session && !pathname.startsWith('/api/auth/') && !pathname.startsWith('/api/stage/') && !pathname.startsWith('/api/mds-proxy') && !pathname.startsWith('/api/risk-controls') && !pathname.startsWith('/api/qa/')) {
         if (isHtmlRoute) {
             // Render index.html anyway, the frontend will show the glassmorphic auth overlay
         } else {
@@ -4338,6 +4340,94 @@ const server = http.createServer(async (req, res) => {
         }
     }
 
+    if (req.method === 'GET' && pathname === '/api/qa/app-config') {
+        const urlObj = new URL(req.url, 'http://localhost');
+        const tier = (urlObj.searchParams.get('tier') || globalActiveTier).toUpperCase().replace(/-/g, '_');
+        const key = urlObj.searchParams.get('key') || 'FUTURES_INSTRUMENT_RISK_CONTROLS';
+        const urls = TIER_URLS[tier] || TIER_URLS.QA_STAGING;
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+            const stageRes = await fetch(`${urls.HPO}/api/v3/qa/app_configs/${encodeURIComponent(key)}`, { signal: controller.signal });
+            clearTimeout(timeoutId);
+            const text = await stageRes.text();
+            let data = null;
+            try { data = JSON.parse(text); } catch (e) { data = text; }
+            if (stageRes.ok) {
+                if (key === 'FUTURES_INSTRUMENT_RISK_CONTROLS' && data && data.json_value) {
+                    riskControlsMap[tier] = data.json_value;
+                }
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: true, tier, key, data }));
+            } else {
+                res.writeHead(stageRes.status, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: false, status: stageRes.status, error: data }));
+            }
+        } catch (e) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: e.message }));
+        }
+    }
+
+    if (req.method === 'GET' && pathname === '/api/qa/instrument') {
+        const urlObj = new URL(req.url, 'http://localhost');
+        const tier = (urlObj.searchParams.get('tier') || globalActiveTier).toUpperCase().replace(/-/g, '_');
+        const sym = (urlObj.searchParams.get('symbol') || '').trim();
+        const urls = TIER_URLS[tier] || TIER_URLS.QA_STAGING;
+        try {
+            if (!instrumentsMap[tier] || Object.keys(instrumentsMap[tier]).length === 0) {
+                await loadInstruments(tier);
+            }
+            const symMap = instrumentsMap[tier] || {};
+            const cleanSym = sym.replace(/^B-/, '').replace(/_/g, '').toUpperCase();
+            let currentInst = sym ? (symMap[sym] || symMap[sym.toUpperCase()] || symMap[cleanSym] || null) : null;
+
+            let rawSymbolInfo = null;
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                const exRes = await fetch(`${urls.HPO}/fapi/v1/exchangeInfo`, { signal: controller.signal });
+                clearTimeout(timeoutId);
+                if (exRes.ok) {
+                    const exData = await exRes.json();
+                    if (exData && exData.symbols) {
+                        const match = exData.symbols.find(s => {
+                            const sSym = (s.symbol || '').toUpperCase();
+                            const bSym = (s.baseAsset && s.quoteAsset) ? `B-${s.baseAsset}_${s.quoteAsset}`.toUpperCase() : '';
+                            return sSym === sym.toUpperCase() || sSym === cleanSym || bSym === sym.toUpperCase() || (s.pair && s.pair.toUpperCase() === sym.toUpperCase());
+                        });
+                        if (match) {
+                            rawSymbolInfo = match;
+                            const matchedSym = match.symbol.toUpperCase();
+                            if (!currentInst && symMap[matchedSym]) {
+                                currentInst = symMap[matchedSym];
+                            }
+                            const pctPrice = match.filters && match.filters.find(f => f.filterType === 'PERCENT_PRICE');
+                            if (pctPrice) {
+                                if (!currentInst) currentInst = {};
+                                currentInst.multiplierUp = parseFloat(pctPrice.multiplierUp);
+                                currentInst.multiplierDown = parseFloat(pctPrice.multiplierDown);
+                            }
+                        }
+                    }
+                }
+            } catch (exErr) {}
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({
+                success: true,
+                tier,
+                symbol: sym,
+                instrument: currentInst,
+                rawSymbolInfo,
+                availableSymbols: Object.keys(symMap).sort()
+            }));
+        } catch (e) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: false, error: e.message }));
+        }
+    }
+
     if (req.method === 'DELETE' && pathname.startsWith('/api/instance')) {
         const urlObj = new URL(req.url, 'http://localhost');
         const sym = (urlObj.searchParams.get('symbol') || '').toUpperCase();
@@ -4395,12 +4485,12 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    if (req.method === 'POST') {
+    if (req.method === 'POST' || req.method === 'PATCH') {
         let body = '';
         req.on('data', chunk => { body += chunk; if (body.length > 1e6) { req.destroy(); return; } });
         req.on('end', async () => {
             try {
-                const parsed = JSON.parse(body);
+                const parsed = JSON.parse(body || '{}');
                 const { sourceSymbol: sym, targetSymbol: targetSym } = deriveSymbols(parsed.symbol || parsed.sourceSymbol, parsed.targetSymbol);
                 
                 // Allow specific routes to omit symbol
@@ -4410,9 +4500,142 @@ const server = http.createServer(async (req, res) => {
                     !pathname.startsWith('/api/env') && 
                     !pathname.startsWith('/api/mds-proxy') && 
                     !pathname.startsWith('/api/portfolio') &&
+                    !pathname.startsWith('/api/qa/') &&
                     !pathname.startsWith('/fapi/')
                 ) {
                     throw new Error("Symbol is required");
+                }
+
+                if (pathname === '/api/qa/app-config') {
+                    const tier = (parsed.tier || globalActiveTier).toUpperCase().replace(/-/g, '_');
+                    const key = parsed.key || 'FUTURES_INSTRUMENT_RISK_CONTROLS';
+                    const urls = TIER_URLS[tier] || TIER_URLS.QA_STAGING;
+                    const targetUrl = `${urls.HPO}/api/v3/qa/app_configs/${encodeURIComponent(key)}`;
+                    const headers = { 'Content-Type': 'application/json' };
+                    if (parsed.cookie) headers['Cookie'] = parsed.cookie;
+                    const payload = (parsed.payload !== undefined) ? parsed.payload : parsed;
+
+                    try {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 10000);
+                        const qaRes = await fetch(targetUrl, {
+                            method: 'PATCH',
+                            headers,
+                            body: JSON.stringify(payload),
+                            signal: controller.signal
+                        });
+                        clearTimeout(timeoutId);
+
+                        let resData = null;
+                        const resText = await qaRes.text();
+                        try { resData = JSON.parse(resText); } catch (e) { resData = resText; }
+
+                        const meta = {
+                            request: {
+                                method: 'PATCH',
+                                url: targetUrl,
+                                payload: payload,
+                                headers: headers
+                            },
+                            response: {
+                                statusCode: qaRes.status,
+                                statusMessage: qaRes.statusText,
+                                data: resData,
+                                raw: resText
+                            }
+                        };
+
+                        if (qaRes.ok) {
+                            if (key === 'FUTURES_INSTRUMENT_RISK_CONTROLS' && payload && payload.json_value) {
+                                riskControlsMap[tier] = payload.json_value;
+                            }
+                            log.success('QA-CONFIG', `[${tier}] PATCH app_configs/${key} successful (${qaRes.status})`, meta, tier);
+                            broadcastToUI(true);
+                            res.writeHead(200, { 'Content-Type': 'application/json' });
+                            return res.end(JSON.stringify({ success: true, tier, key, status: qaRes.status, data: resData }));
+                        } else {
+                            log.warn('QA-CONFIG', `[${tier}] PATCH app_configs/${key} failed (${qaRes.status})`, meta, tier);
+                            res.writeHead(qaRes.status, { 'Content-Type': 'application/json' });
+                            return res.end(JSON.stringify({ success: false, tier, key, status: qaRes.status, error: resData }));
+                        }
+                    } catch (err) {
+                        const meta = {
+                            request: { method: 'PATCH', url: targetUrl, payload: payload, headers: headers },
+                            error: err.message
+                        };
+                        log.error('QA-CONFIG', `[${tier}] PATCH app_configs/${key} error: ${err.message}`, meta, tier);
+                        res.writeHead(500, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, error: err.message }));
+                    }
+                }
+
+                if (pathname === '/api/qa/instrument') {
+                    const tier = (parsed.tier || globalActiveTier).toUpperCase().replace(/-/g, '_');
+                    const sym = (parsed.symbol || '').trim();
+                    if (!sym) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ error: "Symbol is required (e.g. B-XRP_USDT)" }));
+                    }
+                    const urls = TIER_URLS[tier] || TIER_URLS.QA_STAGING;
+                    const targetUrl = `${urls.HPO}/api/v3/qa/instruments/${encodeURIComponent(sym)}`;
+                    const headers = { 'Content-Type': 'application/json' };
+                    if (parsed.cookie) headers['Cookie'] = parsed.cookie;
+                    const payload = (parsed.payload !== undefined) ? parsed.payload : parsed;
+
+                    try {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 10000);
+                        const qaRes = await fetch(targetUrl, {
+                            method: 'PATCH',
+                            headers,
+                            body: JSON.stringify(payload),
+                            signal: controller.signal
+                        });
+                        clearTimeout(timeoutId);
+
+                        let resData = null;
+                        const resText = await qaRes.text();
+                        try { resData = JSON.parse(resText); } catch (e) { resData = resText; }
+
+                        const meta = {
+                            request: {
+                                method: 'PATCH',
+                                url: targetUrl,
+                                payload: payload,
+                                headers: headers
+                            },
+                            response: {
+                                statusCode: qaRes.status,
+                                statusMessage: qaRes.statusText,
+                                data: resData,
+                                raw: resText
+                            }
+                        };
+
+                        if (qaRes.ok) {
+                            if (instrumentsMap[tier]) {
+                                if (!instrumentsMap[tier][sym]) instrumentsMap[tier][sym] = {};
+                                if (payload.multiplier_up !== undefined) instrumentsMap[tier][sym].multiplierUp = parseFloat(payload.multiplier_up);
+                                if (payload.multiplier_down !== undefined) instrumentsMap[tier][sym].multiplierDown = parseFloat(payload.multiplier_down);
+                            }
+                            log.success('QA-INSTRUMENT', `[${tier}] PATCH instruments/${sym} successful (${qaRes.status})`, meta, tier);
+                            broadcastToUI(true);
+                            res.writeHead(200, { 'Content-Type': 'application/json' });
+                            return res.end(JSON.stringify({ success: true, tier, symbol: sym, status: qaRes.status, data: resData }));
+                        } else {
+                            log.warn('QA-INSTRUMENT', `[${tier}] PATCH instruments/${sym} failed (${qaRes.status})`, meta, tier);
+                            res.writeHead(qaRes.status, { 'Content-Type': 'application/json' });
+                            return res.end(JSON.stringify({ success: false, tier, symbol: sym, status: qaRes.status, error: resData }));
+                        }
+                    } catch (err) {
+                        const meta = {
+                            request: { method: 'PATCH', url: targetUrl, payload: payload, headers: headers },
+                            error: err.message
+                        };
+                        log.error('QA-INSTRUMENT', `[${tier}] PATCH instruments/${sym} error: ${err.message}`, meta, tier);
+                        res.writeHead(500, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, error: err.message }));
+                    }
                 }
                 if (pathname.startsWith('/fapi/')) {
                     const userId = req.headers['x-replicator-user'];

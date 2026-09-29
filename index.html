@@ -2610,6 +2610,7 @@
     <div class="chip" style="min-height: 46px; display: flex; flex-direction: column; justify-content: center; padding: 6px 14px;"><div class="chip-label">Engine Status</div><div class="chip-val" id="c-eng" style="margin-top:2px;"><span class="c-rose fw-bold">OFFLINE</span></div></div>
     <div class="chip" style="min-height: 46px; display: flex; flex-direction: column; justify-content: center; padding: 6px 14px;"><div class="chip-label">Network Time</div><div class="chip-val" id="c-clock" style="color:var(--text-muted);font-size:12px;margin-top:2px;">—</div></div>
     <button id="btn-theme-toggle" style="background:var(--btn-theme);border:1px solid var(--border);cursor:pointer;font-size:14px;color:var(--text-main);padding:10px 14px;height:46px;border-radius:8px;transition:all 0.3s;display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px rgba(0,0,0,0.1);" title="Toggle Light/Dark Theme">☀</button>
+    <button id="btn-qa-config" class="btn-primary" onclick="window.openQaConfigModal()" style="padding: 10px 16px; width: auto; font-size: 11px; height: 46px; display: flex; align-items: center; justify-content: center; gap: 6px; background: linear-gradient(135deg, rgba(168,85,247,0.25), rgba(139,92,246,0.45)); border: 1px solid rgba(168,85,247,0.5); box-shadow: 0 0 14px rgba(168,85,247,0.2); color: #f3e8ff; font-weight: 700; border-radius: 8px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.filter='brightness(1.15)';" onmouseout="this.style.filter='brightness(1)';" title="QA App Config & Instrument Risk Controls">⚡ QA CONTROLS</button>
     <button id="btn-cfg" class="btn-primary" style="padding: 10px 20px; width: auto; font-size: 11px; height: 46px; display: flex; align-items: center; justify-content: center;">⚙ CONFIGURE</button>
     <button id="btn-logout" class="btn-primary" onclick="window.handleAuthLogout()" style="padding: 10px 20px; width: auto; font-size: 11px; height: 46px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, rgba(244,63,94,0.2), rgba(244,63,94,0.4)); border: 1px solid rgba(244,63,94,0.4); box-shadow: none;">🔒 LOGOUT</button>
   </div>
@@ -11160,5 +11161,1175 @@ document.addEventListener('mousemove', (e) => {
         </div>
     </div>
 </div>
+
+<!-- QA Controls & Risk Configurator Modal Screen Overlay -->
+<div id="qa-config-modal-overlay" class="l2-overlay" style="position:fixed; inset:0; z-index:1550; background:rgba(0,0,0,0.82); backdrop-filter:blur(10px); display:none; opacity:0; transition:opacity .25s ease; align-items:center; justify-content:center; padding:16px;" onclick="window.closeQaConfigModal()">
+  <div class="qa-modal-card" style="background:var(--drawer-bg, #0b0f19); border:1px solid rgba(168,85,247,0.4); border-radius:18px; width:100%; max-width:980px; max-height:92vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 25px 60px -15px rgba(0,0,0,0.85), 0 0 35px rgba(168,85,247,0.22); color:var(--text-main);" onclick="event.stopPropagation()">
+    
+    <!-- Modal Header -->
+    <div style="padding:16px 22px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:linear-gradient(90deg, rgba(168,85,247,0.12) 0%, rgba(6,182,212,0.08) 100%);">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div style="width:34px; height:34px; border-radius:10px; background:linear-gradient(135deg, #a855f7, #6366f1); display:flex; align-items:center; justify-content:center; font-size:17px; box-shadow:0 0 15px rgba(168,85,247,0.4);">⚡</div>
+        <div>
+          <div style="font-weight:800; font-size:16px; letter-spacing:0.5px; display:flex; align-items:center; gap:8px;">
+            <span>QA Controls & Risk Configurator</span>
+            <span style="font-size:10px; padding:2px 7px; border-radius:99px; background:rgba(168,85,247,0.2); border:1px solid rgba(168,85,247,0.4); color:#d8b4fe; font-family:'JetBrains Mono',monospace;">HPO QA REST API</span>
+          </div>
+          <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Directly inspect, add, and patch App Configs and Instrument Multipliers on HPO</div>
+        </div>
+      </div>
+      
+      <div style="display:flex; align-items:center; gap:14px;">
+        <!-- Environment Switcher -->
+        <div style="display:flex; background:rgba(0,0,0,0.4); border:1px solid var(--border); border-radius:8px; padding:2px; gap:2px;">
+          <button id="qa-env-qa" onclick="window.setQaModalEnv('QA_STAGING')" style="border:none; padding:5px 12px; font-size:11px; font-weight:700; border-radius:6px; cursor:pointer; background:#a855f7; color:#fff; transition:all 0.2s;">QA_STAGING</button>
+          <button id="qa-env-dev" onclick="window.setQaModalEnv('DEV_STAGING')" style="border:none; padding:5px 12px; font-size:11px; font-weight:700; border-radius:6px; cursor:pointer; background:transparent; color:var(--text-muted); transition:all 0.2s;">DEV_STAGING</button>
+        </div>
+        
+        <button type="button" onclick="window.closeQaConfigModal()" style="background:transparent; border:none; color:var(--text-muted); font-size:26px; cursor:pointer; line-height:1; transition:color 0.2s;" onmouseover="this.style.color='#f43f5e'" onmouseout="this.style.color='var(--text-muted)'">&times;</button>
+      </div>
+    </div>
+
+    <!-- Main Tab Navigation -->
+    <div style="display:flex; gap:2px; padding:8px 22px 0; background:rgba(0,0,0,0.2); border-bottom:1px solid var(--border);">
+      <button id="qa-nav-btn-app" onclick="window.switchQaModalTab('app')" style="padding:10px 18px; font-size:12px; font-weight:700; border:none; background:transparent; border-bottom:2px solid #a855f7; color:#d8b4fe; cursor:pointer; display:flex; align-items:center; gap:8px; transition:all 0.2s;">
+        <span>🛡 App Config (Risk Controls)</span>
+        <span style="font-size:9.5px; opacity:0.8; font-family:'JetBrains Mono',monospace;">PATCH /app_configs</span>
+      </button>
+      <button id="qa-nav-btn-inst" onclick="window.switchQaModalTab('inst')" style="padding:10px 18px; font-size:12px; font-weight:700; border:none; background:transparent; border-bottom:2px solid transparent; color:var(--text-muted); cursor:pointer; display:flex; align-items:center; gap:8px; transition:all 0.2s;">
+        <span>📊 Instrument Attributes</span>
+        <span style="font-size:9.5px; opacity:0.8; font-family:'JetBrains Mono',monospace;">PATCH /instruments</span>
+      </button>
+    </div>
+
+    <!-- Scrollable Body Content -->
+    <div style="flex:1; overflow-y:auto; padding:18px 22px; display:flex; flex-direction:column; gap:16px;">
+      
+      <!-- ================= TAB 1: APP CONFIG ================= -->
+      <div id="qa-tab-app" style="display:flex; flex-direction:column; gap:16px;">
+        
+        <!-- App Config Sub-bar -->
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; background:rgba(255,255,255,0.02); border:1px solid var(--border); padding:10px 14px; border-radius:10px;">
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <span style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Config Key:</span>
+            <select id="qa-app-key-select" onchange="window.handleQaAppKeyChange()" style="background:var(--input-bg); border:1px solid var(--border); color:var(--text-main); font-size:12px; font-weight:700; padding:6px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace;">
+              <option value="FUTURES_INSTRUMENT_RISK_CONTROLS">FUTURES_INSTRUMENT_RISK_CONTROLS</option>
+              <option value="CUSTOM">[Enter Custom Key...]</option>
+            </select>
+            <input id="qa-app-custom-key" type="text" placeholder="Custom Config Key..." style="display:none; background:var(--input-bg); border:1px solid var(--border); color:var(--text-main); font-size:12px; padding:6px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace; width:220px;" oninput="window.updateQaAppTargetUrl()" />
+          </div>
+
+          <div style="display:flex; align-items:center; gap:8px;">
+            <!-- View Mode Switcher -->
+            <div style="display:flex; background:rgba(0,0,0,0.3); border:1px solid var(--border); border-radius:6px; padding:2px;">
+              <button id="qa-app-view-form-btn" onclick="window.switchQaAppView('form')" style="border:none; padding:4px 10px; font-size:11px; font-weight:700; border-radius:4px; cursor:pointer; background:rgba(168,85,247,0.25); color:#d8b4fe;">Visual Form</button>
+              <button id="qa-app-view-json-btn" onclick="window.switchQaAppView('json')" style="border:none; padding:4px 10px; font-size:11px; font-weight:700; border-radius:4px; cursor:pointer; background:transparent; color:var(--text-muted);">Raw JSON Editor</button>
+            </div>
+
+            <button onclick="window.fetchQaAppConfig()" style="background:rgba(6,182,212,0.12); border:1px solid rgba(6,182,212,0.3); color:var(--cyan); padding:6px 12px; font-size:11px; font-weight:700; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:5px; transition:all 0.2s;" title="Fetch latest config from HPO">
+              <span>↻</span> Reload
+            </button>
+            <button onclick="window.copyQaAppConfigCurl()" style="background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text-main); padding:6px 12px; font-size:11px; font-weight:700; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:5px; transition:all 0.2s;" title="Copy cURL command to clipboard">
+              <span>📋</span> Copy cURL
+            </button>
+          </div>
+        </div>
+
+        <!-- Target Endpoint Info Banner -->
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; font-family:'JetBrains Mono',monospace; background:rgba(0,0,0,0.25); border:1px dashed rgba(255,255,255,0.1); padding:8px 12px; border-radius:6px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="color:#a855f7; font-weight:700;">PATCH</span>
+            <span id="qa-app-target-url" style="color:var(--text-muted);">https://testnet-futures-hpo.dcxstage.com/api/v3/qa/app_configs/FUTURES_INSTRUMENT_RISK_CONTROLS</span>
+          </div>
+          <span id="qa-app-sync-indicator" style="color:#10b981; font-weight:700; font-size:10px;">✓ In Sync</span>
+        </div>
+
+        <!-- Visual Form View -->
+        <div id="qa-app-visual-view" style="display:flex; flex-direction:column; gap:16px;">
+          
+          <!-- Card: Default Risk Controls -->
+          <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:12px; padding:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <div style="width:4px; height:14px; background:#a855f7; border-radius:2px;"></div>
+                <span style="font-weight:700; font-size:13px; color:var(--text-main); letter-spacing:0.5px;">DEFAULT RISK CONTROLS (`default`)</span>
+                <span style="font-size:10px; color:var(--text-muted);">(Applies to all pairs unless overridden)</span>
+              </div>
+              <button onclick="window.addQaAppDefaultCustomField()" style="background:rgba(168,85,247,0.15); border:1px solid rgba(168,85,247,0.4); color:#d8b4fe; font-size:10.5px; font-weight:700; padding:4px 10px; border-radius:6px; cursor:pointer;">+ Add Custom Field</button>
+            </div>
+
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px;" id="qa-app-default-fields">
+              <div>
+                <label style="font-size:11px; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">Circuit Breaker Band (%)</label>
+                <input id="qa-def-circuit_breaker_band_pct" type="text" placeholder="100" style="width:100%; box-sizing:border-box; background:var(--input-bg); border:1px solid var(--border); color:var(--text-main); font-size:12px; padding:8px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace;" oninput="window.syncQaAppFormToJson()" />
+              </div>
+              <div>
+                <label style="font-size:11px; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">Market Take Bound</label>
+                <input id="qa-def-market_take_bound" type="text" placeholder="1" style="width:100%; box-sizing:border-box; background:var(--input-bg); border:1px solid var(--border); color:var(--text-main); font-size:12px; padding:8px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace;" oninput="window.syncQaAppFormToJson()" />
+              </div>
+              <div>
+                <label style="font-size:11px; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">Symbol OI Limit</label>
+                <input id="qa-def-symbol_oi_limit" type="text" placeholder="10000000000" style="width:100%; box-sizing:border-box; background:var(--input-bg); border:1px solid var(--border); color:var(--text-main); font-size:12px; padding:8px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace;" oninput="window.syncQaAppFormToJson()" />
+              </div>
+              <div>
+                <label style="font-size:11px; color:var(--text-muted); font-weight:600; display:block; margin-bottom:4px;">Account OI Limit</label>
+                <input id="qa-def-account_oi_limit" type="text" placeholder="100000000" style="width:100%; box-sizing:border-box; background:var(--input-bg); border:1px solid var(--border); color:var(--text-main); font-size:12px; padding:8px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace;" oninput="window.syncQaAppFormToJson()" />
+              </div>
+            </div>
+
+            <!-- Dynamic extra fields for default -->
+            <div id="qa-app-default-extra-fields" style="display:flex; flex-direction:column; gap:8px; margin-top:10px;"></div>
+          </div>
+
+          <!-- Card: Symbol Overrides -->
+          <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:12px; padding:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <div style="width:4px; height:14px; background:#06b6d4; border-radius:2px;"></div>
+                <span style="font-weight:700; font-size:13px; color:var(--text-main); letter-spacing:0.5px;">PAIR-SPECIFIC OVERRIDES</span>
+                <span id="qa-app-overrides-count" style="font-size:10px; padding:1px 6px; border-radius:99px; background:rgba(6,182,212,0.15); color:var(--cyan); font-weight:700;">0 pairs</span>
+              </div>
+              
+              <!-- Add Symbol Override Controls -->
+              <div style="display:flex; align-items:center; gap:8px;">
+                <input id="qa-app-new-symbol-input" type="text" placeholder="e.g. B-XRP_USDT" style="background:var(--input-bg); border:1px solid var(--border); color:var(--text-main); font-size:12px; padding:5px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace; width:150px;" />
+                <button onclick="window.addQaAppSymbolOverride()" style="background:rgba(6,182,212,0.18); border:1px solid rgba(6,182,212,0.5); color:var(--cyan); font-size:11px; font-weight:700; padding:5px 12px; border-radius:6px; cursor:pointer; transition:all 0.2s;">+ Add Override</button>
+              </div>
+            </div>
+
+            <!-- Overrides Container -->
+            <div id="qa-app-symbols-container" style="display:flex; flex-direction:column; gap:12px;"></div>
+          </div>
+
+        </div>
+
+        <!-- Raw JSON Editor View -->
+        <div id="qa-app-json-view" style="display:none; flex-direction:column; gap:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:11px; color:var(--text-muted); font-weight:600;">Edit RAW JSON directly (auto-synced with visual fields):</span>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <span id="qa-app-json-syntax-badge" style="font-size:10.5px; font-family:'JetBrains Mono',monospace; color:#10b981; font-weight:700;">✓ Valid JSON</span>
+              <button onclick="window.formatQaAppJson()" style="background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text-main); font-size:10.5px; padding:3px 8px; border-radius:4px; cursor:pointer;">Prettify</button>
+            </div>
+          </div>
+          <textarea id="qa-app-raw-json" rows="18" style="width:100%; box-sizing:border-box; background:rgba(0,0,0,0.5); border:1px solid var(--border); color:#a5f3fc; font-family:'JetBrains Mono',monospace; font-size:12px; padding:12px; border-radius:8px; outline:none; line-height:1.5; resize:vertical;" oninput="window.syncQaAppJsonToForm()"></textarea>
+        </div>
+
+        <!-- Status Toast Banner -->
+        <div id="qa-app-status-banner" style="display:none; padding:10px 14px; border-radius:8px; font-size:12px; font-family:'JetBrains Mono',monospace; justify-content:space-between; align-items:center;"></div>
+
+        <!-- Tab 1 Footer -->
+        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:14px;">
+          <div style="font-size:11px; color:var(--text-muted);">
+            Changes apply to <span id="qa-app-target-env-label" style="color:#d8b4fe; font-weight:700;">QA_STAGING</span> and update replicator circuit breakers instantly.
+          </div>
+          <button id="qa-app-apply-btn" onclick="window.applyQaAppConfigPatch()" style="background:linear-gradient(135deg, #a855f7, #7c3aed); border:1px solid rgba(168,85,247,0.6); color:#fff; font-size:12px; font-weight:800; padding:10px 24px; border-radius:8px; cursor:pointer; box-shadow:0 0 16px rgba(168,85,247,0.35); transition:all 0.2s;">
+            ⚡ Apply App Config Patch
+          </button>
+        </div>
+
+      </div>
+
+      <!-- ================= TAB 2: INSTRUMENT ATTRIBUTES ================= -->
+      <div id="qa-tab-inst" style="display:none; flex-direction:column; gap:16px;">
+        
+        <!-- Instrument Sub-bar -->
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; background:rgba(255,255,255,0.02); border:1px solid var(--border); padding:10px 14px; border-radius:10px;">
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <span style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Instrument Symbol:</span>
+            <select id="qa-inst-symbol-select" onchange="window.handleQaInstSymbolSelect()" style="background:var(--input-bg); border:1px solid var(--border); color:var(--text-main); font-size:12px; font-weight:700; padding:6px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace;">
+              <option value="B-XRP_USDT">B-XRP_USDT</option>
+              <option value="B-BTC_USDT">B-BTC_USDT</option>
+              <option value="B-ETH_USDT">B-ETH_USDT</option>
+              <option value="B-SOL_USDT">B-SOL_USDT</option>
+              <option value="B-DOGE_USDT">B-DOGE_USDT</option>
+              <option value="CUSTOM">[Enter Custom Symbol...]</option>
+            </select>
+            <input id="qa-inst-custom-symbol" type="text" placeholder="e.g. B-ACT_USDT" style="display:none; background:var(--input-bg); border:1px solid var(--border); color:var(--text-main); font-size:12px; padding:6px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace; width:160px;" oninput="window.updateQaInstTargetUrl()" />
+          </div>
+
+          <div style="display:flex; align-items:center; gap:8px;">
+            <!-- View Mode Switcher -->
+            <div style="display:flex; background:rgba(0,0,0,0.3); border:1px solid var(--border); border-radius:6px; padding:2px;">
+              <button id="qa-inst-view-form-btn" onclick="window.switchQaInstView('form')" style="border:none; padding:4px 10px; font-size:11px; font-weight:700; border-radius:4px; cursor:pointer; background:rgba(168,85,247,0.25); color:#d8b4fe;">Visual Form</button>
+              <button id="qa-inst-view-json-btn" onclick="window.switchQaInstView('json')" style="border:none; padding:4px 10px; font-size:11px; font-weight:700; border-radius:4px; cursor:pointer; background:transparent; color:var(--text-muted);">Raw JSON Editor</button>
+            </div>
+
+            <button onclick="window.fetchQaInstrument()" style="background:rgba(6,182,212,0.12); border:1px solid rgba(6,182,212,0.3); color:var(--cyan); padding:6px 12px; font-size:11px; font-weight:700; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:5px; transition:all 0.2s;" title="Fetch live exchangeInfo and multipliers from HPO">
+              <span>↻</span> Fetch Info
+            </button>
+            <button onclick="window.copyQaInstrumentCurl()" style="background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text-main); padding:6px 12px; font-size:11px; font-weight:700; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:5px; transition:all 0.2s;" title="Copy cURL command to clipboard">
+              <span>📋</span> Copy cURL
+            </button>
+          </div>
+        </div>
+
+        <!-- Target Endpoint Info Banner -->
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; font-family:'JetBrains Mono',monospace; background:rgba(0,0,0,0.25); border:1px dashed rgba(255,255,255,0.1); padding:8px 12px; border-radius:6px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="color:#a855f7; font-weight:700;">PATCH</span>
+            <span id="qa-inst-target-url" style="color:var(--text-muted);">https://testnet-futures-hpo.dcxstage.com/api/v3/qa/instruments/B-XRP_USDT</span>
+          </div>
+          <div id="qa-inst-live-pill" style="font-size:10px; color:#10b981; font-weight:700;">Engine: ↑5.00x | ↓5.00x</div>
+        </div>
+
+        <!-- Visual Form View -->
+        <div id="qa-inst-visual-view" style="display:flex; flex-direction:column; gap:16px;">
+          
+          <!-- Card: Core Price Multipliers -->
+          <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:12px; padding:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <div style="width:4px; height:14px; background:#10b981; border-radius:2px;"></div>
+                <span style="font-weight:700; font-size:13px; color:var(--text-main); letter-spacing:0.5px;">PRICE MULTIPLIER CONTROLS</span>
+              </div>
+              <span style="font-size:11px; color:var(--text-muted); font-family:'JetBrains Mono',monospace;">PERCENT_PRICE filter bounds</span>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+              <div style="background:rgba(16,185,129,0.04); border:1px solid rgba(16,185,129,0.2); border-radius:8px; padding:12px;">
+                <label style="font-size:11.5px; color:#34d399; font-weight:700; display:flex; justify-content:space-between; margin-bottom:6px;">
+                  <span>multiplier_up (Upper Limit)</span>
+                  <span id="qa-inst-curr-up" style="font-size:10.5px; color:var(--text-muted); font-family:'JetBrains Mono',monospace;">Current: 5.0</span>
+                </label>
+                <input id="qa-inst-multiplier_up" type="number" step="0.01" placeholder="5.0" style="width:100%; box-sizing:border-box; background:var(--input-bg); border:1px solid var(--border); color:#34d399; font-size:14px; font-weight:800; padding:8px 12px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace;" oninput="window.syncQaInstFormToJson()" />
+                <div style="font-size:10px; color:var(--text-muted); margin-top:4px;">Controls Maximum Buy Order Price = Mark Price * multiplier_up</div>
+              </div>
+
+              <div style="background:rgba(239,68,68,0.04); border:1px solid rgba(239,68,68,0.2); border-radius:8px; padding:12px;">
+                <label style="font-size:11.5px; color:#f87171; font-weight:700; display:flex; justify-content:space-between; margin-bottom:6px;">
+                  <span>multiplier_down (Lower Limit)</span>
+                  <span id="qa-inst-curr-down" style="font-size:10.5px; color:var(--text-muted); font-family:'JetBrains Mono',monospace;">Current: 5.0</span>
+                </label>
+                <input id="qa-inst-multiplier_down" type="number" step="0.01" placeholder="5.0" style="width:100%; box-sizing:border-box; background:var(--input-bg); border:1px solid var(--border); color:#f87171; font-size:14px; font-weight:800; padding:8px 12px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace;" oninput="window.syncQaInstFormToJson()" />
+                <div style="font-size:10px; color:var(--text-muted); margin-top:4px;">Controls Minimum Sell Order Price = Mark Price / multiplier_down</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card: Dynamic Custom Instrument Fields -->
+          <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:12px; padding:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <div style="width:4px; height:14px; background:#a855f7; border-radius:2px;"></div>
+                <span style="font-weight:700; font-size:13px; color:var(--text-main); letter-spacing:0.5px;">CUSTOM INSTRUMENT ATTRIBUTES</span>
+                <span style="font-size:10px; color:var(--text-muted);">(Extend with any HPO parameter e.g. tick_size, min_quantity)</span>
+              </div>
+              <button onclick="window.addQaInstCustomField()" style="background:rgba(168,85,247,0.15); border:1px solid rgba(168,85,247,0.4); color:#d8b4fe; font-size:10.5px; font-weight:700; padding:4px 10px; border-radius:6px; cursor:pointer;">+ Add Attribute</button>
+            </div>
+
+            <div id="qa-inst-custom-fields-container" style="display:flex; flex-direction:column; gap:8px;">
+              <div id="qa-inst-empty-fields-note" style="font-size:11px; color:var(--text-muted); font-style:italic;">No custom attributes added yet. Click "+ Add Attribute" to patch additional parameters.</div>
+            </div>
+          </div>
+
+          <!-- Optional Cookies Accordion -->
+          <details style="background:rgba(0,0,0,0.25); border:1px solid var(--border); border-radius:8px; padding:10px 14px;">
+            <summary style="font-size:11px; font-weight:700; color:var(--text-muted); cursor:pointer; outline:none;">Optional Cloudflare / Session Cookies (Click to expand)</summary>
+            <div style="margin-top:10px;">
+              <input id="qa-inst-cookies" type="text" placeholder="__cf_bm=...; _cfuvid=..." style="width:100%; box-sizing:border-box; background:var(--input-bg); border:1px solid var(--border); color:var(--text-main); font-size:11px; padding:6px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace;" />
+              <div style="font-size:9.5px; color:var(--text-muted); margin-top:4px;">Used only if HPO Cloudflare protection challenges the direct PATCH call.</div>
+            </div>
+          </details>
+
+        </div>
+
+        <!-- Raw JSON Editor View -->
+        <div id="qa-inst-json-view" style="display:none; flex-direction:column; gap:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:11px; color:var(--text-muted); font-weight:600;">Edit RAW JSON directly (auto-synced with visual fields):</span>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <span id="qa-inst-json-syntax-badge" style="font-size:10.5px; font-family:'JetBrains Mono',monospace; color:#10b981; font-weight:700;">✓ Valid JSON</span>
+              <button onclick="window.formatQaInstJson()" style="background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text-main); font-size:10.5px; padding:3px 8px; border-radius:4px; cursor:pointer;">Prettify</button>
+            </div>
+          </div>
+          <textarea id="qa-inst-raw-json" rows="14" style="width:100%; box-sizing:border-box; background:rgba(0,0,0,0.5); border:1px solid var(--border); color:#a5f3fc; font-family:'JetBrains Mono',monospace; font-size:12px; padding:12px; border-radius:8px; outline:none; line-height:1.5; resize:vertical;" oninput="window.syncQaInstJsonToForm()"></textarea>
+        </div>
+
+        <!-- Status Toast Banner -->
+        <div id="qa-inst-status-banner" style="display:none; padding:10px 14px; border-radius:8px; font-size:12px; font-family:'JetBrains Mono',monospace; justify-content:space-between; align-items:center;"></div>
+
+        <!-- Tab 2 Footer -->
+        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:14px;">
+          <div style="font-size:11px; color:var(--text-muted);">
+            Updates <span id="qa-inst-target-symbol-label" style="color:var(--cyan); font-weight:700; font-family:'JetBrains Mono',monospace;">B-XRP_USDT</span> on <span id="qa-inst-target-env-label" style="color:#d8b4fe; font-weight:700;">QA_STAGING</span>.
+          </div>
+          <button id="qa-inst-apply-btn" onclick="window.applyQaInstrumentPatch()" style="background:linear-gradient(135deg, #06b6d4, #0284c7); border:1px solid rgba(6,182,212,0.6); color:#fff; font-size:12px; font-weight:800; padding:10px 24px; border-radius:8px; cursor:pointer; box-shadow:0 0 16px rgba(6,182,212,0.35); transition:all 0.2s;">
+            ⚡ Apply Instrument Patch
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// =========================================================================
+// QA CONTROLS & RISK CONFIGURATOR MODAL JAVASCRIPT LOGIC
+// =========================================================================
+(function() {
+    let qaModalActiveEnv = 'QA_STAGING';
+    let qaModalActiveTab = 'app'; // 'app' | 'inst'
+    let qaAppViewMode = 'form';   // 'form' | 'json'
+    let qaInstViewMode = 'form';  // 'form' | 'json'
+    
+    let qaAppConfigKey = 'FUTURES_INSTRUMENT_RISK_CONTROLS';
+    let qaAppConfigData = {
+        json_value: {
+            default: {
+                symbol_oi_limit: 10000000000,
+                account_oi_limit: 100000000,
+                market_take_bound: "1",
+                circuit_breaker_band_pct: "100"
+            },
+            "B-XRP_USDT": {
+                circuit_breaker_band_pct: 5
+            }
+        }
+    };
+    
+    let qaInstrumentSymbol = 'B-XRP_USDT';
+    let qaInstrumentData = {
+        multiplier_up: 5.0,
+        multiplier_down: 5.0
+    };
+    
+    let isSyncingApp = false;
+    let isSyncingInst = false;
+
+    const HPO_DOMAINS = {
+        QA_STAGING: 'https://testnet-futures-hpo.dcxstage.com',
+        DEV_STAGING: 'https://staging-exchange-futures-hpo.dcxstage.com'
+    };
+
+    function getHpoBase() {
+        return HPO_DOMAINS[qaModalActiveEnv] || HPO_DOMAINS.QA_STAGING;
+    }
+
+    function getActiveSymbol() {
+        const select = document.getElementById('qa-inst-symbol-select');
+        if (select && select.value === 'CUSTOM') {
+            const input = document.getElementById('qa-inst-custom-symbol');
+            return (input && input.value.trim()) || 'B-XRP_USDT';
+        }
+        return (select && select.value) || qaInstrumentSymbol;
+    }
+
+    function getActiveAppKey() {
+        const select = document.getElementById('qa-app-key-select');
+        if (select && select.value === 'CUSTOM') {
+            const input = document.getElementById('qa-app-custom-key');
+            return (input && input.value.trim()) || 'FUTURES_INSTRUMENT_RISK_CONTROLS';
+        }
+        return (select && select.value) || qaAppConfigKey;
+    }
+
+    window.openQaConfigModal = function() {
+        const overlay = document.getElementById('qa-config-modal-overlay');
+        if (!overlay) return;
+        
+        // Auto-select active tier if QA/DEV, otherwise QA_STAGING
+        const currentTier = (window.activeTier || 'QA_STAGING').toUpperCase().replace(/-/g, '_');
+        if (currentTier === 'DEV_STAGING') {
+            window.setQaModalEnv('DEV_STAGING');
+        } else {
+            window.setQaModalEnv('QA_STAGING');
+        }
+
+        overlay.style.display = 'flex';
+        void overlay.offsetWidth;
+        overlay.style.opacity = '1';
+        document.body.style.overflow = 'hidden';
+
+        // Populate instrument dropdown from available instruments if any
+        window.populateQaInstrumentSymbols();
+
+        // Fetch latest data
+        window.fetchQaAppConfig();
+        window.fetchQaInstrument();
+    };
+
+    window.closeQaConfigModal = function() {
+        const overlay = document.getElementById('qa-config-modal-overlay');
+        if (!overlay) return;
+        overlay.style.opacity = '0';
+        document.body.style.overflow = '';
+        setTimeout(() => { overlay.style.display = 'none'; }, 250);
+    };
+
+    window.setQaModalEnv = function(env) {
+        qaModalActiveEnv = env;
+        const btnQa = document.getElementById('qa-env-qa');
+        const btnDev = document.getElementById('qa-env-dev');
+        if (btnQa && btnDev) {
+            if (env === 'QA_STAGING') {
+                btnQa.style.background = '#a855f7'; btnQa.style.color = '#fff';
+                btnDev.style.background = 'transparent'; btnDev.style.color = 'var(--text-muted)';
+            } else {
+                btnDev.style.background = '#06b6d4'; btnDev.style.color = '#fff';
+                btnQa.style.background = 'transparent'; btnQa.style.color = 'var(--text-muted)';
+            }
+        }
+        const appEnvLabel = document.getElementById('qa-app-target-env-label');
+        if (appEnvLabel) appEnvLabel.textContent = env;
+        const instEnvLabel = document.getElementById('qa-inst-target-env-label');
+        if (instEnvLabel) instEnvLabel.textContent = env;
+
+        window.updateQaAppTargetUrl();
+        window.updateQaInstTargetUrl();
+        window.fetchQaAppConfig();
+        window.fetchQaInstrument();
+    };
+
+    window.switchQaModalTab = function(tab) {
+        qaModalActiveTab = tab;
+        const btnApp = document.getElementById('qa-nav-btn-app');
+        const btnInst = document.getElementById('qa-nav-btn-inst');
+        const tabApp = document.getElementById('qa-tab-app');
+        const tabInst = document.getElementById('qa-tab-inst');
+
+        if (tab === 'app') {
+            btnApp.style.borderBottomColor = '#a855f7';
+            btnApp.style.color = '#d8b4fe';
+            btnInst.style.borderBottomColor = 'transparent';
+            btnInst.style.color = 'var(--text-muted)';
+            tabApp.style.display = 'flex';
+            tabInst.style.display = 'none';
+        } else {
+            btnInst.style.borderBottomColor = '#06b6d4';
+            btnInst.style.color = '#a5f3fc';
+            btnApp.style.borderBottomColor = 'transparent';
+            btnApp.style.color = 'var(--text-muted)';
+            tabInst.style.display = 'flex';
+            tabApp.style.display = 'none';
+        }
+    };
+
+    window.switchQaAppView = function(view) {
+        qaAppViewMode = view;
+        const btnForm = document.getElementById('qa-app-view-form-btn');
+        const btnJson = document.getElementById('qa-app-view-json-btn');
+        const formView = document.getElementById('qa-app-visual-view');
+        const jsonView = document.getElementById('qa-app-json-view');
+
+        if (view === 'form') {
+            btnForm.style.background = 'rgba(168,85,247,0.25)'; btnForm.style.color = '#d8b4fe';
+            btnJson.style.background = 'transparent'; btnJson.style.color = 'var(--text-muted)';
+            formView.style.display = 'flex';
+            jsonView.style.display = 'none';
+            window.renderQaAppConfigForm();
+        } else {
+            btnJson.style.background = 'rgba(168,85,247,0.25)'; btnJson.style.color = '#d8b4fe';
+            btnForm.style.background = 'transparent'; btnForm.style.color = 'var(--text-muted)';
+            formView.style.display = 'none';
+            jsonView.style.display = 'flex';
+            window.updateQaAppJsonTextarea();
+        }
+    };
+
+    window.switchQaInstView = function(view) {
+        qaInstViewMode = view;
+        const btnForm = document.getElementById('qa-inst-view-form-btn');
+        const btnJson = document.getElementById('qa-inst-view-json-btn');
+        const formView = document.getElementById('qa-inst-visual-view');
+        const jsonView = document.getElementById('qa-inst-json-view');
+
+        if (view === 'form') {
+            btnForm.style.background = 'rgba(168,85,247,0.25)'; btnForm.style.color = '#d8b4fe';
+            btnJson.style.background = 'transparent'; btnJson.style.color = 'var(--text-muted)';
+            formView.style.display = 'flex';
+            jsonView.style.display = 'none';
+            window.renderQaInstrumentForm();
+        } else {
+            btnJson.style.background = 'rgba(168,85,247,0.25)'; btnJson.style.color = '#d8b4fe';
+            btnForm.style.background = 'transparent'; btnForm.style.color = 'var(--text-muted)';
+            formView.style.display = 'none';
+            jsonView.style.display = 'flex';
+            window.updateQaInstJsonTextarea();
+        }
+    };
+
+    window.updateQaAppTargetUrl = function() {
+        const key = getActiveAppKey();
+        const el = document.getElementById('qa-app-target-url');
+        if (el) el.textContent = `${getHpoBase()}/api/v3/qa/app_configs/${encodeURIComponent(key)}`;
+    };
+
+    window.updateQaInstTargetUrl = function() {
+        const sym = getActiveSymbol();
+        const el = document.getElementById('qa-inst-target-url');
+        if (el) el.textContent = `${getHpoBase()}/api/v3/qa/instruments/${encodeURIComponent(sym)}`;
+        const lbl = document.getElementById('qa-inst-target-symbol-label');
+        if (lbl) lbl.textContent = sym;
+    };
+
+    window.handleQaAppKeyChange = function() {
+        const select = document.getElementById('qa-app-key-select');
+        const customInput = document.getElementById('qa-app-custom-key');
+        if (select && customInput) {
+            if (select.value === 'CUSTOM') {
+                customInput.style.display = 'inline-block';
+                customInput.focus();
+            } else {
+                customInput.style.display = 'none';
+            }
+        }
+        window.updateQaAppTargetUrl();
+        window.fetchQaAppConfig();
+    };
+
+    window.handleQaInstSymbolSelect = function() {
+        const select = document.getElementById('qa-inst-symbol-select');
+        const customInput = document.getElementById('qa-inst-custom-symbol');
+        if (select && customInput) {
+            if (select.value === 'CUSTOM') {
+                customInput.style.display = 'inline-block';
+                customInput.focus();
+            } else {
+                customInput.style.display = 'none';
+            }
+        }
+        window.updateQaInstTargetUrl();
+        window.fetchQaInstrument();
+    };
+
+    window.populateQaInstrumentSymbols = function() {
+        const select = document.getElementById('qa-inst-symbol-select');
+        if (!select) return;
+        const known = ['B-XRP_USDT', 'B-BTC_USDT', 'B-ETH_USDT', 'B-SOL_USDT', 'B-DOGE_USDT'];
+        
+        const existing = new Set(known);
+        if (window.instrumentsMap && window.instrumentsMap[qaModalActiveEnv]) {
+            Object.keys(window.instrumentsMap[qaModalActiveEnv]).forEach(s => {
+                const bSym = s.startsWith('B-') ? s : `B-${s.replace(/USDT$/, '_USDT')}`;
+                existing.add(bSym);
+            });
+        }
+        const currentVal = select.value;
+        select.innerHTML = '';
+        Array.from(existing).sort().forEach(sym => {
+            const opt = document.createElement('option');
+            opt.value = sym;
+            opt.textContent = sym;
+            if (sym === currentVal) opt.selected = true;
+            select.appendChild(opt);
+        });
+        const optCustom = document.createElement('option');
+        optCustom.value = 'CUSTOM';
+        optCustom.textContent = '[Enter Custom Symbol...]';
+        select.appendChild(optCustom);
+    };
+
+    // =========================================================================
+    // TAB 1: APP CONFIG FUNCTIONS
+    // =========================================================================
+    window.fetchQaAppConfig = async function() {
+        const key = getActiveAppKey();
+        window.updateQaAppTargetUrl();
+        try {
+            const res = await fetch(`/api/qa/app-config?tier=${qaModalActiveEnv}&key=${encodeURIComponent(key)}`);
+            const data = await res.json();
+            if (res.ok && data.success && data.data) {
+                if (data.data.json_value) {
+                    qaAppConfigData = { json_value: data.data.json_value };
+                } else if (data.data.value && typeof data.data.value === 'object') {
+                    qaAppConfigData = { json_value: data.data.value };
+                } else {
+                    qaAppConfigData = data.data;
+                }
+                window.renderQaAppConfigForm();
+                window.updateQaAppJsonTextarea();
+                window.showQaAppStatus(`✓ Fetched latest "${key}" from ${qaModalActiveEnv} successfully.`, 'success');
+            } else {
+                window.showQaAppStatus(`Error ${res.status}: ${data.error || 'Failed to fetch'}`, 'error');
+            }
+        } catch (err) {
+            window.showQaAppStatus(`Network Error: ${err.message}`, 'error');
+        }
+    };
+
+    window.renderQaAppConfigForm = function() {
+        if (isSyncingApp) return;
+        const jv = qaAppConfigData.json_value || qaAppConfigData;
+        const def = (jv && jv.default) || {};
+
+        // Default fields
+        const cb = document.getElementById('qa-def-circuit_breaker_band_pct');
+        const tb = document.getElementById('qa-def-market_take_bound');
+        const so = document.getElementById('qa-def-symbol_oi_limit');
+        const ao = document.getElementById('qa-def-account_oi_limit');
+        if (cb) cb.value = def.circuit_breaker_band_pct !== undefined ? def.circuit_breaker_band_pct : '';
+        if (tb) tb.value = def.market_take_bound !== undefined ? def.market_take_bound : '';
+        if (so) so.value = def.symbol_oi_limit !== undefined ? def.symbol_oi_limit : '';
+        if (ao) ao.value = def.account_oi_limit !== undefined ? def.account_oi_limit : '';
+
+        // Extra fields in default
+        const extraCont = document.getElementById('qa-app-default-extra-fields');
+        if (extraCont) {
+            extraCont.innerHTML = '';
+            const standardKeys = new Set(['circuit_breaker_band_pct', 'market_take_bound', 'symbol_oi_limit', 'account_oi_limit']);
+            Object.keys(def).forEach(k => {
+                if (!standardKeys.has(k)) {
+                    extraCont.appendChild(createFieldRow('default', k, def[k], (newKey, newVal) => {
+                        delete def[k];
+                        if (newKey) def[newKey] = newVal;
+                        window.syncQaAppFormToJson();
+                    }, () => {
+                        delete def[k];
+                        window.renderQaAppConfigForm();
+                        window.syncQaAppFormToJson();
+                    }));
+                }
+            });
+        }
+
+        // Render Symbol Overrides
+        const symCont = document.getElementById('qa-app-symbols-container');
+        const countBadge = document.getElementById('qa-app-overrides-count');
+        if (symCont) {
+            symCont.innerHTML = '';
+            const overrideKeys = Object.keys(jv || {}).filter(k => k !== 'default');
+            if (countBadge) countBadge.textContent = `${overrideKeys.length} pair${overrideKeys.length === 1 ? '' : 's'}`;
+
+            if (overrideKeys.length === 0) {
+                symCont.innerHTML = `<div style="font-size:11px; color:var(--text-muted); font-style:italic; padding:6px 0;">No pair-specific overrides configured. Default rules apply to all markets.</div>`;
+            } else {
+                overrideKeys.forEach(sym => {
+                    const symObj = jv[sym] || {};
+                    const card = document.createElement('div');
+                    card.style.cssText = 'background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:12px; display:flex; flex-direction:column; gap:10px;';
+                    
+                    const header = document.createElement('div');
+                    header.style.cssText = 'display:flex; justify-content:space-between; align-items:center;';
+                    header.innerHTML = `
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:12px; font-weight:800; font-family:'JetBrains Mono',monospace; color:var(--cyan); background:rgba(6,182,212,0.1); padding:2px 8px; border-radius:5px; border:1px solid rgba(6,182,212,0.3);">${sym}</span>
+                            <span style="font-size:10px; color:var(--text-muted);">${Object.keys(symObj).length} override field(s)</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <button onclick="window.addQaAppSymbolField('${sym}')" style="background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text-main); font-size:10px; font-weight:700; padding:3px 8px; border-radius:4px; cursor:pointer;">+ Add Field</button>
+                            <button onclick="window.removeQaAppSymbolOverride('${sym}')" style="background:rgba(244,63,94,0.15); border:1px solid rgba(244,63,94,0.3); color:#f87171; font-size:10px; font-weight:700; padding:3px 8px; border-radius:4px; cursor:pointer;">✕ Remove</button>
+                        </div>
+                    `;
+                    card.appendChild(header);
+
+                    const grid = document.createElement('div');
+                    grid.style.cssText = 'display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px;';
+
+                    const knowns = [
+                        { key: 'circuit_breaker_band_pct', label: 'Circuit Breaker Band (%)', placeholder: 'e.g. 5' },
+                        { key: 'market_take_bound', label: 'Market Take Bound', placeholder: 'e.g. 1' },
+                        { key: 'symbol_oi_limit', label: 'Symbol OI Limit', placeholder: 'e.g. 100000000' },
+                        { key: 'account_oi_limit', label: 'Account OI Limit', placeholder: 'e.g. 50000000' }
+                    ];
+
+                    knowns.forEach(kDef => {
+                        const col = document.createElement('div');
+                        col.innerHTML = `
+                            <label style="font-size:10.5px; color:var(--text-muted); font-weight:600; display:block; margin-bottom:3px;">${kDef.label}</label>
+                            <input type="text" placeholder="${kDef.placeholder}" value="${symObj[kDef.key] !== undefined ? symObj[kDef.key] : ''}" style="width:100%; box-sizing:border-box; background:var(--input-bg); border:1px solid var(--border); color:var(--text-main); font-size:11.5px; padding:6px 8px; border-radius:5px; outline:none; font-family:'JetBrains Mono',monospace;" />
+                        `;
+                        const inp = col.querySelector('input');
+                        inp.oninput = () => {
+                            if (inp.value.trim() === '') {
+                                delete symObj[kDef.key];
+                            } else {
+                                symObj[kDef.key] = parseSmartValue(inp.value);
+                            }
+                            window.syncQaAppFormToJson();
+                        };
+                        grid.appendChild(col);
+                    });
+                    card.appendChild(grid);
+
+                    const customKeys = Object.keys(symObj).filter(k => !knowns.some(kd => kd.key === k));
+                    if (customKeys.length > 0) {
+                        const customCont = document.createElement('div');
+                        customCont.style.cssText = 'display:flex; flex-direction:column; gap:6px; margin-top:4px; border-top:1px dashed rgba(255,255,255,0.06); padding-top:6px;';
+                        customKeys.forEach(ck => {
+                            customCont.appendChild(createFieldRow(sym, ck, symObj[ck], (newK, newV) => {
+                                delete symObj[ck];
+                                if (newK) symObj[newK] = newV;
+                                window.syncQaAppFormToJson();
+                            }, () => {
+                                delete symObj[ck];
+                                window.renderQaAppConfigForm();
+                                window.syncQaAppFormToJson();
+                            }));
+                        });
+                        card.appendChild(customCont);
+                    }
+
+                    symCont.appendChild(card);
+                });
+            }
+        }
+    };
+
+    function createFieldRow(parentScope, key, value, onUpdate, onDelete) {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:grid; grid-template-columns:140px 1fr 30px; gap:8px; align-items:center;';
+        
+        const kInput = document.createElement('input');
+        kInput.type = 'text';
+        kInput.value = key;
+        kInput.placeholder = 'Field name...';
+        kInput.style.cssText = 'background:var(--input-bg); border:1px solid var(--border); color:var(--text-main); font-size:11px; padding:5px 8px; border-radius:5px; outline:none; font-family:monospace;';
+
+        const vInput = document.createElement('input');
+        vInput.type = 'text';
+        vInput.value = typeof value === 'object' ? JSON.stringify(value) : value;
+        vInput.placeholder = 'Value...';
+        vInput.style.cssText = 'background:var(--input-bg); border:1px solid var(--border); color:#a5f3fc; font-size:11px; padding:5px 8px; border-radius:5px; outline:none; font-family:monospace;';
+
+        const delBtn = document.createElement('button');
+        delBtn.textContent = '✕';
+        delBtn.style.cssText = 'background:rgba(244,63,94,0.15); border:1px solid rgba(244,63,94,0.3); color:#f87171; border-radius:5px; cursor:pointer; font-size:11px; height:28px; width:28px;';
+        delBtn.onclick = onDelete;
+
+        const updateHandler = () => {
+            const newK = kInput.value.trim();
+            const newV = parseSmartValue(vInput.value);
+            onUpdate(newK, newV);
+        };
+        kInput.oninput = updateHandler;
+        vInput.oninput = updateHandler;
+
+        row.appendChild(kInput);
+        row.appendChild(vInput);
+        row.appendChild(delBtn);
+        return row;
+    }
+
+    function parseSmartValue(str) {
+        if (str === 'true') return true;
+        if (str === 'false') return false;
+        if (str === 'null') return null;
+        if (/^-?\d+(\.\d+)?$/.test(String(str).trim())) {
+            return String(str).trim();
+        }
+        try {
+            return JSON.parse(str);
+        } catch(e) {
+            return str;
+        }
+    }
+
+    window.addQaAppDefaultCustomField = function() {
+        const jv = qaAppConfigData.json_value || qaAppConfigData;
+        if (!jv.default) jv.default = {};
+        const fieldName = prompt("Enter new field name for default risk controls (e.g. max_leverage):");
+        if (fieldName && fieldName.trim()) {
+            jv.default[fieldName.trim()] = "";
+            window.renderQaAppConfigForm();
+            window.syncQaAppFormToJson();
+        }
+    };
+
+    window.addQaAppSymbolField = function(sym) {
+        const jv = qaAppConfigData.json_value || qaAppConfigData;
+        if (!jv[sym]) jv[sym] = {};
+        const fieldName = prompt(`Enter new field name for ${sym} (e.g. circuit_breaker_band_pct):`);
+        if (fieldName && fieldName.trim()) {
+            jv[sym][fieldName.trim()] = "";
+            window.renderQaAppConfigForm();
+            window.syncQaAppFormToJson();
+        }
+    };
+
+    window.addQaAppSymbolOverride = function() {
+        const inp = document.getElementById('qa-app-new-symbol-input');
+        let sym = inp ? inp.value.trim().toUpperCase() : '';
+        if (!sym) {
+            alert("Please enter a valid symbol name (e.g. B-XRP_USDT)");
+            return;
+        }
+        if (!sym.startsWith('B-')) {
+            sym = 'B-' + sym;
+        }
+        const jv = qaAppConfigData.json_value || qaAppConfigData;
+        if (jv[sym]) {
+            alert(`Override for ${sym} already exists.`);
+            return;
+        }
+        jv[sym] = { circuit_breaker_band_pct: 5 };
+        if (inp) inp.value = '';
+        window.renderQaAppConfigForm();
+        window.syncQaAppFormToJson();
+    };
+
+    window.removeQaAppSymbolOverride = function(sym) {
+        if (!confirm(`Are you sure you want to remove the override for ${sym}?`)) return;
+        const jv = qaAppConfigData.json_value || qaAppConfigData;
+        delete jv[sym];
+        window.renderQaAppConfigForm();
+        window.syncQaAppFormToJson();
+    };
+
+    window.syncQaAppFormToJson = function() {
+        if (isSyncingApp) return;
+        isSyncingApp = true;
+        try {
+            const jv = qaAppConfigData.json_value || qaAppConfigData;
+            if (!jv.default) jv.default = {};
+            
+            const cb = document.getElementById('qa-def-circuit_breaker_band_pct');
+            const tb = document.getElementById('qa-def-market_take_bound');
+            const so = document.getElementById('qa-def-symbol_oi_limit');
+            const ao = document.getElementById('qa-def-account_oi_limit');
+            
+            if (cb && cb.value !== '') jv.default.circuit_breaker_band_pct = parseSmartValue(cb.value);
+            if (tb && tb.value !== '') jv.default.market_take_bound = parseSmartValue(tb.value);
+            if (so && so.value !== '') jv.default.symbol_oi_limit = Number(so.value) || parseSmartValue(so.value);
+            if (ao && ao.value !== '') jv.default.account_oi_limit = Number(ao.value) || parseSmartValue(ao.value);
+
+            window.updateQaAppJsonTextarea();
+            setSyncBadge('qa-app-sync-indicator', true);
+        } finally {
+            isSyncingApp = false;
+        }
+    };
+
+    window.updateQaAppJsonTextarea = function() {
+        const ta = document.getElementById('qa-app-raw-json');
+        if (ta) {
+            ta.value = JSON.stringify(qaAppConfigData, null, 2);
+            setJsonBadge('qa-app-json-syntax-badge', true);
+        }
+    };
+
+    window.syncQaAppJsonToForm = function() {
+        if (isSyncingApp) return;
+        isSyncingApp = true;
+        const ta = document.getElementById('qa-app-raw-json');
+        try {
+            const parsed = JSON.parse(ta.value);
+            qaAppConfigData = parsed;
+            setJsonBadge('qa-app-json-syntax-badge', true);
+            setSyncBadge('qa-app-sync-indicator', true);
+            window.renderQaAppConfigForm();
+        } catch(e) {
+            setJsonBadge('qa-app-json-syntax-badge', false, e.message);
+            setSyncBadge('qa-app-sync-indicator', false);
+        } finally {
+            isSyncingApp = false;
+        }
+    };
+
+    window.formatQaAppJson = function() {
+        const ta = document.getElementById('qa-app-raw-json');
+        if (!ta) return;
+        try {
+            const parsed = JSON.parse(ta.value);
+            ta.value = JSON.stringify(parsed, null, 2);
+            setJsonBadge('qa-app-json-syntax-badge', true);
+        } catch (e) {
+            alert('Invalid JSON: ' + e.message);
+        }
+    };
+
+    window.applyQaAppConfigPatch = async function() {
+        const btn = document.getElementById('qa-app-apply-btn');
+        const key = getActiveAppKey();
+        const originalText = btn ? btn.innerHTML : '';
+        if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Patching HPO...'; }
+
+        try {
+            let payloadToSend = qaAppConfigData;
+            if (!payloadToSend.json_value && payloadToSend.default) {
+                payloadToSend = { json_value: payloadToSend };
+            }
+
+            const res = await fetch('/api/qa/app-config', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    tier: qaModalActiveEnv,
+                    key: key,
+                    payload: payloadToSend
+                })
+            });
+
+            const data = await res.json();
+            if (res.ok && data.success) {
+                window.showQaAppStatus(`✓ Success (HTTP ${data.status || 200}): ${key} updated on ${qaModalActiveEnv}! Details sent to Terminal pane.`, 'success');
+                window.showToast ? window.showToast(`[QA] ${key} patched successfully!`) : null;
+            } else {
+                const errMsg = data.error ? (typeof data.error === 'object' ? JSON.stringify(data.error) : data.error) : 'Update failed';
+                window.showQaAppStatus(`✕ Failed (HTTP ${res.status}): ${errMsg}`, 'error');
+                window.showToast ? window.showToast(`[QA Error] ${errMsg}`, true) : null;
+            }
+        } catch(err) {
+            window.showQaAppStatus(`✕ Network Exception: ${err.message}`, 'error');
+        } finally {
+            if (btn) { btn.disabled = false; btn.innerHTML = originalText; }
+        }
+    };
+
+    window.copyQaAppConfigCurl = function() {
+        const key = getActiveAppKey();
+        const url = `${getHpoBase()}/api/v3/qa/app_configs/${encodeURIComponent(key)}`;
+        const payloadStr = JSON.stringify(qaAppConfigData, null, 2);
+        const curlCmd = `curl --location --request PATCH '${url}' \\\n--header 'Content-Type: application/json' \\\n--data '${payloadStr}'`;
+        copyToClipboardText(curlCmd, 'App Config cURL copied to clipboard!');
+    };
+
+    window.showQaAppStatus = function(msg, type) {
+        const banner = document.getElementById('qa-app-status-banner');
+        if (!banner) return;
+        banner.style.display = 'flex';
+        banner.textContent = msg;
+        if (type === 'success') {
+            banner.style.background = 'rgba(16,185,129,0.15)';
+            banner.style.border = '1px solid rgba(16,185,129,0.4)';
+            banner.style.color = '#34d399';
+        } else {
+            banner.style.background = 'rgba(239,68,68,0.15)';
+            banner.style.border = '1px solid rgba(239,68,68,0.4)';
+            banner.style.color = '#f87171';
+        }
+    };
+
+    // =========================================================================
+    // TAB 2: INSTRUMENT ATTRIBUTES FUNCTIONS
+    // =========================================================================
+    window.fetchQaInstrument = async function() {
+        const sym = getActiveSymbol();
+        window.updateQaInstTargetUrl();
+        try {
+            const res = await fetch(`/api/qa/instrument?tier=${qaModalActiveEnv}&symbol=${encodeURIComponent(sym)}`);
+            const data = await res.json();
+            if (res.ok && data.success) {
+                if (data.instrument) {
+                    if (data.instrument.multiplierUp !== undefined) {
+                        qaInstrumentData.multiplier_up = data.instrument.multiplierUp;
+                    }
+                    if (data.instrument.multiplierDown !== undefined) {
+                        qaInstrumentData.multiplier_down = data.instrument.multiplierDown;
+                    }
+                }
+                const upBadge = document.getElementById('qa-inst-curr-up');
+                const downBadge = document.getElementById('qa-inst-curr-down');
+                const livePill = document.getElementById('qa-inst-live-pill');
+                if (upBadge) upBadge.textContent = `Current: ${qaInstrumentData.multiplier_up}`;
+                if (downBadge) downBadge.textContent = `Current: ${qaInstrumentData.multiplier_down}`;
+                if (livePill) livePill.textContent = `Engine: ↑${qaInstrumentData.multiplier_up}x | ↓${qaInstrumentData.multiplier_down}x`;
+
+                window.renderQaInstrumentForm();
+                window.updateQaInstJsonTextarea();
+                window.showQaInstStatus(`✓ Loaded attributes for ${sym} on ${qaModalActiveEnv}.`, 'success');
+            } else {
+                window.showQaInstStatus(`Error: ${data.error || 'Failed to fetch instrument'}`, 'error');
+            }
+        } catch (err) {
+            window.showQaInstStatus(`Network Error: ${err.message}`, 'error');
+        }
+    };
+
+    window.renderQaInstrumentForm = function() {
+        if (isSyncingInst) return;
+        const upInput = document.getElementById('qa-inst-multiplier_up');
+        const downInput = document.getElementById('qa-inst-multiplier_down');
+        if (upInput) upInput.value = qaInstrumentData.multiplier_up !== undefined ? qaInstrumentData.multiplier_up : 5.0;
+        if (downInput) downInput.value = qaInstrumentData.multiplier_down !== undefined ? qaInstrumentData.multiplier_down : 5.0;
+
+        const cont = document.getElementById('qa-inst-custom-fields-container');
+        const emptyNote = document.getElementById('qa-inst-empty-fields-note');
+        if (cont) {
+            cont.innerHTML = '';
+            const standardKeys = new Set(['multiplier_up', 'multiplier_down']);
+            const customKeys = Object.keys(qaInstrumentData).filter(k => !standardKeys.has(k));
+            
+            if (customKeys.length === 0) {
+                if (emptyNote) cont.appendChild(emptyNote);
+            } else {
+                customKeys.forEach(k => {
+                    cont.appendChild(createFieldRow('instrument', k, qaInstrumentData[k], (newK, newV) => {
+                        delete qaInstrumentData[k];
+                        if (newK) qaInstrumentData[newK] = newV;
+                        window.syncQaInstFormToJson();
+                    }, () => {
+                        delete qaInstrumentData[k];
+                        window.renderQaInstrumentForm();
+                        window.syncQaInstFormToJson();
+                    }));
+                });
+            }
+        }
+    };
+
+    window.addQaInstCustomField = function() {
+        const fieldName = prompt("Enter attribute key name to test/patch (e.g. tick_size, min_quantity):");
+        if (fieldName && fieldName.trim()) {
+            qaInstrumentData[fieldName.trim()] = "";
+            window.renderQaInstrumentForm();
+            window.syncQaInstFormToJson();
+        }
+    };
+
+    window.syncQaInstFormToJson = function() {
+        if (isSyncingInst) return;
+        isSyncingInst = true;
+        try {
+            const upInput = document.getElementById('qa-inst-multiplier_up');
+            const downInput = document.getElementById('qa-inst-multiplier_down');
+            if (upInput && upInput.value !== '') qaInstrumentData.multiplier_up = parseFloat(upInput.value);
+            if (downInput && downInput.value !== '') qaInstrumentData.multiplier_down = parseFloat(downInput.value);
+
+            window.updateQaInstJsonTextarea();
+        } finally {
+            isSyncingInst = false;
+        }
+    };
+
+    window.updateQaInstJsonTextarea = function() {
+        const ta = document.getElementById('qa-inst-raw-json');
+        if (ta) {
+            ta.value = JSON.stringify(qaInstrumentData, null, 2);
+            setJsonBadge('qa-inst-json-syntax-badge', true);
+        }
+    };
+
+    window.syncQaInstJsonToForm = function() {
+        if (isSyncingInst) return;
+        isSyncingInst = true;
+        const ta = document.getElementById('qa-inst-raw-json');
+        try {
+            const parsed = JSON.parse(ta.value);
+            qaInstrumentData = parsed;
+            setJsonBadge('qa-inst-json-syntax-badge', true);
+            window.renderQaInstrumentForm();
+        } catch(e) {
+            setJsonBadge('qa-inst-json-syntax-badge', false, e.message);
+        } finally {
+            isSyncingInst = false;
+        }
+    };
+
+    window.formatQaInstJson = function() {
+        const ta = document.getElementById('qa-inst-raw-json');
+        if (!ta) return;
+        try {
+            const parsed = JSON.parse(ta.value);
+            ta.value = JSON.stringify(parsed, null, 2);
+            setJsonBadge('qa-inst-json-syntax-badge', true);
+        } catch (e) {
+            alert('Invalid JSON: ' + e.message);
+        }
+    };
+
+    window.applyQaInstrumentPatch = async function() {
+        const btn = document.getElementById('qa-inst-apply-btn');
+        const sym = getActiveSymbol();
+        const cookieInput = document.getElementById('qa-inst-cookies');
+        const cookieVal = cookieInput ? cookieInput.value.trim() : '';
+        const originalText = btn ? btn.innerHTML : '';
+        if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Patching Instrument...'; }
+
+        try {
+            const res = await fetch('/api/qa/instrument', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    tier: qaModalActiveEnv,
+                    symbol: sym,
+                    payload: qaInstrumentData,
+                    cookie: cookieVal || undefined
+                })
+            });
+
+            const data = await res.json();
+            if (res.ok && data.success) {
+                window.showQaInstStatus(`✓ Success (HTTP ${data.status || 200}): ${sym} patched on ${qaModalActiveEnv}! Details sent to Terminal pane.`, 'success');
+                window.showToast ? window.showToast(`[QA] ${sym} patched successfully!`) : null;
+                const livePill = document.getElementById('qa-inst-live-pill');
+                if (livePill) livePill.textContent = `Engine: ↑${qaInstrumentData.multiplier_up}x | ↓${qaInstrumentData.multiplier_down}x`;
+            } else {
+                const errMsg = data.error ? (typeof data.error === 'object' ? JSON.stringify(data.error) : data.error) : 'Update failed';
+                window.showQaInstStatus(`✕ Failed (HTTP ${res.status}): ${errMsg}`, 'error');
+                window.showToast ? window.showToast(`[QA Error] ${errMsg}`, true) : null;
+            }
+        } catch(err) {
+            window.showQaInstStatus(`✕ Network Exception: ${err.message}`, 'error');
+        } finally {
+            if (btn) { btn.disabled = false; btn.innerHTML = originalText; }
+        }
+    };
+
+    window.copyQaInstrumentCurl = function() {
+        const sym = getActiveSymbol();
+        const url = `${getHpoBase()}/api/v3/qa/instruments/${encodeURIComponent(sym)}`;
+        const payloadStr = JSON.stringify(qaInstrumentData, null, 2);
+        const cookieInput = document.getElementById('qa-inst-cookies');
+        const cookieVal = cookieInput ? cookieInput.value.trim() : '';
+        const cookieHeader = cookieVal ? `\\\n--header 'Cookie: ${cookieVal}' ` : '';
+        const curlCmd = `curl --location --request PATCH '${url}' \\\n--header 'Content-Type: application/json' ${cookieHeader}\\\n--data '${payloadStr}'`;
+        copyToClipboardText(curlCmd, 'Instrument cURL copied to clipboard!');
+    };
+
+    window.showQaInstStatus = function(msg, type) {
+        const banner = document.getElementById('qa-inst-status-banner');
+        if (!banner) return;
+        banner.style.display = 'flex';
+        banner.textContent = msg;
+        if (type === 'success') {
+            banner.style.background = 'rgba(16,185,129,0.15)';
+            banner.style.border = '1px solid rgba(16,185,129,0.4)';
+            banner.style.color = '#34d399';
+        } else {
+            banner.style.background = 'rgba(239,68,68,0.15)';
+            banner.style.border = '1px solid rgba(239,68,68,0.4)';
+            banner.style.color = '#f87171';
+        }
+    };
+
+    function setJsonBadge(id, isValid, errMsg) {
+        const badge = document.getElementById(id);
+        if (!badge) return;
+        if (isValid) {
+            badge.textContent = '✓ Valid JSON';
+            badge.style.color = '#10b981';
+        } else {
+            badge.textContent = `✕ Syntax Error: ${errMsg || 'Invalid JSON'}`;
+            badge.style.color = '#f87171';
+        }
+    }
+
+    function setSyncBadge(id, isInSync) {
+        const badge = document.getElementById(id);
+        if (!badge) return;
+        if (isInSync) {
+            badge.textContent = '✓ In Sync';
+            badge.style.color = '#10b981';
+        } else {
+            badge.textContent = '⚠ Sync Pending';
+            badge.style.color = '#fbbf24';
+        }
+    }
+
+    function copyToClipboardText(text, successMsg) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                window.showToast ? window.showToast(successMsg) : alert(successMsg);
+            }).catch(() => fallbackCopy(text, successMsg));
+        } else {
+            fallbackCopy(text, successMsg);
+        }
+    }
+
+    function fallbackCopy(text, successMsg) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        window.showToast ? window.showToast(successMsg) : alert(successMsg);
+    }
+
+})();
+</script>
 </body>
 </html>
