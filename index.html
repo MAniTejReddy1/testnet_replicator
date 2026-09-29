@@ -2237,17 +2237,17 @@
 
 <div id="tv-chart-wrapper" style="display:block; padding: 14px 24px 24px;">
   <div class="panel" style="display:flex; flex-direction:column; overflow:hidden;">
-    <div style="padding:14px 16px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:var(--input-bg); cursor:pointer;" onclick="window.toggleTVChart()">
+    <div style="padding:14px 16px; display:flex; justify-content:space-between; align-items:center; background:var(--input-bg); cursor:pointer;" onclick="window.toggleTVChart()">
       <div style="display:flex;align-items:center;gap:12px;">
-        <div id="tv-chevron" style="color:var(--text-muted);font-size:14px;transition:transform 0.2s;transform:rotate(0deg);">▼</div>
+        <div id="tv-chevron" style="color:var(--text-muted);font-size:14px;transition:transform 0.2s;transform:rotate(-90deg);">▼</div>
         <div>
           <div class="sec-label">Testnet Klines</div>
           <div class="sec-title" id="tv-chart-title" style="color:var(--cyan);display:flex;align-items:center;gap:8px;">TradingView Chart</div>
         </div>
       </div>
       <div style="display:flex;gap:4px;align-items:center;" id="tv-timeframes" onclick="event.stopPropagation()">
-        <button class="tv-tf-btn on" data-tf="1s">1s</button>
-        <button class="tv-tf-btn" data-tf="1m">1m</button>
+        <button class="tv-tf-btn" data-tf="1s">1s</button>
+        <button class="tv-tf-btn on" data-tf="1m">1m</button>
         <button class="tv-tf-btn" data-tf="3m">3m</button>
         <button class="tv-tf-btn" data-tf="5m">5m</button>
         <button class="tv-tf-btn" data-tf="15m">15m</button>
@@ -2257,7 +2257,7 @@
         <button class="tv-tf-btn" data-tf="1d">1D</button>
       </div>
     </div>
-    <div id="tv-chart-container" style="display:flex; height:400px; flex-direction:column; width:100%; border-top:1px solid var(--border); position: relative;">
+    <div id="tv-chart-container" style="display:none; height:400px; flex-direction:column; width:100%; border-top:1px solid var(--border); position: relative;">
       <div id="tv-tooltip" style="position:absolute; top:8px; left:12px; z-index:50; background:transparent; border:none; padding:0; font-family:'JetBrains Mono',monospace; font-size:12px; display:none; pointer-events:none; color:var(--text-main);"></div>
       <div id="tv-chart" style="flex:1; width:100%;"></div>
     </div>
@@ -7199,7 +7199,7 @@ window.addEventListener('DOMContentLoaded', () => {
         window.tvChart = null;
         window.tvSeries = null;
         window.tvWs = null;
-        window.tvIsVisible = true;
+        window.tvIsVisible = false;
 
         window.toggleTVChart = () => {
             window.tvIsVisible = !window.tvIsVisible;
@@ -7210,12 +7210,28 @@ window.addEventListener('DOMContentLoaded', () => {
                 chevron.style.transform = 'rotate(0deg)';
                 if (!window.tvChart) {
                     window.initTVChart(activeTabSymbol);
+                } else {
+                    const chartEl = document.getElementById('tv-chart');
+                    if (chartEl && window.tvChart) {
+                        window.tvChart.resize(chartEl.clientWidth, chartEl.clientHeight);
+                    }
                 }
             } else {
                 container.style.display = 'none';
                 chevron.style.transform = 'rotate(-90deg)';
             }
         };
+
+        // Wire up initial timeframe buttons so clicking a timeframe auto-expands the chart
+        document.querySelectorAll('.tv-tf-btn').forEach(b => {
+            b.onclick = (e) => {
+                e.stopPropagation();
+                if (!window.tvIsVisible) {
+                    window.toggleTVChart();
+                }
+                window.initTVChart(activeTabSymbol, b.getAttribute('data-tf'));
+            };
+        });
 
         window.tvInterval = '1m';
         window.initTVChart = async (pair, interval = window.tvInterval) => {
@@ -7300,7 +7316,13 @@ window.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.tv-tf-btn').forEach(b => {
                 if (b.getAttribute('data-tf') === interval) b.classList.add('on');
                 else b.classList.remove('on');
-                b.onclick = () => window.initTVChart(activeTabSymbol, b.getAttribute('data-tf'));
+                b.onclick = (e) => {
+                    e.stopPropagation();
+                    if (!window.tvIsVisible) {
+                        window.toggleTVChart();
+                    }
+                    window.initTVChart(activeTabSymbol, b.getAttribute('data-tf'));
+                };
             });
 
             const isLight = document.documentElement.getAttribute('data-theme') === 'light';
