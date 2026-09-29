@@ -2989,7 +2989,7 @@ window.addEventListener('DOMContentLoaded', () => {
             if (window[u + 'Tab'] === tab) {
                 const bodyEl = document.getElementById(u + '-body');
                 if (bodyEl) {
-                    const colSpan = tab === 'hist' ? 7 : 9;
+                    const colSpan = tab === 'hist' ? 8 : (tab === 'open' ? 10 : 9);
                     bodyEl.innerHTML = '<tr><td colspan="'+colSpan+'" style="text-align:center;padding:40px 0;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Loading...</td></tr>';
                 }
             }
@@ -5861,12 +5861,12 @@ window.addEventListener('DOMContentLoaded', () => {
 
             let rawData = [];
             if (tab === 'open') {
-                theadEl.innerHTML = '<tr><th>Symbol</th><th style="text-align:right;">Side</th><th style="text-align:right;">Price</th><th style="text-align:right;">Amount</th><th style="text-align:right;">Filled</th><th style="text-align:right;">Type</th><th style="text-align:right;">Status</th><th style="text-align:right;">Time</th><th style="text-align:right;width:180px;"><div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;"><span>Actions</span><button class="act-btn act-cls" style="background:var(--rose);color:#fff;border-radius:4px;padding:3px 8px;font-size:10px;font-weight:700;line-height:1;" onclick="window.cancelAllOpenOrders(\''+panelId+'\')">CANCEL ALL</button></div></th></tr>';
+                theadEl.innerHTML = '<tr><th>Symbol</th><th style="text-align:right;">Side</th><th style="text-align:right;">Price</th><th style="text-align:right;">Avg Price</th><th style="text-align:right;">Amount</th><th style="text-align:right;">Filled</th><th style="text-align:right;">Type</th><th style="text-align:right;">Status</th><th style="text-align:right;">Time</th><th style="text-align:right;width:180px;"><div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;"><span>Actions</span><button class="act-btn act-cls" style="background:var(--rose);color:#fff;border-radius:4px;padding:3px 8px;font-size:10px;font-weight:700;line-height:1;" onclick="window.cancelAllOpenOrders(\''+panelId+'\')">CANCEL ALL</button></div></th></tr>';
                 rawData = window.fetchedOrders[panelId][tab] || [];
                 const countSpan = document.getElementById('count-' + panelId + '-open');
                 if (countSpan) countSpan.textContent = rawData.length ? ` (${rawData.length})` : '';
             } else if (tab === 'hist') {
-                theadEl.innerHTML = '<tr><th>Symbol</th><th style="text-align:right;">Side</th><th style="text-align:right;">Price</th><th style="text-align:right;">Amount</th><th style="text-align:right;">Filled</th><th style="text-align:right;">Status</th><th style="text-align:right;">Time</th></tr>';
+                theadEl.innerHTML = '<tr><th>Symbol</th><th style="text-align:right;">Side</th><th style="text-align:right;">Price</th><th style="text-align:right;">Avg Price</th><th style="text-align:right;">Amount</th><th style="text-align:right;">Filled</th><th style="text-align:right;">Status</th><th style="text-align:right;">Time</th></tr>';
                 rawData = (window.fetchedOrders[panelId][tab] || []).sort((a,b) => b.time - a.time);
                 const countSpan = document.getElementById('count-' + panelId + '-hist');
                 if (countSpan) countSpan.textContent = rawData.length ? ` (${rawData.length})` : '';
@@ -5898,7 +5898,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
             if (!pageData.length) {
                 const msg = tab === 'open' ? 'No open orders' : (tab === 'hist' ? 'No recent order history for active symbols' : 'No active positions');
-                const colSpan = tab === 'hist' ? 7 : (tab === 'open' ? 9 : 9);
+                const colSpan = tab === 'hist' ? 8 : (tab === 'open' ? 10 : 9);
                 bodyEl.innerHTML = '<tr><td colspan="'+colSpan+'" style="text-align:center;padding:40px 0;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;font-family:\'Inter\',sans-serif;font-weight:600;">'+msg+'</td></tr>';
                 return;
             }
@@ -5914,7 +5914,11 @@ window.addEventListener('DOMContentLoaded', () => {
                     else if (o.status === 'PARTIALLY_FILLED') statusHtml = '<span class="badge" style="background:rgba(16,185,129,0.1);color:var(--emerald);border:1px solid rgba(16,185,129,0.3);">PARTIAL</span>';
                     else statusHtml = '<span class="badge" style="background:rgba(255,255,255,0.1);color:var(--text-muted);">'+o.status+'</span>';
 
-                    return '<tr style="cursor:pointer;" onclick="window.showOrderId(\''+o.orderId+'\')" title="Click to show/copy Order ID"><td><span style="font-weight:700;color:var(--text-main);font-family:\'Inter\',sans-serif;">'+o.symbol+'</span></td><td style="text-align:right;color:'+sideColor+';font-weight:700;">'+o.side+'</td><td style="text-align:right;color:var(--text-main);">'+parseFloat(o.price)+'</td><td style="text-align:right;color:var(--text-muted);">'+parseFloat(o.origQty)+'</td><td style="text-align:right;color:var(--text-muted);">'+parseFloat(o.executedQty)+'</td><td style="text-align:right;color:var(--text-muted);">'+o.type+'</td><td style="text-align:right;">'+statusHtml+'</td><td style="text-align:right;color:var(--text-muted);font-size:10px;">'+timeStr+'</td><td style="text-align:right;"><button class="act-btn act-lev" onclick="event.stopPropagation();window.fapiAction(\'edit\', \''+userStr+'\', \''+o.symbol+'\', \''+o.orderId+'\', \''+o.side+'\')" style="margin-right:8px;">EDIT</button><button class="act-btn act-cls" onclick="event.stopPropagation();window.fapiAction(\'cancel\', \''+userStr+'\', \''+o.symbol+'\', \''+o.orderId+'\')">CANCEL</button></td></tr>';
+                    const pDisplay = (o.price !== undefined && o.price !== null && !isNaN(parseFloat(o.price)) && parseFloat(o.price) > 0) ? parseFloat(o.price) : (o.type === 'MARKET' ? 'MARKET' : (parseFloat(o.price) || '-'));
+                    const apVal = o.avgPrice || o.avgExecutionPrice || o.ap;
+                    const apDisplay = (apVal && parseFloat(apVal) > 0) ? parseFloat(apVal) : '-';
+
+                    return '<tr style="cursor:pointer;" onclick="window.showOrderId(\''+o.orderId+'\')" title="Click to show/copy Order ID"><td><span style="font-weight:700;color:var(--text-main);font-family:\'Inter\',sans-serif;">'+o.symbol+'</span></td><td style="text-align:right;color:'+sideColor+';font-weight:700;">'+o.side+'</td><td style="text-align:right;color:var(--text-main);">'+pDisplay+'</td><td style="text-align:right;color:'+(apDisplay !== '-' ? 'var(--cyan)' : 'var(--text-muted)')+';font-weight:600;">'+apDisplay+'</td><td style="text-align:right;color:var(--text-muted);">'+parseFloat(o.origQty)+'</td><td style="text-align:right;color:var(--text-muted);">'+parseFloat(o.executedQty)+'</td><td style="text-align:right;color:var(--text-muted);">'+o.type+'</td><td style="text-align:right;">'+statusHtml+'</td><td style="text-align:right;color:var(--text-muted);font-size:10px;">'+timeStr+'</td><td style="text-align:right;"><button class="act-btn act-lev" onclick="event.stopPropagation();window.fapiAction(\'edit\', \''+userStr+'\', \''+o.symbol+'\', \''+o.orderId+'\', \''+o.side+'\')" style="margin-right:8px;">EDIT</button><button class="act-btn act-cls" onclick="event.stopPropagation();window.fapiAction(\'cancel\', \''+userStr+'\', \''+o.symbol+'\', \''+o.orderId+'\')">CANCEL</button></td></tr>';
                 }).join('');
             } else if (tab === 'hist') {
                 bodyEl.innerHTML = pageData.map(o => {
@@ -5926,7 +5930,11 @@ window.addEventListener('DOMContentLoaded', () => {
                     else if (o.status === 'CANCELED' || o.status === 'EXPIRED') statusHtml = '<span class="badge badge-fail">'+o.status+'</span>';
                     else statusHtml = '<span class="badge" style="background:rgba(255,255,255,0.1);color:var(--text-muted);">'+o.status+'</span>';
                     
-                    return '<tr style="cursor:pointer;" onclick="window.showOrderId(\''+(o.orderId||o.id)+'\')" title="Click to show/copy Order ID"><td><span style="font-weight:700;color:var(--text-main);font-family:\'Inter\',sans-serif;">'+o.symbol+'</span></td><td style="text-align:right;color:'+sideColor+';font-weight:700;">'+o.side+'</td><td style="text-align:right;color:var(--text-main);">'+parseFloat(o.price)+'</td><td style="text-align:right;color:var(--text-muted);">'+parseFloat(o.origQty)+'</td><td style="text-align:right;color:var(--text-muted);">'+parseFloat(o.executedQty)+'</td><td style="text-align:right;">'+statusHtml+'</td><td style="text-align:right;color:var(--text-muted);font-size:10px;">'+timeStr+'</td></tr>';
+                    const pDisplay = (o.price !== undefined && o.price !== null && !isNaN(parseFloat(o.price)) && parseFloat(o.price) > 0) ? parseFloat(o.price) : (o.type === 'MARKET' ? 'MARKET' : (parseFloat(o.price) || '-'));
+                    const apVal = o.avgPrice || o.avgExecutionPrice || o.ap;
+                    const apDisplay = (apVal && parseFloat(apVal) > 0) ? parseFloat(apVal) : '-';
+
+                    return '<tr style="cursor:pointer;" onclick="window.showOrderId(\''+(o.orderId||o.id)+'\')" title="Click to show/copy Order ID"><td><span style="font-weight:700;color:var(--text-main);font-family:\'Inter\',sans-serif;">'+o.symbol+'</span></td><td style="text-align:right;color:'+sideColor+';font-weight:700;">'+o.side+'</td><td style="text-align:right;color:var(--text-main);">'+pDisplay+'</td><td style="text-align:right;color:'+(apDisplay !== '-' ? 'var(--cyan)' : 'var(--text-muted)')+';font-weight:600;">'+apDisplay+'</td><td style="text-align:right;color:var(--text-muted);">'+parseFloat(o.origQty)+'</td><td style="text-align:right;color:var(--text-muted);">'+parseFloat(o.executedQty)+'</td><td style="text-align:right;">'+statusHtml+'</td><td style="text-align:right;color:var(--text-muted);font-size:10px;">'+timeStr+'</td></tr>';
                 }).join('');
             } else {
                 bodyEl.innerHTML = pageData.map(p => {
@@ -6510,6 +6518,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 symbol: o.s,
                 status: status,
                 price: o.p,
+                avgPrice: o.ap || o.avgPrice || '0.00',
                 origQty: o.q,
                 executedQty: o.z,
                 side: o.S,
