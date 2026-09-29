@@ -45,17 +45,17 @@ let globalUsers = {
         'user1': {
             label: 'User 1',
             listenKey: process.env.USER1_LISTEN_KEY || "",
-            key: process.env.USER1_KEY || '4aec2f64e422e899b74a5d21aa56f60a97d3847351f63eff',
-            secret: process.env.USER1_SECRET || '676937348437f292f8c6c20b53bc6f8009180288d96242b64bbd5f1b5d585d94',
-            email: 'replicator_prod_test_1790665270105@coindcx.com',
+            key: process.env.USER1_KEY || 'aaa7698d5dd5b2f52ec3e0a286bd7084b429053db68831ab',
+            secret: process.env.USER1_SECRET || 'd1ed60a20c833b97dc32bc02e51d2d6130b9ddee345faf1378b39c73026e06f7',
+            email: 'replicator_user1_maker_1790679580749@coindcx.com',
             password: 'Test@123'
         },
         'user2': {
             label: 'User 2',
             listenKey: process.env.USER2_LISTEN_KEY || "",
-            key: process.env.USER2_KEY || '65af10f9c6d5d38b856ba99c5ed23d42762c912425e260b0',
-            secret: process.env.USER2_SECRET || '5a00aa3419d7e7d88ae78edba0f8cf3d8a564445fa1b6a4eaa4125c9f561b669',
-            email: 'replicator_prod_user2_1790665323894@coindcx.com',
+            key: process.env.USER2_KEY || 'a91ad66d1da500f9690aca8e019a3ee1cac7a448dd13f468',
+            secret: process.env.USER2_SECRET || '54b933e964325b6d2e64d0764845d99b645684753e88f7e07ef31486f82db9f0',
+            email: 'replicator_user2_taker_1790679588502@coindcx.com',
             password: 'Test@123'
         }
     },
@@ -63,37 +63,35 @@ let globalUsers = {
         'user1': {
             label: 'User 1',
             listenKey: process.env.USER1_LISTEN_KEY || "",
-            key: process.env.USER1_KEY || '3cef4baed18692062ff1b99e71adbce1e8558c58ad0113b9',
-            secret: process.env.USER1_SECRET || '754688e515c77a50005dac4ff650e3203311467dbc1a4858bb7e84c5463e7508',
-            email: 'mani.reddy+t7ui62u3@coindcx.com',
-            password: 'Test@123',
-            bearer_token: 'D4-rDgtolGWPsATr9OuMOOfxcc6cvt9_-y5Wt47MBKk'
+            key: process.env.USER1_KEY || '684840cb2a6d804973ee763f1909b361f088ef4d80486f39',
+            secret: process.env.USER1_SECRET || '37e6b474ece0c5b97f53283dbf8b907fcf7ee9283f1ef894d369df2d9f294e68',
+            email: 'replicator_user1_maker_1790679608595@coindcx.com',
+            password: 'Test@123'
         },
         'user2': {
             label: 'User 2',
             listenKey: process.env.USER2_LISTEN_KEY || "",
-            key: process.env.USER2_KEY || '4874d42c94d55e25695cb853dd1cc6de88db4eba327424ba',
-            secret: process.env.USER2_SECRET || 'b8e9788d189989c28dfb1136fad7cbd1f095ecb24fe1ff669e45e0997fd13fd2',
-            email: 'mani.reddy+9jcgxr6r@coindcx.com',
-            password: 'Test@123',
-            bearer_token: 'QhsHol9LMDbCx00KwHMvD2V922mjA0sa7F3_AACF2Ws'
+            key: process.env.USER2_KEY || '44e6bd7984d3babf16eafeea6c35140e7fb3595c37c0de92',
+            secret: process.env.USER2_SECRET || '1f1b45b2b16ef3547224da747c5cda257538dba04d65c81c254f981951acfdc8',
+            email: 'replicator_user2_taker_1790679624369@coindcx.com',
+            password: 'Test@123'
         }
     },
     DEV_STAGING: {
         'user1': {
             label: 'User 1',
             listenKey: process.env.DEV_USER1_LISTEN_KEY || "",
-            key: process.env.DEV_USER1_KEY || '59d1953ddc4eb7c382811bb253f1c0e66ca4deee3bc88dd5',
-            secret: process.env.DEV_USER1_SECRET || 'b0dc129aa0a3724e5311c963b14f53e0f431e6ad3ff85406a22563deff6532a6',
-            email: 'replicator_test_dev_1790664511019@coindcx.com',
+            key: process.env.DEV_USER1_KEY || '78915a403ec768839e4c56ec512cad2a96ffc8fa7bed0e8e',
+            secret: process.env.DEV_USER1_SECRET || '7e4c1678d25488343f28a524dd46b5197f2b519c118d8f376c164cfc4215c3e8',
+            email: 'replicator_user1_maker_1790679643677@coindcx.com',
             password: 'Test@123'
         },
         'user2': {
             label: 'User 2',
             listenKey: process.env.DEV_USER2_LISTEN_KEY || "",
-            key: process.env.DEV_USER2_KEY || '87e3092b1ac1f6675ef694c382dbc48712b143517f95599a',
-            secret: process.env.DEV_USER2_SECRET || 'd7f54a7a67287a4c1d62a7f28eda336f5c6e2f2b03a9be23070066b14725eca6',
-            email: 'replicator_dev_user2_1790665305735@coindcx.com',
+            key: process.env.DEV_USER2_KEY || '82bcbcbbcb2166e89771ea169d6666154a3ccd0db88ae7af',
+            secret: process.env.DEV_USER2_SECRET || 'ec13317a6bde07f0413de62027544a697d2bef0890be72852e379f168ee6b216',
+            email: 'replicator_user2_taker_1790679649231@coindcx.com',
             password: 'Test@123'
         }
     }
