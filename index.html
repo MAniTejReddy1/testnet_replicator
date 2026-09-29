@@ -11246,11 +11246,6 @@ document.addEventListener('mousemove', (e) => {
         <span id="qa-nav-inst-mult" style="font-size:9.5px; padding:1px 6px; border-radius:99px; background:rgba(6,182,212,0.18); color:#a5f3fc; font-family:'JetBrains Mono',monospace;">5.0x / 5.0x</span>
       </button>
 
-      <button id="qa-nav-btn-sim" onclick="window.switchQaModalTab('sim')" style="padding:11px 18px; font-size:12px; font-weight:700; border:none; background:transparent; border-bottom:2px solid transparent; color:var(--text-muted); cursor:pointer; display:flex; align-items:center; gap:8px; transition:all 0.2s; white-space:nowrap;">
-        <span>🧪 Risk & Order Simulator</span>
-        <span style="font-size:9.5px; padding:1px 6px; border-radius:99px; background:rgba(16,185,129,0.18); color:#6ee7b7; font-family:'JetBrains Mono',monospace;">Live Validator</span>
-      </button>
-
       <button id="qa-nav-btn-history" onclick="window.switchQaModalTab('history')" style="padding:11px 18px; font-size:12px; font-weight:700; border:none; background:transparent; border-bottom:2px solid transparent; color:var(--text-muted); cursor:pointer; display:flex; align-items:center; gap:8px; transition:all 0.2s; white-space:nowrap;">
         <span>📜 Audit & Patch Log</span>
         <span id="qa-nav-history-count" style="font-size:9.5px; padding:1px 6px; border-radius:99px; background:rgba(255,255,255,0.08); color:var(--text-muted); font-family:'JetBrains Mono',monospace;">0</span>
@@ -11677,94 +11672,6 @@ document.addEventListener('mousemove', (e) => {
 
       </div>
 
-      <!-- ================================================================= -->
-      <!-- TAB 3: LIVE RISK & ORDER SIMULATOR                                -->
-      <!-- ================================================================= -->
-      <div id="qa-tab-sim" style="display:none; flex-direction:column; gap:16px;">
-        
-        <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:12px; padding:18px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
-            <div style="display:flex; align-items:center; gap:8px;">
-              <div style="width:4px; height:16px; background:#10b981; border-radius:2px;"></div>
-              <span style="font-weight:800; font-size:13.5px; color:var(--text-main); letter-spacing:0.5px;">HPO ORDER ACCEPTANCE / REJECTION VALIDATOR</span>
-            </div>
-            <span style="font-size:11px; color:var(--text-muted);">Simulate order execution against active risk controls and multipliers</span>
-          </div>
-
-          <!-- Simulator Input Grid -->
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:16px;">
-            <div>
-              <label style="font-size:11px; color:var(--text-muted); font-weight:700; display:block; margin-bottom:4px;">Test Symbol</label>
-              <select id="qa-sim-symbol" onchange="window.runQaSimulation()" style="width:100%; box-sizing:border-box; background:var(--input-bg); border:1px solid var(--border); color:var(--text-main); font-size:12px; font-weight:700; padding:8px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace;">
-                <option value="B-XRP_USDT">B-XRP_USDT</option>
-                <option value="B-BTC_USDT">B-BTC_USDT</option>
-                <option value="B-ETH_USDT">B-ETH_USDT</option>
-                <option value="B-SOL_USDT">B-SOL_USDT</option>
-                <option value="B-DOGE_USDT">B-DOGE_USDT</option>
-              </select>
-            </div>
-
-            <div>
-              <label style="font-size:11px; color:var(--text-muted); font-weight:700; display:block; margin-bottom:4px;">Anchor Mark Price ($)</label>
-              <input id="qa-sim-mark-price" type="number" step="0.0001" value="2.5000" oninput="window.runQaSimulation()" style="width:100%; box-sizing:border-box; background:var(--input-bg); border:1px solid var(--border); color:#fbbf24; font-size:12px; font-weight:700; padding:8px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace;" />
-            </div>
-
-            <div>
-              <label style="font-size:11px; color:var(--text-muted); font-weight:700; display:block; margin-bottom:4px;">Order Side</label>
-              <select id="qa-sim-side" onchange="window.runQaSimulation()" style="width:100%; box-sizing:border-box; background:var(--input-bg); border:1px solid var(--border); color:#fff; font-size:12px; font-weight:700; padding:8px 10px; border-radius:6px; outline:none;">
-                <option value="BUY">BUY / LONG</option>
-                <option value="SELL">SELL / SHORT</option>
-              </select>
-            </div>
-
-            <div>
-              <label style="font-size:11px; color:var(--text-muted); font-weight:700; display:block; margin-bottom:4px;">Proposed Order Price ($)</label>
-              <input id="qa-sim-order-price" type="number" step="0.0001" value="2.6000" oninput="window.runQaSimulation()" style="width:100%; box-sizing:border-box; background:var(--input-bg); border:1px solid var(--border); color:#a5f3fc; font-size:12px; font-weight:700; padding:8px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace;" />
-            </div>
-
-            <div>
-              <label style="font-size:11px; color:var(--text-muted); font-weight:700; display:block; margin-bottom:4px;">Order Notional / Qty ($)</label>
-              <input id="qa-sim-order-qty" type="number" step="100" value="1000" oninput="window.runQaSimulation()" style="width:100%; box-sizing:border-box; background:var(--input-bg); border:1px solid var(--border); color:var(--text-main); font-size:12px; font-weight:700; padding:8px 10px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace;" />
-            </div>
-          </div>
-
-          <!-- Real-Time Verdict Card -->
-          <div id="qa-sim-verdict-card" style="margin-top:16px; border-radius:10px; padding:18px; border:1px solid rgba(16,185,129,0.35); background:rgba(16,185,129,0.08);">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-              <div style="display:flex; align-items:center; gap:10px;">
-                <span id="qa-sim-verdict-icon" style="font-size:24px;">✅</span>
-                <div>
-                  <div id="qa-sim-verdict-title" style="font-size:15px; font-weight:800; color:#34d399; letter-spacing:0.5px;">ORDER ACCEPTED BY ENGINE</div>
-                  <div id="qa-sim-verdict-desc" style="font-size:11.5px; color:var(--text-main); margin-top:2px;">Price $2.6000 is inside the allowed multiplier corridor [$0.5000 - $12.5000].</div>
-                </div>
-              </div>
-              <div id="qa-sim-verdict-tag" style="font-size:10px; font-weight:800; font-family:'JetBrains Mono',monospace; padding:3px 8px; border-radius:5px; background:rgba(16,185,129,0.25); color:#6ee7b7;">PERMITTED</div>
-            </div>
-
-            <!-- Mathematical Breakdown -->
-            <div style="margin-top:14px; padding-top:12px; border-top:1px dashed rgba(255,255,255,0.1); display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:10px; font-size:11px; font-family:'JetBrains Mono',monospace;">
-              <div>
-                <span style="color:var(--text-muted);">Max Buy Cap:</span>
-                <span id="qa-sim-calc-maxbuy" style="color:#34d399; font-weight:700; margin-left:6px;">$12.5000</span>
-              </div>
-              <div>
-                <span style="color:var(--text-muted);">Min Sell Floor:</span>
-                <span id="qa-sim-calc-minsell" style="color:#f87171; font-weight:700; margin-left:6px;">$0.5000</span>
-              </div>
-              <div>
-                <span style="color:var(--text-muted);">Circuit Breaker Band:</span>
-                <span id="qa-sim-calc-cb" style="color:#fbbf24; font-weight:700; margin-left:6px;">&plusmn;100%</span>
-              </div>
-              <div>
-                <span style="color:var(--text-muted);">Symbol OI Limit:</span>
-                <span id="qa-sim-calc-oi" style="color:#a5f3fc; font-weight:700; margin-left:6px;">10,000,000,000</span>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-      </div>
 
       <!-- ================================================================= -->
       <!-- TAB 4: AUDIT & PATCH HISTORY TRAIL                                -->
@@ -11800,7 +11707,7 @@ document.addEventListener('mousemove', (e) => {
 // QA RISK & ENGINE CONTROL CENTER (UPGRADED PRO v3.2 JAVASCRIPT LOGIC)
 // =========================================================================
 (function() {
-    let qaModalActiveTab = 'app'; // 'app' | 'inst' | 'sim' | 'history'
+    let qaModalActiveTab = 'app'; // 'app' | 'inst' | 'history'
     let qaAppViewMode = 'form';   // 'form' | 'json'
     let qaInstViewMode = 'form';  // 'form' | 'json'
     
@@ -11932,7 +11839,6 @@ document.addEventListener('mousemove', (e) => {
         // Fetch latest data for active global tier
         window.fetchQaAppConfig();
         window.fetchQaInstrument();
-        window.runQaSimulation();
     };
 
     window.closeQaConfigModal = function() {
@@ -11966,13 +11872,13 @@ document.addEventListener('mousemove', (e) => {
     // =========================================================================
     window.switchQaModalTab = function(tab) {
         qaModalActiveTab = tab;
-        const tabs = ['app', 'inst', 'sim', 'history'];
+        const tabs = ['app', 'inst', 'history'];
         tabs.forEach(t => {
             const btn = document.getElementById('qa-nav-btn-' + t);
             const pane = document.getElementById('qa-tab-' + t);
             if (btn && pane) {
                 if (t === tab) {
-                    btn.style.borderBottomColor = (t === 'app' ? '#a855f7' : t === 'inst' ? '#06b6d4' : t === 'sim' ? '#10b981' : '#6366f1');
+                    btn.style.borderBottomColor = (t === 'app' ? '#a855f7' : t === 'inst' ? '#06b6d4' : '#6366f1');
                     btn.style.color = '#fff';
                     pane.style.display = 'flex';
                 } else {
@@ -11982,9 +11888,6 @@ document.addEventListener('mousemove', (e) => {
                 }
             }
         });
-        if (tab === 'sim') {
-            window.runQaSimulation();
-        }
     };
 
     window.switchQaAppView = function(view) {
@@ -12071,7 +11974,7 @@ document.addEventListener('mousemove', (e) => {
 
     window.populateQaInstrumentSymbols = function() {
         const select = document.getElementById('qa-inst-symbol-select');
-        const simSelect = document.getElementById('qa-sim-symbol');
+
         if (!select) return;
         const known = ['B-XRP_USDT', 'B-BTC_USDT', 'B-ETH_USDT', 'B-SOL_USDT', 'B-DOGE_USDT'];
         const existing = new Set(known);
@@ -12095,14 +11998,7 @@ document.addEventListener('mousemove', (e) => {
         optCustom.textContent = '[Enter Custom Symbol...]';
         select.appendChild(optCustom);
 
-        if (simSelect) {
-            simSelect.innerHTML = '';
-            Array.from(existing).sort().forEach(sym => {
-                const opt = document.createElement('option');
-                opt.value = sym; opt.textContent = sym;
-                simSelect.appendChild(opt);
-            });
-        }
+
     };
 
     window.saveQaCookies = function(val) {
@@ -12875,102 +12771,6 @@ document.addEventListener('mousemove', (e) => {
             banner.style.background = 'rgba(239,68,68,0.15)';
             banner.style.border = '1px solid rgba(239,68,68,0.4)';
             banner.style.color = '#f87171';
-        }
-    };
-
-    // =========================================================================
-    // TAB 3: LIVE RISK & ORDER SIMULATOR
-    // =========================================================================
-    window.runQaSimulation = function() {
-        const symSelect = document.getElementById('qa-sim-symbol');
-        const markInput = document.getElementById('qa-sim-mark-price');
-        const sideSelect = document.getElementById('qa-sim-side');
-        const priceInput = document.getElementById('qa-sim-order-price');
-        const qtyInput = document.getElementById('qa-sim-order-qty');
-
-        if (!symSelect || !markInput || !sideSelect || !priceInput) return;
-
-        const sym = symSelect.value;
-        const mark = parseFloat(markInput.value) || 2.50;
-        const side = sideSelect.value;
-        const orderPrice = parseFloat(priceInput.value) || 0;
-        const orderQty = parseFloat(qtyInput.value) || 0;
-
-        // Resolve risk config for this symbol (symbol override or default)
-        const jv = qaAppConfigData.json_value || qaAppConfigData;
-        const symConfig = jv[sym] || {};
-        const defConfig = jv.default || {};
-        const cbPct = parseFloat(symConfig.circuit_breaker_band_pct !== undefined ? symConfig.circuit_breaker_band_pct : defConfig.circuit_breaker_band_pct) || 100;
-        const symOi = parseFloat(symConfig.symbol_oi_limit !== undefined ? symConfig.symbol_oi_limit : defConfig.symbol_oi_limit) || 10000000000;
-        
-        const upMult = parseFloat(qaInstrumentData.multiplier_up) || 5.0;
-        const downMult = parseFloat(qaInstrumentData.multiplier_down) || 5.0;
-
-        const maxBuyPrice = mark * upMult;
-        const minSellPrice = mark / downMult;
-        const maxCbPrice = mark * (1 + (cbPct / 100));
-        const minCbPrice = mark * Math.max(0, 1 - (cbPct / 100));
-
-        // Update calculation elements
-        const maxBuyEl = document.getElementById('qa-sim-calc-maxbuy');
-        const minSellEl = document.getElementById('qa-sim-calc-minsell');
-        const cbEl = document.getElementById('qa-sim-calc-cb');
-        const oiEl = document.getElementById('qa-sim-calc-oi');
-        if (maxBuyEl) maxBuyEl.textContent = '$' + maxBuyPrice.toFixed(4);
-        if (minSellEl) minSellEl.textContent = '$' + minSellPrice.toFixed(4);
-        if (cbEl) cbEl.innerHTML = '&plusmn;' + cbPct + '%';
-        if (oiEl) oiEl.textContent = symOi.toLocaleString();
-
-        let accepted = true;
-        let rejectReason = '';
-        let rejectCode = '';
-
-        if (side === 'BUY' && orderPrice > maxBuyPrice) {
-            accepted = false;
-            rejectCode = 'PERCENT_PRICE_FILTER';
-            rejectReason = `Order price $${orderPrice.toFixed(4)} exceeds maximum allowed buy price ($${maxBuyPrice.toFixed(4)}) based on multiplier_up (${upMult}x).`;
-        } else if (side === 'SELL' && orderPrice < minSellPrice) {
-            accepted = false;
-            rejectCode = 'PERCENT_PRICE_FILTER';
-            rejectReason = `Order price $${orderPrice.toFixed(4)} is below minimum allowed sell price ($${minSellPrice.toFixed(4)}) based on multiplier_down (${downMult}x).`;
-        } else if (orderPrice > maxCbPrice || orderPrice < minCbPrice) {
-            accepted = false;
-            rejectCode = 'CIRCUIT_BREAKER_TRIGGERED';
-            rejectReason = `Price deviation exceeds circuit breaker threshold band (&plusmn;${cbPct}% from mark $${mark.toFixed(4)}).`;
-        } else if (orderQty > symOi) {
-            accepted = false;
-            rejectCode = 'SYMBOL_OI_LIMIT_EXCEEDED';
-            rejectReason = `Requested order notional ($${orderQty.toLocaleString()}) exceeds symbol OI limit ($${symOi.toLocaleString()}).`;
-        }
-
-        const card = document.getElementById('qa-sim-verdict-card');
-        const icon = document.getElementById('qa-sim-verdict-icon');
-        const title = document.getElementById('qa-sim-verdict-title');
-        const desc = document.getElementById('qa-sim-verdict-desc');
-        const tag = document.getElementById('qa-sim-verdict-tag');
-
-        if (card && title && desc && tag && icon) {
-            if (accepted) {
-                card.style.background = 'rgba(16,185,129,0.08)';
-                card.style.borderColor = 'rgba(16,185,129,0.35)';
-                icon.textContent = '✅';
-                title.textContent = 'ORDER ACCEPTED BY ENGINE';
-                title.style.color = '#34d399';
-                desc.textContent = `Order ${side} @ $${orderPrice.toFixed(4)} strictly complies with all Price Multipliers (${upMult}x / ${downMult}x) and Circuit Breakers (${cbPct}%).`;
-                tag.textContent = 'PERMITTED';
-                tag.style.background = 'rgba(16,185,129,0.25)';
-                tag.style.color = '#6ee7b7';
-            } else {
-                card.style.background = 'rgba(239,68,68,0.08)';
-                card.style.borderColor = 'rgba(239,68,68,0.35)';
-                icon.textContent = '❌';
-                title.textContent = `REJECTED: ${rejectCode}`;
-                title.style.color = '#f87171';
-                desc.textContent = rejectReason;
-                tag.textContent = 'BLOCKED BY HPO';
-                tag.style.background = 'rgba(239,68,68,0.25)';
-                tag.style.color = '#fca5a5';
-            }
         }
     };
 
