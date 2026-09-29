@@ -3643,12 +3643,9 @@
         <span id="term-btn-icon">▲</span> <span id="term-btn-text">BUY / LONG</span>
       </button>
       
-      <!-- Sub Action Row: Close Position + Reset -->
-      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;">
-        <button id="btn-close-position" class="term-exit-btn" onclick="window.submitClosePosition()" title="Instantly close any open position for this account and symbol">
-          ⚡ CLOSE / EXIT POSITION
-        </button>
-        <button class="term-reset-btn" onclick="window.resetTermForm()" title="Reset order inputs">✕</button>
+      <!-- Sub Action Row: Reset Form -->
+      <div style="display:flex;justify-content:flex-end;">
+        <button class="term-reset-btn" onclick="window.resetTermForm()" title="Reset order inputs" style="width:100%;display:flex;align-items:center;justify-content:center;gap:6px;padding:7px 12px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:6px;color:var(--text-muted);cursor:pointer;font-size:11px;font-weight:600;transition:all 0.15s ease;">✕ Clear Order Inputs</button>
       </div>
     </div>
   </div>
@@ -3950,7 +3947,7 @@ window.addEventListener('DOMContentLoaded', () => {
             if (window[u + 'Tab'] === tab) {
                 const bodyEl = document.getElementById(u + '-body');
                 if (bodyEl) {
-                    const colSpan = tab === 'hist' ? 7 : (tab === 'open' ? 9 : 8);
+                    const colSpan = tab === 'open' ? 9 : 8;
                     bodyEl.innerHTML = '<tr><td colspan="'+colSpan+'" style="text-align:center;padding:40px 0;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Loading...</td></tr>';
                 }
             }
@@ -4537,264 +4534,401 @@ window.addEventListener('DOMContentLoaded', () => {
             // Retrieve live position details if they exist in active portfolio payload
             const tierPorts = (window.payload && window.payload.portfolios && window.payload.portfolios[activeTier]) || {};
             const port = tierPorts[userToAct] || {};
-            const pos = (port.positions || []).find(p => p.symbol === symbol) || {};
-            const leverage = pos.leverage || 5;
+            const pos = (port.positions || []).find(p => p.symbol === symbol || (p.symbol && p.symbol.replace(/[-_]/g,'').toUpperCase() === symbol.replace(/[-_]/g,'').toUpperCase())) || {};
+
+            const side = pos.side || (currentSide === 'BUY' ? 'LONG' : (currentSide === 'SELL' ? 'SHORT' : (currentSide || 'LONG')));
+            const fullSize = parseFloat(pos.size || pos.positionAmt || 0);
+            const leverage = parseInt(pos.leverage || 5);
             const entryPrice = parseFloat(pos.entryPrice || 0);
-            const markPrice = parseFloat(pos.markPrice || window.fetchedBinanceLtp?.[symbol] || 0);
-            const posAmt = parseFloat(pos.positionAmt || 0);
-            const side = posAmt > 0 ? 'LONG' : (posAmt < 0 ? 'SHORT' : (currentSide === 'BUY' ? 'LONG' : 'SHORT'));
+            
+            // Mark price: pos.markPrice -> diagnostics -> fetchedBinanceLtp -> entryPrice
+            let markPrice = parseFloat(pos.markPrice || 0);
+            if (!markPrice || isNaN(markPrice)) {
+                const inst = (typeof cachedInstances !== 'undefined' && cachedInstances[symbol]) || {};
+                const diag = inst.diagnostics || {};
+                markPrice = parseFloat(diag.testnetMarkPrice || diag.binanceMarkPrice || diag.testnetLtp || diag.binanceLtp || window.fetchedBinanceLtp?.[symbol] || 0);
+            }
+            if (!markPrice && entryPrice) markPrice = entryPrice;
+
+            const marginInPos = parseFloat(pos.margin || (entryPrice > 0 && fullSize > 0 ? (entryPrice * fullSize) / leverage : 0));
+            const liqPrice = parseFloat(pos.liqPrice || 0);
+            const availBal = parseFloat(port.availableBalance || 0);
+            const posSizeUsdt = (fullSize * markPrice);
+            const baseAsset = symbol.replace(/USDT|USDC|INR|QA/g, '') || symbol;
 
             const sideBadgeClass = side === 'LONG' ? 'badge-green' : 'badge-red';
-            const subheaderHtml = `${symbol.replace('QA','')} <span class="${sideBadgeClass}">${side} ${leverage}x</span> <span class="badge-gray">Isolated</span>`;
+            const subheaderHtml = `<div style="display:flex;align-items:center;gap:8px;font-size:11px;font-family:'JetBrains Mono',monospace;">
+                <span style="font-weight:700;color:var(--cyan);font-family:'Inter',sans-serif;">${symbol}</span>
+                <span class="${sideBadgeClass}" style="padding:1px 6px;border-radius:4px;font-weight:700;">${side} ${leverage}×</span>
+                <span style="color:var(--text-muted);">Size: <strong style="color:var(--text-main);">${fullSize} ${baseAsset}</strong></span>
+                <span style="color:var(--text-muted);">Entry: <strong style="color:var(--text-main);">${entryPrice > 0 ? entryPrice.toFixed(2) : '-'}</strong></span>
+            </div>`;
 
-            // ── LEV: Set Leverage ─────────────────────────────────────────────
+            // ── LEV: Adjust Leverage ──────────────────────────────────────────
             if (action === 'lev') {
                 window.openL2Modal(
-                    'Select Leverage',
+                    'Adjust Leverage',
                     symbol, subheaderHtml,
-                    `<div class="l2-field-group">
-                        <div style="display:flex; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:10px; align-items:center; padding:2px;">
-                            <button type="button" onclick="var el=document.getElementById('fapi-lev-val');el.value=Math.max(1,parseInt(el.value||1)-1);window.updateL2LevSlider(el.value);" style="background:none; border:none; color:var(--text-muted); font-size:20px; padding:0 16px; cursor:pointer;">−</button>
-                            <input id="fapi-lev-val" class="l2-num-input" type="number" min="1" max="100" value="${leverage}" style="flex:1; background:none; border:none; color:var(--text-main); text-align:center; font-size:16px; font-family:'JetBrains Mono',monospace; outline:none;" oninput="window.updateL2LevSlider(this.value);">
-                            <button type="button" onclick="var el=document.getElementById('fapi-lev-val');el.value=Math.min(100,parseInt(el.value||1)+1);window.updateL2LevSlider(el.value);" style="background:none; border:none; color:var(--text-muted); font-size:20px; padding:0 16px; cursor:pointer;">+</button>
+                    `<div style="display:flex;flex-direction:column;gap:14px;">
+                        <div class="l2-field-group">
+                            <label style="font-size:11px;color:var(--text-muted);font-weight:600;">Target Leverage</label>
+                            <div style="display:flex; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:10px; align-items:center; padding:2px;">
+                                <button type="button" onclick="window.stepL2Lev(-1)" style="background:none; border:none; color:var(--text-muted); font-size:20px; padding:0 16px; cursor:pointer;">−</button>
+                                <input id="fapi-lev-val" class="l2-num-input" type="number" min="1" max="100" value="${leverage}" style="flex:1; background:none; border:none; color:var(--text-main); text-align:center; font-size:16px; font-family:'JetBrains Mono',monospace; outline:none;" oninput="window.setL2Lev(this.value);">
+                                <button type="button" onclick="window.stepL2Lev(1)" style="background:none; border:none; color:var(--text-muted); font-size:20px; padding:0 16px; cursor:pointer;">+</button>
+                            </div>
                         </div>
-                    </div>
-                    <div class="crypto-slider-wrap">
-                        <input id="l2-lev-slider" class="crypto-slider" type="range" min="1" max="100" value="${leverage}" oninput="document.getElementById('fapi-lev-val').value=this.value;">
-                        <div class="crypto-slider-ticks">
-                            <span onclick="document.getElementById('l2-lev-slider').value=1;document.getElementById('fapi-lev-val').value=1;" style="cursor:pointer;">1x</span>
-                            <span onclick="document.getElementById('l2-lev-slider').value=20;document.getElementById('fapi-lev-val').value=20;" style="cursor:pointer;">20x</span>
-                            <span onclick="document.getElementById('l2-lev-slider').value=40;document.getElementById('fapi-lev-val').value=40;" style="cursor:pointer;">40x</span>
-                            <span onclick="document.getElementById('l2-lev-slider').value=60;document.getElementById('fapi-lev-val').value=60;" style="cursor:pointer;">60x</span>
-                            <span onclick="document.getElementById('l2-lev-slider').value=80;document.getElementById('fapi-lev-val').value=80;" style="cursor:pointer;">80x</span>
-                            <span onclick="document.getElementById('l2-lev-slider').value=100;document.getElementById('fapi-lev-val').value=100;" style="cursor:pointer;">100x</span>
+                        <div class="crypto-slider-wrap">
+                            <input id="l2-lev-slider" class="crypto-slider" type="range" min="1" max="100" value="${leverage}" oninput="window.setL2Lev(this.value)">
+                            <div class="crypto-slider-ticks">
+                                <span onclick="window.setL2Lev(1)" style="cursor:pointer;">1x</span>
+                                <span onclick="window.setL2Lev(20)" style="cursor:pointer;">20x</span>
+                                <span onclick="window.setL2Lev(40)" style="cursor:pointer;">40x</span>
+                                <span onclick="window.setL2Lev(60)" style="cursor:pointer;">60x</span>
+                                <span onclick="window.setL2Lev(80)" style="cursor:pointer;">80x</span>
+                                <span onclick="window.setL2Lev(100)" style="cursor:pointer;">100x</span>
+                            </div>
                         </div>
-                    </div>
-                    <div style="font-size:11px; color:var(--text-muted); display:flex; flex-direction:column; gap:8px; margin-top:12px; line-height: 1.4;">
-                        <div style="display:flex; gap:8px; align-items:flex-start;">
-                            <span style="color:#3b66f5; font-size:12px;">•</span>
-                            <span>Max Position Size at selected leverage: 1,50,000.00 USDT. <span style="color:#4b70f5; cursor:pointer; font-weight:600;">Learn More</span></span>
+                        
+                        <!-- Real-time Leverage Impact Preview -->
+                        <div style="background:var(--row-bg); border:1px solid var(--border); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:8px; font-size:12px;">
+                            <div style="display:flex; justify-content:space-between;">
+                                <span style="color:var(--text-muted);">Current Leverage</span>
+                                <span style="color:var(--text-main); font-weight:700;">${leverage}×</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between;">
+                                <span style="color:var(--text-muted);">Required Margin at New Leverage</span>
+                                <span id="l2-lev-req-margin" style="color:var(--cyan); font-weight:700;">${(entryPrice > 0 && fullSize > 0 ? (entryPrice * fullSize / leverage).toFixed(2) : '0.00')} USDT</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between;">
+                                <span style="color:var(--text-muted);">Max Position Size</span>
+                                <span id="l2-lev-max-size" style="color:var(--text-main); font-weight:600;">1,000,000.00 USDT</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between;">
+                                <span style="color:var(--text-muted);">Available Balance</span>
+                                <span style="color:var(--emerald); font-weight:600;">${availBal.toFixed(2)} USDT</span>
+                            </div>
                         </div>
-                        <div style="display:flex; gap:8px; align-items:flex-start;">
-                            <span style="color:#3b66f5; font-size:12px;">•</span>
-                            <span>It is recommended to use a lower leverage to reduce risk of liquidation.</span>
+
+                        <div id="l2-lev-warning" style="font-size:11px; color:var(--text-muted); line-height:1.4;">
+                            Higher leverage increases liquidation risk. Ensure sufficient margin is maintained.
                         </div>
                     </div>`,
                     'Confirm',
                     async () => {
                         const lev = parseInt(document.getElementById('fapi-lev-val')?.value);
-                        if (!lev || lev < 1) throw new Error('Invalid leverage value');
+                        if (!lev || lev < 1 || lev > 100) throw new Error('Leverage must be between 1 and 100');
                         await execApi('/fapi/v1/leverage', { symbol, leverage: lev });
                         showToast(`✓ Leverage set to ${lev}× for ${symbol}`);
+                        if (typeof window.renderPortfolios === 'function') window.renderPortfolios();
                     }
                 );
 
-                window.updateL2LevSlider = function(val) {
-                    const slider = document.getElementById('l2-lev-slider');
-                    if (slider) slider.value = val;
+                window.stepL2Lev = function(delta) {
+                    const el = document.getElementById('fapi-lev-val');
+                    const cur = parseInt(el?.value || 1);
+                    window.setL2Lev(Math.max(1, Math.min(100, cur + delta)));
                 };
+
+                window.setL2Lev = function(val) {
+                    const num = Math.max(1, Math.min(100, parseInt(val) || 1));
+                    const input = document.getElementById('fapi-lev-val');
+                    const slider = document.getElementById('l2-lev-slider');
+                    if (input) input.value = num;
+                    if (slider) slider.value = num;
+                    
+                    const reqMarginEl = document.getElementById('l2-lev-req-margin');
+                    const maxSizeEl = document.getElementById('l2-lev-max-size');
+                    const warnEl = document.getElementById('l2-lev-warning');
+
+                    if (reqMarginEl && entryPrice > 0 && fullSize > 0) {
+                        const newReq = (entryPrice * fullSize) / num;
+                        reqMarginEl.textContent = `${newReq.toFixed(2)} USDT`;
+                        if (newReq > (availBal + marginInPos)) {
+                            if (warnEl) warnEl.innerHTML = `<span style="color:#fb7185;font-weight:700;">⚠️ Insufficient balance to maintain position at ${num}× leverage.</span>`;
+                        } else if (warnEl) {
+                            warnEl.innerHTML = `Higher leverage increases liquidation risk. Ensure sufficient margin is maintained.`;
+                        }
+                    }
+
+                    if (maxSizeEl) {
+                        let maxVal = '100,000.00';
+                        if (num <= 10) maxVal = '5,000,000.00';
+                        else if (num <= 20) maxVal = '2,000,000.00';
+                        else if (num <= 50) maxVal = '500,000.00';
+                        else if (num <= 75) maxVal = '250,000.00';
+                        maxSizeEl.textContent = `${maxVal} USDT`;
+                    }
+                };
+                window.setL2Lev(leverage);
 
             // ── MARG: Adjust Margin ───────────────────────────────────────────
             } else if (action === 'marg') {
-                const marginInPos = parseFloat(pos.margin || 0).toFixed(2);
-                const liqPrice = parseFloat(pos.liqPrice || 0).toFixed(2);
-                const sizeValUsdt = (Math.abs(posAmt) * markPrice).toFixed(2);
-                const availBal = parseFloat(port.availableBalance || 0).toFixed(2);
+                const initMarginReq = (entryPrice > 0 && fullSize > 0) ? (entryPrice * fullSize) / leverage : 0;
+                const maxRemovable = Math.max(0, marginInPos - initMarginReq);
 
                 window.openL2Modal(
-                    'Adjust Position',
+                    'Add / Reduce Margin',
                     symbol, subheaderHtml,
-                    `<div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
-                        <div>
-                            <div style="font-size:11px; color:var(--text-muted); font-weight:600;">Last Traded Price</div>
-                            <div style="font-size:15px; font-weight:700; color:var(--text-main); margin-top:2px;">${markPrice.toFixed(2)}</div>
-                        </div>
-                        <div>
-                            <div style="font-size:11px; color:var(--text-muted); font-weight:600;">Size (Incl. orders)</div>
-                            <div style="font-size:15px; font-weight:700; color:var(--text-main); margin-top:2px;">${sizeValUsdt} USDT</div>
-                        </div>
-                    </div>
-                    
-                    <div class="crypto-tab-group" style="margin-bottom:16px;">
-                        <button type="button" class="crypto-tab" onclick="window.selectL2MargTab('leverage')" id="tab-marg-leverage">Leverage</button>
-                        <button type="button" class="crypto-tab active" onclick="window.selectL2MargTab('margin')" id="tab-marg-margin">Margin</button>
-                        <button type="button" class="crypto-tab" onclick="window.selectL2MargTab('liq')" id="tab-marg-liq">Liq. Price</button>
-                    </div>
-                    
-                    <div id="marg-sec-leverage" style="display:none; flex-direction:column; gap:12px;">
-                        <div style="display:flex; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:10px; align-items:center; padding:2px;">
-                            <button type="button" onclick="var el=document.getElementById('fapi-lev-val2');el.value=Math.max(1,parseInt(el.value||1)-1);document.getElementById('l2-lev-slider2').value=el.value;" style="background:none; border:none; color:var(--text-muted); font-size:20px; padding:0 16px; cursor:pointer;">−</button>
-                            <input id="fapi-lev-val2" class="l2-num-input" type="number" min="1" max="100" value="${leverage}" style="flex:1; background:none; border:none; color:var(--text-main); text-align:center; font-size:16px; font-family:'JetBrains Mono',monospace; outline:none;" oninput="document.getElementById('l2-lev-slider2').value=this.value;">
-                            <button type="button" onclick="var el=document.getElementById('fapi-lev-val2');el.value=Math.min(100,parseInt(el.value||1)+1);document.getElementById('l2-lev-slider2').value=el.value;" style="background:none; border:none; color:var(--text-muted); font-size:20px; padding:0 16px; cursor:pointer;">+</button>
-                        </div>
-                        <div class="crypto-slider-wrap">
-                            <input id="l2-lev-slider2" class="crypto-slider" type="range" min="1" max="100" value="${leverage}" oninput="document.getElementById('fapi-lev-val2').value=this.value;">
-                            <div class="crypto-slider-ticks">
-                                <span>1x</span>
-                                <span>20x</span>
-                                <span>40x</span>
-                                <span>60x</span>
-                                <span>80x</span>
-                                <span>100x</span>
+                    `<div style="display:flex;flex-direction:column;gap:14px;">
+                        <!-- Top Summary Cards -->
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                            <div style="background:var(--row-bg);border:1px solid var(--border);border-radius:10px;padding:10px 12px;">
+                                <div style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Position Margin</div>
+                                <div style="font-size:15px; font-weight:700; color:var(--cyan); margin-top:2px;">${marginInPos.toFixed(2)} USDT</div>
+                            </div>
+                            <div style="background:var(--row-bg);border:1px solid var(--border);border-radius:10px;padding:10px 12px;">
+                                <div style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Est. Liq Price</div>
+                                <div style="font-size:15px; font-weight:700; color:var(--yellow); margin-top:2px;">${liqPrice > 0 ? liqPrice.toFixed(2) : '-'} USDT</div>
                             </div>
                         </div>
-                    </div>
-
-                    <div id="marg-sec-margin" style="display:flex; flex-direction:column; gap:12px;">
-                        <div style="display:flex; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:10px; align-items:center; padding:2px;">
-                            <button type="button" onclick="var el=document.getElementById('fapi-marg-amt');el.value=Math.max(0,(parseFloat(el.value||0)-10)).toFixed(2)" style="background:none; border:none; color:var(--text-muted); font-size:20px; padding:0 16px; cursor:pointer;">−</button>
-                            <input id="fapi-marg-amt" class="l2-num-input" type="number" min="0" step="1" value="10" style="flex:1; background:none; border:none; color:var(--text-main); text-align:center; font-size:16px; font-family:'JetBrains Mono',monospace; outline:none;">
-                            <button type="button" onclick="var el=document.getElementById('fapi-marg-amt');el.value=(parseFloat(el.value||0)+10).toFixed(2)" style="background:none; border:none; color:var(--text-muted); font-size:20px; padding:0 16px; cursor:pointer;">+</button>
-                        </div>
                         
+                        <!-- Add / Reduce Mode Switcher -->
                         <div style="display:flex; gap:8px;">
-                            <label style="flex:1; display:flex; align-items:center; gap:8px; background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.2); border-radius:10px; padding:12px 14px; cursor:pointer;">
-                                <input type="radio" name="marg-type" id="fapi-marg-add" value="1" checked style="accent-color:#34d399; width:14px; height:14px;"> 
-                                <span style="font-size:12px; color:#34d399; font-weight:700; letter-spacing:0.3px;">ADD Margin</span>
+                            <label id="marg-card-add" style="flex:1; display:flex; align-items:center; gap:8px; background:rgba(16,185,129,0.12); border:1.5px solid #10b981; border-radius:10px; padding:10px 12px; cursor:pointer;" onclick="window.setMargMode(1)">
+                                <input type="radio" name="marg-type" id="fapi-marg-add" value="1" checked style="accent-color:#10b981; width:15px; height:15px;"> 
+                                <span style="font-size:12px; color:#34d399; font-weight:800; letter-spacing:0.3px;">+ ADD MARGIN</span>
                             </label>
-                            <label style="flex:1; display:flex; align-items:center; gap:8px; background:rgba(248,113,113,0.06); border:1px solid rgba(248,113,113,0.2); border-radius:10px; padding:12px 14px; cursor:pointer;">
-                                <input type="radio" name="marg-type" id="fapi-marg-red" value="2" style="accent-color:#f87171; width:14px; height:14px;"> 
-                                <span style="font-size:12px; color:#f87171; font-weight:700; letter-spacing:0.3px;">REDUCE Margin</span>
+                            <label id="marg-card-red" style="flex:1; display:flex; align-items:center; gap:8px; background:rgba(244,63,94,0.04); border:1px solid var(--border); border-radius:10px; padding:10px 12px; cursor:pointer;" onclick="window.setMargMode(2)">
+                                <input type="radio" name="marg-type" id="fapi-marg-red" value="2" style="accent-color:#f87171; width:15px; height:15px;"> 
+                                <span style="font-size:12px; color:#f87171; font-weight:800; letter-spacing:0.3px;">− REDUCE MARGIN</span>
                             </label>
                         </div>
-                        
-                        <div style="background:var(--row-bg); border:1px solid var(--border); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:8px; font-size:12px; margin-top:8px;">
-                            <div style="display:flex; justify-content:space-between;">
-                                <span style="color:var(--text-muted);">Est. liq. price (USDT)</span>
-                                <span style="color:var(--text-main); font-weight:600;">${liqPrice}  →  --</span>
-                            </div>
-                            <div style="display:flex; justify-content:space-between;">
-                                <span style="color:var(--text-muted);">Margin in position (USDT)</span>
-                                <span style="color:var(--text-main); font-weight:600;">${marginInPos}  →  --</span>
-                            </div>
-                        </div>
-                        
-                        <div style="text-align:right; font-size:11px; color:var(--text-muted); margin-top:4px;">
-                            Available <span style="color:var(--text-main); font-weight:600;">${availBal} USDT</span>
-                        </div>
-                    </div>
 
-                    <div id="marg-sec-liq" style="display:none; flex-direction:column; gap:12px;">
+                        <!-- Amount Input with Steppers -->
+                        <div class="l2-field-group">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                                <label style="font-size:11px;color:var(--text-muted);font-weight:600;">Margin Amount</label>
+                                <span id="marg-avail-label" style="font-size:10.5px;color:var(--text-muted);">Available: <strong style="color:var(--text-main);">${availBal.toFixed(2)} USDT</strong></span>
+                            </div>
+                            <div style="display:flex; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:10px; align-items:center; padding:2px;">
+                                <button type="button" onclick="window.stepMargAmt(-10)" style="background:none; border:none; color:var(--text-muted); font-size:20px; padding:0 16px; cursor:pointer;">−</button>
+                                <input id="fapi-marg-amt" class="l2-num-input" type="number" min="0.01" step="any" value="10" style="flex:1; background:none; border:none; color:var(--text-main); text-align:center; font-size:16px; font-family:'JetBrains Mono',monospace; outline:none;" oninput="window.updateMargCalc()">
+                                <button type="button" onclick="window.stepMargAmt(10)" style="background:none; border:none; color:var(--text-muted); font-size:20px; padding:0 16px; cursor:pointer;">+</button>
+                                <span style="color:var(--text-muted); padding-right:12px; font-size:12px; font-weight:700;">USDT</span>
+                            </div>
+                        </div>
+
+                        <!-- Quick Percentage Pills -->
+                        <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:8px;">
+                            <button type="button" class="pct-btn" onclick="window.setMargPct(25)">25%</button>
+                            <button type="button" class="pct-btn" onclick="window.setMargPct(50)">50%</button>
+                            <button type="button" class="pct-btn" onclick="window.setMargPct(75)">75%</button>
+                            <button type="button" class="pct-btn" onclick="window.setMargPct(100)">MAX</button>
+                        </div>
+                        
+                        <!-- Dynamic Impact Preview Card -->
                         <div style="background:var(--row-bg); border:1px solid var(--border); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:8px; font-size:12px;">
                             <div style="display:flex; justify-content:space-between;">
-                                <span style="color:var(--text-muted);">Estimated Liquidation Price</span>
-                                <span style="color:#fb7185; font-weight:700;">${liqPrice} USDT</span>
+                                <span style="color:var(--text-muted);">Margin in Position</span>
+                                <span id="marg-prev-margin" style="color:var(--text-main); font-weight:700;">${marginInPos.toFixed(2)} → ${(marginInPos + 10).toFixed(2)} USDT</span>
                             </div>
+                            <div style="display:flex; justify-content:space-between;">
+                                <span style="color:var(--text-muted);">Est. Liquidation Price</span>
+                                <span id="marg-prev-liq" style="color:var(--yellow); font-weight:700;">--</span>
+                            </div>
+                        </div>
+                        
+                        <div id="marg-calc-info" style="font-size:11px; color:var(--text-muted); line-height:1.4;">
+                            Adding margin lowers liquidation risk.
                         </div>
                     </div>`,
                     'Confirm',
                     async () => {
-                        const activeTab = document.querySelector('.crypto-tab.active')?.id.replace('tab-marg-', '');
-                        if (activeTab === 'leverage') {
-                            const lev = parseInt(document.getElementById('fapi-lev-val2')?.value);
-                            if (!lev || lev < 1) throw new Error('Invalid leverage value');
-                            await execApi('/fapi/v1/leverage', { symbol, leverage: lev });
-                            showToast(`✓ Leverage set to ${lev}× for ${symbol}`);
-                        } else if (activeTab === 'margin') {
-                            const amt  = parseFloat(document.getElementById('fapi-marg-amt')?.value);
-                            const type = document.getElementById('fapi-marg-add')?.checked ? 1 : 2;
-                            if (!amt || amt <= 0) throw new Error('Invalid margin amount');
-                            await execApi('/fapi/v1/positionMargin', { symbol, amount: amt, type });
-                            showToast(`✓ Margin ${type===1?'added':'reduced'}: ${amt} USDT on ${symbol}`);
-                        } else {
-                            showToast('✓ Liq Price viewed');
-                        }
+                        const amt = parseFloat(document.getElementById('fapi-marg-amt')?.value);
+                        const isAdd = document.getElementById('fapi-marg-add')?.checked;
+                        if (!amt || isNaN(amt) || amt <= 0) throw new Error('Enter a valid margin amount');
+                        if (isAdd && amt > availBal) throw new Error(`Amount exceeds available balance (${availBal.toFixed(2)} USDT)`);
+                        if (!isAdd && amt > maxRemovable) throw new Error(`Cannot reduce below initial margin requirement (Max removable: ${maxRemovable.toFixed(2)} USDT)`);
+                        
+                        await execApi('/fapi/v1/positionMargin', { symbol, amount: amt, type: isAdd ? 1 : 2 });
+                        showToast(`✓ Margin ${isAdd ? 'added' : 'reduced'}: ${amt} USDT on ${symbol}`);
+                        if (typeof window.renderPortfolios === 'function') window.renderPortfolios();
                     }
                 );
 
-                window.selectL2MargTab = function(tabName) {
-                    ['leverage', 'margin', 'liq'].forEach(t => {
-                        const sec = document.getElementById('marg-sec-' + t);
-                        const tab = document.getElementById('tab-marg-' + t);
-                        if (sec) sec.style.display = t === tabName ? 'flex' : 'none';
-                        if (tab) {
-                            if (t === tabName) tab.classList.add('active');
-                            else tab.classList.remove('active');
-                        }
-                    });
+                window.setMargMode = function(type) {
+                    const addRadio = document.getElementById('fapi-marg-add');
+                    const redRadio = document.getElementById('fapi-marg-red');
+                    const addCard = document.getElementById('marg-card-add');
+                    const redCard = document.getElementById('marg-card-red');
+
+                    if (type === 1) {
+                        if (addRadio) addRadio.checked = true;
+                        if (addCard) { addCard.style.border = '1.5px solid #10b981'; addCard.style.background = 'rgba(16,185,129,0.12)'; }
+                        if (redCard) { redCard.style.border = '1px solid var(--border)'; redCard.style.background = 'rgba(244,63,94,0.04)'; }
+                    } else {
+                        if (redRadio) redRadio.checked = true;
+                        if (redCard) { redCard.style.border = '1.5px solid #f43f5e'; redCard.style.background = 'rgba(244,63,94,0.12)'; }
+                        if (addCard) { addCard.style.border = '1px solid var(--border)'; addCard.style.background = 'rgba(16,185,129,0.04)'; }
+                    }
+                    window.updateMargCalc();
                 };
 
-            // ── REDUCE or CLOSE: Close / Reduce Position ───────────────────────
-            } else if (action === 'red' || action === 'close') {
-                const fullSize = Math.abs(posAmt);
+                window.stepMargAmt = function(delta) {
+                    const el = document.getElementById('fapi-marg-amt');
+                    const cur = parseFloat(el?.value || 0);
+                    el.value = Math.max(0.1, cur + delta).toFixed(2);
+                    window.updateMargCalc();
+                };
+
+                window.setMargPct = function(pct) {
+                    const isAdd = document.getElementById('fapi-marg-add')?.checked;
+                    const maxAllowed = isAdd ? availBal : maxRemovable;
+                    const amtInput = document.getElementById('fapi-marg-amt');
+                    if (amtInput) {
+                        amtInput.value = (maxAllowed * (pct / 100)).toFixed(2);
+                        window.updateMargCalc();
+                    }
+                };
+
+                window.updateMargCalc = function() {
+                    const isAdd = document.getElementById('fapi-marg-add')?.checked;
+                    const amtInput = document.getElementById('fapi-marg-amt');
+                    const amt = parseFloat(amtInput?.value || 0);
+                    const curMargin = marginInPos;
+                    const curLiq = liqPrice;
+                    
+                    let newMargin = curMargin;
+                    let newLiq = curLiq;
+                    
+                    const infoEl = document.getElementById('marg-calc-info');
+                    const previewMarginEl = document.getElementById('marg-prev-margin');
+                    const previewLiqEl = document.getElementById('marg-prev-liq');
+                    const availLabel = document.getElementById('marg-avail-label');
+                    
+                    if (isAdd) {
+                        newMargin = curMargin + amt;
+                        if (fullSize > 0) {
+                            if (side === 'LONG') {
+                                newLiq = Math.max(0, entryPrice - (newMargin / fullSize));
+                            } else {
+                                newLiq = entryPrice + (newMargin / fullSize);
+                            }
+                        }
+                        if (availLabel) availLabel.innerHTML = `Available Balance: <strong style="color:var(--text-main);">${availBal.toFixed(2)} USDT</strong>`;
+                        if (amt > availBal) {
+                            if (infoEl) infoEl.innerHTML = `<span style="color:#fb7185;font-weight:700;">⚠️ Amount exceeds available balance (${availBal.toFixed(2)} USDT)</span>`;
+                        } else {
+                            if (infoEl) infoEl.innerHTML = `<span style="color:var(--text-muted);">Adding margin lowers liquidation risk.</span>`;
+                        }
+                    } else {
+                        newMargin = Math.max(0, curMargin - amt);
+                        if (fullSize > 0) {
+                            if (side === 'LONG') {
+                                newLiq = Math.max(0, entryPrice - (newMargin / fullSize));
+                            } else {
+                                newLiq = entryPrice + (newMargin / fullSize);
+                            }
+                        }
+                        if (availLabel) availLabel.innerHTML = `Max Removable: <strong style="color:var(--text-main);">${maxRemovable.toFixed(2)} USDT</strong>`;
+                        if (amt > maxRemovable) {
+                            if (infoEl) infoEl.innerHTML = `<span style="color:#fb7185;font-weight:700;">⚠️ Cannot reduce below initial margin requirement (${initMarginReq.toFixed(2)} USDT)</span>`;
+                        } else {
+                            if (infoEl) infoEl.innerHTML = `<span style="color:var(--text-muted);">Reducing margin returns funds to available balance.</span>`;
+                        }
+                    }
+                    
+                    if (previewMarginEl) previewMarginEl.textContent = `${curMargin.toFixed(2)} → ${newMargin.toFixed(2)} USDT`;
+                    if (previewLiqEl) previewLiqEl.textContent = `${curLiq > 0 ? curLiq.toFixed(2) : '-'} → ${newLiq > 0 ? newLiq.toFixed(2) : '-'} USDT`;
+                };
+                window.updateMargCalc();
+
+            // ── CLOSE: Close Position ─────────────────────────────────────────
+            } else if (action === 'close' || action === 'red') {
                 const entryPriceVal = entryPrice.toFixed(2);
                 const lastPriceVal = markPrice.toFixed(2);
-                const posSizeUsdtVal = (fullSize * markPrice).toFixed(2);
+                const posSizeUsdtVal = posSizeUsdt.toFixed(2);
 
                 window.openL2Modal(
-                    'Reduce / Close Position',
+                    'Close Position',
                     symbol, subheaderHtml,
-                    `<div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
-                        <div>
-                            <div style="font-size:11px; color:var(--text-muted); font-weight:600;">Avg. Entry Price</div>
-                            <div style="font-size:15px; font-weight:700; color:var(--text-main); margin-top:2px;">${entryPriceVal}</div>
+                    `<div style="display:flex;flex-direction:column;gap:14px;">
+                        <!-- Top Summary Cards -->
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                            <div style="background:var(--row-bg);border:1px solid var(--border);border-radius:10px;padding:10px 12px;">
+                                <div style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Avg. Entry Price</div>
+                                <div style="font-size:15px; font-weight:700; color:var(--text-main); margin-top:2px;">${entryPriceVal}</div>
+                            </div>
+                            <div style="background:var(--row-bg);border:1px solid var(--border);border-radius:10px;padding:10px 12px;">
+                                <div style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Last Traded Price</div>
+                                <div style="font-size:15px; font-weight:700; color:var(--cyan); margin-top:2px;">${lastPriceVal}</div>
+                            </div>
                         </div>
-                        <div>
-                            <div style="font-size:11px; color:var(--text-muted); font-weight:600;">Last Traded Price</div>
-                            <div style="font-size:15px; font-weight:700; color:var(--text-main); margin-top:2px;">${lastPriceVal}</div>
+                        
+                        <!-- Order Type Tabs: Market / Limit -->
+                        <div class="crypto-tab-group" style="margin-bottom:2px;">
+                            <button type="button" class="crypto-tab active" onclick="window.selectL2CloseTab('market')" id="tab-close-market">Market Close</button>
+                            <button type="button" class="crypto-tab" onclick="window.selectL2CloseTab('limit')" id="tab-close-limit">Limit Close</button>
                         </div>
-                    </div>
-                    
-                    <div class="crypto-tab-group" style="margin-bottom:16px;">
-                        <button type="button" class="crypto-tab" onclick="window.selectL2CloseTab('quick')" id="tab-close-quick">Quick</button>
-                        <button type="button" class="crypto-tab" onclick="window.selectL2CloseTab('market')" id="tab-close-market">Market</button>
-                        <button type="button" class="crypto-tab active" onclick="window.selectL2CloseTab('limit')" id="tab-close-limit">Limit</button>
-                    </div>
-                    
-                    <!-- Limit Price Row -->
-                    <div id="l2-close-price-row" class="l2-field-group" style="display:flex;">
-                        <label style="font-size:11px; color:var(--text-muted);">Limit Price</label>
-                        <div style="display:flex; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:10px; align-items:center; padding:2px;">
-                            <input id="l2-limit-price" class="l2-num-input" type="number" min="0" step="0.1" value="${lastPriceVal}" style="flex:1; background:none; border:none; color:var(--text-main); text-align:center; font-size:14px; font-family:'JetBrains Mono',monospace; outline:none;" oninput="window.updateL2EstPnl(${entryPrice}, ${leverage}, '${side}')">
-                            <button type="button" onclick="var el=document.getElementById('l2-limit-price');el.value=(parseFloat(el.value)-10).toFixed(2);window.updateL2EstPnl(${entryPrice}, ${leverage}, '${side}')" style="background:none; border:none; color:var(--text-muted); font-size:20px; padding:0 14px; cursor:pointer;">−</button>
-                            <button type="button" onclick="var el=document.getElementById('l2-limit-price');el.value=(parseFloat(el.value)+10).toFixed(2);window.updateL2EstPnl(${entryPrice}, ${leverage}, '${side}')" style="background:none; border:none; color:var(--text-muted); font-size:20px; padding:0 14px; cursor:pointer;">+</button>
+                        
+                        <!-- Limit Price Row (Only for Limit tab) -->
+                        <div id="l2-close-price-row" class="l2-field-group" style="display:none;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                                <label style="font-size:11px; color:var(--text-muted); font-weight:600;">Close Price (USDT)</label>
+                                <div style="display:flex;gap:4px;">
+                                    <span class="term-chip" onclick="document.getElementById('l2-limit-price').value='${lastPriceVal}';window.updateL2EstPnl();" style="cursor:pointer;font-size:9.5px;padding:1px 6px;">Last</span>
+                                    <span class="term-chip" onclick="document.getElementById('l2-limit-price').value='${entryPriceVal}';window.updateL2EstPnl();" style="cursor:pointer;font-size:9.5px;padding:1px 6px;">Entry</span>
+                                </div>
+                            </div>
+                            <div style="display:flex; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:10px; align-items:center; padding:2px;">
+                                <button type="button" onclick="var el=document.getElementById('l2-limit-price');el.value=Math.max(0.01,(parseFloat(el.value||0)-10)).toFixed(2);window.updateL2EstPnl()" style="background:none; border:none; color:var(--text-muted); font-size:20px; padding:0 14px; cursor:pointer;">−</button>
+                                <input id="l2-limit-price" class="l2-num-input" type="number" min="0" step="any" value="${lastPriceVal}" style="flex:1; background:none; border:none; color:var(--text-main); text-align:center; font-size:15px; font-family:'JetBrains Mono',monospace; outline:none;" oninput="window.updateL2EstPnl()">
+                                <button type="button" onclick="var el=document.getElementById('l2-limit-price');el.value=(parseFloat(el.value||0)+10).toFixed(2);window.updateL2EstPnl()" style="background:none; border:none; color:var(--text-muted); font-size:20px; padding:0 14px; cursor:pointer;">+</button>
+                            </div>
                         </div>
-                    </div>
 
-                    <!-- Size Row -->
-                    <div class="l2-field-group">
-                        <label style="font-size:11px; color:var(--text-muted);">Size</label>
-                        <div style="display:flex; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:10px; align-items:center; padding:2px;">
-                            <input id="l2-size-input" class="l2-num-input" type="number" min="0" step="0.001" value="${fullSize}" style="flex:1; background:none; border:none; color:var(--text-main); text-align:center; font-size:14px; font-family:'JetBrains Mono',monospace; outline:none;" oninput="window.updateL2EstPnl(${entryPrice}, ${leverage}, '${side}')">
-                            <span style="color:var(--text-muted); padding-right:16px; font-size:13px; font-weight:600; font-family:monospace;">USDT ▾</span>
+                        <!-- Size Row -->
+                        <div class="l2-field-group">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                                <label style="font-size:11px; color:var(--text-muted); font-weight:600;">Close Amount (${baseAsset})</label>
+                                <span style="font-size:10.5px; color:var(--text-muted);">Total Size: <strong style="color:var(--text-main);">${fullSize} ${baseAsset}</strong></span>
+                            </div>
+                            <div style="display:flex; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:10px; align-items:center; padding:2px;">
+                                <button type="button" onclick="window.stepCloseQty(-1)" style="background:none; border:none; color:var(--text-muted); font-size:20px; padding:0 14px; cursor:pointer;">−</button>
+                                <input id="l2-size-input" class="l2-num-input" type="number" min="0.001" step="any" value="${fullSize}" style="flex:1; background:none; border:none; color:var(--text-main); text-align:center; font-size:15px; font-family:'JetBrains Mono',monospace; outline:none;" oninput="window.updateL2EstPnl()">
+                                <button type="button" onclick="window.stepCloseQty(1)" style="background:none; border:none; color:var(--text-muted); font-size:20px; padding:0 14px; cursor:pointer;">+</button>
+                                <span style="color:var(--text-muted); padding-right:12px; font-size:12px; font-weight:700;">${baseAsset}</span>
+                            </div>
                         </div>
-                        <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-muted); margin-top:2px;">
-                            <span id="l2-size-contracts">${fullSize.toFixed(3)} ${symbol.replace('USDT','').replace('QA','')}</span>
-                            <span>Position Size ${posSizeUsdtVal} USDT</span>
-                        </div>
-                    </div>
 
-                    <!-- Percentage Buttons -->
-                    <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:8px;">
-                        <button type="button" class="pct-btn" onclick="window.setClosePct(25, ${fullSize}, ${entryPrice}, ${leverage}, '${side}')">25%</button>
-                        <button type="button" class="pct-btn" onclick="window.setClosePct(50, ${fullSize}, ${entryPrice}, ${leverage}, '${side}')">50%</button>
-                        <button type="button" class="pct-btn" onclick="window.setClosePct(75, ${fullSize}, ${entryPrice}, ${leverage}, '${side}')">75%</button>
-                        <button type="button" class="pct-btn active" onclick="window.setClosePct(100, ${fullSize}, ${entryPrice}, ${leverage}, '${side}')">100%</button>
-                    </div>
-
-                    <!-- Est. PNL Card -->
-                    <div style="background:var(--row-bg); border:1px solid var(--border); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:8px; font-size:12px; margin-top:8px;">
-                        <div style="display:flex; justify-content:space-between;">
-                            <span style="color:var(--text-muted);">Est. PNL</span>
-                            <span id="l2-est-pnl" style="color:#34d399; font-weight:700;">+0.00 USDT</span>
+                        <!-- Percentage Buttons -->
+                        <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:8px;">
+                            <button type="button" class="pct-btn" onclick="window.setClosePct(25)">25%</button>
+                            <button type="button" class="pct-btn" onclick="window.setClosePct(50)">50%</button>
+                            <button type="button" class="pct-btn" onclick="window.setClosePct(75)">75%</button>
+                            <button type="button" class="pct-btn active" onclick="window.setClosePct(100)">100% (ALL)</button>
                         </div>
-                        <div style="display:flex; justify-content:space-between;">
-                            <span style="color:var(--text-muted);">ROE %</span>
-                            <span id="l2-est-roe" style="color:#34d399; font-weight:700;">+0.00%</span>
+
+                        <!-- Est. PNL Card -->
+                        <div style="background:var(--row-bg); border:1px solid var(--border); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:8px; font-size:12px;">
+                            <div style="display:flex; justify-content:space-between;">
+                                <span style="color:var(--text-muted);">Est. Realized PNL</span>
+                                <span id="l2-est-pnl" style="color:#34d399; font-weight:700;">+0.00 USDT</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between;">
+                                <span style="color:var(--text-muted);">Estimated ROE %</span>
+                                <span id="l2-est-roe" style="color:#34d399; font-weight:700;">+0.00%</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between;">
+                                <span style="color:var(--text-muted);">Position Value Closed</span>
+                                <span id="l2-est-val" style="color:var(--text-main); font-weight:600;">${posSizeUsdtVal} USDT</span>
+                            </div>
                         </div>
                     </div>`,
-                    'Confirm',
+                    'Confirm Close',
                     async () => {
                         const qtyInput = document.getElementById('l2-size-input');
                         const qty = parseFloat(qtyInput?.value || 0);
-                        if (qty <= 0) throw new Error('Invalid quantity');
+                        if (qty <= 0) throw new Error('Enter a valid quantity to close');
+                        if (qty > fullSize * 1.001) throw new Error(`Quantity exceeds position size (${fullSize} ${baseAsset})`);
                         
-                        const activeTab = document.querySelector('.crypto-tab.active')?.id.replace('tab-close-', '');
+                        const isLimit = document.getElementById('tab-close-limit')?.classList.contains('active');
                         
-                        if (activeTab === 'quick' || activeTab === 'market') {
-                            if (qty >= fullSize * 0.98) {
+                        if (!isLimit) {
+                            if (qty >= fullSize * 0.999) {
                                 await execApi('/fapi/v1/exitPosition', { symbol, timestamp: Date.now() });
-                                showToast(`✓ Position closed: ${side} 	ext{${symbol.replace('QA','')}}`);
+                                showToast(`✓ Position closed: ${side} ${symbol.replace('QA','')}`);
                             } else {
                                 const p = { symbol, side: side === 'LONG' ? 'SELL' : 'BUY', type: 'MARKET', quantity: qty, reduceOnly: 'true' };
                                 await execApi('/fapi/v1/order', p);
@@ -4807,61 +4941,68 @@ window.addEventListener('DOMContentLoaded', () => {
                             await execApi('/fapi/v1/order', p);
                             showToast(`✓ Limit reduce order placed: ${qty} @ ${priceVal}`);
                         }
+                        if (typeof window.renderPortfolios === 'function') window.renderPortfolios();
+                        if (typeof window.fetchOrders === 'function') {
+                            window.fetchOrders('u1', 'open');
+                            window.fetchOrders('u2', 'open');
+                        }
                     }
                 );
 
                 window.selectL2CloseTab = function(tabName) {
-                    ['quick', 'market', 'limit'].forEach(t => {
-                        const btn = document.getElementById('tab-close-' + t);
-                        if (btn) {
-                            if (t === tabName) btn.classList.add('active');
-                            else btn.classList.remove('active');
-                        }
-                    });
+                    const mBtn = document.getElementById('tab-close-market');
+                    const lBtn = document.getElementById('tab-close-limit');
+                    if (mBtn) mBtn.classList.toggle('active', tabName === 'market');
+                    if (lBtn) lBtn.classList.toggle('active', tabName === 'limit');
                     const priceRow = document.getElementById('l2-close-price-row');
                     if (priceRow) {
                         priceRow.style.display = tabName === 'limit' ? 'flex' : 'none';
                     }
-                    window.updateL2EstPnl(entryPrice, leverage, side);
+                    window.updateL2EstPnl();
                 };
 
-                window.setClosePct = function(pct, maxVal, ep, lev, s) {
+                window.stepCloseQty = function(delta) {
+                    const el = document.getElementById('l2-size-input');
+                    const cur = parseFloat(el?.value || 0);
+                    const step = fullSize >= 1 ? 0.1 : 0.001;
+                    const next = Math.max(step, Math.min(fullSize, cur + (delta * step)));
+                    el.value = next.toFixed(3);
+                    window.updateL2EstPnl();
+                };
+
+                window.setClosePct = function(pct) {
                     document.querySelectorAll('.pct-btn').forEach(btn => {
-                        if (btn.textContent === pct + '%') btn.classList.add('active');
+                        if (btn.textContent.includes(pct + '%')) btn.classList.add('active');
                         else btn.classList.remove('active');
                     });
                     const sizeInput = document.getElementById('l2-size-input');
                     if (sizeInput) {
-                        sizeInput.value = (maxVal * (pct / 100)).toFixed(3);
-                        window.updateL2EstPnl(ep, lev, s);
+                        sizeInput.value = (fullSize * (pct / 100)).toFixed(3);
+                        window.updateL2EstPnl();
                     }
                 };
 
-                window.updateL2EstPnl = function(ep, lev, s) {
+                window.updateL2EstPnl = function() {
                     const sizeInput = document.getElementById('l2-size-input');
                     const priceInput = document.getElementById('l2-limit-price');
                     const pnlEl = document.getElementById('l2-est-pnl');
                     const roeEl = document.getElementById('l2-est-roe');
-                    const contractEl = document.getElementById('l2-size-contracts');
+                    const valEl = document.getElementById('l2-est-val');
                     
                     if (!sizeInput || !pnlEl || !roeEl) return;
                     
-                    const size = parseFloat(sizeInput.value) || 0;
+                    const qty = parseFloat(sizeInput.value) || 0;
                     const isLimit = document.getElementById('tab-close-limit')?.classList.contains('active');
-                    const price = isLimit ? (parseFloat(priceInput.value) || markPrice) : markPrice;
-                    
-                    if (contractEl) {
-                        contractEl.textContent = size.toFixed(3) + ' ' + symbol.replace('USDT','').replace('QA','');
-                    }
+                    const exitPrice = isLimit ? (parseFloat(priceInput?.value) || markPrice) : markPrice;
 
                     let pnl = 0;
-                    if (s === 'SHORT') {
-                        pnl = size * (ep - price);
+                    if (side === 'SHORT') {
+                        pnl = qty * (entryPrice - exitPrice);
                     } else {
-                        pnl = size * (price - ep);
+                        pnl = qty * (exitPrice - entryPrice);
                     }
                     
-                    const marginVal = (ep * size) / lev;
+                    const marginVal = leverage > 0 ? (entryPrice * qty) / leverage : (entryPrice * qty);
                     const roe = marginVal > 0 ? (pnl / marginVal) * 100 : 0;
                     
                     const sign = pnl >= 0 ? '+' : '';
@@ -4872,9 +5013,10 @@ window.addEventListener('DOMContentLoaded', () => {
                     
                     roeEl.textContent = `${sign}${roe.toFixed(2)}%`;
                     roeEl.style.color = color;
-                };
 
-                window.updateL2EstPnl(entryPrice, leverage, side);
+                    if (valEl) valEl.textContent = `${(qty * exitPrice).toFixed(2)} USDT`;
+                };
+                window.updateL2EstPnl();
 
             // ── CANCEL: Cancel Order ──────────────────────────────────────────
             } else if (action === 'cancel') {
@@ -7396,7 +7538,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 theadEl.innerHTML = '<tr><th style="width:115px;">Symbol</th><th style="text-align:right;width:60px;">Side</th><th style="text-align:right;width:85px;">Price</th><th style="text-align:right;width:85px;">Avg Price</th><th style="text-align:right;width:115px;">Progress</th><th style="text-align:right;width:80px;">Type</th><th style="text-align:right;width:75px;">Status</th><th style="text-align:right;width:80px;">Time</th><th style="text-align:right;width:150px;"><div style="display:flex;justify-content:flex-end;align-items:center;gap:6px;"><span>Actions</span><button class="act-btn act-cls" style="background:var(--rose);color:#fff;border-radius:4px;padding:2px 6px;font-size:9.5px;font-weight:700;line-height:1;" onclick="window.cancelAllOpenOrders(\''+panelId+'\')">CANCEL ALL</button></div></th></tr>';
                 rawData = allOpenOrders;
             } else if (tab === 'hist') {
-                theadEl.innerHTML = '<tr><th style="width:130px;">Symbol</th><th style="text-align:right;width:70px;">Side</th><th style="text-align:right;width:95px;">Price</th><th style="text-align:right;width:95px;">Avg Price</th><th style="text-align:right;width:120px;">Filled / Orig</th><th style="text-align:right;width:85px;">Status</th><th style="text-align:right;width:90px;">Time</th></tr>';
+                theadEl.innerHTML = '<tr><th style="width:115px;">Symbol</th><th style="text-align:right;width:60px;">Side</th><th style="text-align:right;width:80px;">Type</th><th style="text-align:right;width:85px;">Price</th><th style="text-align:right;width:85px;">Avg Price</th><th style="text-align:right;width:110px;">Filled / Orig</th><th style="text-align:right;width:75px;">Status</th><th style="text-align:right;width:80px;">Time</th></tr>';
                 rawData = [...allHistOrders].sort((a,b) => (b.time || b.updateTime || 0) - (a.time || a.updateTime || 0));
             } else {
                 theadEl.innerHTML = '<tr><th style="width:130px;">Symbol</th><th style="text-align:right;width:55px;">Lev</th><th style="text-align:right;width:80px;">Margin</th><th style="text-align:right;width:75px;">Size</th><th style="text-align:right;width:130px;">Unreal. PnL (ROI)</th><th style="text-align:right;width:125px;">Entry / Mark</th><th style="text-align:right;width:90px;">Liq. Price</th><th style="text-align:right;width:160px;">Actions</th></tr>';
@@ -7434,7 +7576,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 const msgSub = filterText 
                     ? `No matches found for symbol "${filterText}"` 
                     : (tab === 'open' ? 'No working limit orders on this account' : (tab === 'hist' ? 'No recent order history for active symbols' : 'Place an order to open a leveraged position'));
-                const colSpan = tab === 'hist' ? 7 : (tab === 'open' ? 9 : 8);
+                const colSpan = tab === 'open' ? 9 : 8;
                 bodyEl.innerHTML = `<tr><td colspan="${colSpan}" style="text-align:center;padding:48px 16px;">
                     <div style="font-size:24px;margin-bottom:6px;opacity:0.8;">${emptyIcon}</div>
                     <div style="font-weight:700;color:var(--text-main);font-size:12px;letter-spacing:0.5px;font-family:'Inter',sans-serif;">${msgTitle}</div>
@@ -7471,6 +7613,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     const sideColor = isBuy ? '#34d399' : '#fb7185';
                     const timeVal = o.time || o.updateTime;
                     const timeStr = timeVal ? new Date(Number(timeVal)).toLocaleTimeString() : 'N/A';
+                    const orderType = o.type || o.orderType || o.origType || 'LIMIT';
                     let statusHtml = '';
                     if (o.status === 'FILLED') statusHtml = '<span class="badge badge-ok">FILLED</span>';
                     else if (o.status === 'CANCELED' || o.status === 'EXPIRED') statusHtml = '<span class="badge badge-fail">'+o.status+'</span>';
@@ -7480,7 +7623,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     const apVal = o.avgPrice || o.avgExecutionPrice || o.ap;
                     const apDisplay = (apVal && parseFloat(apVal) > 0) ? parseFloat(apVal) : '-';
 
-                    return '<tr style="cursor:pointer;" onclick="window.showOrderId(\''+(o.orderId||o.id)+'\')" title="Click to copy Order ID"><td><span style="font-weight:700;color:var(--text-main);font-family:\'Inter\',sans-serif;">'+o.symbol+'</span></td><td style="text-align:right;color:'+sideColor+';font-weight:700;">'+o.side+'</td><td style="text-align:right;color:var(--text-main);font-family:\'JetBrains Mono\',monospace;">'+pDisplay+'</td><td style="text-align:right;color:'+(apDisplay !== '-' ? 'var(--cyan)' : 'var(--text-muted)')+';font-weight:600;font-family:\'JetBrains Mono\',monospace;">'+apDisplay+'</td><td style="text-align:right;color:var(--text-muted);font-family:\'JetBrains Mono\',monospace;">'+parseFloat(o.executedQty)+' / '+parseFloat(o.origQty)+'</td><td style="text-align:right;">'+statusHtml+'</td><td style="text-align:right;color:var(--text-muted);font-size:10px;font-family:\'JetBrains Mono\',monospace;">'+timeStr+'</td></tr>';
+                    return '<tr style="cursor:pointer;" onclick="window.showOrderId(\''+(o.orderId||o.id)+'\')" title="Click to copy Order ID"><td><span style="font-weight:700;color:var(--text-main);font-family:\'Inter\',sans-serif;">'+o.symbol+'</span></td><td style="text-align:right;color:'+sideColor+';font-weight:700;">'+o.side+'</td><td style="text-align:right;color:var(--text-muted);font-size:11px;">'+orderType+'</td><td style="text-align:right;color:var(--text-main);font-family:\'JetBrains Mono\',monospace;">'+pDisplay+'</td><td style="text-align:right;color:'+(apDisplay !== '-' ? 'var(--cyan)' : 'var(--text-muted)')+';font-weight:600;font-family:\'JetBrains Mono\',monospace;">'+apDisplay+'</td><td style="text-align:right;color:var(--text-muted);font-family:\'JetBrains Mono\',monospace;">'+parseFloat(o.executedQty)+' / '+parseFloat(o.origQty)+'</td><td style="text-align:right;">'+statusHtml+'</td><td style="text-align:right;color:var(--text-muted);font-size:10px;font-family:\'JetBrains Mono\',monospace;">'+timeStr+'</td></tr>';
                 }).join('');
             } else {
                 bodyEl.innerHTML = pageData.map(p => {
@@ -7503,8 +7646,7 @@ window.addEventListener('DOMContentLoaded', () => {
                         <div style="display:flex;gap:4px;justify-content:flex-end;">
                             <button class="act-btn act-lev" onclick="window.fapiAction('lev', '${userStr}', '${p.symbol}', '${p.side}')" title="Adjust Leverage">LEV</button>
                             <button class="act-btn act-marg" onclick="window.fapiAction('marg', '${userStr}', '${p.symbol}', '${p.side}')" title="Adjust Margin">MARG</button>
-                            <button class="act-btn act-red" onclick="window.fapiAction('red', '${userStr}', '${p.symbol}', '${p.side}')" title="Reduce Position">RED</button>
-                            <button class="act-btn act-cls" onclick="window.fapiAction('close', '${userStr}', '${p.symbol}', '${p.side}')" title="Market Close Position">CLOSE</button>
+                            <button class="act-btn act-cls" onclick="window.fapiAction('close', '${userStr}', '${p.symbol}', '${p.side}')" title="Close Position">CLOSE</button>
                         </div>`;
 
                     return '<tr><td><span style="font-weight:700;color:var(--text-main);font-family:\'Inter\',sans-serif;">'+p.symbol+'</span><span class="'+sideClass+'" style="margin-left:6px;">'+sideIcon+' '+p.side+'</span></td><td style="text-align:right;"><span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;font-weight:700;color:var(--text-dim);background:var(--input-bg);padding:2px 5px;border-radius:3px;border:1px solid var(--border);">'+p.leverage+'×</span></td><td style="text-align:right;color:var(--cyan);font-weight:700;font-family:\'JetBrains Mono\',monospace;">'+parseFloat(p.margin).toFixed(2)+'</td><td style="text-align:right;color:var(--text-dim);font-family:\'JetBrains Mono\',monospace;font-weight:600;">'+p.size+'</td><td style="text-align:right;font-weight:800;" class="'+pnlClass+'"><span style="font-family:\'JetBrains Mono\',monospace;">'+pnlSign+pnlV.toFixed(2)+'</span> <span style="font-size:10px;font-weight:600;opacity:0.85;">('+pnlSign+roi+'%)</span></td><td style="text-align:right;"><div style="font-family:\'JetBrains Mono\',monospace;font-size:11px;"><span style="color:var(--text-main);">'+p.entryPrice+'</span> <span style="color:var(--text-muted);font-size:9.5px;">/ '+p.markPrice+'</span></div></td><td style="text-align:right;"><span class="'+liqClass+'" style="color:var(--yellow);font-weight:700;font-family:\'JetBrains Mono\',monospace;">'+(p.liqPrice || '-')+(isNearLiq ? ' ⚡' : '')+'</span></td><td style="text-align:right;">'+actionBtns+'</td></tr>';
