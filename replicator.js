@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
+const https = require('https');
 const crypto = require('crypto');
 const uuidv4 = crypto.randomUUID ? crypto.randomUUID.bind(crypto) : function() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -44,20 +45,18 @@ let globalUsers = {
         'user1': {
             label: 'User 1',
             listenKey: process.env.USER1_LISTEN_KEY || "",
-            key: process.env.USER1_KEY || 'c8bc870189341e8f7e9c19dabc99d06b632e699e8a0b2422',
-            secret: process.env.USER1_SECRET || '937609fba93cdf8ed7e5a865a5be4781d6853cdf4e01eab3ebb804c23e4c21ef',
-            email: 'mani.reddy+wuqiibu2@coindcx.com',
-            password: 'Test@123',
-            bearer_token: 'srqqapCc-LLqjSXCtr4UT1BU6INswoAflh-ZQLhnAb8'
+            key: process.env.USER1_KEY || '4aec2f64e422e899b74a5d21aa56f60a97d3847351f63eff',
+            secret: process.env.USER1_SECRET || '676937348437f292f8c6c20b53bc6f8009180288d96242b64bbd5f1b5d585d94',
+            email: 'replicator_prod_test_1790665270105@coindcx.com',
+            password: 'Test@123'
         },
         'user2': {
             label: 'User 2',
             listenKey: process.env.USER2_LISTEN_KEY || "",
-            key: process.env.USER2_KEY || '8a00e70cbaed5893451a8adf944ab8674bb8d10ce8813ebb',
-            secret: process.env.USER2_SECRET || '2368a0f0a44c342ede6f829d782fee0ba26a419de865451eb9e3be6a17af002f',
-            email: 'mani.reddy+0il4qjod@coindcx.com',
-            password: 'Test@123',
-            bearer_token: 'v9l1XJMPJU8mYjQRPKIPrMW2DuzGfyEdacDUD5GVFZI'
+            key: process.env.USER2_KEY || '65af10f9c6d5d38b856ba99c5ed23d42762c912425e260b0',
+            secret: process.env.USER2_SECRET || '5a00aa3419d7e7d88ae78edba0f8cf3d8a564445fa1b6a4eaa4125c9f561b669',
+            email: 'replicator_prod_user2_1790665323894@coindcx.com',
+            password: 'Test@123'
         }
     },
     QA_STAGING: {
@@ -80,7 +79,24 @@ let globalUsers = {
             bearer_token: 'QhsHol9LMDbCx00KwHMvD2V922mjA0sa7F3_AACF2Ws'
         }
     },
-    DEV_STAGING: {}
+    DEV_STAGING: {
+        'user1': {
+            label: 'User 1',
+            listenKey: process.env.DEV_USER1_LISTEN_KEY || "",
+            key: process.env.DEV_USER1_KEY || '59d1953ddc4eb7c382811bb253f1c0e66ca4deee3bc88dd5',
+            secret: process.env.DEV_USER1_SECRET || 'b0dc129aa0a3724e5311c963b14f53e0f431e6ad3ff85406a22563deff6532a6',
+            email: 'replicator_test_dev_1790664511019@coindcx.com',
+            password: 'Test@123'
+        },
+        'user2': {
+            label: 'User 2',
+            listenKey: process.env.DEV_USER2_LISTEN_KEY || "",
+            key: process.env.DEV_USER2_KEY || '87e3092b1ac1f6675ef694c382dbc48712b143517f95599a',
+            secret: process.env.DEV_USER2_SECRET || 'd7f54a7a67287a4c1d62a7f28eda336f5c6e2f2b03a9be23070066b14725eca6',
+            email: 'replicator_dev_user2_1790665305735@coindcx.com',
+            password: 'Test@123'
+        }
+    }
 };
 globalUsers["QA-STAGING"] = globalUsers.QA_STAGING;
 globalUsers["DEV-STAGING"] = globalUsers.DEV_STAGING;
@@ -88,7 +104,7 @@ globalUsers["DEV-STAGING"] = globalUsers.DEV_STAGING;
 let globalRoles = {
     PRODUCTION: { makerId: 'user1', takerId: 'user2' },
     QA_STAGING: { makerId: 'user1', takerId: 'user2' },
-    DEV_STAGING: { makerId: '', takerId: '' }
+    DEV_STAGING: { makerId: 'user1', takerId: 'user2' }
 };
 globalRoles["QA-STAGING"] = globalRoles.QA_STAGING;
 globalRoles["DEV-STAGING"] = globalRoles.DEV_STAGING;
@@ -474,22 +490,22 @@ function getISTTimeString() {
 // ==========================================
 function signAndPrepare(url, method, payloadObj, userConfig) {
     const timestamp = Date.now() + serverTimeOffset;
-    const isGetOrDelete = method.toUpperCase() === 'GET' || method.toUpperCase() === 'DELETE';
+    const parsedUrl = new URL(url);
 
-    const urlObj = new URL(url);
-    let payloadStr = '';
-
-    if (isGetOrDelete) {
-        urlObj.searchParams.set('timestamp', String(timestamp));
-        urlObj.searchParams.set('recvWindow', '60000');
-        if (payloadObj) {
-            Object.keys(payloadObj).forEach(k => urlObj.searchParams.set(k, String(payloadObj[k])));
-        }
-        payloadStr = '';
-    } else {
-        const bodyObj = { ...payloadObj, timestamp, recvWindow: 60000 };
-        payloadStr = JSON.stringify(bodyObj);
+    // Extract any query parameters that were passed in the URL and merge with payloadObj
+    const bodyObj = {};
+    for (const [k, v] of parsedUrl.searchParams.entries()) {
+        bodyObj[k] = v;
     }
+    if (payloadObj && typeof payloadObj === 'object') {
+        Object.assign(bodyObj, payloadObj);
+    }
+    bodyObj.timestamp = timestamp;
+    if (!bodyObj.recvWindow) {
+        bodyObj.recvWindow = 60000;
+    }
+
+    const payloadStr = JSON.stringify(bodyObj);
 
     const signature = crypto
         .createHmac('sha256', userConfig.secret)
@@ -499,57 +515,82 @@ function signAndPrepare(url, method, payloadObj, userConfig) {
     const headers = {
         'Content-Type': 'application/json',
         'X-AUTH-APIKEY': userConfig.key,
-        'X-AUTH-SIGNATURE': signature
+        'X-AUTH-SIGNATURE': signature,
+        'Content-Length': Buffer.byteLength(payloadStr)
     };
-    
-    // Cookie is no longer in config, so this is effectively disabled but kept for structure.
-    // if (config.testnet.cookie) headers['Cookie'] = config.testnet.cookie;
 
-    return { finalUrl: urlObj.toString(), payloadStr: isGetOrDelete ? null : payloadStr, headers };
+    // Strip search parameters from the target URL so the path is clean
+    const cleanUrl = `${parsedUrl.origin}${parsedUrl.pathname}`;
+    return { finalUrl: cleanUrl, payloadStr, headers };
 }
 
 async function sendSignedRequest(url, method, payload, userConfig, timeoutMs = 50000, tier = null) {
+    if (!userConfig || !userConfig.key || !userConfig.secret) {
+        return { ok: false, status: 401, error: 'User credentials missing', latencyMs: 0 };
+    }
     const { finalUrl, payloadStr, headers } = signAndPrepare(url, method, payload, userConfig);
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
     const startTime = Date.now();
     const uLabel = userConfig ? (userConfig.label || 'User') : 'System';
+    const parsedUrl = new URL(finalUrl);
+    const isHttps = parsedUrl.protocol === 'https:';
+    const client = isHttps ? https : http;
 
-    try {
-        const options = { method: method.toUpperCase(), headers, body: payloadStr || undefined, signal: controller.signal };
-        const res = await fetch(finalUrl, options);
-        clearTimeout(timeoutId);
-
-        const latencyMs = Date.now() - startTime;
-        const text = await res.text();
-        
-        let data;
-        try { data = JSON.parse(text); }
-        catch (e) { data = { error: text || 'Invalid JSON response from server' }; }
-
-        const shortUrl = new URL(finalUrl).pathname;
-        const meta = {
-            request: { method: method.toUpperCase(), url: shortUrl, payload: payload },
-            response: { status: res.status, data: data }
+    return new Promise((resolve) => {
+        const reqOptions = {
+            hostname: parsedUrl.hostname,
+            port: parsedUrl.port || (isHttps ? 443 : 80),
+            path: parsedUrl.pathname,
+            method: method.toUpperCase(),
+            headers: headers,
+            timeout: timeoutMs
         };
-        const isPolling = shortUrl.includes('/fapi/v2/account') || shortUrl.includes('/fapi/v2/positionRisk');
-        if (!isPolling || !res.ok) {
-            log.info(uLabel, `[${method.toUpperCase()}] ${shortUrl} | Status: ${res.status} | Latency: ${latencyMs}ms`, meta, tier);
+
+        const req = client.request(reqOptions, (res) => {
+            let text = '';
+            res.on('data', chunk => { text += chunk; });
+            res.on('end', () => {
+                const latencyMs = Date.now() - startTime;
+                let data;
+                try { data = JSON.parse(text); }
+                catch (e) { data = { error: text || 'Invalid JSON response from server' }; }
+
+                const shortUrl = parsedUrl.pathname;
+                const meta = {
+                    request: { method: method.toUpperCase(), url: shortUrl, payload: payload },
+                    response: { status: res.statusCode, data: data }
+                };
+                const isPolling = shortUrl.includes('/fapi/v2/account') || shortUrl.includes('/fapi/v2/positionRisk');
+                const ok = res.statusCode >= 200 && res.statusCode < 300;
+                if (!isPolling || !ok) {
+                    log.info(uLabel, `[${method.toUpperCase()}] ${shortUrl} | Status: ${res.statusCode} | Latency: ${latencyMs}ms`, meta, tier);
+                }
+
+                if (!ok || DEBUG) log.debug('REST-API', `[${method.toUpperCase()}] ${finalUrl} | Status: ${res.statusCode} | Body: ${text} | Latency: ${latencyMs}ms`, null, tier);
+
+                resolve({ ok, status: res.statusCode, data, latencyMs });
+            });
+        });
+
+        req.on('timeout', () => {
+            req.destroy();
+            const latencyMs = Date.now() - startTime;
+            const shortUrl = parsedUrl.pathname;
+            log.error(uLabel, `[TIMEOUT] ${method.toUpperCase()} to ${shortUrl} timed out after ${latencyMs}ms.`, null, tier);
+            resolve({ ok: false, status: 408, error: 'Request Timeout', latencyMs });
+        });
+
+        req.on('error', (err) => {
+            const latencyMs = Date.now() - startTime;
+            const shortUrl = parsedUrl.pathname;
+            log.error(uLabel, `[ERROR] ${method.toUpperCase()} to ${shortUrl} failed after ${latencyMs}ms: ${err.message}`, null, tier);
+            resolve({ ok: false, status: 500, error: err.message, latencyMs });
+        });
+
+        if (payloadStr) {
+            req.write(payloadStr);
         }
-
-        if (!res.ok || DEBUG) log.debug('REST-API', `[${method.toUpperCase()}] ${finalUrl} | Status: ${res.status} | Body: ${text} | Latency: ${latencyMs}ms`, null, tier);
-
-        return { ok: res.ok, status: res.status, data, latencyMs };
-    } catch (err) {
-        clearTimeout(timeoutId);
-        const latencyMs = Date.now() - startTime;
-        const isTimeout = err.name === 'AbortError' || err.message.includes('aborted');
-        const shortUrl = new URL(finalUrl).pathname;
-        if (isTimeout) log.error(uLabel, `[TIMEOUT] ${method.toUpperCase()} to ${shortUrl} timed out after ${latencyMs}ms.`, null, tier);
-        else log.error(uLabel, `[ERROR] ${method.toUpperCase()} to ${shortUrl} failed after ${latencyMs}ms: ${err.message}`, null, tier);
-        return { ok: false, status: isTimeout ? 408 : 500, error: isTimeout ? 'Request Timeout' : err.message, latencyMs };
-    }
+        req.end();
+    });
 }
 
 const cachedAuthTokens = new Map();
