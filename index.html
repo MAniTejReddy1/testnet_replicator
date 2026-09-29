@@ -1178,6 +1178,37 @@
   .act-red:hover { background:rgba(234,179,8,0.15); box-shadow:0 0 12px rgba(234,179,8,0.1); }
   .act-cls  { color:var(--rose); background:rgba(244,63,94,0.05); }
   .act-cls:hover { background:rgba(244,63,94,0.15); box-shadow:0 0 12px rgba(244,63,94,0.1); }
+
+  /* Add Funds Button in Portfolio */
+  .btn-add-funds {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    color: #10b981;
+    border-radius: 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    flex-shrink: 0;
+    line-height: 1.4;
+  }
+  .btn-add-funds:hover:not(:disabled) {
+    background: rgba(16, 185, 129, 0.22);
+    border-color: #10b981;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.25);
+    transform: translateY(-1px);
+  }
+  .btn-add-funds:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
   
   /* PnL Glow classes */
   .pnl-pos { color: var(--bid); text-shadow: 0 0 12px rgba(16,185,129,0.4); }
@@ -2789,8 +2820,9 @@
           <select id="sel-port-u1" onchange="window.renderPortfolios(); event.stopPropagation();" style="background:transparent;color:var(--text-main);border:none;font-size:16px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;outline:none;padding:0;margin:0;"></select>
         </div></div>
       </div>
-      <div style="display:flex;align-items:center;gap:16px;">
+      <div style="display:flex;align-items:center;gap:10px;">
         <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;" id="u1-chips"></div>
+        <button id="btn-add-funds-u1" class="btn-add-funds" onclick="window.seedUserBalance('u1')" title="Add USDT funds via seed balance API based on active environment">+ Add Funds</button>
       </div>
     </div>
     <div style="display:flex;border-bottom:1px solid var(--border);background:transparent;flex-shrink:0;">
@@ -2822,8 +2854,9 @@
           <select id="sel-port-u2" onchange="window.renderPortfolios(); event.stopPropagation();" style="background:transparent;color:var(--text-main);border:none;font-size:16px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;outline:none;padding:0;margin:0;"></select>
         </div></div>
       </div>
-      <div style="display:flex;align-items:center;gap:16px;">
+      <div style="display:flex;align-items:center;gap:10px;">
         <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;" id="u2-chips"></div>
+        <button id="btn-add-funds-u2" class="btn-add-funds" onclick="window.seedUserBalance('u2')" title="Add USDT funds via seed balance API based on active environment">+ Add Funds</button>
       </div>
     </div>
     <div style="display:flex;border-bottom:1px solid var(--border);background:transparent;flex-shrink:0;">
@@ -3287,6 +3320,46 @@ window.addEventListener('DOMContentLoaded', () => {
             if (typeof renderPortfolio === 'function') {
                 renderPortfolio(port1, document.getElementById('u1-err'), document.getElementById('u1-chips'), document.getElementById('u1-title'), document.getElementById('u1-body'), p1, window.u1Tab, 'u1');
                 renderPortfolio(port2, document.getElementById('u2-err'), document.getElementById('u2-chips'), document.getElementById('u2-title'), document.getElementById('u2-body'), p2, window.u2Tab, 'u2');
+            }
+        };
+
+        window.seedUserBalance = async function(panelId) {
+            const btn = document.getElementById('btn-add-funds-' + panelId);
+            const sel = document.getElementById('sel-port-' + panelId);
+            const userId = sel ? sel.value : (panelId === 'u1' ? 'user1' : 'user2');
+            const activeTier = activeEnvFilter || (window.payload && window.payload.tier) || 'PRODUCTION';
+
+            if (!userId) {
+                return showToast('No account selected for this portfolio view', true);
+            }
+
+            if (btn) {
+                btn.disabled = true;
+                btn.dataset.origHtml = btn.innerHTML;
+                btn.innerHTML = '⏳ Adding...';
+            }
+
+            try {
+                showToast(`Seeding balance for ${userId} [${activeTier}]...`);
+                const res = await fetch(window.getApiUrl('/api/portfolio/seed-balance'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, tier: activeTier })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok && data.success) {
+                    showToast('✅ ' + (data.message || `Funds added successfully for ${userId} [${activeTier}]`));
+                    window.renderPortfolios();
+                } else {
+                    showToast('❌ ' + (data.error || 'Failed to add funds via seed balance API'), true);
+                }
+            } catch (e) {
+                showToast('❌ Error adding funds: ' + e.message, true);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = btn.dataset.origHtml || '+ Add Funds';
+                }
             }
         };
 

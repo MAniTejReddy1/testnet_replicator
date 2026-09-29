@@ -595,15 +595,17 @@ async function sendSignedRequest(url, method, payload, userConfig, timeoutMs = 5
 
 const cachedAuthTokens = new Map();
 const activeSeedPromises = new Map();
+const lastSeedResult = new Map();
 
 // Seed balance helper — logs in with email/password to get bearer token, then calls seed_balance
 async function seedBalance(userCreds, tier = 'PRODUCTION') {
-    if (!userCreds || !userCreds.email) return false;
-    const cacheKey = `${userCreds.email}_${tier}`;
+    if (!userCreds || (!userCreds.email && !userCreds.bearer_token)) return false;
+    const userIdentifier = userCreds.email || userCreds.label || 'user';
+    const cacheKey = `${userIdentifier}_${tier}`;
     
     // If there is already an active seeding request for this user on this tier, wait for it / return it
     if (activeSeedPromises.has(cacheKey)) {
-        log.info('SYSTEM', `[SEED][${tier}] Seeding already in progress for ${userCreds.email}. Reusing existing promise.`);
+        log.info('SYSTEM', `[SEED][${tier}] Seeding already in progress for ${userIdentifier}. Reusing existing promise.`);
         return activeSeedPromises.get(cacheKey);
     }
     
@@ -623,23 +625,19 @@ async function runSeedBalance(userCreds, tier) {
     const urls = TIER_URLS[tier] || TIER_URLS.PRODUCTION;
     const AUTH_URL = `${urls.ONBOARDING}/api/v3/authenticate`;
     const SEED_URL = `${urls.HPO}/api/v1/derivatives/futures/wallets/seed_balance`;
-    const cacheKey = `${userCreds.email}_${tier}`;
+    const userIdentifier = userCreds.email || userCreds.label || 'user';
+    const cacheKey = `${userIdentifier}_${tier}`;
 
     try {
-        emitOrderEvent('seed:triggered', { user: userCreds.email, tier });
-        if (!userCreds.email || !userCreds.password) {
-            log.warn('SYSTEM', `[SEED][${tier}] No email/password configured for this user — cannot seed balance.`);
-            emitOrderEvent('seed:failed', { user: userCreds.email, tier, error: 'No email/password configured' });
-            return false;
-        }
-
+        emitOrderEvent('seed:triggered', { user: userIdentifier, tier });
         let bearerToken = null;
         const cached = cachedAuthTokens.get(cacheKey);
+
         // Reuse cached token if it's less than 5 minutes old
         if (cached && (Date.now() - cached.ts < 5 * 60 * 1000)) {
             bearerToken = cached.token;
-            log.info('SYSTEM', `[SEED][${tier}] Reusing cached auth token for ${userCreds.email}`);
-        } else {
+            log.info('SYSTEM', `[SEED][${tier}] Reusing cached auth token for ${userIdentifier}`);
+        } else if (userCreds.email && userCreds.password) {
             // Step 1: Login to get bearer token
             log.info('SYSTEM', `[SEED][${tier}] Authenticating ` + userCreds.email + ' to get bearer token...');
             const loginRes = await fetch(AUTH_URL, {
@@ -647,20 +645,34 @@ async function runSeedBalance(userCreds, tier) {
                 headers: { 'Content-Type': 'application/json', 'User-Agent': 'PostmanRuntime/7.32.3' },
                 body: JSON.stringify({ email: userCreds.email, password: userCreds.password, pe: false, piie: false })
             });
-            const loginData = await loginRes.json();
+            const loginData = await loginRes.json().catch(() => ({}));
             bearerToken = loginData.auth_token || loginData.token;
 
-            if (!bearerToken) {
+            if (!bearerToken && userCreds.bearer_token) {
+                log.info('SYSTEM', `[SEED][${tier}] Login response did not contain token, using preconfigured bearer_token.`);
+                bearerToken = userCreds.bearer_token;
+            } else if (!bearerToken) {
                 log.warn('SYSTEM', `[SEED][${tier}] Login failed — no auth_token in response: ` + JSON.stringify(loginData));
-                emitOrderEvent('seed:failed', { user: userCreds.email, tier, error: 'Login failed: ' + JSON.stringify(loginData) });
+                emitOrderEvent('seed:failed', { user: userIdentifier, tier, error: 'Login failed: ' + JSON.stringify(loginData) });
+                lastSeedResult.set(cacheKey, { ok: false, error: 'Authentication failed for ' + userCreds.email });
                 return false;
             }
-            log.success('SYSTEM', `[SEED][${tier}] Login successful. Got bearer token.`);
-            cachedAuthTokens.set(cacheKey, { token: bearerToken, ts: Date.now() });
+            if (bearerToken) {
+                log.success('SYSTEM', `[SEED][${tier}] Got bearer token.`);
+                cachedAuthTokens.set(cacheKey, { token: bearerToken, ts: Date.now() });
+            }
+        } else if (userCreds.bearer_token) {
+            bearerToken = userCreds.bearer_token;
+            log.info('SYSTEM', `[SEED][${tier}] Using preconfigured bearer_token for ${userIdentifier}`);
+        } else {
+            log.warn('SYSTEM', `[SEED][${tier}] No email/password or bearer_token configured for this user — cannot seed balance.`);
+            emitOrderEvent('seed:failed', { user: userIdentifier, tier, error: 'No email/password configured' });
+            lastSeedResult.set(cacheKey, { ok: false, error: 'No email/password or bearer_token configured for ' + userIdentifier });
+            return false;
         }
 
         // Step 2: Call seed_balance with bearer token
-        log.info('SYSTEM', `[SEED][${tier}] Calling seed_balance...`);
+        log.info('SYSTEM', `[SEED][${tier}] Calling seed_balance (${SEED_URL})...`);
         const seedRes = await fetch(SEED_URL, {
             method: 'POST',
             headers: {
@@ -682,15 +694,19 @@ async function runSeedBalance(userCreds, tier) {
 
         if (seedRes.ok || seedRes.status < 400) {
             log.success('SYSTEM', `[SEED][${tier}] seed_balance succeeded — wallet topped up.`);
-            emitOrderEvent('seed:success', { user: userCreds.email, tier });
+            emitOrderEvent('seed:success', { user: userIdentifier, tier });
+            lastSeedResult.set(cacheKey, { ok: true, message: 'Seed balance succeeded — wallet topped up with USDT.' });
             return true;
         }
         log.warn('SYSTEM', `[SEED][${tier}] seed_balance returned non-OK [` + seedRes.status + ']: ' + JSON.stringify(seedData));
-        emitOrderEvent('seed:failed', { user: userCreds.email, tier, error: JSON.stringify(seedData) });
+        emitOrderEvent('seed:failed', { user: userIdentifier, tier, error: JSON.stringify(seedData) });
+        const errMsg = (seedData && (seedData.message || seedData.error || seedData.description)) || ('HTTP ' + seedRes.status);
+        lastSeedResult.set(cacheKey, { ok: false, error: errMsg });
         return false;
     } catch (err) {
         log.error('SYSTEM', `[SEED][${tier}] seed_balance threw: ` + err.message);
-        emitOrderEvent('seed:failed', { user: userCreds.email, tier, error: err.message });
+        emitOrderEvent('seed:failed', { user: userIdentifier, tier, error: err.message });
+        lastSeedResult.set(cacheKey, { ok: false, error: err.message });
         return false;
     }
 }
@@ -3513,8 +3529,8 @@ globalPortfolios["QA-STAGING"] = globalPortfolios.QA_STAGING;
 globalPortfolios["DEV-STAGING"] = globalPortfolios.DEV_STAGING;
 let _prevPortfolioState = {}; // Track previous state for change detection
 
-async function syncAllPortfolios() {
-    const activeTiers = new Set([globalActiveTier]);
+async function syncAllPortfolios(specificTier) {
+    const activeTiers = specificTier ? new Set([globalActiveTier, specificTier]) : new Set([globalActiveTier]);
     
     await Promise.all(Array.from(activeTiers).map(async (tier) => {
         if (!globalPortfolios[tier]) globalPortfolios[tier] = {};
@@ -4467,6 +4483,49 @@ const server = http.createServer(async (req, res) => {
                 } else if (pathname === '/api/manual-override') {
                     manualOverride = Boolean(parsed.locked);
                     log.info('SYSTEM', `Manual override set to ${manualOverride}`);
+                } else if (pathname === '/api/portfolio/seed-balance' || pathname === '/api/portfolio/seed') {
+                    let userId = parsed.userId || parsed.id;
+                    let tier = (parsed.tier || globalActiveTier).toUpperCase().replace(/-/g, '_');
+                    if (!TIER_URLS[tier]) tier = globalActiveTier;
+
+                    if (!userId) {
+                        userId = globalRoles[tier]?.makerId || 'user1';
+                    }
+                    if (userId === '1') userId = 'user1';
+                    if (userId === '2') userId = 'user2';
+
+                    const tierUsers = globalUsers[tier] || {};
+                    const userCreds = tierUsers[userId];
+
+                    if (!userCreds) {
+                        res.writeHead(404, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ 
+                            success: false, 
+                            error: `User "${userId}" not found in configured accounts for ${tier}` 
+                        }));
+                    }
+
+                    log.info('SYSTEM', `[SEED] Manual add funds requested for ${userCreds.label || userId} on tier ${tier}...`);
+                    const seeded = await seedBalance(userCreds, tier);
+                    const cacheKey = `${userCreds.email || userCreds.label || 'user'}_${tier}`;
+                    const resInfo = lastSeedResult.get(cacheKey);
+
+                    if (seeded) {
+                        lastPortfolioSyncTime = 0;
+                        await syncAllPortfolios(tier);
+                        broadcastToUI(true);
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ 
+                            success: true, 
+                            message: `Funds added successfully for ${userCreds.label || userId} on ${tier}` 
+                        }));
+                    } else {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ 
+                            success: false, 
+                            error: resInfo?.error || `Seed balance API failed for ${userCreds.label || userId} on ${tier}. Check credentials or server logs.` 
+                        }));
+                    }
                 } else if (pathname === '/api/users') {
                     if (parsed.action === 'add' || parsed.action === 'update') {
                         const { id, label, key, secret, listenKey, email, password } = parsed.user;
