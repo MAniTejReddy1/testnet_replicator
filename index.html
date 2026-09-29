@@ -5914,7 +5914,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     else if (o.status === 'PARTIALLY_FILLED') statusHtml = '<span class="badge" style="background:rgba(16,185,129,0.1);color:var(--emerald);border:1px solid rgba(16,185,129,0.3);">PARTIAL</span>';
                     else statusHtml = '<span class="badge" style="background:rgba(255,255,255,0.1);color:var(--text-muted);">'+o.status+'</span>';
 
-                    const pDisplay = (o.price !== undefined && o.price !== null && !isNaN(parseFloat(o.price)) && parseFloat(o.price) > 0) ? parseFloat(o.price) : (o.type === 'MARKET' ? 'MARKET' : (parseFloat(o.price) || '-'));
+                    const pDisplay = (o.price !== undefined && o.price !== null && o.price !== '' && !isNaN(parseFloat(o.price))) ? parseFloat(o.price) : (o.price || '-');
                     const apVal = o.avgPrice || o.avgExecutionPrice || o.ap;
                     const apDisplay = (apVal && parseFloat(apVal) > 0) ? parseFloat(apVal) : '-';
 
@@ -5930,7 +5930,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     else if (o.status === 'CANCELED' || o.status === 'EXPIRED') statusHtml = '<span class="badge badge-fail">'+o.status+'</span>';
                     else statusHtml = '<span class="badge" style="background:rgba(255,255,255,0.1);color:var(--text-muted);">'+o.status+'</span>';
                     
-                    const pDisplay = (o.price !== undefined && o.price !== null && !isNaN(parseFloat(o.price)) && parseFloat(o.price) > 0) ? parseFloat(o.price) : (o.type === 'MARKET' ? 'MARKET' : (parseFloat(o.price) || '-'));
+                    const pDisplay = (o.price !== undefined && o.price !== null && o.price !== '' && !isNaN(parseFloat(o.price))) ? parseFloat(o.price) : (o.price || '-');
                     const apVal = o.avgPrice || o.avgExecutionPrice || o.ap;
                     const apDisplay = (apVal && parseFloat(apVal) > 0) ? parseFloat(apVal) : '-';
 
