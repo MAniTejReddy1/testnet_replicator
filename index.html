@@ -1183,31 +1183,190 @@
   .btn-add-funds {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 3px 9px;
-    background: rgba(16, 185, 129, 0.12);
-    border: 1px solid rgba(16, 185, 129, 0.35);
-    color: #10b981;
-    border-radius: 4px;
+    gap: 5px;
+    padding: 4px 10px;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.18) 0%, rgba(5, 150, 105, 0.25) 100%);
+    border: 1px solid rgba(16, 185, 129, 0.45);
+    color: #34d399;
+    border-radius: 6px;
     font-family: 'Inter', sans-serif;
     font-size: 11px;
     font-weight: 700;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     white-space: nowrap;
     flex-shrink: 0;
     line-height: 1.4;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.15);
   }
   .btn-add-funds:hover:not(:disabled) {
-    background: rgba(16, 185, 129, 0.22);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.3) 0%, rgba(5, 150, 105, 0.4) 100%);
     border-color: #10b981;
-    box-shadow: 0 0 10px rgba(16, 185, 129, 0.25);
+    color: #fff;
+    box-shadow: 0 0 16px rgba(16, 185, 129, 0.4);
     transform: translateY(-1px);
   }
   .btn-add-funds:disabled {
     opacity: 0.5;
     cursor: not-allowed;
     transform: none;
+    box-shadow: none;
+  }
+
+  /* Advanced Portfolio Redesign Styles */
+  .port-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding: 10px 16px;
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  :root[data-theme="light"] .port-kpi-grid {
+    background: rgba(0, 0, 0, 0.02);
+  }
+  .port-kpi-card {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 10px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    min-width: 0;
+    transition: all 0.2s ease;
+  }
+  .port-kpi-label {
+    font-size: 9px;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .port-kpi-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .port-search-input {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-main);
+    font-size: 10.5px;
+    padding: 3px 8px;
+    outline: none;
+    width: 105px;
+    font-family: 'Inter', sans-serif;
+    transition: all 0.2s ease;
+  }
+  .port-search-input:focus {
+    width: 135px;
+    border-color: var(--cyan);
+    box-shadow: 0 0 8px rgba(6, 182, 212, 0.2);
+  }
+  .port-refresh-btn {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    border-radius: 6px;
+    padding: 4px 7px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+  .port-refresh-btn:hover {
+    color: var(--cyan);
+    border-color: var(--cyan);
+    background: rgba(6, 182, 212, 0.1);
+    transform: rotate(45deg);
+  }
+  .spin-icon {
+    animation: portSpin 0.7s linear infinite;
+  }
+  @keyframes portSpin {
+    100% { transform: rotate(360deg); }
+  }
+  .port-role-badge {
+    font-size: 8.5px;
+    font-weight: 800;
+    padding: 1px 6px;
+    border-radius: 3px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    font-family: 'Inter', sans-serif;
+  }
+  .role-maker {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+  }
+  .role-taker {
+    background: rgba(6, 182, 212, 0.15);
+    color: var(--cyan);
+    border: 1px solid rgba(6, 182, 212, 0.35);
+  }
+  .role-user {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+  .pos-side-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 9.5px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .pos-long {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+  }
+  .pos-short {
+    background: rgba(244, 63, 94, 0.15);
+    color: #fb7185;
+    border: 1px solid rgba(244, 63, 94, 0.35);
+  }
+  .tab-count-badge {
+    font-size: 10px;
+    font-weight: 700;
+    opacity: 0.8;
+    margin-left: 2px;
+  }
+  .liq-warning {
+    color: #f59e0b !important;
+    text-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+  }
+  .fill-progress-bar {
+    width: 100%;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 3px;
+  }
+  .fill-progress-val {
+    height: 100%;
+    background: #10b981;
+    border-radius: 2px;
+    transition: width 0.3s ease;
   }
   
   /* PnL Glow classes */
@@ -2812,23 +2971,56 @@
 
 
 <div style="display:grid;grid-template-columns:1fr 1fr 340px;gap:16px;padding:0 24px 24px;">
-  <div class="panel" style="display:flex;flex-direction:column;height:550px;overflow:hidden;" id="u1-panel">
-    <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);flex-shrink:0;">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <div style="width:10px;height:10px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px rgba(6,182,212,0.5);"></div>
-        <div><div class="sec-label">Portfolio View 1 <span id="u1-env-label" style="font-size:9px;opacity:0.8;font-weight:700;">[PRODUCTION]</span></div><div class="sec-title" id="u1-title" style="display:flex;align-items:center;gap:6px;">
-          <select id="sel-port-u1" onchange="window.renderPortfolios(); event.stopPropagation();" style="background:transparent;color:var(--text-main);border:none;font-size:16px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;outline:none;padding:0;margin:0;"></select>
-        </div></div>
-      </div>
+  <div class="panel" style="display:flex;flex-direction:column;height:590px;overflow:hidden;" id="u1-panel">
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);flex-shrink:0;">
       <div style="display:flex;align-items:center;gap:10px;">
-        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;" id="u1-chips"></div>
-        <button id="btn-add-funds-u1" class="btn-add-funds" onclick="window.seedUserBalance('u1')" title="Add USDT funds via seed balance API based on active environment">+ Add Funds</button>
+        <div id="u1-avatar" style="width:34px;height:34px;border-radius:50%;background:rgba(6,182,212,0.12);border:1.5px solid rgba(6,182,212,0.4);color:var(--cyan);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;font-family:'JetBrains Mono',monospace;flex-shrink:0;box-shadow:0 0 10px rgba(6,182,212,0.2);">U1</div>
+        <div style="min-width:0;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+            <span class="sec-label" style="margin:0;font-size:10px;">Portfolio 1</span>
+            <span id="u1-env-label" style="font-size:9px;opacity:0.85;font-weight:700;color:var(--cyan);letter-spacing:0.5px;">[PRODUCTION]</span>
+            <span id="u1-role-badge" class="port-role-badge role-maker">MAKER</span>
+          </div>
+          <div class="sec-title" id="u1-title" style="display:flex;align-items:center;gap:6px;">
+            <select id="sel-port-u1" onchange="window.renderPortfolios(); event.stopPropagation();" style="background:transparent;color:var(--text-main);border:none;font-size:15px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;outline:none;padding:0;margin:0;"></select>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+        <div style="display:none;gap:6px;flex-wrap:wrap;justify-content:flex-end;" id="u1-chips"></div>
+        <button id="btn-add-funds-u1" class="btn-add-funds" onclick="window.seedUserBalance('u1')" title="Add USDT funds via seed balance API based on active environment">+ Add USDT</button>
+        <button id="btn-refresh-u1" class="port-refresh-btn" onclick="window.refreshPortfolio('u1')" title="Force refresh portfolio data">↻</button>
       </div>
     </div>
-    <div style="display:flex;border-bottom:1px solid var(--border);background:transparent;flex-shrink:0;">
-      <button id="tab-u1-pos" class="tab on" style="flex:1" onclick="window.setPortTab('u1', 'pos')">Positions</button>
-      <button id="tab-u1-open" class="tab" style="flex:1" onclick="window.setPortTab('u1', 'open')">Open Orders<span id="count-u1-open"></span></button>
-      <button id="tab-u1-hist" class="tab" style="flex:1" onclick="window.setPortTab('u1', 'hist')">Order History<span id="count-u1-hist"></span></button>
+    
+    <!-- 4-Card KPI Stat Grid -->
+    <div class="port-kpi-grid">
+      <div class="port-kpi-card">
+        <span class="port-kpi-label">Wallet Balance</span>
+        <span class="port-kpi-val" id="u1-kpi-wallet">0.00 <span style="font-size:9px;font-weight:600;color:var(--text-muted);">USDT</span></span>
+      </div>
+      <div class="port-kpi-card">
+        <span class="port-kpi-label">Available Margin</span>
+        <span class="port-kpi-val" id="u1-kpi-avail" style="color:var(--emerald);">0.00 <span style="font-size:9px;font-weight:600;color:var(--text-muted);">USDT</span></span>
+      </div>
+      <div class="port-kpi-card">
+        <span class="port-kpi-label">Margin In Use</span>
+        <span class="port-kpi-val" id="u1-kpi-margin" style="color:var(--cyan);">0.00 <span style="font-size:9px;font-weight:600;color:var(--text-muted);">USDT</span></span>
+      </div>
+      <div class="port-kpi-card">
+        <span class="port-kpi-label">Unrealized PnL</span>
+        <span class="port-kpi-val" id="u1-kpi-pnl">0.00 <span style="font-size:9px;font-weight:600;color:var(--text-muted);">USDT</span></span>
+      </div>
+    </div>
+
+    <!-- Redesigned Tabs & Search -->
+    <div style="display:flex;align-items:center;border-bottom:1px solid var(--border);background:transparent;flex-shrink:0;padding-right:10px;">
+      <button id="tab-u1-pos" class="tab on" style="flex:1" onclick="window.setPortTab('u1', 'pos')">Positions <span id="count-u1-pos" class="tab-count-badge"></span></button>
+      <button id="tab-u1-open" class="tab" style="flex:1" onclick="window.setPortTab('u1', 'open')">Open Orders <span id="count-u1-open" class="tab-count-badge"></span></button>
+      <button id="tab-u1-hist" class="tab" style="flex:1" onclick="window.setPortTab('u1', 'hist')">History <span id="count-u1-hist" class="tab-count-badge"></span></button>
+      <div style="margin-left:8px;">
+        <input type="text" id="search-u1" class="port-search-input" placeholder="🔍 Symbol..." oninput="window.setPortSearch('u1', this.value)">
+      </div>
     </div>
     <div id="u1-body-wrap" style="display:flex;flex-direction:column;flex:1;min-height:0;">
       <div id="u1-err" class="err-banner" style="display:none;flex-shrink:0;"></div>
@@ -2838,7 +3030,7 @@
           <tbody id="u1-body"><tr><td colspan="9" style="text-align:center;padding:40px 0;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;font-family:'Inter',sans-serif;font-weight:600;">No active positions</td></tr></tbody>
         </table>
       </div>
-      <div id="u1-pagination" style="display:none;align-items:center;justify-content:center;gap:12px;padding:12px;background:var(--input-bg);border-top:1px solid var(--border);">
+      <div id="u1-pagination" style="display:none;align-items:center;justify-content:center;gap:12px;padding:10px;background:var(--input-bg);border-top:1px solid var(--border);">
           <button class="pg-btn" onclick="window.changePage('u1', -1)">&lt; Prev</button>
           <span id="u1-page-info" style="font-size:11px;font-weight:600;color:var(--text-muted);">Page 1 of 1</span>
           <button class="pg-btn" onclick="window.changePage('u1', 1)">Next &gt;</button>
@@ -2846,23 +3038,56 @@
     </div>
   </div>
   
-  <div class="panel" style="display:flex;flex-direction:column;height:550px;overflow:hidden;" id="u2-panel">
-    <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);flex-shrink:0;">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <div style="width:10px;height:10px;border-radius:50%;background:var(--yellow);box-shadow:0 0 10px rgba(234,179,8,0.5);"></div>
-        <div><div class="sec-label">Portfolio View 2 <span id="u2-env-label" style="font-size:9px;opacity:0.8;font-weight:700;">[PRODUCTION]</span></div><div class="sec-title" id="u2-title" style="display:flex;align-items:center;gap:6px;">
-          <select id="sel-port-u2" onchange="window.renderPortfolios(); event.stopPropagation();" style="background:transparent;color:var(--text-main);border:none;font-size:16px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;outline:none;padding:0;margin:0;"></select>
-        </div></div>
-      </div>
+  <div class="panel" style="display:flex;flex-direction:column;height:590px;overflow:hidden;" id="u2-panel">
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);flex-shrink:0;">
       <div style="display:flex;align-items:center;gap:10px;">
-        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;" id="u2-chips"></div>
-        <button id="btn-add-funds-u2" class="btn-add-funds" onclick="window.seedUserBalance('u2')" title="Add USDT funds via seed balance API based on active environment">+ Add Funds</button>
+        <div id="u2-avatar" style="width:34px;height:34px;border-radius:50%;background:rgba(234,179,8,0.12);border:1.5px solid rgba(234,179,8,0.4);color:var(--yellow);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;font-family:'JetBrains Mono',monospace;flex-shrink:0;box-shadow:0 0 10px rgba(234,179,8,0.2);">U2</div>
+        <div style="min-width:0;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+            <span class="sec-label" style="margin:0;font-size:10px;">Portfolio 2</span>
+            <span id="u2-env-label" style="font-size:9px;opacity:0.85;font-weight:700;color:var(--yellow);letter-spacing:0.5px;">[PRODUCTION]</span>
+            <span id="u2-role-badge" class="port-role-badge role-taker">TAKER</span>
+          </div>
+          <div class="sec-title" id="u2-title" style="display:flex;align-items:center;gap:6px;">
+            <select id="sel-port-u2" onchange="window.renderPortfolios(); event.stopPropagation();" style="background:transparent;color:var(--text-main);border:none;font-size:15px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;outline:none;padding:0;margin:0;"></select>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+        <div style="display:none;gap:6px;flex-wrap:wrap;justify-content:flex-end;" id="u2-chips"></div>
+        <button id="btn-add-funds-u2" class="btn-add-funds" onclick="window.seedUserBalance('u2')" title="Add USDT funds via seed balance API based on active environment">+ Add USDT</button>
+        <button id="btn-refresh-u2" class="port-refresh-btn" onclick="window.refreshPortfolio('u2')" title="Force refresh portfolio data">↻</button>
       </div>
     </div>
-    <div style="display:flex;border-bottom:1px solid var(--border);background:transparent;flex-shrink:0;">
-      <button id="tab-u2-pos" class="tab on" style="flex:1" onclick="window.setPortTab('u2', 'pos')">Positions</button>
-      <button id="tab-u2-open" class="tab" style="flex:1" onclick="window.setPortTab('u2', 'open')">Open Orders<span id="count-u2-open"></span></button>
-      <button id="tab-u2-hist" class="tab" style="flex:1" onclick="window.setPortTab('u2', 'hist')">Order History<span id="count-u2-hist"></span></button>
+    
+    <!-- 4-Card KPI Stat Grid -->
+    <div class="port-kpi-grid">
+      <div class="port-kpi-card">
+        <span class="port-kpi-label">Wallet Balance</span>
+        <span class="port-kpi-val" id="u2-kpi-wallet">0.00 <span style="font-size:9px;font-weight:600;color:var(--text-muted);">USDT</span></span>
+      </div>
+      <div class="port-kpi-card">
+        <span class="port-kpi-label">Available Margin</span>
+        <span class="port-kpi-val" id="u2-kpi-avail" style="color:var(--emerald);">0.00 <span style="font-size:9px;font-weight:600;color:var(--text-muted);">USDT</span></span>
+      </div>
+      <div class="port-kpi-card">
+        <span class="port-kpi-label">Margin In Use</span>
+        <span class="port-kpi-val" id="u2-kpi-margin" style="color:var(--yellow);">0.00 <span style="font-size:9px;font-weight:600;color:var(--text-muted);">USDT</span></span>
+      </div>
+      <div class="port-kpi-card">
+        <span class="port-kpi-label">Unrealized PnL</span>
+        <span class="port-kpi-val" id="u2-kpi-pnl">0.00 <span style="font-size:9px;font-weight:600;color:var(--text-muted);">USDT</span></span>
+      </div>
+    </div>
+
+    <!-- Redesigned Tabs & Search -->
+    <div style="display:flex;align-items:center;border-bottom:1px solid var(--border);background:transparent;flex-shrink:0;padding-right:10px;">
+      <button id="tab-u2-pos" class="tab on" style="flex:1" onclick="window.setPortTab('u2', 'pos')">Positions <span id="count-u2-pos" class="tab-count-badge"></span></button>
+      <button id="tab-u2-open" class="tab" style="flex:1" onclick="window.setPortTab('u2', 'open')">Open Orders <span id="count-u2-open" class="tab-count-badge"></span></button>
+      <button id="tab-u2-hist" class="tab" style="flex:1" onclick="window.setPortTab('u2', 'hist')">History <span id="count-u2-hist" class="tab-count-badge"></span></button>
+      <div style="margin-left:8px;">
+        <input type="text" id="search-u2" class="port-search-input" placeholder="🔍 Symbol..." oninput="window.setPortSearch('u2', this.value)">
+      </div>
     </div>
     <div id="u2-body-wrap" style="display:flex;flex-direction:column;flex:1;min-height:0;">
       <div id="u2-err" class="err-banner" style="display:none;flex-shrink:0;"></div>
@@ -2872,15 +3097,15 @@
           <tbody id="u2-body"><tr><td colspan="9" style="text-align:center;padding:40px 0;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;font-family:'Inter',sans-serif;font-weight:600;">No active positions</td></tr></tbody>
         </table>
       </div>
-        <div id="u2-pagination" style="display:none;align-items:center;justify-content:center;gap:12px;padding:12px;background:var(--input-bg);border-top:1px solid var(--border);">
+      <div id="u2-pagination" style="display:none;align-items:center;justify-content:center;gap:12px;padding:10px;background:var(--input-bg);border-top:1px solid var(--border);">
           <button class="pg-btn" onclick="window.changePage('u2', -1)">&lt; Prev</button>
           <span id="u2-page-info" style="font-size:11px;font-weight:600;color:var(--text-muted);">Page 1 of 1</span>
           <button class="pg-btn" onclick="window.changePage('u2', 1)">Next &gt;</button>
-        </div>
+      </div>
     </div>
   </div>
 
-   <div class="panel" style="display:flex;flex-direction:column;height:550px;overflow:hidden;" id="ltp-panel">
+   <div class="panel" style="display:flex;flex-direction:column;height:590px;overflow:hidden;" id="ltp-panel">
     <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);flex-shrink:0;">
       <div style="display:flex;align-items:center;gap:12px;">
         <div style="width:10px;height:10px;border-radius:50%;background:#a855f7;box-shadow:0 0 10px rgba(168,85,247,0.5);"></div>
@@ -3323,6 +3548,39 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         };
 
+        window.portSearch = { u1: '', u2: '' };
+        window.setPortSearch = function(panelId, val) {
+            window.portSearch[panelId] = (val || '').trim().toUpperCase();
+            if (window.pagination) window.pagination[panelId] = 1;
+            window.renderPortfolios();
+        };
+
+        window.refreshPortfolio = async function(panelId) {
+            const btn = document.getElementById('btn-refresh-' + panelId);
+            if (btn) btn.classList.add('spin-icon');
+            const activeTier = activeEnvFilter || (window.payload && window.payload.tier) || 'PRODUCTION';
+            
+            try {
+                const res = await fetch(window.getApiUrl('/api/portfolio/refresh'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tier: activeTier })
+                });
+                const curTab = window[panelId + 'Tab'];
+                if (curTab && curTab !== 'pos' && typeof window.fetchOrders === 'function') {
+                    window.fetchOrders(panelId, curTab);
+                }
+                showToast(`↻ Portfolio refreshed [${activeTier}]`);
+            } catch (err) {
+                console.error('Portfolio refresh failed:', err);
+            } finally {
+                setTimeout(() => {
+                    if (btn) btn.classList.remove('spin-icon');
+                    window.renderPortfolios();
+                }, 400);
+            }
+        };
+
         window.seedUserBalance = async function(panelId) {
             const btn = document.getElementById('btn-add-funds-' + panelId);
             const sel = document.getElementById('sel-port-' + panelId);
@@ -3336,29 +3594,29 @@ window.addEventListener('DOMContentLoaded', () => {
             if (btn) {
                 btn.disabled = true;
                 btn.dataset.origHtml = btn.innerHTML;
-                btn.innerHTML = '⏳ Adding...';
+                btn.innerHTML = '⏳ Adding USDT...';
             }
 
             try {
-                showToast(`Seeding balance for ${userId} [${activeTier}]...`);
+                showToast(`Seeding USDT balance for ${userId} [${activeTier}]...`);
                 const res = await fetch(window.getApiUrl('/api/portfolio/seed-balance'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId, tier: activeTier })
+                    body: JSON.stringify({ userId, tier: activeTier, currency: 'USDT', asset: 'USDT' })
                 });
                 const data = await res.json().catch(() => ({}));
                 if (res.ok && data.success) {
-                    showToast('✅ ' + (data.message || `Funds added successfully for ${userId} [${activeTier}]`));
+                    showToast('✅ ' + (data.message || `USDT added successfully for ${userId} [${activeTier}]`));
                     window.renderPortfolios();
                 } else {
-                    showToast('❌ ' + (data.error || 'Failed to add funds via seed balance API'), true);
+                    showToast('❌ ' + (data.error || 'Failed to add USDT via seed balance API'), true);
                 }
             } catch (e) {
                 showToast('❌ Error adding funds: ' + e.message, true);
             } finally {
                 if (btn) {
                     btn.disabled = false;
-                    btn.innerHTML = btn.dataset.origHtml || '+ Add Funds';
+                    btn.innerHTML = btn.dataset.origHtml || '+ Add USDT';
                 }
             }
         };
@@ -5916,35 +6174,101 @@ window.addEventListener('DOMContentLoaded', () => {
         }
 
         function renderPortfolio(data, errEl, chipsEl, titleEl, bodyEl, userId, tab, panelId) {
-            if (data.error) { errEl.style.display='block'; errEl.textContent='\u26a0 '+data.error; }
-            else { errEl.style.display='none'; }
+            if (data.error) {
+                errEl.style.display = 'block';
+                errEl.textContent = '⚠ ' + data.error;
+            } else {
+                errEl.style.display = 'none';
+            }
 
-            const wallet = parseFloat(data.walletBalance||0);
-            const avail = parseFloat(data.availableBalance||0);
-            const locked = Math.max(0, wallet - avail);
-            const pnl = parseFloat(data.unrealizedProfit||0);
+            const activeTier = activeEnvFilter || (window.payload && window.payload.tier) || 'PRODUCTION';
+            const tierRoles = (window.payload && window.payload.roles && window.payload.roles[activeTier]) || {};
+            const isMaker = Boolean(tierRoles.makerId && String(tierRoles.makerId) === String(userId));
+            const isTaker = Boolean(tierRoles.takerId && String(tierRoles.takerId) === String(userId));
 
-            chipsEl.innerHTML =
-                chipHtml('Wallet', wallet.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}), '#e2e8f0') +
-                chipHtml('Available', avail.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}), '#34d399');
+            // Update Role Badge & Avatar
+            const roleEl = document.getElementById(panelId + '-role-badge');
+            if (roleEl) {
+                if (isMaker) {
+                    roleEl.className = 'port-role-badge role-maker';
+                    roleEl.textContent = 'MAKER';
+                } else if (isTaker) {
+                    roleEl.className = 'port-role-badge role-taker';
+                    roleEl.textContent = 'TAKER';
+                } else {
+                    roleEl.className = 'port-role-badge role-user';
+                    roleEl.textContent = 'ACCOUNT';
+                }
+            }
+
+            const avatarEl = document.getElementById(panelId + '-avatar');
+            if (avatarEl) {
+                const uStr = String(userId || (panelId === 'u1' ? '1' : '2')).toUpperCase();
+                let initial = uStr.replace(/USER/i, 'U');
+                if (initial.length > 3) initial = initial.slice(0, 3);
+                avatarEl.textContent = initial || (panelId === 'u1' ? 'U1' : 'U2');
+            }
+
+            // Wallet & Margin Calculations
+            const wallet = parseFloat(data.walletBalance || 0);
+            const avail = parseFloat(data.availableBalance || 0);
+            const lockedMargin = Math.max(0, wallet - avail);
+            const pnl = parseFloat(data.unrealizedProfit || 0);
+            const marginRatio = wallet > 0 ? ((lockedMargin / wallet) * 100).toFixed(1) : '0.0';
+
+            // Populate KPI Bar
+            const walletEl = document.getElementById(panelId + '-kpi-wallet');
+            if (walletEl) {
+                walletEl.innerHTML = wallet.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' <span style="font-size:9px;font-weight:600;color:var(--text-muted);">USDT</span>';
+            }
+            const availEl = document.getElementById(panelId + '-kpi-avail');
+            if (availEl) {
+                availEl.innerHTML = avail.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' <span style="font-size:9px;font-weight:600;color:var(--text-muted);">USDT</span>';
+            }
+            const marginEl = document.getElementById(panelId + '-kpi-margin');
+            if (marginEl) {
+                marginEl.innerHTML = lockedMargin.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' <span style="font-size:9px;font-weight:600;color:var(--text-muted);">(' + marginRatio + '%)</span>';
+            }
+            const pnlEl = document.getElementById(panelId + '-kpi-pnl');
+            if (pnlEl) {
+                const pnlSign = pnl >= 0 ? '+' : '';
+                const pnlColor = pnl > 0 ? 'var(--emerald)' : (pnl < 0 ? '#fb7185' : 'var(--text-muted)');
+                pnlEl.style.color = pnlColor;
+                pnlEl.innerHTML = pnlSign + pnl.toFixed(2) + ' <span style="font-size:9px;font-weight:600;color:var(--text-muted);">USDT</span>';
+            }
 
             const theadEl = bodyEl.previousElementSibling;
             const userStr = userId || (bodyEl.id.startsWith('u1') ? '1' : '2');
 
+            // Tab badge counts
+            const allPositions = data.positions || [];
+            const allOpenOrders = (window.fetchedOrders[panelId] && window.fetchedOrders[panelId].open) || [];
+            const allHistOrders = (window.fetchedOrders[panelId] && window.fetchedOrders[panelId].hist) || [];
+
+            const countPosEl = document.getElementById('count-' + panelId + '-pos');
+            if (countPosEl) countPosEl.textContent = allPositions.length ? `(${allPositions.length})` : '';
+            const countOpenEl = document.getElementById('count-' + panelId + '-open');
+            if (countOpenEl) countOpenEl.textContent = allOpenOrders.length ? `(${allOpenOrders.length})` : '';
+            const countHistEl = document.getElementById('count-' + panelId + '-hist');
+            if (countHistEl) countHistEl.textContent = allHistOrders.length ? `(${allHistOrders.length})` : '';
+
+            // Search filter
+            const filterText = (window.portSearch && window.portSearch[panelId]) || '';
+
             let rawData = [];
             if (tab === 'open') {
-                theadEl.innerHTML = '<tr><th>Symbol</th><th style="text-align:right;">Side</th><th style="text-align:right;">Price</th><th style="text-align:right;">Avg Price</th><th style="text-align:right;">Amount</th><th style="text-align:right;">Filled</th><th style="text-align:right;">Type</th><th style="text-align:right;">Status</th><th style="text-align:right;">Time</th><th style="text-align:right;width:180px;"><div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;"><span>Actions</span><button class="act-btn act-cls" style="background:var(--rose);color:#fff;border-radius:4px;padding:3px 8px;font-size:10px;font-weight:700;line-height:1;" onclick="window.cancelAllOpenOrders(\''+panelId+'\')">CANCEL ALL</button></div></th></tr>';
-                rawData = window.fetchedOrders[panelId][tab] || [];
-                const countSpan = document.getElementById('count-' + panelId + '-open');
-                if (countSpan) countSpan.textContent = rawData.length ? ` (${rawData.length})` : '';
+                theadEl.innerHTML = '<tr><th>Symbol</th><th style="text-align:right;">Side</th><th style="text-align:right;">Price</th><th style="text-align:right;">Avg Price</th><th style="text-align:right;">Progress</th><th style="text-align:right;">Type</th><th style="text-align:right;">Status</th><th style="text-align:right;">Time</th><th style="text-align:right;width:170px;"><div style="display:flex;justify-content:flex-end;align-items:center;gap:6px;"><span>Actions</span><button class="act-btn act-cls" style="background:var(--rose);color:#fff;border-radius:4px;padding:2px 6px;font-size:9.5px;font-weight:700;line-height:1;" onclick="window.cancelAllOpenOrders(\''+panelId+'\')">CANCEL ALL</button></div></th></tr>';
+                rawData = allOpenOrders;
             } else if (tab === 'hist') {
-                theadEl.innerHTML = '<tr><th>Symbol</th><th style="text-align:right;">Side</th><th style="text-align:right;">Price</th><th style="text-align:right;">Avg Price</th><th style="text-align:right;">Amount</th><th style="text-align:right;">Filled</th><th style="text-align:right;">Status</th><th style="text-align:right;">Time</th></tr>';
-                rawData = (window.fetchedOrders[panelId][tab] || []).sort((a,b) => b.time - a.time);
-                const countSpan = document.getElementById('count-' + panelId + '-hist');
-                if (countSpan) countSpan.textContent = rawData.length ? ` (${rawData.length})` : '';
+                theadEl.innerHTML = '<tr><th>Symbol</th><th style="text-align:right;">Side</th><th style="text-align:right;">Price</th><th style="text-align:right;">Avg Price</th><th style="text-align:right;">Filled / Orig</th><th style="text-align:right;">Status</th><th style="text-align:right;">Time</th></tr>';
+                rawData = [...allHistOrders].sort((a,b) => (b.time || b.updateTime || 0) - (a.time || a.updateTime || 0));
             } else {
-                theadEl.innerHTML = '<tr><th>Symbol</th><th style="text-align:right;">Lev</th><th style="text-align:right;">Margin</th><th style="text-align:right;">Size</th><th style="text-align:right;">Unreal. PnL</th><th style="text-align:right;">Entry</th><th style="text-align:right;">Mark</th><th style="text-align:right;">Liq.</th><th style="text-align:right;width:160px;">Actions</th></tr>';
-                rawData = data.positions || [];
+                theadEl.innerHTML = '<tr><th>Symbol</th><th style="text-align:right;">Lev</th><th style="text-align:right;">Margin</th><th style="text-align:right;">Size</th><th style="text-align:right;">Unreal. PnL (ROI)</th><th style="text-align:right;">Entry / Mark</th><th style="text-align:right;">Liq. Price</th><th style="text-align:right;width:160px;">Actions</th></tr>';
+                rawData = allPositions;
+            }
+
+            if (filterText) {
+                rawData = rawData.filter(item => (item.symbol || '').toUpperCase().includes(filterText));
             }
 
             const pgEl = document.getElementById(panelId + '-pagination');
@@ -5955,7 +6279,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 pgEl.style.display = 'flex';
                 const maxPage = Math.ceil(total / window.PAGE_SIZE);
                 if (window.pagination[panelId] > maxPage) window.pagination[panelId] = maxPage;
-                pgInfo.textContent = `Page ${window.pagination[panelId]} of ${maxPage}`;
+                pgInfo.textContent = `Page ${window.pagination[panelId]} of ${maxPage} (${total})`;
                 pgEl.children[0].disabled = window.pagination[panelId] === 1;
                 pgEl.children[2].disabled = window.pagination[panelId] === maxPage;
                 pgEl.children[0].style.opacity = window.pagination[panelId] === 1 ? '0.5' : '1';
@@ -5969,17 +6293,26 @@ window.addEventListener('DOMContentLoaded', () => {
             const pageData = rawData.slice(startIdx, endIdx);
 
             if (!pageData.length) {
-                const msg = tab === 'open' ? 'No open orders' : (tab === 'hist' ? 'No recent order history for active symbols' : 'No active positions');
-                const colSpan = tab === 'hist' ? 8 : (tab === 'open' ? 10 : 9);
-                bodyEl.innerHTML = '<tr><td colspan="'+colSpan+'" style="text-align:center;padding:40px 0;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;font-family:\'Inter\',sans-serif;font-weight:600;">'+msg+'</td></tr>';
+                const emptyIcon = tab === 'open' ? '📋' : (tab === 'hist' ? '🕒' : '💼');
+                const msgTitle = tab === 'open' ? 'No Open Orders' : (tab === 'hist' ? 'No Order History' : 'No Open Positions');
+                const msgSub = filterText 
+                    ? `No matches found for symbol "${filterText}"` 
+                    : (tab === 'open' ? 'No working limit orders on this account' : (tab === 'hist' ? 'No recent order history for active symbols' : 'Place an order to open a leveraged position'));
+                const colSpan = tab === 'hist' ? 7 : (tab === 'open' ? 9 : 8);
+                bodyEl.innerHTML = `<tr><td colspan="${colSpan}" style="text-align:center;padding:48px 16px;">
+                    <div style="font-size:24px;margin-bottom:6px;opacity:0.8;">${emptyIcon}</div>
+                    <div style="font-weight:700;color:var(--text-main);font-size:12px;letter-spacing:0.5px;font-family:'Inter',sans-serif;">${msgTitle}</div>
+                    <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">${msgSub}</div>
+                </td></tr>`;
                 return;
             }
 
             if (tab === 'open') {
                 bodyEl.innerHTML = pageData.map(o => {
-                    const sideColor = o.side === 'BUY' ? '#34d399' : '#fb7185';
+                    const isBuy = o.side === 'BUY';
+                    const sideColor = isBuy ? '#34d399' : '#fb7185';
                     const timeVal = o.time || o.updateTime;
-                    const timeStr = timeVal ? new Date(Number(timeVal)).toLocaleString() : 'N/A';
+                    const timeStr = timeVal ? new Date(Number(timeVal)).toLocaleTimeString() : 'N/A';
                     
                     let statusHtml = '';
                     if (o.status === 'NEW') statusHtml = '<span class="badge" style="background:rgba(6,182,212,0.1);color:var(--cyan);border:1px solid rgba(6,182,212,0.3);">NEW</span>';
@@ -5990,13 +6323,18 @@ window.addEventListener('DOMContentLoaded', () => {
                     const apVal = o.avgPrice || o.avgExecutionPrice || o.ap;
                     const apDisplay = (apVal && parseFloat(apVal) > 0) ? parseFloat(apVal) : '-';
 
-                    return '<tr style="cursor:pointer;" onclick="window.showOrderId(\''+o.orderId+'\')" title="Click to show/copy Order ID"><td><span style="font-weight:700;color:var(--text-main);font-family:\'Inter\',sans-serif;">'+o.symbol+'</span></td><td style="text-align:right;color:'+sideColor+';font-weight:700;">'+o.side+'</td><td style="text-align:right;color:var(--text-main);">'+pDisplay+'</td><td style="text-align:right;color:'+(apDisplay !== '-' ? 'var(--cyan)' : 'var(--text-muted)')+';font-weight:600;">'+apDisplay+'</td><td style="text-align:right;color:var(--text-muted);">'+parseFloat(o.origQty)+'</td><td style="text-align:right;color:var(--text-muted);">'+parseFloat(o.executedQty)+'</td><td style="text-align:right;color:var(--text-muted);">'+o.type+'</td><td style="text-align:right;">'+statusHtml+'</td><td style="text-align:right;color:var(--text-muted);font-size:10px;">'+timeStr+'</td><td style="text-align:right;"><button class="act-btn act-lev" onclick="event.stopPropagation();window.fapiAction(\'edit\', \''+userStr+'\', \''+o.symbol+'\', \''+o.orderId+'\', \''+o.side+'\')" style="margin-right:8px;">EDIT</button><button class="act-btn act-cls" onclick="event.stopPropagation();window.fapiAction(\'cancel\', \''+userStr+'\', \''+o.symbol+'\', \''+o.orderId+'\')">CANCEL</button></td></tr>';
+                    const origQty = parseFloat(o.origQty || 0);
+                    const execQty = parseFloat(o.executedQty || 0);
+                    const pct = origQty > 0 ? Math.min(100, Math.round((execQty / origQty) * 100)) : 0;
+
+                    return '<tr style="cursor:pointer;" onclick="window.showOrderId(\''+o.orderId+'\')" title="Click to copy Order ID"><td><span style="font-weight:700;color:var(--text-main);font-family:\'Inter\',sans-serif;">'+o.symbol+'</span></td><td style="text-align:right;color:'+sideColor+';font-weight:700;">'+o.side+'</td><td style="text-align:right;color:var(--text-main);font-family:\'JetBrains Mono\',monospace;">'+pDisplay+'</td><td style="text-align:right;color:'+(apDisplay !== '-' ? 'var(--cyan)' : 'var(--text-muted)')+';font-weight:600;font-family:\'JetBrains Mono\',monospace;">'+apDisplay+'</td><td style="text-align:right;"><div style="min-width:70px;text-align:right;"><div style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--text-muted);">'+execQty+' / '+origQty+' ('+pct+'%)</div><div class="fill-progress-bar"><div class="fill-progress-val" style="width:'+pct+'%;"></div></div></div></td><td style="text-align:right;color:var(--text-muted);font-size:11px;">'+o.type+'</td><td style="text-align:right;">'+statusHtml+'</td><td style="text-align:right;color:var(--text-muted);font-size:10px;font-family:\'JetBrains Mono\',monospace;">'+timeStr+'</td><td style="text-align:right;"><button class="act-btn act-lev" onclick="event.stopPropagation();window.fapiAction(\'edit\', \''+userStr+'\', \''+o.symbol+'\', \''+o.orderId+'\', \''+o.side+'\')" style="margin-right:6px;padding:3px 7px;">EDIT</button><button class="act-btn act-cls" onclick="event.stopPropagation();window.fapiAction(\'cancel\', \''+userStr+'\', \''+o.symbol+'\', \''+o.orderId+'\')" style="padding:3px 7px;">CANCEL</button></td></tr>';
                 }).join('');
             } else if (tab === 'hist') {
                 bodyEl.innerHTML = pageData.map(o => {
-                    const sideColor = o.side === 'BUY' ? '#34d399' : '#fb7185';
+                    const isBuy = o.side === 'BUY';
+                    const sideColor = isBuy ? '#34d399' : '#fb7185';
                     const timeVal = o.time || o.updateTime;
-                    const timeStr = timeVal ? new Date(Number(timeVal)).toLocaleString() : 'N/A';
+                    const timeStr = timeVal ? new Date(Number(timeVal)).toLocaleTimeString() : 'N/A';
                     let statusHtml = '';
                     if (o.status === 'FILLED') statusHtml = '<span class="badge badge-ok">FILLED</span>';
                     else if (o.status === 'CANCELED' || o.status === 'EXPIRED') statusHtml = '<span class="badge badge-fail">'+o.status+'</span>';
@@ -6006,24 +6344,34 @@ window.addEventListener('DOMContentLoaded', () => {
                     const apVal = o.avgPrice || o.avgExecutionPrice || o.ap;
                     const apDisplay = (apVal && parseFloat(apVal) > 0) ? parseFloat(apVal) : '-';
 
-                    return '<tr style="cursor:pointer;" onclick="window.showOrderId(\''+(o.orderId||o.id)+'\')" title="Click to show/copy Order ID"><td><span style="font-weight:700;color:var(--text-main);font-family:\'Inter\',sans-serif;">'+o.symbol+'</span></td><td style="text-align:right;color:'+sideColor+';font-weight:700;">'+o.side+'</td><td style="text-align:right;color:var(--text-main);">'+pDisplay+'</td><td style="text-align:right;color:'+(apDisplay !== '-' ? 'var(--cyan)' : 'var(--text-muted)')+';font-weight:600;">'+apDisplay+'</td><td style="text-align:right;color:var(--text-muted);">'+parseFloat(o.origQty)+'</td><td style="text-align:right;color:var(--text-muted);">'+parseFloat(o.executedQty)+'</td><td style="text-align:right;">'+statusHtml+'</td><td style="text-align:right;color:var(--text-muted);font-size:10px;">'+timeStr+'</td></tr>';
+                    return '<tr style="cursor:pointer;" onclick="window.showOrderId(\''+(o.orderId||o.id)+'\')" title="Click to copy Order ID"><td><span style="font-weight:700;color:var(--text-main);font-family:\'Inter\',sans-serif;">'+o.symbol+'</span></td><td style="text-align:right;color:'+sideColor+';font-weight:700;">'+o.side+'</td><td style="text-align:right;color:var(--text-main);font-family:\'JetBrains Mono\',monospace;">'+pDisplay+'</td><td style="text-align:right;color:'+(apDisplay !== '-' ? 'var(--cyan)' : 'var(--text-muted)')+';font-weight:600;font-family:\'JetBrains Mono\',monospace;">'+apDisplay+'</td><td style="text-align:right;color:var(--text-muted);font-family:\'JetBrains Mono\',monospace;">'+parseFloat(o.executedQty)+' / '+parseFloat(o.origQty)+'</td><td style="text-align:right;">'+statusHtml+'</td><td style="text-align:right;color:var(--text-muted);font-size:10px;font-family:\'JetBrains Mono\',monospace;">'+timeStr+'</td></tr>';
                 }).join('');
             } else {
                 bodyEl.innerHTML = pageData.map(p => {
-                    const sideBg = p.side === 'LONG'
-                        ? 'background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);color:#34d399;'
-                        : 'background:rgba(244,63,94,.15);border:1px solid rgba(244,63,94,.3);color:#fb7185;';
-                    const pnlV = parseFloat(p.unrealizedPnL);
+                    const isLong = p.side === 'LONG';
+                    const sideClass = isLong ? 'pos-side-pill pos-long' : 'pos-side-pill pos-short';
+                    const sideIcon = isLong ? '▲' : '▼';
+                    
+                    const pnlV = parseFloat(p.unrealizedPnL || 0);
                     const pnlClass = pnlV >= 0 ? 'pnl-pos' : 'pnl-neg';
-                    const pnlSign= pnlV >= 0 ? '+' : '';
+                    const pnlSign = pnlV >= 0 ? '+' : '';
+                    const marginVal = parseFloat(p.margin || 0);
+                    const roi = marginVal > 0 ? ((pnlV / marginVal) * 100).toFixed(2) : '0.00';
+
+                    const liqV = parseFloat(p.liqPrice || 0);
+                    const markV = parseFloat(p.markPrice || 0);
+                    const isNearLiq = liqV > 0 && markV > 0 && Math.abs(markV - liqV) / markV < 0.05;
+                    const liqClass = isNearLiq ? 'liq-warning' : '';
+
                     const actionBtns = `
-                        <div style="display:flex;gap:8px;justify-content:flex-end;">
-                            <button class="act-btn act-lev" onclick="window.fapiAction('lev', '${userStr}', '${p.symbol}', '${p.side}')">LEV</button>
-                            <button class="act-btn act-marg" onclick="window.fapiAction('marg', '${userStr}', '${p.symbol}', '${p.side}')">MARG</button>
-                            <button class="act-btn act-red" onclick="window.fapiAction('red', '${userStr}', '${p.symbol}', '${p.side}')">REDUCE</button>
-                            <button class="act-btn act-cls" onclick="window.fapiAction('close', '${userStr}', '${p.symbol}', '${p.side}')">CLOSE</button>
+                        <div style="display:flex;gap:4px;justify-content:flex-end;">
+                            <button class="act-btn act-lev" onclick="window.fapiAction('lev', '${userStr}', '${p.symbol}', '${p.side}')" title="Adjust Leverage">LEV</button>
+                            <button class="act-btn act-marg" onclick="window.fapiAction('marg', '${userStr}', '${p.symbol}', '${p.side}')" title="Adjust Margin">MARG</button>
+                            <button class="act-btn act-red" onclick="window.fapiAction('red', '${userStr}', '${p.symbol}', '${p.side}')" title="Reduce Position">RED</button>
+                            <button class="act-btn act-cls" onclick="window.fapiAction('close', '${userStr}', '${p.symbol}', '${p.side}')" title="Market Close Position">CLOSE</button>
                         </div>`;
-                    return '<tr><td><span style="font-weight:700;color:var(--text-main);font-family:\'Inter\',sans-serif;">'+p.symbol+'</span><span style="margin-left:8px;font-size:10px;padding:2px 8px;border-radius:99px;font-weight:700;letter-spacing:0.5px;font-family:\'Inter\',sans-serif;'+sideBg+'">'+p.side+'</span></td><td style="text-align:right;color:var(--text-muted);">'+p.leverage+'×</td><td style="text-align:right;color:var(--cyan);font-weight:600;">'+parseFloat(p.margin).toFixed(2)+'</td><td style="text-align:right;color:var(--text-dim);">'+p.size+'</td><td style="text-align:right;font-weight:700;" class="'+pnlClass+'">'+pnlSign+pnlV.toFixed(2)+'</td><td style="text-align:right;color:var(--text-muted);">'+p.entryPrice+'</td><td style="text-align:right;color:var(--text-muted);">'+p.markPrice+'</td><td style="text-align:right;color:var(--yellow);font-weight:600;">'+p.liqPrice+'</td><td style="text-align:right;">'+actionBtns+'</td></tr>';
+
+                    return '<tr><td><span style="font-weight:700;color:var(--text-main);font-family:\'Inter\',sans-serif;">'+p.symbol+'</span><span class="'+sideClass+'" style="margin-left:6px;">'+sideIcon+' '+p.side+'</span></td><td style="text-align:right;"><span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;font-weight:700;color:var(--text-dim);background:var(--input-bg);padding:2px 5px;border-radius:3px;border:1px solid var(--border);">'+p.leverage+'×</span></td><td style="text-align:right;color:var(--cyan);font-weight:700;font-family:\'JetBrains Mono\',monospace;">'+parseFloat(p.margin).toFixed(2)+'</td><td style="text-align:right;color:var(--text-dim);font-family:\'JetBrains Mono\',monospace;font-weight:600;">'+p.size+'</td><td style="text-align:right;font-weight:800;" class="'+pnlClass+'"><span style="font-family:\'JetBrains Mono\',monospace;">'+pnlSign+pnlV.toFixed(2)+'</span> <span style="font-size:10px;font-weight:600;opacity:0.85;">('+pnlSign+roi+'%)</span></td><td style="text-align:right;"><div style="font-family:\'JetBrains Mono\',monospace;font-size:11px;"><span style="color:var(--text-main);">'+p.entryPrice+'</span> <span style="color:var(--text-muted);font-size:9.5px;">/ '+p.markPrice+'</span></div></td><td style="text-align:right;"><span class="'+liqClass+'" style="color:var(--yellow);font-weight:700;font-family:\'JetBrains Mono\',monospace;">'+(p.liqPrice || '-')+(isNearLiq ? ' ⚡' : '')+'</span></td><td style="text-align:right;">'+actionBtns+'</td></tr>';
                 }).join('');
             }
         }

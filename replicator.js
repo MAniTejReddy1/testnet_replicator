@@ -3485,13 +3485,30 @@ function autoParsePositions(data, tier = 'PRODUCTION') {
 }
 
 function autoParseAccount(data) {
-    const parsed = { walletBalance: "0.00", availableBalance: "0.00", unrealizedProfit: "0.00" };
+    const parsed = { 
+        walletBalance: "0.00", 
+        availableBalance: "0.00", 
+        unrealizedProfit: "0.00",
+        marginBalance: "0.00",
+        maintMargin: "0.00",
+        initialMargin: "0.00"
+    };
     if (!data) return parsed;
     const usdtAsset = (data.assets || []).find(a => a.asset === 'USDT');
     if (usdtAsset) {
         parsed.walletBalance    = parseFloat(usdtAsset.balance || usdtAsset.walletBalance || 0).toFixed(2);
         parsed.availableBalance = parseFloat(usdtAsset.availableBalance || 0).toFixed(2);
         parsed.unrealizedProfit = parseFloat(usdtAsset.unrealizedProfit || usdtAsset.unrealized_profit || 0).toFixed(2);
+        parsed.marginBalance    = parseFloat(usdtAsset.marginBalance || 0).toFixed(2);
+        parsed.maintMargin      = parseFloat(usdtAsset.maintMargin || 0).toFixed(2);
+        parsed.initialMargin    = parseFloat(usdtAsset.initialMargin || 0).toFixed(2);
+    } else {
+        parsed.walletBalance    = parseFloat(data.totalWalletBalance || 0).toFixed(2);
+        parsed.availableBalance = parseFloat(data.availableBalance || data.maxWithdrawAmount || 0).toFixed(2);
+        parsed.unrealizedProfit = parseFloat(data.totalUnrealizedProfit || 0).toFixed(2);
+        parsed.marginBalance    = parseFloat(data.totalMarginBalance || 0).toFixed(2);
+        parsed.maintMargin      = parseFloat(data.totalMaintMargin || 0).toFixed(2);
+        parsed.initialMargin    = parseFloat(data.totalInitialMargin || 0).toFixed(2);
     }
     return parsed;
 }
@@ -3509,12 +3526,27 @@ async function getUserPortfolio(userConfig, tier = 'PRODUCTION') {
     if (posRes.ok) positionData = posRes.data;
     else if (!errorMsg) errorMsg = `Positions API Failed (${posRes.status})`;
 
-    const portfolio = { walletBalance: "0.00", availableBalance: "0.00", unrealizedProfit: "0.00", positions: [], openOrders: [], orderHistory: [], openOrdersCount: 0, error: errorMsg };
+    const portfolio = { 
+        walletBalance: "0.00", 
+        availableBalance: "0.00", 
+        unrealizedProfit: "0.00", 
+        marginBalance: "0.00",
+        maintMargin: "0.00",
+        initialMargin: "0.00",
+        positions: [], 
+        openOrders: [], 
+        orderHistory: [], 
+        openOrdersCount: 0, 
+        error: errorMsg 
+    };
     if (accountData) {
         const pAcc = autoParseAccount(accountData);
         portfolio.walletBalance    = pAcc.walletBalance;
         portfolio.availableBalance = pAcc.availableBalance;
         portfolio.unrealizedProfit = pAcc.unrealizedProfit;
+        portfolio.marginBalance    = pAcc.marginBalance;
+        portfolio.maintMargin      = pAcc.maintMargin;
+        portfolio.initialMargin    = pAcc.initialMargin;
     }
     if (positionData) portfolio.positions = autoParsePositions(positionData, tier);
     return portfolio;
@@ -4526,6 +4558,17 @@ const server = http.createServer(async (req, res) => {
                             error: resInfo?.error || `Seed balance API failed for ${userCreds.label || userId} on ${tier}. Check credentials or server logs.` 
                         }));
                     }
+                } else if (pathname === '/api/portfolio/refresh') {
+                    let tier = (parsed.tier || globalActiveTier).toUpperCase().replace(/-/g, '_');
+                    if (!TIER_URLS[tier]) tier = globalActiveTier;
+                    lastPortfolioSyncTime = 0;
+                    await syncAllPortfolios(tier);
+                    broadcastToUI(true);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ 
+                        success: true, 
+                        message: `Portfolios refreshed for ${tier}` 
+                    }));
                 } else if (pathname === '/api/users') {
                     if (parsed.action === 'add' || parsed.action === 'update') {
                         const { id, label, key, secret, listenKey, email, password } = parsed.user;
