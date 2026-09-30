@@ -46,7 +46,8 @@
     "tradeDelayMs": 0,
     "cancelOnStop": false,
     "newUserFlow": false,
-    "enableTradeSync": true
+    "enableTradeSync": true,
+    "enableDcx": true
   },
   {
     "sourceSymbol": "BTCUSDT",
@@ -126,7 +127,8 @@
     "tradeDelayMs": 0,
     "cancelOnStop": false,
     "newUserFlow": false,
-    "enableTradeSync": true
+    "enableTradeSync": true,
+    "enableDcx": true
   },
   {
     "sourceSymbol": "ETHUSDT",
