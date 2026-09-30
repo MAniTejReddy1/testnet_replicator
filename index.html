@@ -707,6 +707,27 @@
     color: var(--text-muted) !important;
   }
 
+  html.no-dcx .dcx-only-tag,
+  body.no-dcx .dcx-only-tag {
+    display: none !important;
+  }
+  html.no-dcx .nodcx-only-tag,
+  body.no-dcx .nodcx-only-tag {
+    display: inline !important;
+  }
+  html.no-dcx #tag-sbid,
+  body.no-dcx #tag-sbid {
+    background: rgba(0, 230, 118, 0.15) !important;
+    color: #00e676 !important;
+    border-color: rgba(0, 230, 118, 0.3) !important;
+  }
+  html.no-dcx #tag-sask,
+  body.no-dcx #tag-sask {
+    background: rgba(255, 51, 102, 0.15) !important;
+    color: #ff3366 !important;
+    border-color: rgba(255, 51, 102, 0.3) !important;
+  }
+
   /* Light Theme overrides for Ticker HUD */
   :root[data-theme="light"] .ticker-card {
     background: #ffffff !important;
@@ -4149,7 +4170,7 @@
             <span class="ticker-val tc-val-gold" id="t-bbid" style="font-size:13.5px;">—</span>
           </div>
           <div class="tc-row">
-            <span class="tc-tag tc-tag-tst" title="Testnet Best Bid">TST</span>
+            <span class="tc-tag tc-tag-tst" id="tag-sbid" title="Testnet Best Bid"><span class="dcx-only-tag">TST</span><span class="nodcx-only-tag" style="display:none;">BID</span></span>
             <span class="ticker-val tc-val-cyan" id="t-sbid" style="font-size:13.5px;">—</span>
           </div>
         </div>
@@ -4159,7 +4180,7 @@
             <span class="ticker-val tc-val-gold" id="t-bask" style="font-size:13.5px;">—</span>
           </div>
           <div class="tc-row">
-            <span class="tc-tag tc-tag-tst" title="Testnet Best Ask">TST</span>
+            <span class="tc-tag tc-tag-tst" id="tag-sask" title="Testnet Best Ask"><span class="dcx-only-tag">TST</span><span class="nodcx-only-tag" style="display:none;">ASK</span></span>
             <span class="ticker-val tc-val-cyan" id="t-sask" style="font-size:13.5px;">—</span>
           </div>
         </div>
@@ -4518,6 +4539,8 @@
         <span style="color:var(--text-main);font-size:11px;font-weight:500;">Flash FX</span><div class="tog on" id="tog-flash"></div>
       </label>
     </div>
+  </div>
+  
   <div class="panel" style="padding:16px;margin-bottom:16px;">
     <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;font-weight:600;display:flex;align-items:center;gap:8px;">
       <div style="width:4px;height:12px;background:var(--yellow);border-radius:2px;"></div>CoinDCX Feeds &amp; Comparison
@@ -12576,10 +12599,12 @@ window.addEventListener('DOMContentLoaded', () => {
 
             // OK/FAIL counts are now rendered by updateTradeStream into #ltp-chips
 
-            if (window.dcxDataEnabled !== false) {
-                renderBook(document.getElementById('bin-asks'), document.getElementById('bin-bids'), document.getElementById('bin-spread-badge'), document.getElementById('bin-spread-mid'), instance.binanceDepth.asks, instance.binanceDepth.bids, true);
+            if (window.dcxDataEnabled !== false && instance.binanceDepth) {
+                renderBook(document.getElementById('bin-asks'), document.getElementById('bin-bids'), document.getElementById('bin-spread-badge'), document.getElementById('bin-spread-mid'), instance.binanceDepth.asks || [], instance.binanceDepth.bids || [], true);
             }
-            renderBook(document.getElementById('stage-asks'), document.getElementById('stage-bids'), document.getElementById('stage-spread-badge'), document.getElementById('stage-spread-mid'), instance.testnetDepth.asks, instance.testnetDepth.bids, false);
+            if (instance.testnetDepth) {
+                renderBook(document.getElementById('stage-asks'), document.getElementById('stage-bids'), document.getElementById('stage-spread-badge'), document.getElementById('stage-spread-mid'), instance.testnetDepth.asks || [], instance.testnetDepth.bids || [], false);
+            }
             if (window.MarketAggTradeManager) {
                 window.MarketAggTradeManager.handleBackendTrades(instance.aggTrades);
             } else if (instance.aggTrades && instance.aggTrades.length) {
