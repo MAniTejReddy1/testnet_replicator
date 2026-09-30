@@ -1810,6 +1810,7 @@ class ReplicatorInstance {
         this.restingBids   = [];    
         this.restingAsks   = [];
         this.syncedTrades  = [];
+        this.aggTrades     = [];
 
         this.tradeQueue          = [];
         this.priceLocks          = new Set();
@@ -1832,6 +1833,8 @@ class ReplicatorInstance {
         this.wsTestnet       = null;
         this.wsTestnetTicker = null;
         this.testnetPingInterval = null;
+        this.wsTestnetAggTrade = null;
+        this.testnetAggTradePingInterval = null;
         this.wsBinanceTicker = null;
         this.binance24h = { high: 0, low: 0, volume: 0, priceChangePercent: 0 };
         this.stage24h = { high: 0, low: 0, volume: 0, priceChangePercent: 0 };
@@ -3500,6 +3503,108 @@ startBinanceDepthWS() {
         this.wsTestnet.on('close', () => { clearInterval(this.testnetPingInterval); pushEvent('WARN', this.symbol, `Testnet Depth WS disconnected — reconnecting...`, null, 'ws'); this.wsTestnet = null; setTimeout(() => this.startTestnetWS(), 3000); });
     }
 
+    async fetchInitialAggTrades() {
+        try {
+            const urls = TIER_URLS[this.tier] || TIER_URLS.PRODUCTION;
+            const cleanSym = (this.symbol || '').replace(/^B-/, '').replace(/_/g, '');
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 6000);
+            const res = await fetch(`${urls.MDS_READ}/fapi/v1/aggTrades?symbol=${cleanSym}&limit=100`, { signal: controller.signal });
+            clearTimeout(timeoutId);
+            if (res.ok) {
+                const trades = await res.json();
+                if (Array.isArray(trades)) {
+                    this.aggTrades = trades.reverse().map(t => ({
+                        a: t.a,
+                        p: t.p,
+                        q: t.q,
+                        f: t.f,
+                        l: t.l,
+                        T: t.T,
+                        m: t.m,
+                        time: new Date(t.T).toLocaleTimeString('en-US', { hour12: false }) + '.' + String(t.T % 1000).padStart(3, '0'),
+                        side: t.m ? 'SELL' : 'BUY',
+                        orderType: 'MARKET',
+                        status: 'FILLED',
+                        stageQty: t.q,
+                        price: t.p,
+                        success: true
+                    }));
+                    if (this.aggTrades.length > 0) {
+                        const latestLtp = parseFloat(this.aggTrades[0].p);
+                        if (Number.isFinite(latestLtp) && latestLtp > 0) {
+                            this.testnetLtp = latestLtp;
+                        }
+                    }
+                    broadcastToUI();
+                }
+            }
+        } catch (e) {
+            log.debug && log.debug(this.symbol, `[AGG-TRADES] Initial fetch: ${e.message}`);
+        }
+    }
+
+    startTestnetAggTradeWS() {
+        if (this.wsTestnetAggTrade) return;
+        const cleanSym = (this.symbol || '').replace(/^B-/, '').replace(/_/g, '').toLowerCase();
+        const urls = TIER_URLS[this.tier] || TIER_URLS.PRODUCTION;
+        const wsBase = urls.WS_GATEWAY;
+        const streamUrl = `${wsBase}/market/ws/${cleanSym}@aggTrade`;
+        log.info(this.symbol, `[WS] Connecting to Testnet AggTrade WS (${cleanSym}@aggTrade)...`);
+        this.wsTestnetAggTrade = new WebSocket(streamUrl);
+        this.wsTestnetAggTrade.on('open', () => {
+            pushEvent('SUCCESS', this.symbol, `Testnet AggTrade WS connected`, { stream: 'aggTrade' }, 'ws');
+            this.testnetAggTradePingInterval = setInterval(() => {
+                if (this.wsTestnetAggTrade && this.wsTestnetAggTrade.readyState === WebSocket.OPEN) {
+                    this.wsTestnetAggTrade.ping();
+                }
+            }, 30000);
+        });
+        this.wsTestnetAggTrade.on('message', (raw) => {
+            try {
+                const data = JSON.parse(raw.toString());
+                if (data.e === 'aggTrade' || (data.p && data.q && data.T !== undefined)) {
+                    const ltp = parseFloat(data.p);
+                    if (Number.isFinite(ltp) && ltp > 0) this.testnetLtp = ltp;
+
+                    const formattedTrade = {
+                        a: data.a,
+                        p: data.p,
+                        q: data.q,
+                        f: data.f,
+                        l: data.l,
+                        T: data.T,
+                        m: data.m,
+                        time: new Date(data.T).toLocaleTimeString('en-US', { hour12: false }) + '.' + String(data.T % 1000).padStart(3, '0'),
+                        side: data.m ? 'SELL' : 'BUY',
+                        orderType: 'MARKET',
+                        status: 'FILLED',
+                        stageQty: data.q,
+                        price: data.p,
+                        success: true
+                    };
+
+                    if (!this.aggTrades) this.aggTrades = [];
+                    if (!data.a || !this.aggTrades.some(t => t.a === data.a)) {
+                        this.aggTrades.unshift(formattedTrade);
+                        if (this.aggTrades.length > 500) this.aggTrades.pop();
+                    }
+
+                    broadcastToUI();
+                }
+            } catch(e) { log.debug && log.debug(this.symbol, e.message); }
+        });
+        this.wsTestnetAggTrade.on('close', () => {
+            clearInterval(this.testnetAggTradePingInterval);
+            pushEvent('WARN', this.symbol, `Testnet AggTrade WS disconnected — reconnecting...`, null, 'ws');
+            this.wsTestnetAggTrade = null;
+            setTimeout(() => this.startTestnetAggTradeWS(), 3000);
+        });
+        this.wsTestnetAggTrade.on('error', (err) => {
+            pushEvent('ERROR', this.symbol, `Testnet AggTrade WS error: ${err.message}`, null, 'ws');
+        });
+    }
+
     async cleanOpenOrders(user, tier, symbolFilter = null) {
         if (!user) return;
         const hpoBase = TIER_URLS[tier].HPO;
@@ -3583,6 +3688,7 @@ startBinanceDepthWS() {
         if (this.wsTestnet) { clearInterval(this.testnetPingInterval); this.wsTestnet.removeAllListeners('close'); this.wsTestnet.close(); this.wsTestnet = null; }
         if (this.wsTestnetTicker) { try { this.wsTestnetTicker.removeAllListeners('close'); this.wsTestnetTicker.close(); } catch(e){} this.wsTestnetTicker = null; }
         if (this.wsTestnetMarkPrice) { try { this.wsTestnetMarkPrice.removeAllListeners('close'); this.wsTestnetMarkPrice.close(); } catch(e){} this.wsTestnetMarkPrice = null; }
+        if (this.wsTestnetAggTrade) { try { clearInterval(this.testnetAggTradePingInterval); this.wsTestnetAggTrade.removeAllListeners('close'); this.wsTestnetAggTrade.close(); } catch(e){} this.wsTestnetAggTrade = null; }
 
         // 2. Close all Binance WebSockets
         if (this.wsBinanceDepth) { this.wsBinanceDepth.removeAllListeners('close'); this.wsBinanceDepth.close(); this.wsBinanceDepth = null; }
@@ -3618,8 +3724,9 @@ startBinanceDepthWS() {
             log.warn(this.symbol, `Failed to fetch initial depth from MDS_READ on ${this.tier}`, null, this.tier);
         }
 
-        // 4. Fetch initial mark prices
+        // 4. Fetch initial mark prices and actual market aggTrades
         await this.fetchInitialMarkPrices();
+        await this.fetchInitialAggTrades();
 
         // 5. Restart all WebSockets
         this.startBinanceDepthWS();
@@ -3629,6 +3736,7 @@ startBinanceDepthWS() {
         this.startTestnetWS();
         this.startTestnetTickerWS();
         this.startTestnetMarkPriceWS();
+        this.startTestnetAggTradeWS();
         
         log.success(this.symbol, 'All streams and depth successfully reloaded.');
     }
@@ -3737,6 +3845,7 @@ startBinanceDepthWS() {
         this.startTestnetWS();
         this.startTestnetTickerWS();
         this.startTestnetMarkPriceWS();
+        this.startTestnetAggTradeWS();
         this.startRestPollingFallback();
     }
 
@@ -3773,6 +3882,7 @@ startBinanceDepthWS() {
         this.startTestnetWS();
         this.startTestnetTickerWS();
         this.startTestnetMarkPriceWS();
+        this.startTestnetAggTradeWS();
         this.startRestPollingFallback();
     }
 }
@@ -4110,7 +4220,9 @@ function buildPayload(isSnapshot = true, sinceTs = 0) {
             status:       inst.status,
             binanceDepth: inst.binanceDepth,
             testnetDepth: inst.testnetDepth,
-            syncedTrades: inst.syncedTrades,
+            syncedTrades: inst.syncedTrades || [],
+            userTrades:   inst.syncedTrades || [],
+            aggTrades:    inst.aggTrades || [],
             tier:         inst.tier,
             diagnostics: {
                 sourceSymbol:    inst.sourceSymbol,
@@ -4493,7 +4605,7 @@ const server = http.createServer(async (req, res) => {
     const session = getSessionUser(req);
     const isHtmlRoute = pathname === '/' || pathname === '/index.html';
 
-    if (!session && !pathname.startsWith('/api/auth/') && !pathname.startsWith('/api/stage/') && !pathname.startsWith('/api/mds-proxy') && !pathname.startsWith('/api/risk-controls') && !pathname.startsWith('/api/qa/')) {
+    if (!session && !pathname.startsWith('/api/auth/') && !pathname.startsWith('/api/stage/') && !pathname.startsWith('/api/mds-proxy') && !pathname.startsWith('/api/risk-controls') && !pathname.startsWith('/api/qa/') && !pathname.startsWith('/fapi/') && !pathname.startsWith('/api/fapi/')) {
         if (isHtmlRoute) {
             // Render index.html anyway, the frontend will show the glassmorphic auth overlay
         } else {
@@ -4595,6 +4707,33 @@ const server = http.createServer(async (req, res) => {
             } else {
                 res.writeHead(stageRes.status, { 'Content-Type': 'application/json' });
                 return res.end(JSON.stringify({ error: `Stage MDS_READ returned status ${stageRes.status}` }));
+            }
+        } catch (e) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: e.message }));
+        }
+    }
+
+    if (req.method === 'GET' && (pathname === '/fapi/v1/aggTrades' || pathname === '/api/stage/aggTrades' || pathname === '/api/fapi/v1/aggTrades')) {
+        const urlObj = new URL(req.url, 'http://localhost');
+        const rawSym = (urlObj.searchParams.get('symbol') || 'BTCUSDT').toUpperCase();
+        const cleanSym = rawSym.replace(/^B-/, '').replace(/_/g, '');
+        const limit = Math.min(parseInt(urlObj.searchParams.get('limit') || '100', 10), 500);
+        const tier = (urlObj.searchParams.get('tier') || globalActiveTier).toUpperCase().replace(/-/g, '_');
+        const urls = TIER_URLS[tier] || TIER_URLS.PRODUCTION;
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+            const stageRes = await fetch(`${urls.MDS_READ}/fapi/v1/aggTrades?symbol=${cleanSym}&limit=${limit}`, { signal: controller.signal });
+            clearTimeout(timeoutId);
+            if (stageRes.ok) {
+                const data = await stageRes.json();
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify(data));
+            } else {
+                const errText = await stageRes.text();
+                res.writeHead(stageRes.status, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ error: `Stage MDS_READ returned ${stageRes.status}: ${errText}` }));
             }
         } catch (e) {
             res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -5390,45 +5529,63 @@ const server = http.createServer(async (req, res) => {
                     const pricePrec = symMeta.pricePrecision !== undefined ? symMeta.pricePrecision : (tickSize > 0 ? Math.max(0, -Math.round(Math.log10(tickSize))) : 4);
                     const qtyPrec = symMeta.qtyPrecision !== undefined ? symMeta.qtyPrecision : (qtyStep > 0 ? Math.max(0, -Math.round(Math.log10(qtyStep))) : 0);
 
-                    // 5. Calculate Target Prices based on direction
-                    let buyPrice, sellPrice;
+                    // 5. Calculate 3 Buy and 3 Sell Target Prices based on direction
+                    let buyPrices = [];
+                    let sellPrices = [];
+
                     if (direction === 'ABOVE' || direction === 'UP') {
-                        // Target = Index Price * 1.02 (+2%)
+                        // Mark > Index: Place 3 buy and 3 sell orders above index from maker acc
                         const rawTarget = indexPrice * (1 + (offsetPct / 100));
-                        buyPrice = Math.round(rawTarget / tickSize) * tickSize;
-                        sellPrice = buyPrice + tickSize;
+                        const baseBuyPrice = Math.round(rawTarget / tickSize) * tickSize;
+                        buyPrices = [
+                            baseBuyPrice,
+                            baseBuyPrice - tickSize,
+                            baseBuyPrice - (2 * tickSize)
+                        ];
+                        sellPrices = [
+                            baseBuyPrice + tickSize,
+                            baseBuyPrice + (2 * tickSize),
+                            baseBuyPrice + (3 * tickSize)
+                        ];
                     } else {
-                        // Target = Index Price * 0.98 (-2%)
+                        // Mark < Index: Place 3 buy and 3 sell orders below index from maker acc
                         const rawTarget = indexPrice * (1 - (offsetPct / 100));
-                        sellPrice = Math.round(rawTarget / tickSize) * tickSize;
-                        buyPrice = Math.max(sellPrice - tickSize, tickSize);
-                        if (sellPrice <= tickSize) {
-                            sellPrice = tickSize * 2;
-                            buyPrice = tickSize;
-                        }
+                        const baseSellPrice = Math.round(rawTarget / tickSize) * tickSize;
+                        sellPrices = [
+                            baseSellPrice,
+                            baseSellPrice + tickSize,
+                            baseSellPrice + (2 * tickSize)
+                        ];
+                        buyPrices = [
+                            Math.max(baseSellPrice - tickSize, tickSize),
+                            Math.max(baseSellPrice - (2 * tickSize), tickSize),
+                            Math.max(baseSellPrice - (3 * tickSize), tickSize)
+                        ];
                     }
 
-                    const buyPriceStr = buyPrice.toFixed(pricePrec);
-                    const sellPriceStr = sellPrice.toFixed(pricePrec);
+                    // Format prices to exchange precision
+                    const buyPricesStr = buyPrices.map(p => p.toFixed(pricePrec));
+                    const sellPricesStr = sellPrices.map(p => p.toFixed(pricePrec));
 
-                    // 6. Calculate Quantities to meet minNotional * 10 threshold (e.g. 6.0 USDT * 10 = 60 USDT)
+                    // 6. Calculate Quantities
+                    // Maker orders: minNotional * 10 (or configured multiplier) per level
+                    // Taker order: minNotional * 2 (2x of min notional to consume top maker order)
                     const baseMinNotional = Math.max(parseFloat(symMeta.minNotional) || 6.0, 6.0);
-                    const notionalMultiplier = parseFloat(parsed.notionalMultiplier) || 10;
-                    const targetNotional = baseMinNotional * notionalMultiplier;
-                    const calcQty = (price) => {
-                        const raw = Math.max(minQty, targetNotional / price);
+                    const makerNotionalMultiplier = parseFloat(parsed.notionalMultiplier) || 10;
+                    const makerNotional = baseMinNotional * makerNotionalMultiplier;
+                    const takerNotional = baseMinNotional * 2;
+
+                    const calcQty = (price, notional) => {
+                        const raw = Math.max(minQty, notional / price);
                         const steps = Math.ceil(raw / qtyStep);
                         let q = steps * qtyStep;
-                        if ((q * price) < targetNotional) {
+                        if ((q * price) < notional) {
                             q = (steps + 1) * qtyStep;
                         }
                         return q.toFixed(qtyPrec);
                     };
 
-                    const buyQtyStr = calcQty(buyPrice);
-                    const sellQtyStr = calcQty(sellPrice);
-
-                    // 7. Retrieve users: User 1 (Maker) Limit Buy, User 2 (Taker) Limit Sell
+                    // 7. Retrieve users: User 1 (Maker), User 2 (Taker)
                     const tierUsers = globalUsers[inst.tier] || {};
                     const tierRoles = globalRoles[inst.tier] || { makerId: '', takerId: '' };
                     const makerUser = tierUsers[tierRoles.makerId || 'user1'];
@@ -5444,62 +5601,123 @@ const server = http.createServer(async (req, res) => {
 
                     const hpoBase = (TIER_URLS[inst.tier] || TIER_URLS[globalActiveTier]).HPO;
 
-                    const buyPayload = {
+                    // Step A: Prepare 3 BUY and 3 SELL limit orders for Maker
+                    const makerBuyPayloads = buyPricesStr.map(pStr => ({
                         symbol: targetSym,
                         side: 'BUY',
                         type: 'LIMIT',
-                        price: buyPriceStr,
-                        quantity: buyQtyStr,
+                        price: pStr,
+                        quantity: calcQty(parseFloat(pStr), makerNotional),
                         timeInForce: 'GTC'
-                    };
+                    }));
 
-                    const sellPayload = {
+                    const makerSellPayloads = sellPricesStr.map(pStr => ({
                         symbol: targetSym,
                         side: 'SELL',
                         type: 'LIMIT',
-                        price: sellPriceStr,
-                        quantity: sellQtyStr,
+                        price: pStr,
+                        quantity: calcQty(parseFloat(pStr), makerNotional),
                         timeInForce: 'GTC'
-                    };
+                    }));
 
-                    log.info(targetSym, `[MOVE-MARK] Placing orders: Buy @ ${buyPriceStr} (${tierRoles.makerId || 'user1'}), Sell @ ${sellPriceStr} (${tierRoles.takerId || 'user2'}) | Ref Index: ${indexPrice}`);
+                    log.info(targetSym, `[MOVE-MARK] Step 1: Placing 3 Buy and 3 Sell Maker orders (${tierRoles.makerId || 'user1'}) | Ref Index: ${indexPrice}`);
+                    buyPricesStr.forEach((pStr, i) => log.info(targetSym, `[MOVE-MARK]   Maker Buy L${i+1}: ${makerBuyPayloads[i].quantity} @ ${pStr}`));
+                    sellPricesStr.forEach((pStr, i) => log.info(targetSym, `[MOVE-MARK]   Maker Sell L${i+1}: ${makerSellPayloads[i].quantity} @ ${pStr}`));
 
-                    const [buyRes, sellRes] = await Promise.all([
-                        sendSignedRequest(`${hpoBase}/fapi/v1/order`, 'POST', buyPayload, makerUser, 20000, inst.tier),
-                        sendSignedRequest(`${hpoBase}/fapi/v1/order`, 'POST', sellPayload, takerUser, 20000, inst.tier)
+                    const [makerBuyResults, makerSellResults] = await Promise.all([
+                        Promise.all(makerBuyPayloads.map(p => sendSignedRequest(`${hpoBase}/fapi/v1/order`, 'POST', p, makerUser, 20000, inst.tier))),
+                        Promise.all(makerSellPayloads.map(p => sendSignedRequest(`${hpoBase}/fapi/v1/order`, 'POST', p, makerUser, 20000, inst.tier)))
                     ]);
+
+                    const makerBuySuccess = makerBuyResults.every(r => r.ok || r.status === 200);
+                    const makerSellSuccess = makerSellResults.every(r => r.ok || r.status === 200);
+
+                    // Step B: From Taker account, place order with 2x of min notional to consume Maker top order and move LTP
+                    let takerRes = { ok: false, status: 0, data: null };
+                    let takerSide = '';
+                    let takerPriceStr = '';
+                    let takerQtyStr = '';
+
+                    if (direction === 'ABOVE' || direction === 'UP') {
+                        // Mark > Index: Taker places SELL order with 2x min notional to consume Maker top BUY order (buyPricesStr[0])
+                        takerSide = 'SELL';
+                        takerPriceStr = buyPricesStr[0];
+                        takerQtyStr = calcQty(parseFloat(takerPriceStr), takerNotional);
+                    } else {
+                        // Mark < Index: Taker places BUY order with 2x min notional to consume Maker top SELL order (sellPricesStr[0])
+                        takerSide = 'BUY';
+                        takerPriceStr = sellPricesStr[0];
+                        takerQtyStr = calcQty(parseFloat(takerPriceStr), takerNotional);
+                    }
+
+                    if (makerBuySuccess && makerSellSuccess) {
+                        // Brief wait to ensure matching engine has registered resting orders in the book
+                        await new Promise(r => setTimeout(r, 200));
+
+                        const takerPayload = {
+                            symbol: targetSym,
+                            side: takerSide,
+                            type: 'LIMIT',
+                            price: takerPriceStr,
+                            quantity: takerQtyStr,
+                            timeInForce: 'GTC'
+                        };
+
+                        log.info(targetSym, `[MOVE-MARK] Step 2: Placing Taker ${takerSide} order (${tierRoles.takerId || 'user2'}) -> ${takerQtyStr} @ ${takerPriceStr} (2x minNotional) to consume Maker top order and shift LTP...`);
+                        takerRes = await sendSignedRequest(`${hpoBase}/fapi/v1/order`, 'POST', takerPayload, takerUser, 20000, inst.tier);
+                    } else {
+                        log.warn(targetSym, `[MOVE-MARK] Skipping Taker execution because some Maker orders failed to place`);
+                    }
+
+                    const takerSuccess = takerRes.ok || takerRes.status === 200;
 
                     lastPortfolioSyncTime = 0;
                     broadcastToUI(true);
 
-                    const buySuccess = buyRes.ok || buyRes.status === 200;
-                    const sellSuccess = sellRes.ok || sellRes.status === 200;
-
                     const result = {
-                        success: buySuccess && sellSuccess,
+                        success: makerBuySuccess && makerSellSuccess && takerSuccess,
                         direction,
                         symbol: targetSym,
                         indexPrice,
+                        makerBuys: makerBuyPayloads.map((p, idx) => ({
+                            price: p.price,
+                            quantity: p.quantity,
+                            success: makerBuyResults[idx].ok || makerBuyResults[idx].status === 200,
+                            response: makerBuyResults[idx].data || { status: makerBuyResults[idx].status, error: makerBuyResults[idx].error }
+                        })),
+                        makerSells: makerSellPayloads.map((p, idx) => ({
+                            price: p.price,
+                            quantity: p.quantity,
+                            success: makerSellResults[idx].ok || makerSellResults[idx].status === 200,
+                            response: makerSellResults[idx].data || { status: makerSellResults[idx].status, error: makerSellResults[idx].error }
+                        })),
+                        takerOrder: {
+                            user: tierRoles.takerId || 'user2',
+                            side: takerSide,
+                            price: takerPriceStr,
+                            quantity: takerQtyStr,
+                            success: takerSuccess,
+                            response: takerRes.data || { status: takerRes.status, error: takerRes.error }
+                        },
+                        // Backwards-compatible aliases for UI toast
                         buy: {
                             user: tierRoles.makerId || 'user1',
-                            price: buyPriceStr,
-                            quantity: buyQtyStr,
-                            success: buySuccess,
-                            response: buyRes.data || { status: buyRes.status, error: buyRes.error }
+                            price: buyPricesStr[0],
+                            quantity: makerBuyPayloads[0]?.quantity,
+                            success: makerBuySuccess
                         },
                         sell: {
-                            user: tierRoles.takerId || 'user2',
-                            price: sellPriceStr,
-                            quantity: sellQtyStr,
-                            success: sellSuccess,
-                            response: sellRes.data || { status: sellRes.status, error: sellRes.error }
+                            user: tierRoles.makerId || 'user1',
+                            price: sellPricesStr[0],
+                            quantity: makerSellPayloads[0]?.quantity,
+                            success: makerSellSuccess
                         }
                     };
 
                     if (result.success) {
-                        log.success(targetSym, `[MOVE-MARK] Mark shifted ${direction} successfully! (Buy: ${buyPriceStr}, Sell: ${sellPriceStr})`);
+                        log.success(targetSym, `[MOVE-MARK] Mark shifted ${direction} successfully! Maker 3 Bids ($${buyPricesStr[0]}...$${buyPricesStr[2]}), 3 Asks ($${sellPricesStr[0]}...$${sellPricesStr[2]}) | Taker ${takerSide} consumed @ ${takerPriceStr} (${takerQtyStr})`);
                     } else {
-                        log.warn(targetSym, `[MOVE-MARK] Orders partially placed: Buy ${buySuccess ? 'OK' : buyRes.status}, Sell ${sellSuccess ? 'OK' : sellRes.status}`);
+                        log.warn(targetSym, `[MOVE-MARK] Orders partially placed: Maker Buys ${makerBuySuccess ? 'OK' : 'FAIL'}, Maker Sells ${makerSellSuccess ? 'OK' : 'FAIL'}, Taker ${takerSide} ${takerSuccess ? 'OK' : takerRes.status}`);
                     }
 
                     res.writeHead(200, { 'Content-Type': 'application/json' });

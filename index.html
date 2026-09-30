@@ -301,10 +301,93 @@
   .chip:hover { border-color: rgba(0, 229, 255, 0.25); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0, 229, 255, 0.1); }
   .chip-label { font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; font-weight:600; }
   .chip-val   { font-size:14px; font-weight:700; margin-top:4px; font-family: 'JetBrains Mono', monospace; }
-  
+
   /* ========================================================================= */
-  /* UPGRADED PRICES CARDS COMPONENT (TICKER HUD)                              */
+  /* REDESIGNED AGGREGATED TRADES & USER FILTER COMPONENT                      */
   /* ========================================================================= */
+  .agg-tab {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .agg-tab:hover {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.05);
+  }
+  .agg-tab.on {
+    background: rgba(168, 85, 247, 0.18);
+    color: #c084fc;
+    border-color: rgba(168, 85, 247, 0.4);
+    font-weight: 700;
+    box-shadow: 0 0 10px rgba(168, 85, 247, 0.15);
+  }
+  .agg-side-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+  .agg-side-btn:hover {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.05);
+  }
+  .agg-side-btn.on {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-main);
+    font-weight: 700;
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+  .trade-row-matched-u1 {
+    background: rgba(6, 182, 212, 0.04) !important;
+  }
+  .trade-row-matched-u2 {
+    background: rgba(234, 179, 8, 0.04) !important;
+  }
+  .trade-row-matched-both {
+    background: rgba(168, 85, 247, 0.07) !important;
+  }
+  .trade-user-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .trade-user-badge-u1 {
+    background: rgba(6, 182, 212, 0.15);
+    color: var(--cyan);
+    border: 1px solid rgba(6, 182, 212, 0.4);
+  }
+  .trade-user-badge-u2 {
+    background: rgba(234, 179, 8, 0.15);
+    color: var(--yellow);
+    border: 1px solid rgba(234, 179, 8, 0.4);
+  }
+  .trade-user-badge-both {
+    background: rgba(168, 85, 247, 0.2);
+    color: #c084fc;
+    border: 1px solid rgba(168, 85, 247, 0.45);
+  }
   .ticker-wrap-outer {
     position: relative;
     background: var(--bg);
@@ -3864,8 +3947,8 @@
         <button class="ctrl-btn btn-stop"   id="btn-cmd-stop"><span style="margin-right:6px">⏹</span> STOP</button>
         <button class="ctrl-btn btn-reload" id="btn-cmd-reload"><span style="margin-right:6px">↻</span> RELOAD</button>
         <div style="width: 1px; height: 18px; background: var(--border); margin: 0 4px;"></div>
-        <button class="ctrl-btn btn-move-mark-up" id="btn-move-mark-up" title="Move Mark above Index price (+2%): Pre-clears all open orders, pauses engine, places User 1 Limit Buy and User 2 Limit Sell (+1 tick)"><span style="margin-right:6px">📈</span> MOVE MARK &gt; INDEX</button>
-        <button class="ctrl-btn btn-move-mark-down" id="btn-move-mark-down" title="Move Mark below Index price (-2%): Pre-clears all open orders, pauses engine, places User 1 Limit Buy (-1 tick) and User 2 Limit Sell"><span style="margin-right:6px">📉</span> MOVE MARK &lt; INDEX</button>
+        <button class="ctrl-btn btn-move-mark-up" id="btn-move-mark-up" title="Move Mark above Index price (+2%): Pre-clears orders, Maker places 3 Buys &amp; 3 Sells above index (10x min notional each), Taker sells (2x min notional) to consume Maker top Buy &amp; shift LTP"><span style="margin-right:6px">📈</span> MOVE MARK &gt; INDEX</button>
+        <button class="ctrl-btn btn-move-mark-down" id="btn-move-mark-down" title="Move Mark below Index price (-2%): Pre-clears orders, Maker places 3 Buys &amp; 3 Sells below index (10x min notional each), Taker buys (2x min notional) to consume Maker top Sell &amp; shift LTP"><span style="margin-right:6px">📉</span> MOVE MARK &lt; INDEX</button>
     </div>
     <div style="display:flex; gap: 12px; font-size: 11px; align-items:center; flex-wrap:wrap;">
         <div class="tele-pill">
@@ -5308,7 +5391,7 @@
 </div>
 
 
-<div style="display:grid;grid-template-columns:1fr 1fr 340px;gap:16px;padding:0 24px 24px;">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:0 24px 24px;">
   <div class="panel" style="display:flex;flex-direction:column;height:590px;overflow:hidden;" id="u1-panel">
     <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);flex-shrink:0;">
       <div style="display:flex;align-items:center;gap:10px;">
@@ -5446,33 +5529,75 @@
       </div>
     </div>
   </div>
+</div>
 
-   <div class="panel" style="display:flex;flex-direction:column;height:590px;overflow:hidden;" id="ltp-panel">
-    <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);flex-shrink:0;">
+<div style="padding:0 24px 24px;">
+  <div class="panel" style="display:flex;flex-direction:column;height:580px;overflow:hidden;border:1px solid rgba(168,85,247,0.35);box-shadow:0 8px 32px rgba(0,0,0,0.36);" id="ltp-panel">
+    <!-- Top Header: Title, Live indicator, and Chips in a clean single row -->
+    <div style="padding:12px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);flex-shrink:0;">
       <div style="display:flex;align-items:center;gap:12px;">
-        <div style="width:10px;height:10px;border-radius:50%;background:#a855f7;box-shadow:0 0 10px rgba(168,85,247,0.5);"></div>
+        <div id="agg-ws-dot" style="width:12px;height:12px;border-radius:50%;background:#10b981;box-shadow:0 0 12px rgba(16,185,129,0.7);transition:all 0.3s ease;flex-shrink:0;"></div>
         <div>
-          <div class="sec-label">Execution Sync</div>
-          <div class="sec-title" style="display:flex;align-items:center;gap:8px;">LTP Cross Stream</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">
+            <span class="sec-label" id="agg-stream-env-label" style="margin:0;font-size:11px;font-weight:700;color:var(--cyan);letter-spacing:1px;">PRODUCTION • BTCUSDT</span>
+            <span id="agg-ws-badge" style="font-size:9px;color:#34d399;font-weight:700;letter-spacing:0.5px;padding:2px 8px;border-radius:12px;background:rgba(52,211,153,0.12);border:1px solid rgba(52,211,153,0.3);">● LIVE WS</span>
+            <span id="agg-user-filter-badge" style="font-size:9px;color:#c084fc;font-weight:700;letter-spacing:0.5px;padding:2px 8px;border-radius:12px;background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.3);display:none;">USER FILTER ACTIVE</span>
+          </div>
+          <div class="sec-title" style="display:flex;align-items:center;gap:10px;font-size:16px;">
+            <span>Aggregated Trades Stream</span>
+            <span style="font-size:11px;color:var(--cyan);font-weight:600;background:rgba(6,182,212,0.12);padding:2px 8px;border-radius:4px;border:1px solid rgba(6,182,212,0.25);font-family:'JetBrains Mono',monospace;">/fapi/v1/aggTrades</span>
+          </div>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:16px;">
-        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;" id="ltp-chips"></div>
-      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:nowrap;" id="ltp-chips"></div>
     </div>
-    <div style="display:flex;border-bottom:1px solid var(--border);background:transparent;flex-shrink:0;">
-      <button class="tab on" style="flex:1" data-f="all">All</button>
-      <button class="tab" style="flex:1" data-f="ok">Filled</button>
-      <button class="tab" style="flex:1" data-f="fail">Failed</button>
-    </div>
-      <div style="flex:1;overflow-y:auto;min-height:0;" id="trade-stream-scroll">
-        <div id="trade-stream" class="term-empty">Awaiting trades...</div>
+
+    <!-- Filter Control Toolbar -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-bottom:1px solid var(--border);background:rgba(255,255,255,0.015);gap:12px;flex-shrink:0;flex-wrap:wrap;">
+      <!-- User / Source Filter -->
+      <div style="display:flex;align-items:center;gap:4px;background:var(--input-bg);padding:3px;border-radius:8px;border:1px solid var(--border);" id="agg-user-filter-group">
+        <button class="agg-tab on" id="filter-user-all" onclick="window.setAggUserFilter('all')">🌐 All Market Trades</button>
+        <button class="agg-tab" id="filter-user-configured" onclick="window.setAggUserFilter('configured')">⭐ Configured Users Only</button>
+        <button class="agg-tab" id="filter-user-u1" onclick="window.setAggUserFilter('u1')">👤 Maker (User 1)</button>
+        <button class="agg-tab" id="filter-user-u2" onclick="window.setAggUserFilter('u2')">⚡ Taker (User 2)</button>
       </div>
-        <div id="trades-pagination" style="display:none;align-items:center;justify-content:center;gap:12px;padding:12px;background:var(--input-bg);border-top:1px solid var(--border);">
-          <button class="pg-btn" onclick="window.changePage('trades', -1)">&lt; Prev</button>
-          <span id="trades-page-info" style="font-size:11px;font-weight:600;color:var(--text-muted);">Page 1 of 1</span>
-          <button class="pg-btn" onclick="window.changePage('trades', 1)">Next &gt;</button>
+
+      <!-- Side Filter -->
+      <div style="display:flex;align-items:center;gap:4px;background:var(--input-bg);padding:3px;border-radius:8px;border:1px solid var(--border);">
+        <button class="agg-side-btn on" id="filter-side-all" onclick="window.setAggSideFilter('all')">All Sides</button>
+        <button class="agg-side-btn" id="filter-side-buy" onclick="window.setAggSideFilter('buy')" style="color:#34d399;">▲ Buys</button>
+        <button class="agg-side-btn" id="filter-side-sell" onclick="window.setAggSideFilter('sell')" style="color:#fb7185;">▼ Sells</button>
+      </div>
+
+      <!-- Search & Stream Controls -->
+      <div style="display:flex;align-items:center;gap:8px;flex:1;max-width:440px;justify-content:flex-end;">
+        <div style="position:relative;flex:1;">
+          <input type="text" id="agg-search-input" placeholder="🔍 Search price, qty, trade ID, order ID..." 
+                 oninput="window.setAggSearch(this.value)"
+                 style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:6px 28px 6px 10px;color:var(--text-main);font-size:12px;outline:none;">
+          <button id="agg-search-clear" onclick="window.clearAggSearch()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;display:none;">✕</button>
         </div>
+        <button id="btn-agg-freeze" onclick="window.toggleAggFreeze()" class="pg-btn" title="Pause or Resume real-time stream" style="padding:6px 12px;font-size:11px;font-weight:600;display:flex;align-items:center;gap:5px;">
+          <span id="agg-freeze-icon">⏸</span> <span id="agg-freeze-text">Live</span>
+        </button>
+        <button onclick="window.refreshAggTrades()" class="pg-btn" title="Reload from API & sync user trades" style="padding:6px 10px;font-size:12px;">↻</button>
+      </div>
+    </div>
+
+    <!-- Table scroll container -->
+    <div style="flex:1;overflow-y:auto;overflow-x:auto;min-height:0;" id="trade-stream-scroll">
+      <div id="trade-stream" class="term-empty">Awaiting trades...</div>
+    </div>
+
+    <!-- Pagination Footer -->
+    <div id="trades-pagination" style="display:none;align-items:center;justify-content:space-between;padding:10px 20px;background:var(--input-bg);border-top:1px solid var(--border);flex-shrink:0;">
+      <div id="trades-total-info" style="font-size:11px;color:var(--text-muted);font-weight:600;">Showing 0 of 0 trades</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button class="pg-btn" onclick="window.changePage('trades', -1)">&lt; Prev</button>
+        <span id="trades-page-info" style="font-size:11px;font-weight:700;color:var(--text-main);min-width:80px;text-align:center;">Page 1 of 1</span>
+        <button class="pg-btn" onclick="window.changePage('trades', 1)">Next &gt;</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -5665,8 +5790,12 @@ window.addEventListener('DOMContentLoaded', () => {
             const newPage = window.pagination[type] + delta;
             if (newPage > 0) {
                 window.pagination[type] = newPage;
-                if (type === 'trades' && cachedInstances[activeTabSymbol]) {
-                    updateTradeStream(cachedInstances[activeTabSymbol].syncedTrades);
+                if (type === 'trades') {
+                    if (window.MarketAggTradeManager) {
+                        window.MarketAggTradeManager.render();
+                    } else if (cachedInstances[activeTabSymbol]) {
+                        updateTradeStream(cachedInstances[activeTabSymbol].aggTrades || cachedInstances[activeTabSymbol].syncedTrades);
+                    }
                 } else if (type === 'u1' || type === 'u2') {
                     if (window[type + 'Tab'] !== 'pos') {
                         window.fetchOrders(type, window[type + 'Tab']);
@@ -10041,9 +10170,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
                 const data = await res.json();
                 if (res.ok && data.success) {
-                    showToast(`✓ Mark moved ${isAbove ? 'above' : 'below'} Index! Buy @ $${data.buy?.price} (${data.buy?.user}), Sell @ $${data.sell?.price} (${data.sell?.user})`);
+                    showToast(`✓ Mark moved ${isAbove ? 'above' : 'below'} Index! 3 Bids ($${data.buy?.price}) & 3 Asks ($${data.sell?.price}) placed | Taker ${data.takerOrder?.side} filled @ $${data.takerOrder?.price}`);
                 } else {
-                    const err = data.error || (data.buy?.response?.msg || data.sell?.response?.msg) || 'Failed to place orders';
+                    const err = data.error || (data.makerBuy?.response?.msg || data.makerSell?.response?.msg || data.takerOrder?.response?.msg || data.buy?.response?.msg || data.sell?.response?.msg) || 'Failed to place orders';
                     showToast(`✗ Failed to move mark: ${err}`, true);
                 }
             } catch (e) {
@@ -10107,7 +10236,10 @@ window.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.tab').forEach(b => { if(b.hasAttribute('data-f')) b.classList.remove('on'); });
             const defaultTab = document.querySelector('.tab[data-f="all"]');
             if (defaultTab) defaultTab.classList.add('on');
-            document.getElementById('trade-stream').innerHTML = '<div style="text-align:center;padding:60px 0;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Loading...</div>';
+            document.getElementById('trade-stream').innerHTML = '<div style="text-align:center;padding:60px 0;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Loading /fapi/v1/aggTrades...</div>';
+            if (window.MarketAggTradeManager) {
+                window.MarketAggTradeManager.connect(sym, activeEnvFilter);
+            }
 
             // Clear orderbooks to show loading state instantly
             document.getElementById('bin-bids').innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-muted);">Loading...</div>';
@@ -10143,7 +10275,11 @@ window.addEventListener('DOMContentLoaded', () => {
                     window.pagination.trades = 1; // Reset to page 1
                     document.getElementById('trade-stream').innerHTML = '';
 
-                    if (cachedInstances[activeTabSymbol]) updateTradeStream(cachedInstances[activeTabSymbol].syncedTrades);
+                    if (window.MarketAggTradeManager) {
+                        window.MarketAggTradeManager.render();
+                    } else if (cachedInstances[activeTabSymbol]) {
+                        updateTradeStream(cachedInstances[activeTabSymbol].aggTrades || cachedInstances[activeTabSymbol].syncedTrades);
+                    }
                 };
             }
         });
@@ -10332,117 +10468,716 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        window.aggUserFilter = 'all'; // 'all' | 'configured' | 'u1' | 'u2'
+        window.aggSideFilter = 'all'; // 'all' | 'buy' | 'sell'
+        window.aggSearchQuery = '';
+        window.aggIsFrozen = false;
+        window.aggPendingNewCount = 0;
+        window.PAGE_SIZE_TRADES = 15;
+        window.expandedTrades = window.expandedTrades || new Set();
+
+        window.setAggUserFilter = function(filter) {
+            window.aggUserFilter = filter || 'all';
+            ['all', 'configured', 'u1', 'u2'].forEach(f => {
+                const btn = document.getElementById('filter-user-' + f);
+                if (btn) {
+                    if (f === window.aggUserFilter) btn.classList.add('on');
+                    else btn.classList.remove('on');
+                }
+            });
+            const badge = document.getElementById('agg-user-filter-badge');
+            if (badge) {
+                if (window.aggUserFilter === 'all') {
+                    badge.style.display = 'none';
+                } else {
+                    badge.style.display = 'inline-block';
+                    badge.textContent = window.aggUserFilter === 'configured' ? '⭐ CONFIGURED USERS ONLY' : (window.aggUserFilter === 'u1' ? '👤 MAKER (USER 1)' : '⚡ TAKER (USER 2)');
+                }
+            }
+            if (window.pagination) window.pagination.trades = 1;
+            if (window.MarketAggTradeManager) window.MarketAggTradeManager.render();
+        };
+
+        window.setAggSideFilter = function(side) {
+            window.aggSideFilter = side || 'all';
+            tradeFilter = window.aggSideFilter; // keep sync with legacy variable
+            ['all', 'buy', 'sell'].forEach(s => {
+                const btn = document.getElementById('filter-side-' + s);
+                if (btn) {
+                    if (s === window.aggSideFilter) btn.classList.add('on');
+                    else btn.classList.remove('on');
+                }
+            });
+            if (window.pagination) window.pagination.trades = 1;
+            if (window.MarketAggTradeManager) window.MarketAggTradeManager.render();
+        };
+
+        window.setAggSearch = function(query) {
+            window.aggSearchQuery = (query || '').trim().toLowerCase();
+            const clearBtn = document.getElementById('agg-search-clear');
+            if (clearBtn) clearBtn.style.display = window.aggSearchQuery ? 'block' : 'none';
+            if (window.pagination) window.pagination.trades = 1;
+            if (window.MarketAggTradeManager) window.MarketAggTradeManager.render();
+        };
+
+        window.clearAggSearch = function() {
+            window.aggSearchQuery = '';
+            const input = document.getElementById('agg-search-input');
+            if (input) input.value = '';
+            const clearBtn = document.getElementById('agg-search-clear');
+            if (clearBtn) clearBtn.style.display = 'none';
+            if (window.pagination) window.pagination.trades = 1;
+            if (window.MarketAggTradeManager) window.MarketAggTradeManager.render();
+        };
+
+        window.toggleAggFreeze = function() {
+            window.aggIsFrozen = !window.aggIsFrozen;
+            const btn = document.getElementById('btn-agg-freeze');
+            const icon = document.getElementById('agg-freeze-icon');
+            const text = document.getElementById('agg-freeze-text');
+            if (window.aggIsFrozen) {
+                if (icon) icon.textContent = '▶';
+                if (text) text.textContent = 'Paused';
+                if (btn) {
+                    btn.style.background = 'rgba(234, 179, 8, 0.15)';
+                    btn.style.borderColor = 'rgba(234, 179, 8, 0.4)';
+                    btn.style.color = '#fde047';
+                }
+            } else {
+                if (icon) icon.textContent = '⏸';
+                if (text) text.textContent = 'Live';
+                if (btn) {
+                    btn.style.background = '';
+                    btn.style.borderColor = '';
+                    btn.style.color = '';
+                }
+                window.aggPendingNewCount = 0;
+                if (window.MarketAggTradeManager) window.MarketAggTradeManager.render();
+            }
+        };
+
+        window.refreshAggTrades = async function() {
+            if (window.MarketAggTradeManager) {
+                const cleanSym = (window.activeTabSymbol || '').replace(/^B-/, '').replace(/_/g, '').toUpperCase();
+                const tier = (window.activeEnvFilter || 'PRODUCTION').toUpperCase().replace(/-/g, '_');
+                await window.MarketAggTradeManager.fetchRestTrades(cleanSym, tier);
+                if (typeof window.showToast === 'function') {
+                    window.showToast('Aggregated trades refreshed from /fapi/v1/aggTrades');
+                }
+            }
+        };
+
+        window.tagTradeWithUserInfo = function(t) {
+            if (t.userTag && t.userTag !== 'PUBLIC') return t.userTag;
+
+            // 1. Check if trade explicitly has order IDs
+            if (t.makerOrderId && t.takerOrderId) {
+                t.userTag = 'BOTH';
+                t.isUserTrade = true;
+                return 'BOTH';
+            }
+            if (t.makerOrderId) {
+                t.userTag = 'U1';
+                t.isUserTrade = true;
+                return 'U1';
+            }
+            if (t.takerOrderId) {
+                t.userTag = 'U2';
+                t.isUserTrade = true;
+                return 'U2';
+            }
+
+            const tPrice = parseFloat(t.p || t.price || 0);
+            const tQty = parseFloat(t.q || t.stageQty || t.quantity || 0);
+
+            // 2. Cross-reference against syncedTrades/userTrades in active instance
+            const sym = window.activeTabSymbol;
+            const inst = (window.cachedInstances && sym && window.cachedInstances[sym]) || {};
+            const synced = inst.userTrades || inst.syncedTrades || [];
+            for (let i = 0; i < synced.length; i++) {
+                const s = synced[i];
+                const sPrice = parseFloat(s.price || s.avgPrice || 0);
+                const sQty = parseFloat(s.stageQty || s.quantity || 0);
+                if (Math.abs(tPrice - sPrice) < 0.00001 && Math.abs(tQty - sQty) < 0.0000001) {
+                    t.userTag = 'BOTH';
+                    t.isUserTrade = true;
+                    t.makerOrderId = t.makerOrderId || s.makerOrderId;
+                    t.takerOrderId = t.takerOrderId || s.takerOrderId;
+                    return 'BOTH';
+                }
+            }
+
+            // 3. Cross-reference against fetched orders history
+            const u1Orders = (window.fetchedOrders && window.fetchedOrders['u1'] && window.fetchedOrders['u1'].hist) || [];
+            const u2Orders = (window.fetchedOrders && window.fetchedOrders['u2'] && window.fetchedOrders['u2'].hist) || [];
+            let mU1 = false;
+            let mU2 = false;
+
+            for (let i = 0; i < u1Orders.length; i++) {
+                const o = u1Orders[i];
+                const oPrice = parseFloat(o.avgPrice || o.price || 0);
+                const oQty = parseFloat(o.executedQty || o.origQty || 0);
+                if (Math.abs(tPrice - oPrice) < 0.00001 && Math.abs(tQty - oQty) < 0.0000001) {
+                    mU1 = true;
+                    t.makerOrderId = t.makerOrderId || o.orderId;
+                    break;
+                }
+            }
+            for (let i = 0; i < u2Orders.length; i++) {
+                const o = u2Orders[i];
+                const oPrice = parseFloat(o.avgPrice || o.price || 0);
+                const oQty = parseFloat(o.executedQty || o.origQty || 0);
+                if (Math.abs(tPrice - oPrice) < 0.00001 && Math.abs(tQty - oQty) < 0.0000001) {
+                    mU2 = true;
+                    t.takerOrderId = t.takerOrderId || o.orderId;
+                    break;
+                }
+            }
+
+            if (mU1 && mU2) {
+                t.userTag = 'BOTH';
+                t.isUserTrade = true;
+                return 'BOTH';
+            } else if (mU1) {
+                t.userTag = 'U1';
+                t.isUserTrade = true;
+                return 'U1';
+            } else if (mU2) {
+                t.userTag = 'U2';
+                t.isUserTrade = true;
+                return 'U2';
+            }
+
+            t.userTag = 'PUBLIC';
+            return 'PUBLIC';
+        };
+
         function updateTradeStream(newTrades) {
             const el = document.getElementById('trade-stream');
             const pgEl = document.getElementById('trades-pagination');
             const pgInfo = document.getElementById('trades-page-info');
-
-            // Update header stats using the same chip pattern as portfolio
-            const totalCount = newTrades ? newTrades.length : 0;
-            const okCount = newTrades ? newTrades.filter(t => t.success).length : 0;
-            const failCount = totalCount - okCount;
-            const fillRate = totalCount > 0 ? ((okCount / totalCount) * 100).toFixed(1) + '%' : '-';
-            const fillColor = totalCount === 0 ? 'var(--text-muted)' : (okCount / totalCount) >= 0.9 ? '#34d399' : (okCount / totalCount) >= 0.5 ? '#eab308' : '#fb7185';
+            const pgTotalInfo = document.getElementById('trades-total-info');
             const ltpChipsEl = document.getElementById('ltp-chips');
-            if (ltpChipsEl) {
-                ltpChipsEl.innerHTML = 
-                    chipHtml('Total', totalCount, '#e2e8f0') +
-                    chipHtml('Filled', okCount, '#34d399') +
-                    chipHtml('Failed', failCount, '#fb7185') +
-                    chipHtml('Fill Rate', fillRate, fillColor);
+
+            const totalTrades = newTrades || (window.MarketAggTradeManager ? window.MarketAggTradeManager.trades : []);
+            const totalCount = totalTrades.length;
+
+            let buyCount = 0;
+            let sellCount = 0;
+            let totalQty = 0;
+            let totalTurnover = 0;
+            let userTradeCount = 0;
+            let u1Count = 0;
+            let u2Count = 0;
+
+            for (let i = 0; i < totalCount; i++) {
+                const t = totalTrades[i];
+                window.tagTradeWithUserInfo(t);
+
+                const isSell = (t.m === true || t.m === 'true' || t.side === 'SELL');
+                if (isSell) sellCount++;
+                else buyCount++;
+
+                const p = parseFloat(t.p || t.price || 0);
+                const q = parseFloat(t.q || t.stageQty || t.quantity || 0);
+                if (Number.isFinite(q)) totalQty += q;
+                if (Number.isFinite(p) && Number.isFinite(q)) totalTurnover += (p * q);
+
+                if (t.userTag && t.userTag !== 'PUBLIC') {
+                    userTradeCount++;
+                    if (t.userTag === 'U1' || t.userTag === 'BOTH') u1Count++;
+                    if (t.userTag === 'U2' || t.userTag === 'BOTH') u2Count++;
+                }
             }
 
-            if (!newTrades || !newTrades.length) {
-                el.innerHTML = '<div class="term-empty">Awaiting trades...</div>';
-                pgEl.style.display = 'none';
+            const buyPct = totalCount > 0 ? ((buyCount / totalCount) * 100).toFixed(1) + '%' : '0%';
+            const turnoverStr = totalTurnover >= 1e6 ? '$' + (totalTurnover / 1e6).toFixed(2) + 'M'
+                              : totalTurnover >= 1e3 ? '$' + (totalTurnover / 1e3).toFixed(1) + 'K'
+                              : '$' + totalTurnover.toFixed(2);
+
+            if (ltpChipsEl) {
+                const userColor = userTradeCount > 0 ? '#c084fc' : '#64748b';
+                ltpChipsEl.innerHTML = 
+                    chipHtml('Total Trades', totalCount, '#e2e8f0') +
+                    chipHtml('Configured Trades', userTradeCount, userColor) +
+                    chipHtml('Buys', buyCount, '#34d399') +
+                    chipHtml('Sells', sellCount, '#fb7185') +
+                    chipHtml('Buy Vol %', buyPct, parseFloat(buyPct) >= 50 ? '#34d399' : '#fb7185') +
+                    chipHtml('Turnover', turnoverStr, '#38bdf8');
+            }
+
+            if (!totalCount) {
+                if (el) el.innerHTML = '<div class="term-empty" style="padding:48px 0;text-align:center;color:var(--text-muted);font-size:12px;font-weight:600;letter-spacing:0.5px;">Awaiting aggregated trades stream for active pair...</div>';
+                if (pgEl) pgEl.style.display = 'none';
                 return;
             }
 
-            let filtered = newTrades;
-            if (tradeFilter === 'ok') filtered = newTrades.filter(t => t.success);
-            else if (tradeFilter === 'fail') filtered = newTrades.filter(t => !t.success);
+            // Apply Filters
+            let filtered = totalTrades;
 
-            const total = filtered.length;
-            if (total > window.PAGE_SIZE) {
-                pgEl.style.display = 'flex';
-                const maxPage = Math.ceil(total / window.PAGE_SIZE);
-                if (window.pagination.trades > maxPage) window.pagination.trades = maxPage;
-                pgInfo.textContent = `Page ${window.pagination.trades} of ${maxPage}`;
-                pgEl.children[0].disabled = window.pagination.trades === 1;
-                pgEl.children[2].disabled = window.pagination.trades === maxPage;
-                pgEl.children[0].style.opacity = window.pagination.trades === 1 ? '0.5' : '1';
-                pgEl.children[2].style.opacity = window.pagination.trades === maxPage ? '0.5' : '1';
-            } else {
-                pgEl.style.display = 'none';
+            // 1. User Filter
+            const uFilter = window.aggUserFilter || 'all';
+            if (uFilter === 'configured') {
+                filtered = filtered.filter(t => t.userTag && t.userTag !== 'PUBLIC');
+            } else if (uFilter === 'u1') {
+                filtered = filtered.filter(t => t.userTag === 'U1' || t.userTag === 'BOTH');
+            } else if (uFilter === 'u2') {
+                filtered = filtered.filter(t => t.userTag === 'U2' || t.userTag === 'BOTH');
             }
 
-            const startIdx = (window.pagination.trades - 1) * window.PAGE_SIZE;
-            const endIdx = startIdx + window.PAGE_SIZE;
-            const pageData = filtered.slice(startIdx, endIdx);
+            // 2. Side Filter
+            const sFilter = window.aggSideFilter || 'all';
+            if (sFilter === 'buy') {
+                filtered = filtered.filter(t => !(t.m === true || t.m === 'true' || t.side === 'SELL'));
+            } else if (sFilter === 'sell') {
+                filtered = filtered.filter(t => (t.m === true || t.m === 'true' || t.side === 'SELL'));
+            }
 
-            if (pageData.length > 0) {
-                let html = `<table><thead><tr>
-                    <th>Time</th><th>Side</th><th>Type</th><th style="text-align:right;">Price</th><th style="text-align:right;">Avg</th><th style="text-align:right;">Qty</th><th style="text-align:right;">Status</th>
-                </tr></thead><tbody>`;
-                pageData.forEach((t, i) => {
-                    const rawStatus = t.status || (t.success ? 'FILLED' : 'FAILED');
-                    const isFilled = rawStatus === 'FILLED' || rawStatus === 'PARTIALLY_FILLED';
-                    const statusClass = isFilled ? 'badge-ok' : 'badge-fail';
-                    
-                    const sideClass = t.side === 'BUY' ? 'buy' : 'sell';
-                    const sideText = t.side ? `<span class="trade-side ${sideClass}">${t.side}</span>` : '-';
-                    const orderType = t.type || t.orderType || 'LIMIT';
-                    
-                    const limitPriceStr = t.price ? parseFloat(t.price).toFixed(pPrec) : '-';
-                    const avgPriceStr = t.avgPrice && t.avgPrice !== '0' && t.avgPrice !== '0.0000' 
-                        ? parseFloat(t.avgPrice).toFixed(pPrec) : '-';
-                        
-                    const uniqueKey = t.time + '_' + t.price + '_' + t.stageQty;
-                    const isExp = window.expandedTrades && window.expandedTrades.has(uniqueKey);
-                    const expClass = isExp ? ' expanded' : '';
-                    
-                    html += `<tr class="trade-row${expClass}" data-key="${uniqueKey}">
-                        <td style="font-size:11px;color:var(--text-dim);">${t.time}</td>
-                        <td>${sideText}</td>
-                        <td style="font-size:11px;color:var(--text-muted);">${orderType}</td>
-                        <td style="text-align:right;font-weight:700;">$${limitPriceStr}</td>
-                        <td style="text-align:right;color:var(--text-muted);">${avgPriceStr !== '-' ? '$' + avgPriceStr : '-'}</td>
-                        <td style="text-align:right;color:var(--cyan);font-weight:700;">${parseFloat(t.stageQty).toFixed(qPrec)}</td>
-                        <td style="text-align:right;"><span class="badge ${statusClass}" style="font-size:9px;">${rawStatus}</span></td>
-                    </tr>`;
-                    if (isExp) {
-                        const symbol = t.symbol || activeTabSymbol || '-';
-                        const origQty = t.origQty ? parseFloat(t.origQty).toFixed(qPrec) : '-';
-                        const execQty = t.executedQty ? parseFloat(t.executedQty).toFixed(qPrec) : '-';
-                        html += `<tr class="trade-details-wrap"><td colspan="7"><div class="trade-details-inner">
-                            <div class="trade-detail-item"><span class="trade-detail-label">Symbol</span><span class="trade-detail-value">${symbol}</span></div>
-                            <div class="trade-detail-item"><span class="trade-detail-label">Order Type</span><span class="trade-detail-value">${orderType}</span></div>
-                            <div class="trade-detail-item"><span class="trade-detail-label">Orig Qty</span><span class="trade-detail-value">${origQty}</span></div>
-                            <div class="trade-detail-item"><span class="trade-detail-label">Exec Qty</span><span class="trade-detail-value">${execQty}</span></div>
-                            <div class="trade-detail-item"><span class="trade-detail-label">Maker Order ID</span><span class="trade-detail-value mono">${t.makerOrderId || 'N/A'}</span></div>
-                            <div class="trade-detail-item"><span class="trade-detail-label">Taker Order ID</span><span class="trade-detail-value mono">${t.takerOrderId || 'N/A'}</span></div>
-                        </div></td></tr>`;
-                    }
+            // 3. Search Filter
+            const q = window.aggSearchQuery;
+            if (q) {
+                filtered = filtered.filter(t => {
+                    const idStr = String(t.a || t.tradeId || t.makerOrderId || t.takerOrderId || '').toLowerCase();
+                    const pStr = String(t.p || t.price || '').toLowerCase();
+                    const qStr = String(t.q || t.stageQty || t.quantity || '').toLowerCase();
+                    const sideStr = (t.m ? 'sell' : 'buy');
+                    const tagStr = String(t.userTag || '').toLowerCase();
+                    return idStr.includes(q) || pStr.includes(q) || qStr.includes(q) || sideStr.includes(q) || tagStr.includes(q);
                 });
-                html += '</tbody></table>';
-                
-                if (el.innerHTML !== html) {
-                    el.innerHTML = html;
-                    el.querySelectorAll('.trade-row').forEach(row => {
-                        row.onclick = function() {
-                            const key = this.dataset.key;
-                            window.expandedTrades = window.expandedTrades || new Set();
-                            if (window.expandedTrades.has(key)) {
-                                window.expandedTrades.delete(key);
-                            } else {
-                                window.expandedTrades.add(key);
-                            }
-                            updateTradeStream(newTrades);
-                        };
-                    });
+            }
+
+            const totalFiltered = filtered.length;
+            const pageSize = window.PAGE_SIZE_TRADES || 15;
+
+            if (pgEl && pgInfo) {
+                if (totalFiltered > pageSize) {
+                    pgEl.style.display = 'flex';
+                    const maxPage = Math.ceil(totalFiltered / pageSize);
+                    if (window.pagination.trades > maxPage) window.pagination.trades = maxPage;
+                    if (window.pagination.trades < 1) window.pagination.trades = 1;
+                    pgInfo.textContent = `Page ${window.pagination.trades} of ${maxPage}`;
+
+                    if (pgTotalInfo) {
+                        const startNum = (window.pagination.trades - 1) * pageSize + 1;
+                        const endNum = Math.min(startNum + pageSize - 1, totalFiltered);
+                        pgTotalInfo.innerHTML = `Showing <b style="color:var(--text-main);">${startNum}–${endNum}</b> of <b style="color:var(--text-main);">${totalFiltered}</b> trades` + 
+                            (totalFiltered !== totalCount ? ` <span style="color:var(--text-muted);font-weight:400;">(filtered from ${totalCount})</span>` : '');
+                    }
+
+                    const prevBtn = pgEl.querySelector("button[onclick*='-1']");
+                    const nextBtn = pgEl.querySelector("button[onclick*='1']");
+                    if (prevBtn) {
+                        prevBtn.disabled = window.pagination.trades === 1;
+                        prevBtn.style.opacity = window.pagination.trades === 1 ? '0.5' : '1';
+                    }
+                    if (nextBtn) {
+                        nextBtn.disabled = window.pagination.trades === maxPage;
+                        nextBtn.style.opacity = window.pagination.trades === maxPage ? '0.5' : '1';
+                    }
+                } else {
+                    pgEl.style.display = 'none';
                 }
             }
+
+            if (totalFiltered === 0) {
+                if (el) {
+                    el.innerHTML = `<div class="term-empty" style="padding:48px 0;text-align:center;">
+                        <div style="font-size:24px;margin-bottom:8px;">🔍</div>
+                        <div style="color:var(--text-main);font-weight:600;font-size:13px;margin-bottom:4px;">No matching trades found</div>
+                        <div style="color:var(--text-muted);font-size:11px;">Try clearing filters or switching from "${window.aggUserFilter.toUpperCase()}" to "ALL MARKET TRADES"</div>
+                    </div>`;
+                }
+                return;
+            }
+
+            const startIdx = (window.pagination.trades - 1) * pageSize;
+            const endIdx = startIdx + pageSize;
+            const pageData = filtered.slice(startIdx, endIdx);
+
+            let html = `<table style="width:100%;border-collapse:collapse;">
+                <thead>
+                    <tr style="border-bottom:1px solid var(--border);background:var(--input-bg);">
+                        <th style="padding:10px 14px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);font-weight:700;">Time</th>
+                        <th style="padding:10px 14px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);font-weight:700;">Trade ID</th>
+                        <th style="padding:10px 14px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);font-weight:700;">Side</th>
+                        <th style="padding:10px 14px;text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);font-weight:700;">Price</th>
+                        <th style="padding:10px 14px;text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);font-weight:700;">Qty</th>
+                        <th style="padding:10px 14px;text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);font-weight:700;">Total ($)</th>
+                        <th style="padding:10px 14px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);font-weight:700;">Buyer Maker</th>
+                        <th style="padding:10px 14px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);font-weight:700;">User Attribution</th>
+                        <th style="padding:10px 14px;text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);font-weight:700;">Match Range (f→l)</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+            pageData.forEach((t) => {
+                const isSell = (t.m === true || t.m === 'true' || t.side === 'SELL');
+                const sideClass = isSell ? 'sell' : 'buy';
+                const sideLabel = isSell ? 'SELL' : 'BUY';
+                const sideBadge = `<span class="trade-side ${sideClass}">${sideLabel}</span>`;
+
+                const priceNum = parseFloat(t.p || t.price || 0);
+                const qtyNum = parseFloat(t.q || t.stageQty || t.quantity || 0);
+                const totalVal = (priceNum * qtyNum);
+
+                const priceStr = priceNum.toFixed(pPrec);
+                const qtyStr = qtyNum.toFixed(qPrec);
+                const totalValStr = totalVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+                const tradeId = t.a || t.tradeId || t.makerOrderId || '-';
+                const tradeTime = t.time || (t.T ? (new Date(t.T).toLocaleTimeString('en-US', { hour12: false }) + '.' + String(t.T % 1000).padStart(3, '0')) : '-');
+
+                // User attribution badge & highlight row class
+                let userBadge = '<span style="font-size:10px;color:var(--text-dim);letter-spacing:0.5px;font-family:\'JetBrains Mono\',monospace;">🌐 Public Market</span>';
+                let rowTintClass = '';
+                if (t.userTag === 'BOTH') {
+                    userBadge = '<span class="trade-user-badge trade-user-badge-both" title="Trade crossed between Maker (User 1) and Taker (User 2)">🔄 U1 ↔ U2 CROSS</span>';
+                    rowTintClass = ' trade-row-matched-both';
+                } else if (t.userTag === 'U1') {
+                    userBadge = '<span class="trade-user-badge trade-user-badge-u1" title="Maker (User 1) Trade">👤 MAKER (U1)</span>';
+                    rowTintClass = ' trade-row-matched-u1';
+                } else if (t.userTag === 'U2') {
+                    userBadge = '<span class="trade-user-badge trade-user-badge-u2" title="Taker (User 2) Trade">⚡ TAKER (U2)</span>';
+                    rowTintClass = ' trade-row-matched-u2';
+                }
+
+                const buyerMakerBadge = t.m !== undefined ? 
+                    (t.m ? '<span style="font-size:10px;color:#fb7185;background:rgba(251,113,133,0.12);padding:2px 6px;border-radius:4px;font-weight:600;">Yes (Taker Sell)</span>' 
+                          : '<span style="font-size:10px;color:#34d399;background:rgba(52,211,153,0.12);padding:2px 6px;border-radius:4px;font-weight:600;">No (Taker Buy)</span>') 
+                    : '<span style="color:var(--text-dim);font-size:11px;">-</span>';
+
+                const matchRange = (t.f !== undefined && t.l !== undefined) ? `${t.f} → ${t.l}` : (t.makerOrderId && t.takerOrderId ? `${t.makerOrderId} → ${t.takerOrderId}` : '-');
+
+                const uniqueKey = 'trade_' + tradeId + '_' + (t.T || '') + '_' + priceStr;
+                const isExp = window.expandedTrades && window.expandedTrades.has(uniqueKey);
+                const expClass = isExp ? ' expanded' : '';
+
+                html += `<tr class="trade-row${rowTintClass}${expClass}" data-key="${uniqueKey}" style="cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.04);transition:background 0.2s ease;">
+                    <td style="padding:9px 14px;font-size:11px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;">${tradeTime}</td>
+                    <td style="padding:9px 14px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-main);">${tradeId}</td>
+                    <td style="padding:9px 14px;text-align:center;">${sideBadge}</td>
+                    <td style="padding:9px 14px;text-align:right;font-weight:700;font-family:'JetBrains Mono',monospace;color:${isSell ? '#fb7185' : '#34d399'};">$${priceStr}</td>
+                    <td style="padding:9px 14px;text-align:right;color:var(--cyan);font-weight:700;font-family:'JetBrains Mono',monospace;">${qtyStr}</td>
+                    <td style="padding:9px 14px;text-align:right;color:var(--text-muted);font-family:'JetBrains Mono',monospace;font-weight:600;">$${totalValStr}</td>
+                    <td style="padding:9px 14px;text-align:center;">${buyerMakerBadge}</td>
+                    <td style="padding:9px 14px;text-align:center;">${userBadge}</td>
+                    <td style="padding:9px 14px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);">${matchRange}</td>
+                </tr>`;
+
+                if (isExp) {
+                    const timeIso = t.T ? new Date(t.T).toISOString() : '-';
+                    const sym = t.s || activeTabSymbol || '-';
+                    const makerOrd = t.makerOrderId ? `#${t.makerOrderId}` : 'N/A';
+                    const takerOrd = t.takerOrderId ? `#${t.takerOrderId}` : 'N/A';
+
+                    html += `<tr class="trade-details-wrap"><td colspan="9" style="padding:0;background:rgba(0,0,0,0.2);"><div class="trade-details-inner" style="padding:14px 20px;display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:12px;border-bottom:1px solid var(--border);">
+                        <div class="trade-detail-item"><span class="trade-detail-label">Symbol</span><span class="trade-detail-value" style="font-weight:700;color:var(--cyan);">${sym}</span></div>
+                        <div class="trade-detail-item"><span class="trade-detail-label">Agg Trade ID (a)</span><span class="trade-detail-value mono">${tradeId}</span></div>
+                        <div class="trade-detail-item"><span class="trade-detail-label">Match ID (f→l)</span><span class="trade-detail-value mono">${matchRange}</span></div>
+                        <div class="trade-detail-item"><span class="trade-detail-label">Buyer Was Maker (m)</span><span class="trade-detail-value">${t.m !== undefined ? (t.m ? 'Yes (Sell Taker)' : 'No (Buy Taker)') : '-'}</span></div>
+                        <div class="trade-detail-item"><span class="trade-detail-label">Timestamp (T)</span><span class="trade-detail-value mono">${timeIso}</span></div>
+                        <div class="trade-detail-item"><span class="trade-detail-label">Notional Value</span><span class="trade-detail-value mono" style="color:var(--emerald);font-weight:700;">$${totalValStr}</span></div>
+                        <div class="trade-detail-item"><span class="trade-detail-label">Maker Order ID (U1)</span><span class="trade-detail-value mono" style="color:var(--cyan);">${makerOrd}</span></div>
+                        <div class="trade-detail-item"><span class="trade-detail-label">Taker Order ID (U2)</span><span class="trade-detail-value mono" style="color:var(--yellow);">${takerOrd}</span></div>
+                    </div></td></tr>`;
+                }
+            });
+
+            html += '</tbody></table>';
+
+            if (el) {
+                el.innerHTML = html;
+                el.querySelectorAll('.trade-row').forEach(row => {
+                    row.onclick = function() {
+                        const key = this.dataset.key;
+                        window.expandedTrades = window.expandedTrades || new Set();
+                        if (window.expandedTrades.has(key)) {
+                            window.expandedTrades.delete(key);
+                        } else {
+                            window.expandedTrades.add(key);
+                        }
+                        updateTradeStream(newTrades);
+                    };
+                });
+            }
         }
+
+        window.MarketAggTradeManager = {
+            ws: null,
+            pingInterval: null,
+            pollInterval: null,
+            currentSymbol: null,
+            currentTier: null,
+            trades: [],
+            status: 'DISCONNECTED',
+
+            updateStatusUI: function(status, text) {
+                this.status = status;
+                const dot = document.getElementById('agg-ws-dot');
+                const badge = document.getElementById('agg-ws-badge');
+                const envLabel = document.getElementById('agg-stream-env-label');
+                if (envLabel) {
+                    const sym = this.currentSymbol || window.activeTabSymbol || '';
+                    const tier = this.currentTier || window.activeEnvFilter || 'PRODUCTION';
+                    envLabel.textContent = `${tier} • ${sym.replace(/^B-/, '').replace(/_/g, '')}`;
+                }
+                if (dot) {
+                    if (status === 'LIVE') {
+                        dot.style.background = '#10b981';
+                        dot.style.boxShadow = '0 0 10px rgba(16,185,129,0.6)';
+                    } else if (status === 'CONNECTING') {
+                        dot.style.background = '#eab308';
+                        dot.style.boxShadow = '0 0 10px rgba(234,179,8,0.5)';
+                    } else if (status === 'POLLING') {
+                        dot.style.background = '#06b6d4';
+                        dot.style.boxShadow = '0 0 10px rgba(6,182,212,0.5)';
+                    } else {
+                        dot.style.background = '#ef4444';
+                        dot.style.boxShadow = '0 0 10px rgba(239,68,68,0.5)';
+                    }
+                }
+                if (badge) {
+                    badge.textContent = text || status;
+                    if (status === 'LIVE') {
+                        badge.style.color = '#34d399';
+                        badge.style.background = 'rgba(52,211,153,0.12)';
+                        badge.style.borderColor = 'rgba(52,211,153,0.3)';
+                    } else if (status === 'CONNECTING') {
+                        badge.style.color = '#fde047';
+                        badge.style.background = 'rgba(253,224,71,0.12)';
+                        badge.style.borderColor = 'rgba(253,224,71,0.3)';
+                    } else if (status === 'POLLING') {
+                        badge.style.color = '#38bdf8';
+                        badge.style.background = 'rgba(56,189,248,0.12)';
+                        badge.style.borderColor = 'rgba(56,189,248,0.3)';
+                    } else {
+                        badge.style.color = '#f87171';
+                        badge.style.background = 'rgba(248,113,113,0.12)';
+                        badge.style.borderColor = 'rgba(248,113,113,0.3)';
+                    }
+                }
+            },
+
+            disconnect: function() {
+                if (this.ws) {
+                    try { this.ws.onclose = null; this.ws.onerror = null; this.ws.close(); } catch(e){}
+                    this.ws = null;
+                }
+                if (this.pingInterval) { clearInterval(this.pingInterval); this.pingInterval = null; }
+                if (this.pollInterval) { clearInterval(this.pollInterval); this.pollInterval = null; }
+            },
+
+            fetchRestTrades: async function(cleanSym, tier) {
+                try {
+                    const url = window.getApiUrl(`/api/stage/aggTrades?symbol=${cleanSym}&tier=${tier}&limit=100`);
+                    const res = await fetch(url);
+                    if (res.ok) {
+                        const rawList = await res.json();
+                        if (Array.isArray(rawList)) {
+                            const formatted = rawList.reverse().map(t => ({
+                                a: t.a,
+                                p: t.p,
+                                q: t.q,
+                                f: t.f,
+                                l: t.l,
+                                T: t.T,
+                                m: t.m,
+                                time: new Date(t.T).toLocaleTimeString('en-US', { hour12: false }) + '.' + String(t.T % 1000).padStart(3, '0'),
+                                side: t.m ? 'SELL' : 'BUY',
+                                orderType: 'MARKET',
+                                status: 'FILLED',
+                                stageQty: t.q,
+                                price: t.p,
+                                success: true
+                            }));
+                            this.mergeTrades(formatted);
+                            return true;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[AggTrades] REST fetch error:', e.message);
+                }
+                return false;
+            },
+
+            mergeTrades: function(incomingTrades) {
+                if (!incomingTrades || !incomingTrades.length) return;
+                const existingIds = new Set(this.trades.map(t => String(t.a || t.id)).filter(Boolean));
+                let added = false;
+                for (const t of incomingTrades) {
+                    const key = String(t.a || t.id || '');
+                    if (key && !existingIds.has(key)) {
+                        window.tagTradeWithUserInfo(t);
+                        this.trades.push(t);
+                        existingIds.add(key);
+                        added = true;
+                    } else if (!key) {
+                        window.tagTradeWithUserInfo(t);
+                        this.trades.push(t);
+                        added = true;
+                    }
+                }
+                if (added) {
+                    this.trades.sort((x, y) => (y.T || 0) - (x.T || 0) || (y.a || 0) - (x.a || 0));
+                    if (this.trades.length > 500) this.trades = this.trades.slice(0, 500);
+                    if (!window.aggIsFrozen) {
+                        updateTradeStream(this.trades);
+                    } else {
+                        window.aggPendingNewCount += incomingTrades.length;
+                        const freezeText = document.getElementById('agg-freeze-text');
+                        if (freezeText) freezeText.textContent = `Paused (+${window.aggPendingNewCount})`;
+                    }
+                }
+            },
+
+            connect: async function(rawSymbol, tier) {
+                const symbol = rawSymbol || window.activeTabSymbol;
+                const activeTier = (tier || window.activeEnvFilter || 'PRODUCTION').toUpperCase().replace(/-/g, '_');
+                if (!symbol) {
+                    this.disconnect();
+                    this.trades = [];
+                    updateTradeStream([]);
+                    return;
+                }
+
+                const cleanSym = symbol.replace(/^B-/, '').replace(/_/g, '').toUpperCase();
+                if (this.currentSymbol === cleanSym && this.currentTier === activeTier && this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    return;
+                }
+
+                this.disconnect();
+                this.currentSymbol = cleanSym;
+                this.currentTier = activeTier;
+                this.trades = [];
+                this.updateStatusUI('CONNECTING', 'CONNECTING...');
+
+                // 1. Initial REST API load
+                await this.fetchRestTrades(cleanSym, activeTier);
+
+                // 2. Determine WebSocket Gateway URL
+                const TIER_GATEWAYS = {
+                    PRODUCTION: 'wss://testnet-exchange-futures-socket-gateway.dcxstage.com',
+                    QA_STAGING: 'wss://testnet-futures-socket-gateway.dcxstage.com',
+                    DEV_STAGING: 'wss://staging-exchange-futures-socket-gateway.dcxstage.com',
+                    PERF: 'wss://performance-futures-socket-gateway.dcxstage.com'
+                };
+                TIER_GATEWAYS['QA-STAGING'] = TIER_GATEWAYS.QA_STAGING;
+                TIER_GATEWAYS['DEV-STAGING'] = TIER_GATEWAYS.DEV_STAGING;
+                TIER_GATEWAYS['PERF-STAGING'] = TIER_GATEWAYS.PERF;
+                TIER_GATEWAYS['PERF_STAGING'] = TIER_GATEWAYS.PERF;
+
+                const wsGateway = (window.cachedGlobalData && window.cachedGlobalData.tierUrls && window.cachedGlobalData.tierUrls[activeTier] && window.cachedGlobalData.tierUrls[activeTier].WS_GATEWAY) || TIER_GATEWAYS[activeTier] || TIER_GATEWAYS.PRODUCTION;
+                const streamUrl = `${wsGateway}/market/ws/${cleanSym.toLowerCase()}@aggTrade`;
+
+                try {
+                    const ws = new WebSocket(streamUrl);
+                    this.ws = ws;
+
+                    ws.onopen = () => {
+                        if (this.ws !== ws) return;
+                        this.updateStatusUI('LIVE', '● LIVE WS');
+                        if (this.pollInterval) { clearInterval(this.pollInterval); this.pollInterval = null; }
+                        this.pingInterval = setInterval(() => {
+                            if (ws.readyState === WebSocket.OPEN) {
+                                try { ws.send(JSON.stringify({ ping: Date.now() })); } catch(e){}
+                            }
+                        }, 25000);
+                    };
+
+                    ws.onmessage = (evt) => {
+                        if (this.ws !== ws) return;
+                        try {
+                            const data = JSON.parse(evt.data);
+                            if (data.e === 'aggTrade' || (data.p && data.q && data.T !== undefined)) {
+                                const formatted = {
+                                    a: data.a,
+                                    p: data.p,
+                                    q: data.q,
+                                    f: data.f,
+                                    l: data.l,
+                                    T: data.T,
+                                    m: data.m,
+                                    time: new Date(data.T).toLocaleTimeString('en-US', { hour12: false }) + '.' + String(data.T % 1000).padStart(3, '0'),
+                                    side: data.m ? 'SELL' : 'BUY',
+                                    orderType: 'MARKET',
+                                    status: 'FILLED',
+                                    stageQty: data.q,
+                                    price: data.p,
+                                    success: true
+                                };
+                                window.tagTradeWithUserInfo(formatted);
+                                if (!data.a || !this.trades.some(t => t.a === data.a)) {
+                                    this.trades.unshift(formatted);
+                                    if (this.trades.length > 500) this.trades.pop();
+                                    if (!window.aggIsFrozen) {
+                                        updateTradeStream(this.trades);
+                                    } else {
+                                        window.aggPendingNewCount++;
+                                        const freezeText = document.getElementById('agg-freeze-text');
+                                        if (freezeText) freezeText.textContent = `Paused (+${window.aggPendingNewCount})`;
+                                    }
+                                }
+                            }
+                        } catch(e) {}
+                    };
+
+                    ws.onerror = (e) => {
+                        console.warn('[AggTrades WS] Error on', streamUrl, e);
+                        this.startPollingFallback(cleanSym, activeTier);
+                    };
+
+                    ws.onclose = () => {
+                        if (this.ws !== ws) return;
+                        this.startPollingFallback(cleanSym, activeTier);
+                        setTimeout(() => {
+                            if (this.currentSymbol === cleanSym && this.currentTier === activeTier) {
+                                this.connect(cleanSym, activeTier);
+                            }
+                        }, 4000);
+                    };
+                } catch(e) {
+                    console.error('[AggTrades WS] Init failed:', e);
+                    this.startPollingFallback(cleanSym, activeTier);
+                }
+            },
+
+            startPollingFallback: function(cleanSym, tier) {
+                this.updateStatusUI('POLLING', 'POLLING (3s)');
+                if (this.pollInterval) return;
+                this.pollInterval = setInterval(() => {
+                    if (this.currentSymbol === cleanSym && this.currentTier === tier) {
+                        this.fetchRestTrades(cleanSym, tier);
+                    }
+                }, 3000);
+            },
+
+            handleBackendTrades: function(aggTrades, userTrades) {
+                if (userTrades && userTrades.length) {
+                    const formattedUserTrades = userTrades.map(ut => ({
+                        a: ut.makerOrderId ? `cross_${ut.makerOrderId}_${ut.takerOrderId}` : (ut.id || ut.orderId),
+                        p: ut.price || ut.avgPrice,
+                        q: ut.stageQty || ut.quantity,
+                        T: ut.time ? (new Date(ut.time).getTime() || Date.now()) : Date.now(),
+                        time: ut.time,
+                        side: ut.side,
+                        m: (ut.side === 'SELL'),
+                        userTag: (ut.makerOrderId && ut.takerOrderId) ? 'BOTH' : (ut.makerOrderId ? 'U1' : 'U2'),
+                        makerOrderId: ut.makerOrderId,
+                        takerOrderId: ut.takerOrderId,
+                        isUserTrade: true,
+                        success: ut.success
+                    }));
+                    this.mergeTrades(formattedUserTrades);
+                }
+                if (aggTrades && aggTrades.length) {
+                    this.mergeTrades(aggTrades);
+                }
+            },
+
+            render: function() {
+                updateTradeStream(this.trades);
+            }
+        };
 
         function chipHtml(label, value, color) {
             return '<div class="chip"><div class="chip-label">'+label+'</div><div class="chip-val" style="color:'+color+';">'+value+'</div></div>';
@@ -11437,8 +12172,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
             renderBook(document.getElementById('bin-asks'), document.getElementById('bin-bids'), document.getElementById('bin-spread-badge'), document.getElementById('bin-spread-mid'), instance.binanceDepth.asks, instance.binanceDepth.bids, true);
             renderBook(document.getElementById('stage-asks'), document.getElementById('stage-bids'), document.getElementById('stage-spread-badge'), document.getElementById('stage-spread-mid'), instance.testnetDepth.asks, instance.testnetDepth.bids, false);
-
-            updateTradeStream(instance.syncedTrades);
+            if (window.MarketAggTradeManager) {
+                window.MarketAggTradeManager.handleBackendTrades(instance.aggTrades, (instance.userTrades || instance.syncedTrades));
+            } else {
+                updateTradeStream(instance.aggTrades || instance.syncedTrades);
+            }
 
             if (typeof window.calcTermEstimates === 'function') {
                 window.calcTermEstimates();
