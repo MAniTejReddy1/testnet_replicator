@@ -183,19 +183,26 @@ function saveMarketConfigToDisk(inst) {
                 configs = JSON.parse(fs.readFileSync(configPath, 'utf8') || '[]');
             } catch(e) { configs = []; }
         }
-        const targetTier = (inst.tier || globalActiveTier || 'PRODUCTION').toUpperCase();
+        const targetTier = (inst.tier || globalActiveTier || 'PRODUCTION').toUpperCase().replace(/-/g, '_');
         const targetSym = (inst.targetSymbol || inst.symbol || '').toUpperCase();
         const sourceSym = (inst.sourceSymbol || targetSym).toUpperCase();
+        const cleanTargetSym = targetSym.replace(/^B-/, '').replace(/_/g, '');
 
-        const idx = configs.findIndex(c => 
-            ((c.targetSymbol || c.symbol || '').toUpperCase() === targetSym) &&
-            ((c.tier || 'PRODUCTION').toUpperCase() === targetTier)
-        );
+        const idx = configs.findIndex(c => {
+            const cSym = (c.targetSymbol || c.symbol || '').toUpperCase().replace(/^B-/, '').replace(/_/g, '');
+            const cTier = (c.tier || 'PRODUCTION').toUpperCase().replace(/-/g, '_');
+            return cSym === cleanTargetSym && cTier === targetTier;
+        });
+
+        const currentStatus = inst.savedStatus || inst.status || 'STOPPED';
+        const isMountOnly = Boolean(inst.mountOnlyState || currentStatus === 'STOPPED');
 
         const confObj = {
             sourceSymbol: sourceSym,
             targetSymbol: targetSym,
             tier: targetTier,
+            status: currentStatus,
+            mountOnly: isMountOnly,
             minSize: inst.minSize !== undefined ? inst.minSize : 10,
             maxSize: inst.maxSize !== undefined ? inst.maxSize : 50000,
             takerSize: inst.takerSize !== undefined ? inst.takerSize : 10,
@@ -215,9 +222,44 @@ function saveMarketConfigToDisk(inst) {
             configs.push(confObj);
         }
         fs.writeFileSync(configPath, JSON.stringify(configs, null, 2), 'utf8');
-        log.info(targetSym, `Config persisted to multi-config.json [${targetTier}]`);
+        log.info(targetSym, `Config persisted to multi-config.json [${targetTier}] (status: ${currentStatus})`);
     } catch (e) {
         log.warn('CONFIG', `Failed to persist market config to multi-config.json: ${e.message}`);
+    }
+}
+
+function deleteMarketConfigFromDisk(targetSym, targetTier) {
+    try {
+        const configPath = path.resolve(__dirname, 'multi-config.json');
+        if (!fs.existsSync(configPath)) return;
+        let configs = [];
+        try {
+            configs = JSON.parse(fs.readFileSync(configPath, 'utf8') || '[]');
+        } catch(e) { configs = []; }
+        
+        const cleanSym = (targetSym || '').toUpperCase().replace(/^B-/, '').replace(/_/g, '').trim();
+        const cleanTier = (targetTier || globalActiveTier || 'PRODUCTION').toUpperCase().replace(/-/g, '_').trim();
+
+        const beforeLen = configs.length;
+        configs = configs.filter(c => {
+            const cSym = (c.targetSymbol || c.symbol || '').toUpperCase().replace(/^B-/, '').replace(/_/g, '').trim();
+            const cTier = (c.tier || 'PRODUCTION').toUpperCase().replace(/-/g, '_').trim();
+            return !(cSym === cleanSym && cTier === cleanTier);
+        });
+
+        if (configs.length !== beforeLen) {
+            fs.writeFileSync(configPath, JSON.stringify(configs, null, 2), 'utf8');
+            log.info(cleanSym, `Market configuration permanently removed from multi-config.json [${cleanTier}]`);
+        }
+        
+        // Also keep in-memory marketConfigs updated
+        marketConfigs = marketConfigs.filter(c => {
+            const cSym = (c.targetSymbol || c.symbol || '').toUpperCase().replace(/^B-/, '').replace(/_/g, '').trim();
+            const cTier = (c.tier || 'PRODUCTION').toUpperCase().replace(/-/g, '_').trim();
+            return !(cSym === cleanSym && cTier === cleanTier);
+        });
+    } catch (e) {
+        log.warn('CONFIG', `Failed to delete market config from multi-config.json: ${e.message}`);
     }
 }
 
@@ -1493,7 +1535,7 @@ async function switchEnvironment(newTier) {
     if (prevInstances) {
         for (const inst of prevInstances.values()) {
             inst.tempPrevStatus = inst.status;
-            await inst.stop().catch(e => log.error(inst.symbol, `Stop failed during env switch: ${e.message}`, null, prevTier));
+            await inst.stop(true).catch(e => log.error(inst.symbol, `Stop failed during env switch: ${e.message}`, null, prevTier));
             if (inst.pollingInterval) {
                 clearInterval(inst.pollingInterval);
                 inst.pollingInterval = null;
@@ -1514,10 +1556,13 @@ async function switchEnvironment(newTier) {
     if (newInstances) {
         for (const inst of newInstances.values()) {
             await inst.wipeOrders().catch(e => {});
-            if (inst.tempPrevStatus === 'RUNNING') {
+            const targetResumeStatus = inst.tempPrevStatus || inst.savedStatus || 'STOPPED';
+            if (targetResumeStatus === 'RUNNING') {
                 await inst.start().catch(e => log.error(inst.symbol, `Start failed during env switch: ${e.message}`, null, newTier));
+            } else if (targetResumeStatus === 'PAUSED') {
+                inst.pause();
             } else {
-                await inst.mountOnly().catch(e => log.error(inst.symbol, `Mount failed during env switch: ${e.message}`, null, newTier));
+                await inst.mountOnly(true).catch(e => log.error(inst.symbol, `Mount failed during env switch: ${e.message}`, null, newTier));
             }
         }
     }
@@ -1787,7 +1832,9 @@ class ReplicatorInstance {
         this.targetSymbol = (this.tier === 'PERF' || this.tier === 'PRODUCTION') ? targetSymbol.replace(/^B-/, '').replace(/_/g, '') : targetSymbol;
         
         this.symbol = this.targetSymbol; 
-        this.status = 'STOPPED';
+        const rawStatus = (marketConfig.status || '').toUpperCase();
+        this.savedStatus = (rawStatus === 'RUNNING' || rawStatus === 'PAUSED') ? rawStatus : 'STOPPED';
+        this.status = this.savedStatus;
 
         this.minSize            = marketConfig.minSize !== undefined ? marketConfig.minSize : 10;
         this.maxSize            = marketConfig.maxSize !== undefined ? marketConfig.maxSize : 50000;
@@ -1801,7 +1848,7 @@ class ReplicatorInstance {
         this.bufferPct          = marketConfig.bufferPct          || 0;
         this.cancelOnStop       = marketConfig.cancelOnStop === true;
         this.tradeDelayMs       = marketConfig.tradeDelayMs       || 0;
-        this.mountOnlyState     = marketConfig.mountOnly === true;
+        this.mountOnlyState     = marketConfig.mountOnly !== undefined ? Boolean(marketConfig.mountOnly) : (this.savedStatus === 'STOPPED');
         
         this.inFlightEdits      = new Set();
 
@@ -3765,8 +3812,13 @@ startBinanceDepthWS() {
         }
     }
 
-    async mountOnly() {
+    async mountOnly(isInitialMount = false) {
         this.status = 'STOPPED';
+        if (!isInitialMount) {
+            this.savedStatus = 'STOPPED';
+            this.mountOnlyState = true;
+            saveMarketConfigToDisk(this);
+        }
         log.info(this.symbol, 'Mounting market in data-only mode (simulation stopped)...', null, this.tier);
         
         // Fetch initial Binance LTP via REST
@@ -3805,8 +3857,12 @@ startBinanceDepthWS() {
     async start() {
         if (this.status === 'RUNNING') return;
 
-        this.status = 'RUNNING'; this.hasLoggedAuthError = false;
+        this.status = 'RUNNING';
+        this.savedStatus = 'RUNNING';
+        this.mountOnlyState = false;
+        this.hasLoggedAuthError = false;
         log.success(this.symbol, 'Engine Started.');
+        saveMarketConfigToDisk(this);
 
         // Set leverage for both maker and taker accounts on this symbol
         await this.setLeverage();
@@ -3837,7 +3893,10 @@ startBinanceDepthWS() {
 
     pause() {
         this.status = 'PAUSED';
+        this.savedStatus = 'PAUSED';
+        this.mountOnlyState = false;
         log.warn(this.symbol, 'Engine Paused.');
+        saveMarketConfigToDisk(this);
         this.startBinanceDepthWS();
         this.startBinanceTradesWS();
         this.startBinanceMarkPriceWS();
@@ -3871,8 +3930,13 @@ startBinanceDepthWS() {
         await Promise.all(calls);
     }
 
-    async stop() {
+    async stop(isTemporary = false) {
         this.status = 'STOPPED';
+        if (!isTemporary) {
+            this.savedStatus = 'STOPPED';
+            this.mountOnlyState = true;
+            saveMarketConfigToDisk(this);
+        }
         log.warn(this.symbol, 'Engine Stopped.');
         if (this.cancelOnStop) await this.wipeOrders(); else { this.restingBids = []; this.restingAsks = []; }
         this.startBinanceDepthWS();
@@ -4904,32 +4968,46 @@ const server = http.createServer(async (req, res) => {
             try {
                 let parsed = {};
                 try { parsed = JSON.parse(body || '{}'); } catch(e) {}
-                const targetSym = sym || (parsed.symbol ? parsed.symbol.toUpperCase() : null);
-                const targetTier = tier || (parsed.tier || globalActiveTier).toUpperCase();
+                const targetSym = (sym || parsed.symbol || '').toUpperCase().trim();
+                const targetTier = (tier || parsed.tier || globalActiveTier).toUpperCase().trim().replace(/-/g, '_');
                 
                 if (!targetSym) {
-                    res.writeHead(400);
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
                     return res.end(JSON.stringify({ error: "Symbol is required" }));
                 }
+
+                // Permanently delete configuration from disk and in-memory list
+                deleteMarketConfigFromDisk(targetSym, targetTier);
+
                 const tierInstances = instances[targetTier];
-                if (tierInstances && tierInstances.has(targetSym)) {
-                    const inst = tierInstances.get(targetSym);
-                    await inst.stop();
+                let inst = null;
+                if (tierInstances) {
+                    if (tierInstances.has(targetSym)) {
+                        inst = tierInstances.get(targetSym);
+                        tierInstances.delete(targetSym);
+                    } else {
+                        const normSym = targetSym.replace(/^B-/, '').replace(/_/g, '');
+                        if (tierInstances.has(normSym)) {
+                            inst = tierInstances.get(normSym);
+                            tierInstances.delete(normSym);
+                        }
+                    }
+                }
+
+                if (inst) {
+                    await inst.stop(true);
                     if (inst.pollingInterval) {
                         clearInterval(inst.pollingInterval);
                         inst.pollingInterval = null;
                     }
-                    tierInstances.delete(targetSym);
                     log.info(targetSym, `Market instance deleted/removed from UI.`, null, targetTier);
-                    broadcastToUI();
-                    res.writeHead(200);
-                    return res.end(JSON.stringify({ success: true }));
-                } else {
-                    res.writeHead(404);
-                    return res.end(JSON.stringify({ error: "Instance not found" }));
                 }
+
+                broadcastToUI();
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: true }));
             } catch (e) {
-                res.writeHead(500);
+                res.writeHead(500, { 'Content-Type': 'application/json' });
                 return res.end(JSON.stringify({ error: e.message }));
             }
         });
@@ -5914,11 +5992,19 @@ const server = http.createServer(async (req, res) => {
                     }));
                 } else {
                     const inst = (instances[globalActiveTier] || new Map()).get(targetSym);
-                    if (pathname === '/api/engine/start'  && inst) inst.start();
-                    else if (pathname === '/api/engine/pause'  && inst) inst.pause();
-                    else if (pathname === '/api/engine/stop'   && inst) await inst.stop();
-                    else if (pathname === '/api/engine/wipe'   && inst) await inst.wipeOrders();
-                    else if (pathname === '/api/engine/reload' && inst) {
+                    if (pathname === '/api/engine/start'  && inst) {
+                        await inst.start();
+                        broadcastToUI(true);
+                    } else if (pathname === '/api/engine/pause'  && inst) {
+                        inst.pause();
+                        broadcastToUI(true);
+                    } else if (pathname === '/api/engine/stop'   && inst) {
+                        await inst.stop();
+                        broadcastToUI(true);
+                    } else if (pathname === '/api/engine/wipe'   && inst) {
+                        await inst.wipeOrders();
+                        broadcastToUI(true);
+                    } else if (pathname === '/api/engine/reload' && inst) {
                         inst.reloadEngine().catch(e => log.error(inst.symbol, `[RELOAD] Background reload failed: ${e.message}`));
                     }
                 }
@@ -6049,16 +6135,17 @@ async function startBots() {
         const { sourceSymbol: srcSym, targetSymbol: targetSym } = deriveSymbols(marketConf.sourceSymbol, marketConf.targetSymbol);
         marketConf.sourceSymbol = srcSym;
         marketConf.targetSymbol = targetSym;
-        const tier = (marketConf.tier || globalActiveTier).toUpperCase();
+        const tier = (marketConf.tier || globalActiveTier).toUpperCase().replace(/-/g, '_');
         if (!instances[tier]) instances[tier] = new Map();
-        if (instances[tier].has(targetSym)) {
+        const normSym = (tier === 'PERF' || tier === 'PRODUCTION') ? targetSym.replace(/^B-/, '').replace(/_/g, '') : targetSym;
+        if (instances[tier].has(normSym) || instances[tier].has(targetSym)) {
             log.warn(targetSym, 'Skipping duplicate market configuration.', null, tier);
             continue;
         }
         marketConf.tier = tier;
         log.info(targetSym, `Initializing market: ${marketConf.sourceSymbol} -> ${targetSym} on tier ${tier}`, null, tier);
         const inst = new ReplicatorInstance(marketConf);
-        instances[tier].set(targetSym, inst);
+        instances[tier].set(inst.targetSymbol, inst);
     }
 
     const startPromises = [];
@@ -6067,16 +6154,19 @@ async function startBots() {
         for (const inst of tierInstances.values()) {
             if (tier !== globalActiveTier) {
                 // Initialize temporary previous state so it can be resumed when switched to
-                inst.tempPrevStatus = inst.mountOnlyState ? 'STOPPED' : 'RUNNING';
+                inst.tempPrevStatus = inst.savedStatus || (inst.mountOnlyState ? 'STOPPED' : 'STOPPED');
                 continue;
             }
             startPromises.push((async () => {
                 try {
                     await inst.wipeOrders();
-                    if (inst.mountOnlyState) {
-                        await inst.mountOnly();
-                    } else {
+                    if (inst.savedStatus === 'RUNNING') {
                         await inst.start();
+                    } else if (inst.savedStatus === 'PAUSED') {
+                        inst.pause();
+                    } else {
+                        // Strictly follow previous control state: STOPPED / mountOnly (data-only mode)
+                        await inst.mountOnly(true);
                     }
                 } catch (e) {
                     log.error(inst.targetSymbol, `Initial start sequence failed: ${e.message}`, null, inst.tier);
@@ -6145,16 +6235,19 @@ if (ENABLE_LOCAL_UI) {
 }
 
 
-process.on('SIGINT', async () => {
-    log.warn('SYSTEM', 'Termination signal caught. Stopping all engines...');
+const shutdownHandler = async () => {
+    log.warn('SYSTEM', 'Termination signal caught. Stopping all engines gracefully...');
     for (const tier of ['PRODUCTION', 'QA_STAGING', 'DEV_STAGING', 'PERF']) {
         const tierInstances = instances[tier] || new Map();
         for (const inst of tierInstances.values()) {
-            await inst.stop();
+            await inst.stop(true);
         }
     }
     process.exit(0);
-});
+};
+
+process.on('SIGINT', shutdownHandler);
+process.on('SIGTERM', shutdownHandler);
 
 // ==========================================
 // 7. UI Render

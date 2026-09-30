@@ -12726,6 +12726,13 @@ window.addEventListener('DOMContentLoaded', () => {
                     window.localMountedSymbols = [];
                 }
                 window.setLocalMountedSymbols(activeEnvFilter, window.localMountedSymbols);
+                try {
+                    localStorage.removeItem('replicator_cfg_' + activeEnvFilter + '_' + sym);
+                    if (window.lastActiveSymbolByEnv && window.lastActiveSymbolByEnv[activeEnvFilter] === sym) {
+                        delete window.lastActiveSymbolByEnv[activeEnvFilter];
+                        localStorage.setItem('replicator_last_active_symbols', JSON.stringify(window.lastActiveSymbolByEnv));
+                    }
+                } catch(e) {}
                 
                 if (window.cachedInstances && window.cachedInstances[sym]) {
                     delete window.cachedInstances[sym];
