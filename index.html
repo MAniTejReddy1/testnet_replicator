@@ -3138,24 +3138,7 @@
         </div>
       </div>
     </div>
-    <!-- Card 4: Index Price -->
-    <div class="ticker-card tc-accent-blue" style="min-width: 170px;">
-      <div class="ticker-card-hdr">
-        <span class="ticker-card-title">Index Price</span>
-        <span id="ip-drift-badge" class="tc-badge">Drift: —</span>
-      </div>
-      <div class="ticker-card-body">
-        <div class="tc-row">
-          <span class="tc-tag tc-tag-dcx">DCX</span>
-          <span class="ticker-val tc-val-gold" id="t-bip">—</span>
-        </div>
-        <div class="tc-row">
-          <span class="tc-tag tc-tag-tst">TST</span>
-          <span class="ticker-val tc-val-cyan" id="t-sip">—</span>
-        </div>
-      </div>
-    </div>
-    <!-- Card 5: Mark Price Bands -->
+    <!-- Card 4: Mark Price Bands (Grouped with Mark Price) -->
     <div class="ticker-card tc-accent-purple" style="min-width: 175px;">
       <div class="ticker-card-hdr">
         <span class="ticker-card-title">Mark Bands</span>
@@ -3172,7 +3155,24 @@
         </div>
       </div>
     </div>
-    <!-- Card 6: Circuit Breakers (CB) -->
+    <!-- Card 5: Index Price -->
+    <div class="ticker-card tc-accent-blue" style="min-width: 170px;">
+      <div class="ticker-card-hdr">
+        <span class="ticker-card-title">Index Price</span>
+        <span id="ip-drift-badge" class="tc-badge">Drift: —</span>
+      </div>
+      <div class="ticker-card-body">
+        <div class="tc-row">
+          <span class="tc-tag tc-tag-dcx">DCX</span>
+          <span class="ticker-val tc-val-gold" id="t-bip">—</span>
+        </div>
+        <div class="tc-row">
+          <span class="tc-tag tc-tag-tst">TST</span>
+          <span class="ticker-val tc-val-cyan" id="t-sip">—</span>
+        </div>
+      </div>
+    </div>
+    <!-- Card 6: Circuit Breakers (CB) (Grouped with Index Price) -->
     <div class="ticker-card tc-accent-rose" style="min-width: 175px;">
       <div class="ticker-card-hdr">
         <span class="ticker-card-title">Circuit Breaker</span>
@@ -3189,31 +3189,34 @@
         </div>
       </div>
     </div>
-    <!-- Card 7: Order Limits -->
-    <div class="ticker-card tc-accent-emerald" style="min-width: 255px;">
+    <!-- Card 7: Order Price Limits (Safeguards) -->
+    <div class="ticker-card tc-accent-emerald" style="min-width: 275px;">
       <div class="ticker-card-hdr">
-        <span class="ticker-card-title">Order Limits</span>
-        <span id="order-limits-badge" class="tc-badge">Bound: —</span>
+        <div style="display:flex; align-items:center; gap:5px;">
+          <span class="ticker-card-title" title="Exchange Price Boundaries: Maximum allowable Buy and Minimum allowable Sell prices enforced to prevent fat-finger orders and extreme market slippage">Order Price Limits</span>
+          <span style="font-size:8px; color:var(--text-muted); opacity:0.75;" title="Left: Limit Order Bounds | Right: Market Order Caps">(Limit &bull; Mkt)</span>
+        </div>
+        <span id="order-limits-badge" class="tc-badge" title="Market Take Bound: Maximum slippage tolerance for market orders">Bound: —</span>
       </div>
       <div class="ticker-card-body" style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
         <div style="display:flex; flex-direction:column; gap:2px; border-right:1px solid var(--border); padding-right:8px;">
           <div class="tc-row">
-            <span class="tc-tag tc-tag-up" style="font-size:7.5px;">BUY</span>
-            <span class="ticker-val tc-val-emerald" id="t-max-buy" style="font-size:12.5px;">—</span>
+            <span class="tc-tag tc-tag-up" style="width:auto; padding:0 4px; font-size:7px; font-weight:800;" title="Max Buy Limit Order allowed (Ceiling): min(Mark Upper, CB Upper)">MAX BUY</span>
+            <span class="ticker-val tc-val-emerald" id="t-max-buy" style="font-size:11.5px; font-weight:800;">—</span>
           </div>
           <div class="tc-row">
-            <span class="tc-tag tc-tag-dn" style="font-size:7.5px;">SELL</span>
-            <span class="ticker-val tc-val-rose" id="t-min-sell" style="font-size:12.5px;">—</span>
+            <span class="tc-tag tc-tag-dn" style="width:auto; padding:0 4px; font-size:7px; font-weight:800;" title="Min Sell Limit Order allowed (Floor): max(Mark Lower, CB Lower)">MIN SELL</span>
+            <span class="ticker-val tc-val-rose" id="t-min-sell" style="font-size:11.5px; font-weight:800;">—</span>
           </div>
         </div>
         <div style="display:flex; flex-direction:column; gap:2px;">
           <div class="tc-row">
-            <span class="tc-tag tc-tag-up" style="font-size:7.5px;">M-B</span>
-            <span class="ticker-val tc-val-emerald" id="t-mkt-buy" style="font-size:12.5px;">—</span>
+            <span class="tc-tag tc-tag-up" style="width:auto; padding:0 4px; font-size:7px; font-weight:800;" title="Market Buy Price Ceiling (Execution Cap): orders won't execute above this">MKT BUY</span>
+            <span class="ticker-val tc-val-emerald" id="t-mkt-buy" style="font-size:11.5px; font-weight:800;">—</span>
           </div>
           <div class="tc-row">
-            <span class="tc-tag tc-tag-dn" style="font-size:7.5px;">M-S</span>
-            <span class="ticker-val tc-val-rose" id="t-mkt-sell" style="font-size:12.5px;">—</span>
+            <span class="tc-tag tc-tag-dn" style="width:auto; padding:0 4px; font-size:7px; font-weight:800;" title="Market Sell Price Floor (Execution Floor): orders won't execute below this">MKT SELL</span>
+            <span class="ticker-val tc-val-rose" id="t-mkt-sell" style="font-size:11.5px; font-weight:800;">—</span>
           </div>
         </div>
       </div>
