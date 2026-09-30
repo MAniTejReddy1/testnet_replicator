@@ -2632,6 +2632,16 @@
                     timeScale: { borderColor: grid }
                 });
             }
+            if (typeof window.switchQaModalTab === 'function') {
+                window.switchQaModalTab(window.qaModalActiveTab || 'app');
+                window.switchQaAppView(window.qaAppViewMode || 'form');
+                window.switchQaInstView(window.qaInstViewMode || 'form');
+                const envBadge = document.getElementById('qa-modal-global-env-badge');
+                if (envBadge && envBadge.textContent !== 'PRODUCTION') {
+                    const isNowLight = document.documentElement.getAttribute('data-theme') === 'light';
+                    envBadge.style.color = isNowLight ? '#0f172a' : '#f0f6fc';
+                }
+            }
         };
 
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -3378,6 +3388,235 @@
   }
   :root[data-theme="light"] .l2-overlay {
       background: rgba(15, 23, 42, 0.45) !important;
+  }
+
+  /* ========================================================================= */
+  /* QA CONTROL PANEL: THEME & UX ENHANCEMENTS                                  */
+  /* ========================================================================= */
+  :root {
+    --qa-bg: #0d1117;
+    --qa-surface: #161b22;
+    --qa-surface2: #21262d;
+    --qa-border: #30363d;
+    --qa-border2: #21262d;
+    --qa-text: #f0f6fc;
+    --qa-text-muted: #8b949e;
+    --qa-text-dim: #c9d1d9;
+    --qa-input-bg: #0d1117;
+    --qa-input-border: #30363d;
+    --qa-input-focus: #388bfd;
+    --qa-accent: #388bfd;
+    --qa-success: #238636;
+    --qa-success-fg: #3fb950;
+    --qa-overlay: rgba(0, 0, 0, 0.75);
+    --qa-card-shadow: 0 24px 64px rgba(0,0,0,0.85);
+  }
+
+  :root[data-theme="light"] {
+    --qa-bg: #ffffff;
+    --qa-surface: #f8fafc;
+    --qa-surface2: #f1f5f9;
+    --qa-border: #e2e8f0;
+    --qa-border2: #cbd5e1;
+    --qa-text: #0f172a;
+    --qa-text-muted: #64748b;
+    --qa-text-dim: #334155;
+    --qa-input-bg: #ffffff;
+    --qa-input-border: #cbd5e1;
+    --qa-input-focus: #0284c7;
+    --qa-accent: #0284c7;
+    --qa-success: #00a85d;
+    --qa-success-fg: #00a85d;
+    --qa-overlay: rgba(15, 23, 42, 0.55);
+    --qa-card-shadow: 0 24px 60px rgba(15, 23, 42, 0.16);
+  }
+
+  /* Modal Overlay & Entrance Animation */
+  #qa-config-modal-overlay {
+    transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+  :root[data-theme="light"] #qa-config-modal-overlay {
+    background: var(--qa-overlay) !important;
+    backdrop-filter: blur(6px) !important;
+  }
+  .qa-modal-card {
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease !important;
+    transform: scale(0.98) translateY(6px);
+  }
+  #qa-config-modal-overlay[style*="opacity: 1"] .qa-modal-card,
+  #qa-config-modal-overlay[style*="opacity:1"] .qa-modal-card {
+    transform: scale(1) translateY(0);
+  }
+
+  /* Light Theme Card Base Overrides */
+  :root[data-theme="light"] .qa-modal-card {
+    background: var(--qa-bg) !important;
+    border: 1px solid var(--qa-border) !important;
+    color: var(--qa-text) !important;
+    box-shadow: var(--qa-card-shadow) !important;
+  }
+
+  /* Header & Nav */
+  :root[data-theme="light"] .qa-modal-card > div:first-child,
+  :root[data-theme="light"] .qa-modal-card div[style*="background:#161b22"] {
+    background: var(--qa-surface) !important;
+    border-color: var(--qa-border) !important;
+  }
+
+  :root[data-theme="light"] .qa-modal-card div[style*="background:#0d1117"] {
+    background: var(--qa-bg) !important;
+    border-color: var(--qa-border) !important;
+  }
+
+  :root[data-theme="light"] .qa-modal-card span[style*="background:#21262d"],
+  :root[data-theme="light"] .qa-modal-card div[style*="background:#21262d"] {
+    background: var(--qa-surface2) !important;
+    border-color: var(--qa-border) !important;
+    color: var(--qa-text) !important;
+  }
+
+  /* Text Colors in Light Theme */
+  :root[data-theme="light"] .qa-modal-card span[style*="color:#f0f6fc"],
+  :root[data-theme="light"] .qa-modal-card div[style*="color:#f0f6fc"],
+  :root[data-theme="light"] .qa-modal-card button[style*="color:#f0f6fc"] {
+    color: var(--qa-text) !important;
+  }
+
+  :root[data-theme="light"] .qa-modal-card span[style*="color:#8b949e"],
+  :root[data-theme="light"] .qa-modal-card div[style*="color:#8b949e"],
+  :root[data-theme="light"] .qa-modal-card button[style*="color:#8b949e"],
+  :root[data-theme="light"] .qa-modal-card label[style*="color:#8b949e"] {
+    color: var(--qa-text-muted) !important;
+  }
+
+  :root[data-theme="light"] .qa-modal-card span[style*="color:#c9d1d9"],
+  :root[data-theme="light"] .qa-modal-card div[style*="color:#c9d1d9"],
+  :root[data-theme="light"] .qa-modal-card button[style*="color:#c9d1d9"] {
+    color: var(--qa-text-dim) !important;
+  }
+
+  /* Borders in Light Theme */
+  :root[data-theme="light"] .qa-modal-card *[style*="border:1px solid #30363d"],
+  :root[data-theme="light"] .qa-modal-card *[style*="border-bottom:1px solid #21262d"],
+  :root[data-theme="light"] .qa-modal-card *[style*="border-top:1px solid #21262d"],
+  :root[data-theme="light"] .qa-modal-card *[style*="border:1px solid #21262d"] {
+    border-color: var(--qa-border) !important;
+  }
+
+  /* Form Controls (Inputs, Selects, Textareas) */
+  :root[data-theme="light"] .qa-modal-card input,
+  :root[data-theme="light"] .qa-modal-card select,
+  :root[data-theme="light"] .qa-modal-card textarea {
+    background: var(--qa-input-bg) !important;
+    color: var(--qa-text) !important;
+    border: 1px solid var(--qa-input-border) !important;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+
+  :root[data-theme="light"] .qa-modal-card input::placeholder,
+  :root[data-theme="light"] .qa-modal-card textarea::placeholder {
+    color: #94a3b8 !important;
+  }
+
+  :root[data-theme="light"] .qa-modal-card input:focus,
+  :root[data-theme="light"] .qa-modal-card select:focus,
+  :root[data-theme="light"] .qa-modal-card textarea:focus {
+    border-color: var(--qa-input-focus) !important;
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15) !important;
+  }
+
+  :root[data-theme="light"] .qa-modal-card select option {
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  /* Buttons */
+  :root[data-theme="light"] .qa-modal-card button[style*="background:#21262d"] {
+    background: var(--qa-surface2) !important;
+    border-color: var(--qa-border) !important;
+    color: var(--qa-text-dim) !important;
+  }
+
+  :root[data-theme="light"] .qa-modal-card button[style*="background:#21262d"]:hover {
+    background: #e2e8f0 !important;
+    color: var(--qa-text) !important;
+  }
+
+  :root[data-theme="light"] #qa-modal-close-btn {
+    background: var(--qa-surface2) !important;
+    border-color: var(--qa-border) !important;
+    color: var(--qa-text-muted) !important;
+  }
+  :root[data-theme="light"] #qa-modal-close-btn:hover {
+    background: #e2e8f0 !important;
+    color: var(--qa-text) !important;
+  }
+
+  /* Nav Tabs in Light Mode */
+  :root[data-theme="light"] #qa-nav-btn-app,
+  :root[data-theme="light"] #qa-nav-btn-inst,
+  :root[data-theme="light"] #qa-nav-btn-history {
+    color: var(--qa-text-muted);
+  }
+  :root[data-theme="light"] #qa-nav-btn-app:hover,
+  :root[data-theme="light"] #qa-nav-btn-inst:hover,
+  :root[data-theme="light"] #qa-nav-btn-history:hover {
+    color: var(--qa-text);
+  }
+
+  /* Pair Overrides Cards */
+  :root[data-theme="light"] .qa-pair-card {
+    background: #ffffff !important;
+    border-color: var(--qa-border) !important;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  }
+  :root[data-theme="light"] .qa-symbol-chip {
+    background: var(--qa-surface2) !important;
+    border-color: var(--qa-border) !important;
+    color: var(--qa-text) !important;
+  }
+  :root[data-theme="light"] .qa-symbol-chip:hover {
+    background: #e2e8f0 !important;
+    color: var(--qa-accent) !important;
+  }
+
+  /* Primary Apply Action Buttons */
+  :root[data-theme="light"] #qa-app-apply-btn,
+  :root[data-theme="light"] #qa-inst-apply-btn {
+    background: var(--qa-success) !important;
+    border-color: var(--qa-success) !important;
+    color: #ffffff !important;
+  }
+  :root[data-theme="light"] #qa-app-apply-btn:hover,
+  :root[data-theme="light"] #qa-inst-apply-btn:hover {
+    filter: brightness(1.08);
+  }
+
+  /* Diff Viewer in Light Mode */
+  :root[data-theme="light"] #qa-app-diff-viewer,
+  :root[data-theme="light"] #qa-inst-diff-viewer {
+    background: #ffffff !important;
+    border-color: var(--qa-border) !important;
+  }
+
+  /* Details and Corridor Bar in Light Mode */
+  :root[data-theme="light"] .qa-modal-card details {
+    background: var(--qa-surface2) !important;
+    border-color: var(--qa-border) !important;
+  }
+  :root[data-theme="light"] .qa-modal-card div[style*="height:6px"] {
+    background: #e2e8f0 !important;
+  }
+  :root[data-theme="light"] .qa-modal-card div[style*="width:2px; background:#f0f6fc"] {
+    background: #0f172a !important;
+  }
+
+  /* Scrollbars */
+  #qa-modal-scroll-body::-webkit-scrollbar { width: 6px; }
+  #qa-modal-scroll-body::-webkit-scrollbar-track { background: transparent; }
+  #qa-modal-scroll-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
+  :root[data-theme="light"] #qa-modal-scroll-body::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
   }
 
 </style>
@@ -7628,20 +7867,155 @@ window.addEventListener('DOMContentLoaded', () => {
             // Search filter
             const filterText = (window.portSearch && window.portSearch[panelId]) || '';
 
+            // Sorting state initialization
+            if (!window.portSort) {
+                window.portSort = {
+                    u1: { pos: { col: 'symbol', dir: 'asc' }, open: { col: 'updateTime', dir: 'desc' }, hist: { col: 'updateTime', dir: 'desc' } },
+                    u2: { pos: { col: 'symbol', dir: 'asc' }, open: { col: 'updateTime', dir: 'desc' }, hist: { col: 'updateTime', dir: 'desc' } }
+                };
+            }
+            if (!window.portSort[panelId]) {
+                window.portSort[panelId] = { pos: { col: 'symbol', dir: 'asc' }, open: { col: 'updateTime', dir: 'desc' }, hist: { col: 'updateTime', dir: 'desc' } };
+            }
+            if (!window.portSort[panelId][tab]) {
+                window.portSort[panelId][tab] = { col: tab === 'pos' ? 'symbol' : 'updateTime', dir: tab === 'pos' ? 'asc' : 'desc' };
+            }
+
+            if (!window.togglePortSort) {
+                window.togglePortSort = function(pId, t, colKey) {
+                    if (!window.portSort) window.portSort = {};
+                    if (!window.portSort[pId]) window.portSort[pId] = {};
+                    const cur = window.portSort[pId][t] || { col: '', dir: 'asc' };
+                    if (cur.col === colKey) {
+                        cur.dir = cur.dir === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        cur.col = colKey;
+                        cur.dir = 'asc';
+                    }
+                    window.portSort[pId][t] = cur;
+                    if (typeof window.renderPortfolios === 'function') window.renderPortfolios();
+                };
+            }
+
+            function makeSortTh(colKey, label, align = 'right', width = '', extraContent = '') {
+                const cur = (window.portSort && window.portSort[panelId] && window.portSort[panelId][tab]) || {};
+                const isSorted = cur.col === colKey;
+                const arrow = isSorted 
+                    ? (cur.dir === 'asc' ? ' <span style="font-size:10px;color:var(--cyan);font-weight:bold;">▲</span>' : ' <span style="font-size:10px;color:var(--cyan);font-weight:bold;">▼</span>') 
+                    : ' <span style="opacity:0.25;font-size:9px;">⇅</span>';
+                const activeColor = isSorted ? 'var(--cyan)' : 'var(--text-muted)';
+                const w = width ? `width:${width};` : '';
+                const alignStyle = align === 'left' ? 'text-align:left;' : (align === 'right' ? 'text-align:right;' : 'text-align:center;');
+                return `<th style="${w}${alignStyle}cursor:pointer;user-select:none;color:${activeColor};transition:color 0.15s;" onclick="window.togglePortSort('${panelId}','${tab}','${colKey}')" title="Sort by ${label} (A-Z / Z-A)"><span style="display:inline-flex;align-items:center;gap:3px;${align==='right'?'justify-content:flex-end;':''}">${label}${arrow}</span>${extraContent}</th>`;
+            }
+
             let rawData = [];
             if (tab === 'open') {
-                theadEl.innerHTML = '<tr><th style="width:115px;">Symbol</th><th style="text-align:right;width:60px;">Side</th><th style="text-align:right;width:85px;">Price</th><th style="text-align:right;width:85px;">Avg Price</th><th style="text-align:right;width:115px;">Progress</th><th style="text-align:right;width:80px;">Type</th><th style="text-align:right;width:75px;">Status</th><th style="text-align:right;width:80px;">Time</th><th style="text-align:right;width:150px;"><div style="display:flex;justify-content:flex-end;align-items:center;gap:6px;"><span>Actions</span><button class="act-btn act-cls" style="background:var(--rose);color:#fff;border-radius:4px;padding:2px 6px;font-size:9.5px;font-weight:700;line-height:1;" onclick="window.cancelAllOpenOrders(\''+panelId+'\')">CANCEL ALL</button></div></th></tr>';
-                rawData = allOpenOrders;
+                theadEl.innerHTML = '<tr>' +
+                    makeSortTh('symbol', 'Symbol', 'left', '115px') +
+                    makeSortTh('side', 'Side', 'right', '60px') +
+                    makeSortTh('price', 'Price', 'right', '85px') +
+                    makeSortTh('avgPrice', 'Avg Price', 'right', '85px') +
+                    makeSortTh('progress', 'Progress', 'right', '115px') +
+                    makeSortTh('type', 'Type', 'right', '80px') +
+                    makeSortTh('status', 'Status', 'right', '75px') +
+                    makeSortTh('updateTime', 'Updated Time', 'right', '100px') +
+                    '<th style="text-align:right;width:150px;"><div style="display:flex;justify-content:flex-end;align-items:center;gap:6px;"><span>Actions</span><button class="act-btn act-cls" style="background:var(--rose);color:#fff;border-radius:4px;padding:2px 6px;font-size:9.5px;font-weight:700;line-height:1;" onclick="window.cancelAllOpenOrders(\''+panelId+'\')">CANCEL ALL</button></div></th>' +
+                '</tr>';
+                rawData = [...allOpenOrders];
             } else if (tab === 'hist') {
-                theadEl.innerHTML = '<tr><th style="width:115px;">Symbol</th><th style="text-align:right;width:60px;">Side</th><th style="text-align:right;width:80px;">Type</th><th style="text-align:right;width:85px;">Price</th><th style="text-align:right;width:85px;">Avg Price</th><th style="text-align:right;width:110px;">Filled / Orig</th><th style="text-align:right;width:75px;">Status</th><th style="text-align:right;width:80px;">Time</th></tr>';
-                rawData = [...allHistOrders].sort((a,b) => (b.time || b.updateTime || 0) - (a.time || a.updateTime || 0));
+                theadEl.innerHTML = '<tr>' +
+                    makeSortTh('symbol', 'Symbol', 'left', '115px') +
+                    makeSortTh('side', 'Side', 'right', '60px') +
+                    makeSortTh('type', 'Type', 'right', '80px') +
+                    makeSortTh('price', 'Price', 'right', '85px') +
+                    makeSortTh('avgPrice', 'Avg Price', 'right', '85px') +
+                    makeSortTh('qty', 'Filled / Orig', 'right', '110px') +
+                    makeSortTh('status', 'Status', 'right', '75px') +
+                    makeSortTh('updateTime', 'Updated Time', 'right', '100px') +
+                '</tr>';
+                rawData = [...allHistOrders];
             } else {
-                theadEl.innerHTML = '<tr><th style="width:130px;">Symbol</th><th style="text-align:right;width:55px;">Lev</th><th style="text-align:right;width:80px;">Margin</th><th style="text-align:right;width:75px;">Size</th><th style="text-align:right;width:130px;">Unreal. PnL (ROI)</th><th style="text-align:right;width:125px;">Entry / Mark</th><th style="text-align:right;width:90px;">Liq. Price</th><th style="text-align:right;width:160px;">Actions</th></tr>';
-                rawData = allPositions;
+                theadEl.innerHTML = '<tr>' +
+                    makeSortTh('symbol', 'Symbol', 'left', '130px') +
+                    makeSortTh('lev', 'Lev', 'right', '55px') +
+                    makeSortTh('margin', 'Margin', 'right', '80px') +
+                    makeSortTh('size', 'Size', 'right', '75px') +
+                    makeSortTh('pnl', 'Unreal. PnL (ROI)', 'right', '130px') +
+                    makeSortTh('entry', 'Entry / Mark', 'right', '125px') +
+                    makeSortTh('liq', 'Liq. Price', 'right', '90px') +
+                    '<th style="text-align:right;width:160px;">Actions</th>' +
+                '</tr>';
+                rawData = [...allPositions];
             }
 
             if (filterText) {
                 rawData = rawData.filter(item => (item.symbol || '').toUpperCase().includes(filterText));
+            }
+
+            // Apply column sorting (A-Z / Z-A)
+            const sortState = (window.portSort && window.portSort[panelId] && window.portSort[panelId][tab]) || {};
+            if (sortState.col) {
+                const dir = sortState.dir === 'desc' ? -1 : 1;
+                rawData.sort((a, b) => {
+                    if (tab === 'pos') {
+                        switch (sortState.col) {
+                            case 'symbol': return dir * String(a.symbol || '').localeCompare(String(b.symbol || ''));
+                            case 'lev': return dir * (parseFloat(a.leverage || 0) - parseFloat(b.leverage || 0));
+                            case 'margin': return dir * (parseFloat(a.margin || 0) - parseFloat(b.margin || 0));
+                            case 'size': return dir * (Math.abs(parseFloat(a.size || a.positionAmt || 0)) - Math.abs(parseFloat(b.size || b.positionAmt || 0)));
+                            case 'pnl': return dir * (parseFloat(a.unrealizedPnL || 0) - parseFloat(b.unrealizedPnL || 0));
+                            case 'entry': return dir * (parseFloat(a.entryPrice || 0) - parseFloat(b.entryPrice || 0));
+                            case 'liq': return dir * (parseFloat(a.liqPrice || 0) - parseFloat(b.liqPrice || 0));
+                            default: return 0;
+                        }
+                    } else if (tab === 'open') {
+                        switch (sortState.col) {
+                            case 'symbol': return dir * String(a.symbol || '').localeCompare(String(b.symbol || ''));
+                            case 'side': return dir * String(a.side || '').localeCompare(String(b.side || ''));
+                            case 'price': return dir * (parseFloat(a.price || 0) - parseFloat(b.price || 0));
+                            case 'avgPrice': {
+                                const apA = parseFloat(a.avgPrice || a.avgExecutionPrice || a.ap || 0);
+                                const apB = parseFloat(b.avgPrice || b.avgExecutionPrice || b.ap || 0);
+                                return dir * (apA - apB);
+                            }
+                            case 'progress': {
+                                const pA = parseFloat(a.origQty || 0) > 0 ? parseFloat(a.executedQty || 0) / parseFloat(a.origQty) : 0;
+                                const pB = parseFloat(b.origQty || 0) > 0 ? parseFloat(b.executedQty || 0) / parseFloat(b.origQty) : 0;
+                                return dir * (pA - pB);
+                            }
+                            case 'type': return dir * String(a.type || a.orderType || '').localeCompare(String(b.type || b.orderType || ''));
+                            case 'status': return dir * String(a.status || '').localeCompare(String(b.status || ''));
+                            case 'updateTime': {
+                                const tA = Number(a.updateTime || a.time || 0);
+                                const tB = Number(b.updateTime || b.time || 0);
+                                return dir * (tA - tB);
+                            }
+                            default: return 0;
+                        }
+                    } else if (tab === 'hist') {
+                        switch (sortState.col) {
+                            case 'symbol': return dir * String(a.symbol || '').localeCompare(String(b.symbol || ''));
+                            case 'side': return dir * String(a.side || '').localeCompare(String(b.side || ''));
+                            case 'type': return dir * String(a.type || a.orderType || a.origType || '').localeCompare(String(b.type || b.orderType || b.origType || ''));
+                            case 'price': return dir * (parseFloat(a.price || 0) - parseFloat(b.price || 0));
+                            case 'avgPrice': {
+                                const apA = parseFloat(a.avgPrice || a.avgExecutionPrice || a.ap || 0);
+                                const apB = parseFloat(b.avgPrice || b.avgExecutionPrice || b.ap || 0);
+                                return dir * (apA - apB);
+                            }
+                            case 'qty': return dir * (parseFloat(a.executedQty || 0) - parseFloat(b.executedQty || 0));
+                            case 'status': return dir * String(a.status || '').localeCompare(String(b.status || ''));
+                            case 'updateTime': {
+                                const tA = Number(a.updateTime || a.time || 0);
+                                const tB = Number(b.updateTime || b.time || 0);
+                                return dir * (tA - tB);
+                            }
+                            default: return 0;
+                        }
+                    }
+                    return 0;
+                });
             }
 
             const pgEl = document.getElementById(panelId + '-pagination');
@@ -7684,8 +8058,11 @@ window.addEventListener('DOMContentLoaded', () => {
                 bodyEl.innerHTML = pageData.map(o => {
                     const isBuy = o.side === 'BUY';
                     const sideColor = isBuy ? '#34d399' : '#fb7185';
-                    const timeVal = o.time || o.updateTime;
-                    const timeStr = timeVal ? new Date(Number(timeVal)).toLocaleTimeString() : 'N/A';
+                    // Show updated time instead of created at
+                    const timeVal = o.updateTime || o.time;
+                    const timeDate = timeVal ? new Date(Number(timeVal)) : null;
+                    const timeStr = timeDate ? timeDate.toLocaleTimeString([], { hour12: false }) : 'N/A';
+                    const fullTimeTitle = timeDate ? 'Updated: ' + timeDate.toLocaleString() : '';
                     
                     let statusHtml = '';
                     if (o.status === 'NEW') statusHtml = '<span class="badge" style="background:rgba(6,182,212,0.1);color:var(--cyan);border:1px solid rgba(6,182,212,0.3);">NEW</span>';
@@ -7700,14 +8077,17 @@ window.addEventListener('DOMContentLoaded', () => {
                     const execQty = parseFloat(o.executedQty || 0);
                     const pct = origQty > 0 ? Math.min(100, Math.round((execQty / origQty) * 100)) : 0;
 
-                    return '<tr style="cursor:pointer;" onclick="window.showOrderId(\''+o.orderId+'\')" title="Click to copy Order ID"><td><span style="font-weight:700;color:var(--text-main);font-family:\'Inter\',sans-serif;">'+o.symbol+'</span></td><td style="text-align:right;color:'+sideColor+';font-weight:700;">'+o.side+'</td><td style="text-align:right;color:var(--text-main);font-family:\'JetBrains Mono\',monospace;">'+pDisplay+'</td><td style="text-align:right;color:'+(apDisplay !== '-' ? 'var(--cyan)' : 'var(--text-muted)')+';font-weight:600;font-family:\'JetBrains Mono\',monospace;">'+apDisplay+'</td><td style="text-align:right;"><div style="min-width:70px;text-align:right;"><div style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--text-muted);">'+execQty+' / '+origQty+' ('+pct+'%)</div><div class="fill-progress-bar"><div class="fill-progress-val" style="width:'+pct+'%;"></div></div></div></td><td style="text-align:right;color:var(--text-muted);font-size:11px;">'+o.type+'</td><td style="text-align:right;">'+statusHtml+'</td><td style="text-align:right;color:var(--text-muted);font-size:10px;font-family:\'JetBrains Mono\',monospace;">'+timeStr+'</td><td style="text-align:right;"><button class="act-btn act-lev" onclick="event.stopPropagation();window.fapiAction(\'edit\', \''+userStr+'\', \''+o.symbol+'\', \''+o.orderId+'\', \''+o.side+'\')" style="margin-right:6px;padding:3px 7px;">EDIT</button><button class="act-btn act-cls" onclick="event.stopPropagation();window.fapiAction(\'cancel\', \''+userStr+'\', \''+o.symbol+'\', \''+o.orderId+'\')" style="padding:3px 7px;">CANCEL</button></td></tr>';
+                    return '<tr style="cursor:pointer;" onclick="window.showOrderId(\''+o.orderId+'\')" title="Click to copy Order ID"><td><span style="font-weight:700;color:var(--text-main);font-family:\'Inter\',sans-serif;">'+o.symbol+'</span></td><td style="text-align:right;color:'+sideColor+';font-weight:700;">'+o.side+'</td><td style="text-align:right;color:var(--text-main);font-family:\'JetBrains Mono\',monospace;">'+pDisplay+'</td><td style="text-align:right;color:'+(apDisplay !== '-' ? 'var(--cyan)' : 'var(--text-muted)')+';font-weight:600;font-family:\'JetBrains Mono\',monospace;">'+apDisplay+'</td><td style="text-align:right;"><div style="min-width:70px;text-align:right;"><div style="font-family:\'JetBrains Mono\',monospace;font-size:10px;color:var(--text-muted);">'+execQty+' / '+origQty+' ('+pct+'%)</div><div class="fill-progress-bar"><div class="fill-progress-val" style="width:'+pct+'%;"></div></div></div></td><td style="text-align:right;color:var(--text-muted);font-size:11px;">'+o.type+'</td><td style="text-align:right;">'+statusHtml+'</td><td style="text-align:right;color:var(--text-muted);font-size:10px;font-family:\'JetBrains Mono\',monospace;" title="'+fullTimeTitle+'">'+timeStr+'</td><td style="text-align:right;"><button class="act-btn act-lev" onclick="event.stopPropagation();window.fapiAction(\'edit\', \''+userStr+'\', \''+o.symbol+'\', \''+o.orderId+'\', \''+o.side+'\')" style="margin-right:6px;padding:3px 7px;">EDIT</button><button class="act-btn act-cls" onclick="event.stopPropagation();window.fapiAction(\'cancel\', \''+userStr+'\', \''+o.symbol+'\', \''+o.orderId+'\')" style="padding:3px 7px;">CANCEL</button></td></tr>';
                 }).join('');
             } else if (tab === 'hist') {
                 bodyEl.innerHTML = pageData.map(o => {
                     const isBuy = o.side === 'BUY';
                     const sideColor = isBuy ? '#34d399' : '#fb7185';
-                    const timeVal = o.time || o.updateTime;
-                    const timeStr = timeVal ? new Date(Number(timeVal)).toLocaleTimeString() : 'N/A';
+                    // Show updated time instead of created at
+                    const timeVal = o.updateTime || o.time;
+                    const timeDate = timeVal ? new Date(Number(timeVal)) : null;
+                    const timeStr = timeDate ? timeDate.toLocaleTimeString([], { hour12: false }) : 'N/A';
+                    const fullTimeTitle = timeDate ? 'Updated: ' + timeDate.toLocaleString() : '';
                     const orderType = o.type || o.orderType || o.origType || 'LIMIT';
                     let statusHtml = '';
                     if (o.status === 'FILLED') statusHtml = '<span class="badge badge-ok">FILLED</span>';
@@ -7718,7 +8098,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     const apVal = o.avgPrice || o.avgExecutionPrice || o.ap;
                     const apDisplay = (apVal && parseFloat(apVal) > 0) ? parseFloat(apVal) : '-';
 
-                    return '<tr style="cursor:pointer;" onclick="window.showOrderId(\''+(o.orderId||o.id)+'\')" title="Click to copy Order ID"><td><span style="font-weight:700;color:var(--text-main);font-family:\'Inter\',sans-serif;">'+o.symbol+'</span></td><td style="text-align:right;color:'+sideColor+';font-weight:700;">'+o.side+'</td><td style="text-align:right;color:var(--text-muted);font-size:11px;">'+orderType+'</td><td style="text-align:right;color:var(--text-main);font-family:\'JetBrains Mono\',monospace;">'+pDisplay+'</td><td style="text-align:right;color:'+(apDisplay !== '-' ? 'var(--cyan)' : 'var(--text-muted)')+';font-weight:600;font-family:\'JetBrains Mono\',monospace;">'+apDisplay+'</td><td style="text-align:right;color:var(--text-muted);font-family:\'JetBrains Mono\',monospace;">'+parseFloat(o.executedQty)+' / '+parseFloat(o.origQty)+'</td><td style="text-align:right;">'+statusHtml+'</td><td style="text-align:right;color:var(--text-muted);font-size:10px;font-family:\'JetBrains Mono\',monospace;">'+timeStr+'</td></tr>';
+                    return '<tr style="cursor:pointer;" onclick="window.showOrderId(\''+(o.orderId||o.id)+'\')" title="Click to copy Order ID"><td><span style="font-weight:700;color:var(--text-main);font-family:\'Inter\',sans-serif;">'+o.symbol+'</span></td><td style="text-align:right;color:'+sideColor+';font-weight:700;">'+o.side+'</td><td style="text-align:right;color:var(--text-muted);font-size:11px;">'+orderType+'</td><td style="text-align:right;color:var(--text-main);font-family:\'JetBrains Mono\',monospace;">'+pDisplay+'</td><td style="text-align:right;color:'+(apDisplay !== '-' ? 'var(--cyan)' : 'var(--text-muted)')+';font-weight:600;font-family:\'JetBrains Mono\',monospace;">'+apDisplay+'</td><td style="text-align:right;color:var(--text-muted);font-family:\'JetBrains Mono\',monospace;">'+parseFloat(o.executedQty)+' / '+parseFloat(o.origQty)+'</td><td style="text-align:right;">'+statusHtml+'</td><td style="text-align:right;color:var(--text-muted);font-size:10px;font-family:\'JetBrains Mono\',monospace;" title="'+fullTimeTitle+'">'+timeStr+'</td></tr>';
                 }).join('');
             } else {
                 bodyEl.innerHTML = pageData.map(p => {
@@ -11875,7 +12255,8 @@ document.addEventListener('mousemove', (e) => {
                 envBadge.style.color = '#f85149';
                 if (pulseDot) pulseDot.style.background = '#f85149';
             } else {
-                envBadge.style.color = '#f0f6fc';
+                const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+                envBadge.style.color = isLight ? '#0f172a' : '#f0f6fc';
                 if (pulseDot) pulseDot.style.background = '#3fb950';
             }
         }
@@ -11898,6 +12279,11 @@ document.addEventListener('mousemove', (e) => {
         void overlay.offsetWidth;
         overlay.style.opacity = '1';
         document.body.style.overflow = 'hidden';
+
+        // Re-sync tab and view button styling for current theme
+        window.switchQaModalTab(qaModalActiveTab);
+        window.switchQaAppView(qaAppViewMode);
+        window.switchQaInstView(qaInstViewMode);
 
         window.updateQaAppTargetUrl();
         window.updateQaInstTargetUrl();
@@ -11939,18 +12325,22 @@ document.addEventListener('mousemove', (e) => {
     // =========================================================================
     window.switchQaModalTab = function(tab) {
         qaModalActiveTab = tab;
+        const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+        const activeBorder = isLight ? '#0284c7' : '#388bfd';
+        const activeText = isLight ? '#0f172a' : '#f0f6fc';
+        const inactiveText = isLight ? '#64748b' : '#8b949e';
         const tabs = ['app', 'inst', 'history'];
         tabs.forEach(t => {
             const btn = document.getElementById('qa-nav-btn-' + t);
             const pane = document.getElementById('qa-tab-' + t);
             if (btn && pane) {
                 if (t === tab) {
-                    btn.style.borderBottomColor = '#388bfd';
-                    btn.style.color = '#f0f6fc';
+                    btn.style.borderBottomColor = activeBorder;
+                    btn.style.color = activeText;
                     pane.style.display = 'flex';
                 } else {
                     btn.style.borderBottomColor = 'transparent';
-                    btn.style.color = '#8b949e';
+                    btn.style.color = inactiveText;
                     pane.style.display = 'none';
                 }
             }
@@ -11963,16 +12353,20 @@ document.addEventListener('mousemove', (e) => {
         const btnJson = document.getElementById('qa-app-view-json-btn');
         const formView = document.getElementById('qa-app-visual-view');
         const jsonView = document.getElementById('qa-app-json-view');
+        const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+        const activeBg = isLight ? '#f1f5f9' : '#21262d';
+        const activeColor = isLight ? '#0f172a' : '#f0f6fc';
+        const inactiveColor = isLight ? '#64748b' : '#8b949e';
 
         if (view === 'form') {
-            btnForm.style.background = '#21262d'; btnForm.style.color = '#f0f6fc';
-            btnJson.style.background = 'transparent'; btnJson.style.color = '#8b949e';
+            btnForm.style.background = activeBg; btnForm.style.color = activeColor;
+            btnJson.style.background = 'transparent'; btnJson.style.color = inactiveColor;
             formView.style.display = 'flex';
             jsonView.style.display = 'none';
             window.renderQaAppConfigForm();
         } else {
-            btnJson.style.background = '#21262d'; btnJson.style.color = '#f0f6fc';
-            btnForm.style.background = 'transparent'; btnForm.style.color = '#8b949e';
+            btnJson.style.background = activeBg; btnJson.style.color = activeColor;
+            btnForm.style.background = 'transparent'; btnForm.style.color = inactiveColor;
             formView.style.display = 'none';
             jsonView.style.display = 'flex';
             window.updateQaAppJsonTextarea();
@@ -11985,16 +12379,20 @@ document.addEventListener('mousemove', (e) => {
         const btnJson = document.getElementById('qa-inst-view-json-btn');
         const formView = document.getElementById('qa-inst-visual-view');
         const jsonView = document.getElementById('qa-inst-json-view');
+        const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+        const activeBg = isLight ? '#f1f5f9' : '#21262d';
+        const activeColor = isLight ? '#0f172a' : '#f0f6fc';
+        const inactiveColor = isLight ? '#64748b' : '#8b949e';
 
         if (view === 'form') {
-            btnForm.style.background = '#21262d'; btnForm.style.color = '#f0f6fc';
-            btnJson.style.background = 'transparent'; btnJson.style.color = '#8b949e';
+            btnForm.style.background = activeBg; btnForm.style.color = activeColor;
+            btnJson.style.background = 'transparent'; btnJson.style.color = inactiveColor;
             formView.style.display = 'flex';
             jsonView.style.display = 'none';
             window.renderQaInstrumentForm();
         } else {
-            btnJson.style.background = '#21262d'; btnJson.style.color = '#f0f6fc';
-            btnForm.style.background = 'transparent'; btnForm.style.color = '#8b949e';
+            btnJson.style.background = activeBg; btnJson.style.color = activeColor;
+            btnForm.style.background = 'transparent'; btnForm.style.color = inactiveColor;
             formView.style.display = 'none';
             jsonView.style.display = 'flex';
             window.updateQaInstJsonTextarea();
@@ -12201,8 +12599,8 @@ document.addEventListener('mousemove', (e) => {
                     knowns.forEach(kDef => {
                         const col = document.createElement('div');
                         col.innerHTML = `
-                            <label style="font-size:10.5px; color:#8b949e; font-weight:600; display:block; margin-bottom:3px;">${kDef.label}</label>
-                            <input type="text" placeholder="${kDef.placeholder}" value="${symObj[kDef.key] !== undefined ? symObj[kDef.key] : ''}" style="width:100%; box-sizing:border-box; background:#161b22; border:1px solid #30363d; color:#f0f6fc; font-size:11.5px; padding:5px 8px; border-radius:4px; outline:none; font-family:'JetBrains Mono',monospace;" />
+                            <label style="font-size:10.5px; color:var(--qa-text-muted); font-weight:600; display:block; margin-bottom:3px;">${kDef.label}</label>
+                            <input type="text" placeholder="${kDef.placeholder}" value="${symObj[kDef.key] !== undefined ? symObj[kDef.key] : ''}" style="width:100%; box-sizing:border-box; background:var(--qa-surface); border:1px solid var(--qa-border); color:var(--qa-text); font-size:11.5px; padding:5px 8px; border-radius:4px; outline:none; font-family:'JetBrains Mono',monospace;" />
                         `;
                         const inp = col.querySelector('input');
                         inp.oninput = () => {
@@ -12220,7 +12618,7 @@ document.addEventListener('mousemove', (e) => {
                     const customKeys = Object.keys(symObj).filter(k => !knowns.some(kd => kd.key === k));
                     if (customKeys.length > 0) {
                         const customCont = document.createElement('div');
-                        customCont.style.cssText = 'display:flex; flex-direction:column; gap:6px; margin-top:4px; border-top:1px solid #21262d; padding-top:6px;';
+                        customCont.style.cssText = 'display:flex; flex-direction:column; gap:6px; margin-top:4px; border-top:1px solid var(--qa-border2); padding-top:6px;';
                         customKeys.forEach(ck => {
                             customCont.appendChild(createFieldRow(sym, ck, symObj[ck], (newK, newV) => {
                                 delete symObj[ck];
@@ -12259,20 +12657,20 @@ document.addEventListener('mousemove', (e) => {
         kInput.type = 'text';
         kInput.value = key;
         kInput.placeholder = 'Field name...';
-        kInput.style.cssText = 'background:#161b22; border:1px solid #30363d; color:#c9d1d9; font-size:11px; padding:5px 8px; border-radius:4px; outline:none; font-family:monospace;';
+        kInput.style.cssText = 'background:var(--qa-surface); border:1px solid var(--qa-border); color:var(--qa-text-dim); font-size:11px; padding:5px 8px; border-radius:4px; outline:none; font-family:monospace;';
 
         const vInput = document.createElement('input');
         vInput.type = 'text';
         vInput.value = typeof value === 'object' ? JSON.stringify(value) : value;
         vInput.placeholder = 'Value...';
-        vInput.style.cssText = 'background:#161b22; border:1px solid #30363d; color:#f0f6fc; font-size:11px; padding:5px 8px; border-radius:4px; outline:none; font-family:monospace;';
+        vInput.style.cssText = 'background:var(--qa-surface); border:1px solid var(--qa-border); color:var(--qa-text); font-size:11px; padding:5px 8px; border-radius:4px; outline:none; font-family:monospace;';
 
         const delBtn = document.createElement('button');
         delBtn.type = 'button';
         delBtn.textContent = '✕';
-        delBtn.style.cssText = 'background:#21262d; border:1px solid #30363d; color:#8b949e; border-radius:4px; cursor:pointer; font-size:11px; height:28px; width:28px;';
+        delBtn.style.cssText = 'background:var(--qa-surface2); border:1px solid var(--qa-border); color:var(--qa-text-muted); border-radius:4px; cursor:pointer; font-size:11px; height:28px; width:28px;';
         delBtn.onmouseover = () => { delBtn.style.color = '#f85149'; };
-        delBtn.onmouseout = () => { delBtn.style.color = '#8b949e'; };
+        delBtn.onmouseout = () => { delBtn.style.color = ''; };
         delBtn.onclick = onDelete;
 
         const updateHandler = () => {
