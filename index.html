@@ -39,7 +39,7 @@
     --glass-border: rgba(255, 255, 255, 0.12);
     --glass-hover: rgba(255, 255, 255, 0.05);
     --glass-active: rgba(255, 255, 255, 0.1);
-    --glass-blur: blur(20px);
+    --glass-blur: blur(4px); /* reduced from 20px — eliminates GPU repaint cost on frequent DOM updates */
     --hover-bg: rgba(255, 255, 255, 0.04);
     --row-bg: rgba(255, 255, 255, 0.015);
     --row-hover: rgba(255, 255, 255, 0.05);
@@ -82,7 +82,7 @@
     --text-shadow: none;
     --flash-up-bg: rgba(0, 168, 93, 0.35);
     --flash-down-bg: rgba(230, 25, 82, 0.35);
-    --glass-blur: blur(30px);
+    --glass-blur: blur(4px); /* reduced from 30px — eliminates GPU repaint cost on frequent DOM updates */
   }
 
   ::view-transition-old(root),
@@ -186,7 +186,7 @@
   .d-row { display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; padding: 3px 12px; position: relative; border-radius: 4px; cursor: default; font-family: 'JetBrains Mono', monospace; font-size: 11px; border: 1px solid transparent; }
   .d-row:hover { background:var(--hover-bg); }
   .d-row span { position: relative; z-index: 2; }
-  .d-bar { position: absolute; top:2px; bottom:2px; pointer-events:none; transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+  .d-bar { position: absolute; top:2px; bottom:2px; pointer-events:none; transition: width 0.12s ease-out; } /* reduced from 0.5s — snappier book updates */
   .d-bar-r { right:0; left:auto; border-radius: 4px 0 0 4px; }
   .d-bar-l { left:0; right:auto; border-radius: 0 4px 4px 0; }
   .d-spread { flex-shrink:0; text-align:center; padding:6px 0; font-size:11px; color:var(--text-muted); border-top:1px solid var(--border); border-bottom:1px solid var(--border); margin:4px 0; letter-spacing:1px; background:var(--input-bg); }
@@ -200,27 +200,20 @@
   @keyframes flashRowDown { 0% { background: var(--flash-down-bg); } 100% { background: transparent; } }
   .flash-row-up { animation: flashRowUp 0.4s ease-out; }
   .flash-row-down { animation: flashRowDown 0.4s ease-out; }
-  .flash-highlight-ask {
-    background-color: rgba(244, 63, 94, 0.28) !important;
-    border-color: rgba(244, 63, 94, 0.7) !important;
-    box-shadow: 0 0 12px rgba(244, 63, 94, 0.45);
-    transition: none !important;
-  }
-  .flash-highlight-bid {
-    background-color: rgba(16, 185, 129, 0.25) !important;
-    border-color: rgba(16, 185, 129, 0.7) !important;
-    box-shadow: 0 0 12px rgba(16, 185, 129, 0.45);
-    transition: none !important;
-  }
-  .flash-size-up {
-    color: #10b981 !important;
-    text-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
-    transition: none !important;
-  }
-  .flash-size-down {
-    color: #f43f5e !important;
-    text-shadow: 0 0 8px rgba(244, 63, 94, 0.6);
-    transition: none !important;
+  /* flash-highlight-ask/bid: CSS-only animation, no setTimeout class removal needed */
+  @keyframes flashAsk { 0% { background-color: rgba(244, 63, 94, 0.28); border-color: rgba(244, 63, 94, 0.7); box-shadow: 0 0 12px rgba(244, 63, 94, 0.45); } 100% { background-color: transparent; border-color: transparent; box-shadow: none; } }
+  @keyframes flashBid { 0% { background-color: rgba(16, 185, 129, 0.25); border-color: rgba(16, 185, 129, 0.7); box-shadow: 0 0 12px rgba(16, 185, 129, 0.45); } 100% { background-color: transparent; border-color: transparent; box-shadow: none; } }
+  @keyframes flashSizeUp { 0% { color: #10b981; text-shadow: 0 0 8px rgba(16, 185, 129, 0.6); } 100% { color: inherit; text-shadow: none; } }
+  @keyframes flashSizeDown { 0% { color: #f43f5e; text-shadow: 0 0 8px rgba(244, 63, 94, 0.6); } 100% { color: inherit; text-shadow: none; } }
+  .flash-highlight-ask { animation: flashAsk 0.18s ease-out forwards; }
+  .flash-highlight-bid { animation: flashBid 0.18s ease-out forwards; }
+  .flash-size-up { animation: flashSizeUp 0.18s ease-out forwards; }
+  .flash-size-down { animation: flashSizeDown 0.18s ease-out forwards; }
+  /* Pause shimmer animation when page is not visible — saves GPU cycles */
+  @media (prefers-reduced-motion: reduce) {
+    .hdr-bar { animation: none; }
+    .dot-live { animation: none; }
+    .pulse-dot-yellow, .pulse-dot-cyan, .pulse-dot-emerald, .pulse-dot-purple { animation: none; }
   }
   
   /* Telemetry Badges */
@@ -7323,10 +7316,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
                 if (flashOn && (priceChanged || sizeChanged)) {
                     const animClass = isAsk ? 'flash-highlight-ask' : 'flash-highlight-bid';
+                    // Re-trigger CSS animation by removing and re-adding the class in one frame
+                    rowDiv.classList.remove(animClass);
+                    void rowDiv.offsetWidth; // force reflow to restart animation
                     rowDiv.classList.add(animClass);
-                    setTimeout(() => {
-                        rowDiv.classList.remove(animClass);
-                    }, 180);
+                    // CSS animation handles removal via `forwards` fill-mode — no setTimeout needed
                 }
 
                 if (priceSpan.textContent !== priceStr) {
@@ -7345,8 +7339,11 @@ window.addEventListener('DOMContentLoaded', () => {
                         const newVal = parseFloat(sizeStr.replace(/,/g, '') || 0);
                         const sizeClass = newVal > oldVal ? 'flash-size-up' : (newVal < oldVal ? 'flash-size-down' : '');
                         if (sizeClass) {
+                            // Re-trigger CSS animation
+                            sizeSpan.classList.remove('flash-size-up', 'flash-size-down');
+                            void sizeSpan.offsetWidth;
                             sizeSpan.classList.add(sizeClass);
-                            setTimeout(() => sizeSpan.classList.remove(sizeClass), 180);
+                            // CSS animation with `forwards` — no setTimeout removal needed
                         }
                     }
                     sizeSpan.textContent = sizeStr;
@@ -7406,10 +7403,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     }
 
                     barDiv.className = `d-bar d-bar-${isBarAlignRight ? 'r' : 'l'}`;
-
-                    requestAnimationFrame(() => {
-                        barDiv.style.width = `${pct}%`;
-                    });
+                    // Set width directly — CSS transition on .d-bar handles smooth animation, no RAF needed
+                    barDiv.style.width = `${pct}%`;
                 } else {
                     barDiv.style.display = 'none';
                 }
@@ -8486,17 +8481,22 @@ window.addEventListener('DOMContentLoaded', () => {
                     window.initTVChart(activeTabSymbol);
                 }
 
-                tabContainer.innerHTML = symbols.map(sym => {
-                    const isActive = sym === activeTabSymbol;
-                    const statColor = cachedInstances[sym].status === 'RUNNING' ? '#10b981' : cachedInstances[sym].status === 'PAUSED' ? '#eab308' : '#f43f5e';
-                    const shadow = isActive ? 'box-shadow: 0 0 10px '+statColor+';' : '';
-                    return `
-                    <div class="sym-tab ${isActive ? 'on' : ''}" onclick="window.selectTab('${sym}')" style="display: inline-flex; align-items: center; gap: 4px; padding-right: 8px;">
-                        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${statColor};margin-right:4px;${shadow}"></span>
-                        <span>${sym}</span>
-                        <span class="remove-market-btn" onclick="window.removeMarketTab(event, '${sym}')" style="margin-left: 6px; font-size: 11px; font-weight: bold; cursor: pointer; opacity: 0.4; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; border-radius: 50%;" onmouseover="this.style.opacity='1'; this.style.color='#f43f5e'; this.style.background='rgba(244,63,94,0.1)';" onmouseout="this.style.opacity='0.4'; this.style.color=''; this.style.background='';">×</span>
-                    </div>`;
-                }).join('');
+                // Phase 3: dirty-check — only rebuild tab bar HTML when symbol set or statuses actually changed
+                const newTabSig = symbols.map(s => s + ':' + (cachedInstances[s] ? cachedInstances[s].status : '') + ':' + (s === activeTabSymbol ? '1' : '0')).join('|');
+                if (newTabSig !== window._lastTabSignature) {
+                    window._lastTabSignature = newTabSig;
+                    tabContainer.innerHTML = symbols.map(sym => {
+                        const isActive = sym === activeTabSymbol;
+                        const statColor = cachedInstances[sym].status === 'RUNNING' ? '#10b981' : cachedInstances[sym].status === 'PAUSED' ? '#eab308' : '#f43f5e';
+                        const shadow = isActive ? 'box-shadow: 0 0 10px '+statColor+';' : '';
+                        return `
+                        <div class="sym-tab ${isActive ? 'on' : ''}" onclick="window.selectTab('${sym}')" style="display: inline-flex; align-items: center; gap: 4px; padding-right: 8px;">
+                            <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${statColor};margin-right:4px;${shadow}"></span>
+                            <span>${sym}</span>
+                            <span class="remove-market-btn" onclick="window.removeMarketTab(event, '${sym}')" style="margin-left: 6px; font-size: 11px; font-weight: bold; cursor: pointer; opacity: 0.4; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; border-radius: 50%;" onmouseover="this.style.opacity='1'; this.style.color='#f43f5e'; this.style.background='rgba(244,63,94,0.1)';" onmouseout="this.style.opacity='0.4'; this.style.color=''; this.style.background='';">×</span>
+                        </div>`;
+                    }).join('');
+                }
 
                 if (activeTabSymbol && cachedInstances[activeTabSymbol]) {
                     try {
@@ -8652,12 +8652,6 @@ window.addEventListener('DOMContentLoaded', () => {
                     }
                 }
                 
-                window.refreshSymbolTabs(data);
-                
-                if (data.users && data.roles) {
-                    window.renderUsers(data.users, data.roles);
-                }
-                
                 if (data.portfolios) {
                     window.payload.portfolios = data.portfolios;
                 }
@@ -8677,38 +8671,29 @@ window.addEventListener('DOMContentLoaded', () => {
                     }
                 }
                 if (data.terminalEvents) {
-                    // Append delta events (backend sends only new events since last broadcast)
                     if (!window.backendTerminalEvents) window.backendTerminalEvents = [];
                     if (data.terminalEvents.length > 0) {
-                        // Deduplicate by timestamp — avoid re-adding events we already have
                         const existingTs = new Set(window.backendTerminalEvents.map(e => e.ts));
                         const newEvents = data.terminalEvents.filter(e => !existingTs.has(e.ts));
                         window.backendTerminalEvents.push(...newEvents);
-                        // Trim to max buffer
                         if (window.backendTerminalEvents.length > 3000) {
                             window.backendTerminalEvents = window.backendTerminalEvents.slice(-3000);
                         }
                     }
                 }
-                
+
                 if (data.terminalLogs || data.terminalEvents) {
                     window.cachedTerminalLogs = [...(window.clientTerminalLogs || []), ...(window.backendTerminalLogs || [])].sort((a,b) => a.ts - b.ts);
                     window.cachedTerminalEvents = [...(window.clientTerminalEvents || []), ...(window.backendTerminalEvents || [])].sort((a,b) => a.ts - b.ts);
-                    
                     if (window.cachedTerminalLogs.length > 5000) window.cachedTerminalLogs = window.cachedTerminalLogs.slice(-5000);
                     if (window.cachedTerminalEvents.length > 3000) window.cachedTerminalEvents = window.cachedTerminalEvents.slice(-3000);
-                    
-                    // Update filter chip counts
                     window.updateEventFilterCounts();
-                    
-                    renderTerminalLogs(window.activeTermTab === 'events' ? window.cachedTerminalEvents : window.cachedTerminalLogs);
                 }
-                
-                // Process real-time order updates from socket data
+
+                // Process real-time order updates from socket data (data pipeline — not a render)
                 if (data.portfolios && typeof window.processSocketOrderUpdate === 'function') {
                     const p1UserId = document.getElementById('sel-port-u1')?.value;
                     const p2UserId = document.getElementById('sel-port-u2')?.value;
-                    
                     const activeTier = activeEnvFilter || 'PRODUCTION';
                     const tierPortfolios = data.portfolios[activeTier] || {};
                     Object.entries(tierPortfolios).forEach(([userId, port]) => {
@@ -8716,13 +8701,11 @@ window.addEventListener('DOMContentLoaded', () => {
                             const u = userId === p1UserId ? 'u1' : (userId === p2UserId ? 'u2' : null);
                             if (u) {
                                 port._realtimeOrders.forEach(o => {
-                                    // Deduplicate — only process orders we haven't seen
                                     const key = `${o.i}_${o.X}_${o.T}`;
                                     if (!window._processedOrderKeys) window._processedOrderKeys = new Set();
                                     if (!window._processedOrderKeys.has(key)) {
                                         window._processedOrderKeys.add(key);
                                         window.processSocketOrderUpdate(o, userId);
-                                        // Keep set from growing unbounded
                                         if (window._processedOrderKeys.size > 500) {
                                             const arr = [...window._processedOrderKeys];
                                             window._processedOrderKeys = new Set(arr.slice(-250));
@@ -8733,8 +8716,14 @@ window.addEventListener('DOMContentLoaded', () => {
                         }
                     });
                 }
-                
-                window.renderPortfolios();
+
+                // Phase 2: schedule all DOM renders via RAF — batches into 1 frame instead of 4 synchronous rebuilds
+                const _flags = {};
+                if (data.terminalLogs || data.terminalEvents) _flags.terminal = true;
+                _flags.tabs = true;
+                _flags.portfolio = true;
+                if (data.users && data.roles) _flags.users = true;
+                scheduleRender(_flags);
             };
         }
 
@@ -9257,19 +9246,72 @@ window.addEventListener('DOMContentLoaded', () => {
             body.innerHTML = contentHtml;
         };
 
+        // =============================================================
+        // Phase 1+2: RAF render scheduler + incremental terminal append
+        // =============================================================
+        // All render calls triggered by SSE onmessage are batched into
+        // a single requestAnimationFrame per browser frame — eliminating
+        // the cascade of 4 synchronous full-rebuilds per SSE tick.
+        let _renderScheduled = false;
+        const _pendingRenders = { terminal: false, tabs: false, portfolio: false, users: false };
+
+        function scheduleRender(flags = {}) {
+            Object.assign(_pendingRenders, flags);
+            if (_renderScheduled) return;
+            _renderScheduled = true;
+            requestAnimationFrame(() => {
+                _renderScheduled = false;
+                const pending = Object.assign({}, _pendingRenders);
+                // Reset before calling — prevents re-entrant scheduling loops
+                _pendingRenders.terminal = false;
+                _pendingRenders.tabs = false;
+                _pendingRenders.portfolio = false;
+                _pendingRenders.users = false;
+
+                if (pending.terminal) {
+                    renderTerminalLogs(window.activeTermTab === 'events' ? window.cachedTerminalEvents : window.cachedTerminalLogs);
+                }
+                if (pending.tabs && window.cachedGlobalData) {
+                    window.refreshSymbolTabs(window.cachedGlobalData);
+                }
+                if (pending.portfolio) {
+                    window.renderPortfolios();
+                }
+                if (pending.users && window.cachedGlobalData) {
+                    if (window.cachedGlobalData.users && window.cachedGlobalData.roles) {
+                        window.renderUsers(window.cachedGlobalData.users, window.cachedGlobalData.roles);
+                    }
+                }
+            });
+        }
+        window.scheduleRender = scheduleRender;
+
+        // Phase 1: Incremental terminal render state
+        // Tracks what was last rendered to avoid full innerHTML rebuild
+        let _termLastCount = 0;           // # of rows currently in DOM
+        let _termLastFilterSig = '';       // encodes active filter state
+        let _termLastLogLength = 0;        // last known log array length
+
         window.renderTerminalLogs = function(logs) {
             const term = document.getElementById('live-terminal');
             if (!term || !logs) return;
 
-            // Don't rebuild DOM if details pane is open and user is interacting
-            // Just append new logs at the bottom if auto-scroll is off
-            const detailsOpen = window.activeDetailsMeta !== null;
-            
             const searchEl = document.getElementById('term-search');
             const searchVal = searchEl ? searchEl.value.toLowerCase() : '';
-            
-            let html = '';
-            let count = 0;
+
+            // Build a filter signature — any change forces full rebuild
+            const filterSig = [
+                window.activeTermTab || 'all',
+                searchVal,
+                window.terminalClearTs || 0,
+                window.activeEventFilter || 'all',
+                activeEnvFilter || 'PRODUCTION'
+            ].join('|');
+
+            const filterChanged = filterSig !== _termLastFilterSig;
+
+            // Determine which rows pass the current filter
+            const filtered = [];
             for (let i = 0; i < logs.length; i++) {
                 const l = logs[i];
                 const logTier = (l.tier || 'ALL').toUpperCase().replace(/-/g, '_');
@@ -9279,80 +9321,169 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (window.activeTermTab === 'err' && l.level !== 'ERROR' && l.level !== 'CRITICAL') continue;
                 if (window.activeTermTab === 'info' && l.level !== 'INFO') continue;
                 if (window.activeTermTab === 'success' && l.level !== 'SUCCESS') continue;
-                // Event category filter
                 if (window.activeTermTab === 'events' && window.activeEventFilter !== 'all' && (l.cat || 'general') !== window.activeEventFilter) continue;
-                
                 if (searchVal) {
-                    const match = (l.msg && l.msg.toLowerCase().includes(searchVal)) || 
-                                  (l.sym && l.sym.toLowerCase().includes(searchVal)) || 
+                    const match = (l.msg && l.msg.toLowerCase().includes(searchVal)) ||
+                                  (l.sym && l.sym.toLowerCase().includes(searchVal)) ||
                                   (l.level && l.level.toLowerCase().includes(searchVal));
                     if (!match) continue;
                 }
-                
-                count++;
-                const levelClass = (l.level || '').toLowerCase();
-                let msgClass = '';
-                if (l.level === 'WARN') msgClass = ' warn-msg';
-                else if (l.level === 'ERROR') msgClass = ' error-msg';
-                else if (l.level === 'CRITICAL') msgClass = ' critical-msg';
-                else if (l.level === 'EVENT') msgClass = ' event-msg';
+                filtered.push({ l, origIdx: i });
+            }
 
-                const hasMeta = !!l.meta;
-                const isApiCall = hasMeta && (l.meta.req || l.meta.res || l.meta.request || l.meta.response || typeof l.meta === 'object');
-                const showDetails = window.activeTermTab === 'events' ? hasMeta : isApiCall;
-                const isSelected = window.selectedLogIdx === i;
-                const rowClass = 'term-log-row' + (showDetails ? ' has-meta' : '') + (isSelected ? ' selected' : '');
-                let msgText = l.msg || '';
-                msgText = msgText.replace(/Binance/gi, 'CoinDCX').replace(/Stage/gi, 'Testnet');
-                const escapedMsg = msgText.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                
-                let metaBadge = '';
-                if (showDetails) {
-                    metaBadge = '<span class="log-meta-badge">▶ DETAILS</span>';
+            // Full rebuild required when: filter changed, shrinkage (clears), or first render
+            const needsFullRebuild = filterChanged || filtered.length < _termLastCount || _termLastCount === 0;
+
+            if (needsFullRebuild) {
+                _termLastFilterSig = filterSig;
+                _termLastCount = 0; // will be set after rebuild below
+
+                if (filtered.length === 0) {
+                    term.innerHTML = '<div class="term-empty">No logs available for this view.</div>';
+                    _termLastCount = 0;
+                    return;
                 }
 
-                const tierColor = logTier === 'PRODUCTION' ? '#10b981' : (logTier === 'QA_STAGING' || logTier === 'QA-STAGING' || logTier === 'JAPAN') ? '#eab308' : '#06b6d4';
-                const tierBadge = `<span style="background:rgba(255,255,255,0.04);color:${tierColor};padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;margin-right:6px;border:1px solid rgba(255,255,255,0.06);">${logTier}</span>`;
-
-                const catBadge = (window.activeTermTab === 'events' && l.cat) ? `<span class="log-cat-badge cat-${l.cat}">${l.cat}</span>` : '';
-                html += `<div id="tl-${i}" class="${rowClass}"${hasMeta ? ` data-meta-idx="${i}"` : ''}><span class="log-ts">[${l.time}]</span> ${tierBadge}<span class="log-tag ${levelClass}">[${l.level}]</span> <span class="log-sym">[${l.sym}]</span> ${catBadge}<span class="log-msg${msgClass}">${escapedMsg}</span>${metaBadge}</div>`;
-            }
-
-            if (count === 0) {
-                html = '<div class="term-empty">No logs available for this view.</div>';
-            }
-            
-            // Store scroll position before DOM update
-            const prevScrollTop = term.scrollTop;
-            
-            // Only update DOM if HTML changed
-            if (term.innerHTML !== html) {
+                // Full rebuild using DocumentFragment — avoids intermediate DOM states
+                const frag = document.createDocumentFragment();
+                for (const { l, origIdx } of filtered) {
+                    frag.appendChild(_buildTermRow(l, origIdx, logs));
+                }
                 _programmaticScroll = true;
-                term.innerHTML = html;
-                
-                // Attach click handlers via event delegation (avoids encoding issues in inline onclick)
-                term.querySelectorAll('.term-log-row.has-meta').forEach(row => {
-                    const idx = parseInt(row.dataset.metaIdx);
-                    row.onclick = function() {
-                        const logData = logs[idx];
-                        if (logData && logData.meta) {
-                            window.openDetailsPane(logData.meta, idx, logData);
-                        }
-                    };
-                });
-                
-                // Only auto-scroll if user has NOT scrolled up
+                term.innerHTML = '';
+                term.appendChild(frag);
+                _termLastCount = filtered.length;
+
+                // Re-attach click handlers
+                _attachTermClickHandlers(term, logs);
+
                 if (!_userScrolledUp && terminalAutoScroll) {
                     term.scrollTop = term.scrollHeight;
                 } else {
-                    // Preserve the user's scroll position
+                    // preserve scroll position — no-op since we store scrollTop before clear
+                }
+                setTimeout(() => { _programmaticScroll = false; }, 50);
+
+            } else if (filtered.length > _termLastCount) {
+                // Incremental append — only add new rows at the bottom
+                const newRows = filtered.slice(_termLastCount);
+                const frag = document.createDocumentFragment();
+                for (const { l, origIdx } of newRows) {
+                    frag.appendChild(_buildTermRow(l, origIdx, logs));
+                }
+                const prevScrollTop = term.scrollTop;
+                term.appendChild(frag);
+                _termLastCount = filtered.length;
+
+                // Re-attach click handlers only on newly added rows
+                _attachTermClickHandlers(term, logs, true /* newOnly */);
+
+                if (!_userScrolledUp && terminalAutoScroll) {
+                    _programmaticScroll = true;
+                    term.scrollTop = term.scrollHeight;
+                    setTimeout(() => { _programmaticScroll = false; }, 50);
+                } else {
                     term.scrollTop = prevScrollTop;
                 }
-                // Delay releasing the guard to let async scroll events settle
-                setTimeout(() => { _programmaticScroll = false; }, 50);
             }
+            // else: filtered.length === _termLastCount and no filter change → nothing to do
         };
+
+        function _buildTermRow(l, i, logs) {
+            const logTier = (l.tier || 'ALL').toUpperCase().replace(/-/g, '_');
+            const levelClass = (l.level || '').toLowerCase();
+            let msgClass = '';
+            if (l.level === 'WARN') msgClass = ' warn-msg';
+            else if (l.level === 'ERROR') msgClass = ' error-msg';
+            else if (l.level === 'CRITICAL') msgClass = ' critical-msg';
+            else if (l.level === 'EVENT') msgClass = ' event-msg';
+
+            const hasMeta = !!l.meta;
+            const isApiCall = hasMeta && (l.meta.req || l.meta.res || l.meta.request || l.meta.response || typeof l.meta === 'object');
+            const showDetails = window.activeTermTab === 'events' ? hasMeta : isApiCall;
+            const isSelected = window.selectedLogIdx === i;
+
+            let msgText = l.msg || '';
+            msgText = msgText.replace(/Binance/gi, 'CoinDCX').replace(/Stage/gi, 'Testnet');
+
+            const tierColor = logTier === 'PRODUCTION' ? '#10b981' : (logTier === 'QA_STAGING' || logTier === 'QA-STAGING' || logTier === 'JAPAN') ? '#eab308' : '#06b6d4';
+
+            const row = document.createElement('div');
+            row.id = 'tl-' + i;
+            row.className = 'term-log-row' + (showDetails ? ' has-meta' : '') + (isSelected ? ' selected' : '');
+            if (hasMeta) row.dataset.metaIdx = i;
+
+            // Build inner HTML using textContent where possible to avoid XSS
+            const tsSpan = document.createElement('span');
+            tsSpan.className = 'log-ts';
+            tsSpan.textContent = '[' + (l.time || '') + ']';
+
+            const tierBadge = document.createElement('span');
+            tierBadge.style.cssText = `background:rgba(255,255,255,0.04);color:${tierColor};padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;margin:0 6px;border:1px solid rgba(255,255,255,0.06);`;
+            tierBadge.textContent = logTier;
+
+            const tagSpan = document.createElement('span');
+            tagSpan.className = 'log-tag ' + levelClass;
+            tagSpan.textContent = '[' + (l.level || '') + ']';
+
+            const symSpan = document.createElement('span');
+            symSpan.className = 'log-sym';
+            symSpan.textContent = ' [' + (l.sym || '') + ']';
+
+            const msgSpan = document.createElement('span');
+            msgSpan.className = 'log-msg' + msgClass;
+            msgSpan.textContent = msgText;
+
+            row.appendChild(tsSpan);
+            row.appendChild(tierBadge);
+            row.appendChild(tagSpan);
+            row.appendChild(symSpan);
+
+            if (window.activeTermTab === 'events' && l.cat) {
+                const catBadge = document.createElement('span');
+                catBadge.className = 'log-cat-badge cat-' + l.cat;
+                catBadge.textContent = l.cat;
+                row.appendChild(catBadge);
+            }
+
+            row.appendChild(msgSpan);
+
+            if (showDetails) {
+                const badge = document.createElement('span');
+                badge.className = 'log-meta-badge';
+                badge.textContent = '▶ DETAILS';
+                row.appendChild(badge);
+            }
+
+            return row;
+        }
+
+        function _attachTermClickHandlers(term, logs, newOnly = false) {
+            const rows = newOnly
+                ? term.querySelectorAll('.term-log-row.has-meta:not([data-handler])')
+                : term.querySelectorAll('.term-log-row.has-meta');
+            rows.forEach(row => {
+                row.dataset.handler = '1';
+                const idx = parseInt(row.dataset.metaIdx);
+                row.onclick = function() {
+                    const logData = logs[idx];
+                    if (logData && logData.meta) {
+                        window.openDetailsPane(logData.meta, idx, logData);
+                    }
+                };
+            });
+        }
+
         const renderTerminalLogs = window.renderTerminalLogs;
+
+        // Pause/resume infinite animations when the page is hidden (saves GPU)
+        document.addEventListener('visibilitychange', () => {
+            const animEls = document.querySelectorAll('.hdr-bar, .dot-live, .splash-dot, .pulse-dot-yellow, .pulse-dot-cyan, .pulse-dot-emerald, .pulse-dot-purple');
+            animEls.forEach(el => {
+                el.style.animationPlayState = document.hidden ? 'paused' : 'running';
+            });
+        });
+
 
         window.tvChart = null;
         window.tvSeries = null;
@@ -10821,9 +10952,8 @@ window.startAllTickersWS = function() {
                     volume: parseFloat(t.q || t.quoteVolume || (parseFloat(t.c || t.price || 0) * parseFloat(t.v || t.volume || 0)) || 0),
                     fundingRate: window.allTickersData[t.s]?.fundingRate !== undefined ? window.allTickersData[t.s].fundingRate : parseFloat(t.r || t.lastFundingRate || 0)
                 };
-                if (window.isMarketListModalOpen) {
-                    window.renderMarketListTable();
-                }
+                // NOTE: renderMarketListTable is NOT called here — it would fire at WS message rate (50+ /sec)
+                // Instead, a 500ms interval started by openMarketListModal handles re-renders
             }
         } catch(e) {}
     };
@@ -10849,6 +10979,11 @@ window.openMarketListModal = function() {
     window.fetchInitialAllTickers();
     window.startAllTickersWS();
     window.renderMarketListTable();
+    // Poll-render at 500ms — decoupled from WS message rate (was firing 50+ /sec)
+    clearInterval(window._marketListRenderInterval);
+    window._marketListRenderInterval = setInterval(() => {
+        if (window.isMarketListModalOpen) window.renderMarketListTable();
+    }, 500);
 };
 
 // Start triggers
@@ -10860,6 +10995,8 @@ setTimeout(() => {
 
 window.closeMarketListModal = function() {
     window.isMarketListModalOpen = false;
+    clearInterval(window._marketListRenderInterval);
+    window._marketListRenderInterval = null;
     document.body.style.overflow = ''; // Restore background L1 scroll
     const overlay = document.getElementById('market-list-overlay');
     if (overlay) {

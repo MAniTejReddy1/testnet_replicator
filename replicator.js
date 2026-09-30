@@ -588,7 +588,7 @@ async function sendSignedRequest(url, method, payload, userConfig, timeoutMs = 5
                 const isPolling = shortUrl.includes('/fapi/v2/account') || shortUrl.includes('/fapi/v2/positionRisk');
                 if (!isPolling || !ok) {
                     log.info(uLabel, `[${method.toUpperCase()}] ${shortUrl} | Status: ${res.statusCode} | Latency: ${latencyMs}ms`, meta, tier);
-                    broadcastToUI(true);
+                    scheduleBroadcast(true); // debounced — batches bursts within 200ms
                 }
 
                 if (!ok || DEBUG) log.debug('REST-API', `[${method.toUpperCase()}] ${finalUrl} | Status: ${res.statusCode} | Body: ${text} | Latency: ${latencyMs}ms`, null, tier);
@@ -3879,6 +3879,22 @@ function buildPayload(isSnapshot = true, sinceTs = 0) {
 }
 
 let lastBroadcastTime = 0;
+// Debounced urgent broadcast — batches forced broadcasts within a 200ms window
+// so rapid REST API calls (order place/cancel/fetch) don't each trigger a full SSE push
+let _urgentBroadcastTimer = null;
+function scheduleBroadcast(urgent = false) {
+    if (urgent) {
+        if (!_urgentBroadcastTimer) {
+            _urgentBroadcastTimer = setTimeout(() => {
+                _urgentBroadcastTimer = null;
+                broadcastToUI(true);
+            }, 200);
+        }
+        // If timer already pending, the next fire will cover this update too
+    } else {
+        broadcastToUI(); // respects normal 1s throttle
+    }
+}
 let lastBroadcastEventsTs = 0;
 function broadcastToUI(force = false) {
     const now = Date.now();
