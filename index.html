@@ -9,6 +9,12 @@
       if (btn) btn.innerHTML = '🌙';
     });
   }
+  if (localStorage.getItem('replicator_enable_dcx') === '0') {
+    document.documentElement.classList.add('no-dcx');
+    document.addEventListener('DOMContentLoaded', () => {
+      document.body.classList.add('no-dcx');
+    });
+  }
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -649,6 +655,57 @@
 
   .tc-accent-yellow::before  { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #eab308, #facc15); }
   .tc-accent-yellow:hover    { border-color: rgba(234, 179, 8, 0.5); box-shadow: 0 8px 24px -4px rgba(234, 179, 8, 0.22); }
+
+  /* CoinDCX Feed & Orderbook Toggle Modes */
+  html.no-dcx .dcx-data-row,
+  body.no-dcx .dcx-data-row,
+  html.no-dcx .dcx-data-col,
+  body.no-dcx .dcx-data-col,
+  html.no-dcx #dcx-book-panel,
+  body.no-dcx #dcx-book-panel,
+  html.no-dcx #ltp-drift-badge,
+  body.no-dcx #ltp-drift-badge,
+  html.no-dcx #bid-drift-badge,
+  body.no-dcx #bid-drift-badge,
+  html.no-dcx #ask-drift-badge,
+  body.no-dcx #ask-drift-badge,
+  html.no-dcx #mp-drift-badge,
+  body.no-dcx #mp-drift-badge,
+  html.no-dcx #ip-drift-badge,
+  body.no-dcx #ip-drift-badge,
+  html.no-dcx #funding-drift-badge,
+  body.no-dcx #funding-drift-badge {
+    display: none !important;
+  }
+
+  html.no-dcx #orderbook-grid,
+  body.no-dcx #orderbook-grid {
+    grid-template-columns: minmax(0, 1fr) 385px !important;
+  }
+
+  html.no-dcx .bid-container,
+  body.no-dcx .bid-container {
+    border-right: none !important;
+    padding-right: 0 !important;
+  }
+
+  html.no-dcx .dcx-grid-2col,
+  body.no-dcx .dcx-grid-2col {
+    grid-template-columns: 1fr !important;
+  }
+
+  html.no-dcx #c-bping,
+  body.no-dcx #c-bping {
+    opacity: 0.35;
+    text-decoration: line-through;
+  }
+
+  html.no-dcx #btn-quick-toggle-dcx,
+  body.no-dcx #btn-quick-toggle-dcx {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    color: var(--text-muted) !important;
+  }
 
   /* Light Theme overrides for Ticker HUD */
   :root[data-theme="light"] .ticker-card {
@@ -4035,10 +4092,11 @@
             <span style="color:var(--text-muted);margin-right:6px;">PAIR</span>
             <span id="c-pair" style="color:var(--text-main);font-weight:700;">—</span>
         </div>
-        <div class="tele-pill">
+        <div class="tele-pill" id="tele-dcx-pill">
             <span class="pulse-dot pulse-dot-yellow"></span>
             <span style="color:var(--text-muted);margin-right:6px;">CoinDCX</span>
             <span id="c-bping" style="color:var(--yellow);font-weight:700;">0ms</span>
+            <button id="btn-quick-toggle-dcx" onclick="window.toggleDcxData()" title="Quick Toggle CoinDCX Feed & Orderbook" style="margin-left:6px; background:rgba(234,179,8,0.15); border:1px solid rgba(234,179,8,0.3); color:var(--yellow); border-radius:4px; font-size:9px; padding:1px 6px; cursor:pointer; font-weight:700; transition:all 0.15s ease;">DCX: ON</button>
         </div>
         <div class="tele-pill">
             <span class="pulse-dot pulse-dot-cyan"></span>
@@ -4064,7 +4122,7 @@
         <span id="ltp-drift-badge" class="tc-badge" title="CoinDCX vs Testnet LTP Drift %">Drift: —</span>
       </div>
       <div class="ticker-card-body">
-        <div class="tc-row">
+        <div class="tc-row dcx-data-row">
           <span class="tc-tag tc-tag-dcx" title="CoinDCX Last Traded Price">DCX</span>
           <span class="ticker-val tc-val-gold" id="t-bltp">—</span>
         </div>
@@ -4085,8 +4143,8 @@
         </div>
       </div>
       <div class="ticker-card-body" style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-        <div style="display:flex; flex-direction:column; gap:2px; border-right:1px solid var(--border); padding-right:8px;">
-          <div class="tc-row">
+        <div class="bid-container" style="display:flex; flex-direction:column; gap:2px; border-right:1px solid var(--border); padding-right:8px;">
+          <div class="tc-row dcx-data-row">
             <span class="tc-tag tc-tag-up" title="CoinDCX Best Bid">BID</span>
             <span class="ticker-val tc-val-gold" id="t-bbid" style="font-size:13.5px;">—</span>
           </div>
@@ -4096,7 +4154,7 @@
           </div>
         </div>
         <div style="display:flex; flex-direction:column; gap:2px;">
-          <div class="tc-row">
+          <div class="tc-row dcx-data-row">
             <span class="tc-tag tc-tag-dn" title="CoinDCX Best Ask">ASK</span>
             <span class="ticker-val tc-val-gold" id="t-bask" style="font-size:13.5px;">—</span>
           </div>
@@ -4115,7 +4173,7 @@
         <span id="mp-drift-badge" class="tc-badge" title="Mark Price Drift %">Drift: —</span>
       </div>
       <div class="ticker-card-body">
-        <div class="tc-row">
+        <div class="tc-row dcx-data-row">
           <span class="tc-tag tc-tag-dcx" title="CoinDCX Mark Price">DCX</span>
           <span class="ticker-val tc-val-gold" id="t-bmp">—</span>
         </div>
@@ -4151,7 +4209,7 @@
         <span id="ip-drift-badge" class="tc-badge" title="Index Price Drift %">Drift: —</span>
       </div>
       <div class="ticker-card-body">
-        <div class="tc-row">
+        <div class="tc-row dcx-data-row">
           <span class="tc-tag tc-tag-dcx" title="CoinDCX Underlying Index Price">DCX</span>
           <span class="ticker-val tc-val-gold" id="t-bip">—</span>
         </div>
@@ -4220,7 +4278,7 @@
         <span id="funding-drift-badge" class="tc-badge" title="Funding Rate Drift %">Drift: —</span>
       </div>
       <div class="ticker-card-body">
-        <div class="tc-row">
+        <div class="tc-row dcx-data-row">
           <span class="tc-tag tc-tag-dcx" title="CoinDCX Predicted Funding Rate">DCX</span>
           <span class="ticker-val tc-val-gold" id="t-bin-funding" style="font-size:12px;">—</span>
         </div>
@@ -4237,8 +4295,22 @@
         <span class="ticker-card-title"><span style="color:var(--cyan); font-size:10px;">📊</span> 24h Statistics</span>
         <span class="tc-badge" style="opacity:0.75;">HIGH / LOW / VOL</span>
       </div>
-      <div class="ticker-card-body" style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-        <div style="display:flex; flex-direction:column; gap:1px; border-right:1px solid var(--border); padding-right:8px;">
+      <div class="ticker-card-body dcx-grid-2col" style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div class="dcx-data-col" style="display:flex; flex-direction:column; gap:1px; border-right:1px solid var(--border); padding-right:8px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:9.5px;">
+            <span style="color:#fde047; font-weight:800; font-family:'JetBrains Mono',monospace;">DCX H</span>
+            <span id="t-bin-24h-high" style="font-family:'JetBrains Mono',monospace; font-weight:800; color:var(--text-main); font-size:11px;">—</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:9.5px;">
+            <span style="color:var(--text-muted); font-weight:700;">L</span>
+            <span id="t-bin-24h-low" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-main); font-size:10.5px;">—</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:9.5px;">
+            <span style="color:var(--text-muted); font-weight:700;">V</span>
+            <span id="t-bin-24h-vol" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-muted); font-size:10px;">—</span>
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:1px;">
           <div style="display:flex; justify-content:space-between; align-items:center; font-size:9.5px;">
             <span style="color:#fde047; font-weight:800; font-family:'JetBrains Mono',monospace;">DCX H</span>
             <span id="t-bin-24h-high" style="font-family:'JetBrains Mono',monospace; font-weight:800; color:var(--text-main); font-size:11px;">—</span>
@@ -4445,6 +4517,22 @@
       <label style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--input-bg);padding:10px;border-radius:8px;">
         <span style="color:var(--text-main);font-size:11px;font-weight:500;">Flash FX</span><div class="tog on" id="tog-flash"></div>
       </label>
+    </div>
+  <div class="panel" style="padding:16px;margin-bottom:16px;">
+    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;font-weight:600;display:flex;align-items:center;gap:8px;">
+      <div style="width:4px;height:12px;background:var(--yellow);border-radius:2px;"></div>CoinDCX Feeds &amp; Comparison
+    </div>
+    <div style="background:var(--input-bg);padding:12px;border-radius:8px;display:flex;flex-direction:column;gap:10px;">
+      <label style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" id="tog-dcx-feed-wrap">
+        <div>
+          <div style="color:var(--text-main);font-size:12px;font-weight:600;">Enable CoinDCX Data</div>
+          <div style="color:var(--text-muted);font-size:10px;margin-top:2px;">Sync DCX orderbook, ticker feeds &amp; price drift metrics</div>
+        </div>
+        <div class="tog on" id="tog-dcx-feed"></div>
+      </label>
+      <div style="font-size:10px;color:var(--text-muted);line-height:1.4;border-top:1px solid var(--border);padding-top:8px;">
+        Disabling cuts backend DCX WebSockets/REST polling and shifts the UI to an ultra-fast, full-width Testnet-only view.
+      </div>
     </div>
   </div>
   
@@ -5162,8 +5250,8 @@
   </div>
 </div>
 
-<div style="display:grid;grid-template-columns:35% 35% 30%;gap:16px;padding:24px;">
-  <div class="panel" style="display:flex;flex-direction:column;height:590px;overflow:hidden;">
+<div id="orderbook-grid" style="display:grid;grid-template-columns:35% 35% 30%;gap:16px;padding:24px;">
+  <div class="panel" id="dcx-book-panel" style="display:flex;flex-direction:column;height:590px;overflow:hidden;">
     <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);">
       <div><div class="sec-label">Source</div><div class="sec-title" style="color:var(--yellow)">CoinDCX Perpetual</div></div>
       <div id="bin-spread-badge" style="font-size:11px;padding:4px 10px;border-radius:99px;background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);color:#c084fc;font-weight:600;letter-spacing:1px;">Spread —</div>
@@ -7381,6 +7469,12 @@ window.addEventListener('DOMContentLoaded', () => {
                 takerUseRawQtyState = getVal(diag.takerUseRawQty, savedConfig.takerUseRawQty, false) === true;
                 const trTog = document.getElementById('tog-taker-raw');
                 if (takerUseRawQtyState) trTog.classList.add('on'); else trTog.classList.remove('on');
+
+                const dcxState = diag.enableDcx !== undefined ? (diag.enableDcx !== false) : (window.dcxDataEnabled !== false);
+                const dcxTog = document.getElementById('tog-dcx-feed');
+                if (dcxTog) {
+                    if (dcxState) dcxTog.classList.add('on'); else dcxTog.classList.remove('on');
+                }
             }
         };
         document.getElementById('btn-close').onclick = () => { document.getElementById('drawer').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); };
@@ -7412,6 +7506,78 @@ window.addEventListener('DOMContentLoaded', () => {
             const el = document.getElementById('tog-taker-raw');
             if (takerUseRawQtyState) el.classList.add('on'); else el.classList.remove('on');
         };
+
+        const togDcxWrap = document.getElementById('tog-dcx-feed-wrap');
+        if (togDcxWrap) {
+            togDcxWrap.onclick = () => {
+                window.toggleDcxData();
+            };
+        }
+
+        window.dcxDataEnabled = localStorage.getItem('replicator_enable_dcx') !== '0';
+
+        window.setDcxDataEnabled = function(enable, silent = false) {
+            window.dcxDataEnabled = !!enable;
+            localStorage.setItem('replicator_enable_dcx', window.dcxDataEnabled ? '1' : '0');
+            
+            const tog = document.getElementById('tog-dcx-feed');
+            if (tog) {
+                if (window.dcxDataEnabled) tog.classList.add('on');
+                else tog.classList.remove('on');
+            }
+
+            const btnQuick = document.getElementById('btn-quick-toggle-dcx');
+            if (btnQuick) {
+                btnQuick.textContent = window.dcxDataEnabled ? 'DCX: ON' : 'DCX: OFF';
+                if (window.dcxDataEnabled) {
+                    btnQuick.style.background = 'rgba(234,179,8,0.15)';
+                    btnQuick.style.borderColor = 'rgba(234,179,8,0.3)';
+                    btnQuick.style.color = 'var(--yellow)';
+                } else {
+                    btnQuick.style.background = 'rgba(255,255,255,0.05)';
+                    btnQuick.style.borderColor = 'rgba(255,255,255,0.15)';
+                    btnQuick.style.color = 'var(--text-muted)';
+                }
+            }
+
+            if (window.dcxDataEnabled) {
+                document.documentElement.classList.remove('no-dcx');
+                document.body.classList.remove('no-dcx');
+            } else {
+                document.documentElement.classList.add('no-dcx');
+                document.body.classList.add('no-dcx');
+                const bAsks = document.getElementById('bin-asks');
+                const bBids = document.getElementById('bin-bids');
+                if (bAsks) bAsks.innerHTML = '';
+                if (bBids) bBids.innerHTML = '';
+            }
+
+            if (!silent) {
+                fetch(window.getApiUrl('/api/config/dcx-feed'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enableDcx: window.dcxDataEnabled, symbol: window.activeTabSymbol })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data && data.success) {
+                        showToast(window.dcxDataEnabled ? '✓ CoinDCX feeds & orderbook enabled' : '✓ CoinDCX feeds disabled (Testnet-only view)', 'info');
+                    } else {
+                        showToast('✗ Failed to update CoinDCX feed state', true);
+                    }
+                })
+                .catch(err => {
+                    console.error('Error toggling CoinDCX feed:', err);
+                });
+            }
+        };
+
+        window.toggleDcxData = function() {
+            window.setDcxDataEnabled(!window.dcxDataEnabled);
+        };
+
+        // Initialize UI state immediately
+        window.setDcxDataEnabled(window.dcxDataEnabled, true);
 
         function bindTog(id, cb) {
             const el = document.getElementById(id);
@@ -8547,7 +8713,7 @@ window.addEventListener('DOMContentLoaded', () => {
             if (!sym) { msg.style.color='#f43f5e'; msg.textContent='✗ Symbol required'; return; }
             if (minV && maxV && parseFloat(minV) >= parseFloat(maxV)) { msg.style.color='#f43f5e'; msg.textContent='✗ Min must be < Max'; return; }
 
-            const body = { symbol: sym, targetSymbol: tgt, tier: tier, cancelOnStop: cancelOnStopState, newUserFlow: newUserState, makerUseRawQty: makerUseRawQtyState, takerUseRawQty: takerUseRawQtyState, enableTradeSync: true };
+            const body = { symbol: sym, targetSymbol: tgt, tier: tier, cancelOnStop: cancelOnStopState, newUserFlow: newUserState, makerUseRawQty: makerUseRawQtyState, takerUseRawQty: takerUseRawQtyState, enableTradeSync: true, enableDcx: window.dcxDataEnabled !== false };
             if (minV) body.minSize = parseFloat(minV);
             if (maxV) body.maxSize = parseFloat(maxV);
             if (takerV) body.takerSize = parseFloat(takerV);
@@ -12410,7 +12576,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
             // OK/FAIL counts are now rendered by updateTradeStream into #ltp-chips
 
-            renderBook(document.getElementById('bin-asks'), document.getElementById('bin-bids'), document.getElementById('bin-spread-badge'), document.getElementById('bin-spread-mid'), instance.binanceDepth.asks, instance.binanceDepth.bids, true);
+            if (window.dcxDataEnabled !== false) {
+                renderBook(document.getElementById('bin-asks'), document.getElementById('bin-bids'), document.getElementById('bin-spread-badge'), document.getElementById('bin-spread-mid'), instance.binanceDepth.asks, instance.binanceDepth.bids, true);
+            }
             renderBook(document.getElementById('stage-asks'), document.getElementById('stage-bids'), document.getElementById('stage-spread-badge'), document.getElementById('stage-spread-mid'), instance.testnetDepth.asks, instance.testnetDepth.bids, false);
             if (window.MarketAggTradeManager) {
                 window.MarketAggTradeManager.handleBackendTrades(instance.aggTrades);

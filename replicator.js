@@ -206,7 +206,8 @@ function saveMarketConfigToDisk(inst) {
             tradeDelayMs: inst.tradeDelayMs !== undefined ? inst.tradeDelayMs : 0,
             cancelOnStop: Boolean(inst.cancelOnStop),
             newUserFlow: Boolean(inst.newUserFlow),
-            enableTradeSync: inst.enableTradeSync !== false
+            enableTradeSync: inst.enableTradeSync !== false,
+            enableDcx: inst.enableDcx !== false
         };
 
         if (idx >= 0) {
@@ -1797,6 +1798,7 @@ class ReplicatorInstance {
         this.depthLevels        = marketConfig.depthLevels        || 20;
         this.qtyChangeTolerance = marketConfig.qtyChangeTolerance || 0.25;
         this.enableTradeSync    = marketConfig.enableTradeSync !== false;
+        this.enableDcx          = marketConfig.enableDcx !== false;
         this.newUserFlow        = marketConfig.newUserFlow === true;
         this.bufferPct          = marketConfig.bufferPct          || 0;
         this.cancelOnStop       = marketConfig.cancelOnStop === true;
@@ -3107,7 +3109,45 @@ class ReplicatorInstance {
         }
     }
 
-startBinanceDepthWS() {
+    setEnableDcx(enable) {
+        this.enableDcx = Boolean(enable);
+        if (!this.enableDcx) {
+            if (this.wsBinanceDepth) {
+                try { this.wsBinanceDepth.terminate(); } catch(e){}
+                this.wsBinanceDepth = null;
+            }
+            if (this.wsBinanceTrades) {
+                try { this.wsBinanceTrades.terminate(); } catch(e){}
+                this.wsBinanceTrades = null;
+            }
+            if (this.wsBinanceTicker) {
+                try { this.wsBinanceTicker.terminate(); } catch(e){}
+                this.wsBinanceTicker = null;
+            }
+            if (this.wsBinanceMarkPrice) {
+                try { this.wsBinanceMarkPrice.terminate(); } catch(e){}
+                this.wsBinanceMarkPrice = null;
+            }
+            this.binanceDepth = { bids: [], asks: [] };
+            this.binanceLtp = null;
+            this.binanceMarkPrice = null;
+            this.binanceIndexPrice = null;
+            this.binanceFunding = null;
+            this.binance24h = null;
+            this.binanceLatency = 0;
+            log.info(this.symbol, `[DCX-FEED] CoinDCX/Binance data feed disabled. WebSockets closed.`, null, this.tier);
+        } else {
+            log.info(this.symbol, `[DCX-FEED] CoinDCX/Binance data feed enabled. Reconnecting WebSockets...`, null, this.tier);
+            this.startBinanceDepthWS();
+            this.startBinanceTradesWS();
+            this.startBinanceMarkPriceWS();
+            this.startBinanceTickerWS();
+        }
+        broadcastToUI(true);
+    }
+
+    startBinanceDepthWS() {
+        if (this.enableDcx === false) return;
         if (this.wsBinanceDepth) return;
         const startTime = Date.now();
         const sym = this.sourceSymbol.toLowerCase(); // Using Source Symbol
@@ -3137,10 +3177,15 @@ startBinanceDepthWS() {
             } catch (e) { log.debug && log.debug('SYSTEM', e.message); }
         });
         this.wsBinanceDepth.on('error', (err) => { pushEvent('ERROR', this.symbol, `Binance Depth WS error: ${err.message}`, null, 'ws'); });
-        this.wsBinanceDepth.on('close', () => { pushEvent('WARN', this.symbol, `Binance Depth WS disconnected — reconnecting...`, null, 'ws'); this.wsBinanceDepth = null; setTimeout(() => this.startBinanceDepthWS(), 3000); });
+        this.wsBinanceDepth.on('close', () => {
+            pushEvent('WARN', this.symbol, `Binance Depth WS disconnected — reconnecting...`, null, 'ws');
+            this.wsBinanceDepth = null;
+            if (this.enableDcx !== false) setTimeout(() => this.startBinanceDepthWS(), 3000);
+        });
     }
 
     startBinanceTradesWS() {
+        if (this.enableDcx === false) return;
         if (this.wsBinanceTrades) return;
         const sym = this.sourceSymbol.toLowerCase(); // Using Source Symbol
         // NOTE: aggTrade stream is regionally blocked; raw 'trade' stream works and has identical fields (p, q, m)
@@ -3171,10 +3216,15 @@ startBinanceDepthWS() {
             } catch (e) { log.error(this.symbol, `[TRADES-WS] Message handler error: ${e.message}`); }
         });
         this.wsBinanceTrades.on('error', (err) => { log.error(this.symbol, `[TRADES-WS] Error: ${err.message}`); pushEvent('ERROR', this.symbol, `Binance Trades WS error: ${err.message}`, null, 'ws'); });
-        this.wsBinanceTrades.on('close', () => { pushEvent('WARN', this.symbol, `Binance Trades WS disconnected — reconnecting...`, null, 'ws'); this.wsBinanceTrades = null; setTimeout(() => this.startBinanceTradesWS(), 3000); });
+        this.wsBinanceTrades.on('close', () => {
+            pushEvent('WARN', this.symbol, `Binance Trades WS disconnected — reconnecting...`, null, 'ws');
+            this.wsBinanceTrades = null;
+            if (this.enableDcx !== false) setTimeout(() => this.startBinanceTradesWS(), 3000);
+        });
     }
 
     startBinanceTickerWS() {
+        if (this.enableDcx === false) return;
         if (this.wsBinanceTicker) return;
         const sym = this.sourceSymbol.toLowerCase();
         const url = `wss://fstream.binance.com/public/ws/${sym}@ticker`;
@@ -3206,7 +3256,7 @@ startBinanceDepthWS() {
         this.wsBinanceTicker.on('error', (err) => { pushEvent('ERROR', this.symbol, `Binance Ticker WS error: ${err.message}`, null, 'ws'); });
         this.wsBinanceTicker.on('close', () => {
             this.wsBinanceTicker = null;
-            setTimeout(() => this.startBinanceTickerWS(), 3000);
+            if (this.enableDcx !== false) setTimeout(() => this.startBinanceTickerWS(), 3000);
         });
     }
 
@@ -3215,15 +3265,17 @@ startBinanceDepthWS() {
         
         this.pollingInterval = setInterval(async () => {
             // 1. Fetch real-time Mark Price, Index Price, and Funding Rate for Binance and Stage
-            try {
-                const resB = await fetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${this.sourceSymbol}`);
-                if (resB.ok) {
-                    const dataB = await resB.json();
-                    if (dataB.markPrice) this.binanceMarkPrice = parseFloat(dataB.markPrice);
-                    if (dataB.indexPrice) this.binanceIndexPrice = parseFloat(dataB.indexPrice);
-                    if (dataB.lastFundingRate) this.binanceFundingRate = parseFloat(dataB.lastFundingRate);
-                }
-            } catch(e){}
+            if (this.enableDcx !== false) {
+                try {
+                    const resB = await fetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${this.sourceSymbol}`);
+                    if (resB.ok) {
+                        const dataB = await resB.json();
+                        if (dataB.markPrice) this.binanceMarkPrice = parseFloat(dataB.markPrice);
+                        if (dataB.indexPrice) this.binanceIndexPrice = parseFloat(dataB.indexPrice);
+                        if (dataB.lastFundingRate) this.binanceFundingRate = parseFloat(dataB.lastFundingRate);
+                    }
+                } catch(e){}
+            }
 
             try {
                 const mdsReadBase = (TIER_URLS[this.tier] && TIER_URLS[this.tier].MDS_READ) || TIER_URLS.PRODUCTION.MDS_READ;
@@ -3239,13 +3291,15 @@ startBinanceDepthWS() {
             } catch(e){}
 
             // 2. Fetch real-time LTP for Binance and Stage
-            try {
-                const resLtpB = await fetch(`https://fapi.binance.com/fapi/v1/ticker/price?symbol=${this.sourceSymbol}`);
-                if (resLtpB.ok) {
-                    const dataLtpB = await resLtpB.json();
-                    if (dataLtpB.price) this.binanceLtp = parseFloat(dataLtpB.price);
-                }
-            } catch(e){}
+            if (this.enableDcx !== false) {
+                try {
+                    const resLtpB = await fetch(`https://fapi.binance.com/fapi/v1/ticker/price?symbol=${this.sourceSymbol}`);
+                    if (resLtpB.ok) {
+                        const dataLtpB = await resLtpB.json();
+                        if (dataLtpB.price) this.binanceLtp = parseFloat(dataLtpB.price);
+                    }
+                } catch(e){}
+            }
 
             try {
                 const mdsReadBase = (TIER_URLS[this.tier] && TIER_URLS[this.tier].MDS_READ) || TIER_URLS.PRODUCTION.MDS_READ;
@@ -3259,18 +3313,20 @@ startBinanceDepthWS() {
             } catch(e){}
 
             // 3. Fetch real-time 24h Stats for Binance
-            try {
-                const res24B = await fetch(`https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${this.sourceSymbol}`);
-                if (res24B.ok) {
-                    const data24B = await res24B.json();
-                    this.binance24h = {
-                        high: parseFloat(data24B.highPrice || 0),
-                        low: parseFloat(data24B.lowPrice || 0),
-                        volume: parseFloat(data24B.volume || 0),
-                        priceChangePercent: parseFloat(data24B.priceChangePercent || 0)
-                    };
-                }
-            } catch(e){}
+            if (this.enableDcx !== false) {
+                try {
+                    const res24B = await fetch(`https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${this.sourceSymbol}`);
+                    if (res24B.ok) {
+                        const data24B = await res24B.json();
+                        this.binance24h = {
+                            high: parseFloat(data24B.highPrice || 0),
+                            low: parseFloat(data24B.lowPrice || 0),
+                            volume: parseFloat(data24B.volume || 0),
+                            priceChangePercent: parseFloat(data24B.priceChangePercent || 0)
+                        };
+                    }
+                } catch(e){}
+            }
 
             // 4. Fetch real-time Testnet Depth (Orderbook) from MDS_READ (ensures orderbook streams live even when engine is STOPPED or PAUSED)
             try {
@@ -3292,15 +3348,17 @@ startBinanceDepthWS() {
             } catch(e){}
 
             // 5. Fetch real-time Binance Depth
-            try {
-                const resBinD = await fetch(`https://fapi.binance.com/fapi/v1/depth?symbol=${this.sourceSymbol}&limit=${this.depthLevels}`);
-                if (resBinD.ok) {
-                    const dataBinD = await resBinD.json();
-                    if (dataBinD && dataBinD.bids && dataBinD.asks) {
-                        this.binanceDepth = { bids: dataBinD.bids, asks: dataBinD.asks };
+            if (this.enableDcx !== false) {
+                try {
+                    const resBinD = await fetch(`https://fapi.binance.com/fapi/v1/depth?symbol=${this.sourceSymbol}&limit=${this.depthLevels}`);
+                    if (resBinD.ok) {
+                        const dataBinD = await resBinD.json();
+                        if (dataBinD && dataBinD.bids && dataBinD.asks) {
+                            this.binanceDepth = { bids: dataBinD.bids, asks: dataBinD.asks };
+                        }
                     }
-                }
-            } catch(e){}
+                } catch(e){}
+            }
 
             broadcastToUI();
         }, 1000);
@@ -3395,6 +3453,7 @@ startBinanceDepthWS() {
     }
 
     startBinanceMarkPriceWS() {
+        if (this.enableDcx === false) return;
         if (this.wsBinanceMarkPrice) return;
         const sym = this.sourceSymbol.toLowerCase();
         const streamUrl = `wss://fstream.binance.com/public/ws/${sym}@markPrice`;
@@ -3426,7 +3485,7 @@ startBinanceDepthWS() {
         this.wsBinanceMarkPrice.on('close', () => {
             pushEvent('WARN', this.symbol, `Binance Mark Price WS disconnected — reconnecting...`, null, 'ws');
             this.wsBinanceMarkPrice = null;
-            setTimeout(() => this.startBinanceMarkPriceWS(), 3000);
+            if (this.enableDcx !== false) setTimeout(() => this.startBinanceMarkPriceWS(), 3000);
         });
         this.wsBinanceMarkPrice.on('error', (err) => {
             pushEvent('ERROR', this.symbol, `Binance Mark Price WS error: ${err.message}`, null, 'ws');
@@ -4225,6 +4284,7 @@ function buildPayload(isSnapshot = true, sinceTs = 0) {
             aggTrades:    inst.aggTrades || [],
             tier:         inst.tier,
             diagnostics: {
+                enableDcx:       inst.enableDcx !== false,
                 sourceSymbol:    inst.sourceSymbol,
                 testnetLatency:  inst.testnetLatency,
                 testnetLtp:      inst.testnetLtp,
@@ -4963,6 +5023,7 @@ const server = http.createServer(async (req, res) => {
                     !pathname.startsWith('/api/users') && 
                     !pathname.startsWith('/api/manual-override') && 
                     !pathname.startsWith('/api/env') && 
+                    !pathname.startsWith('/api/config/dcx-feed') &&
                     !pathname.startsWith('/api/mds-proxy') && 
                     !pathname.startsWith('/api/portfolio') &&
                     !pathname.startsWith('/api/qa/') &&
@@ -5215,6 +5276,27 @@ const server = http.createServer(async (req, res) => {
                     return res.end(JSON.stringify({ success: true, tier: globalActiveTier }));
                 }
 
+                if (pathname === '/api/config/dcx-feed') {
+                    const tier = (parsed.tier || globalActiveTier || 'PRODUCTION').toUpperCase();
+                    const targetSym = sym || (parsed.symbol ? parsed.symbol.toUpperCase() : null);
+                    const enable = parsed.enableDcx !== false && parsed.enableDcx !== 'false';
+                    const tierInstances = instances[tier] || new Map();
+                    
+                    if (targetSym && tierInstances.has(targetSym)) {
+                        const inst = tierInstances.get(targetSym);
+                        inst.setEnableDcx(enable);
+                        saveMarketConfigToDisk(inst);
+                    } else {
+                        for (const inst of tierInstances.values()) {
+                            inst.setEnableDcx(enable);
+                            saveMarketConfigToDisk(inst);
+                        }
+                    }
+                    broadcastToUI(true);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: true, enableDcx: enable }));
+                }
+
                 if (pathname === '/api/config') {
                     const tier = (parsed.tier || 'PRODUCTION').toUpperCase();
                     if (!instances[tier]) instances[tier] = new Map();
@@ -5239,7 +5321,8 @@ const server = http.createServer(async (req, res) => {
                             tradeDelayMs: parseInt(parsed.tradeDelayMs !== undefined ? parsed.tradeDelayMs : 0),
                             cancelOnStop: Boolean(parsed.cancelOnStop),
                             newUserFlow: Boolean(parsed.newUserFlow),
-                            enableTradeSync: parsed.enableTradeSync !== false
+                            enableTradeSync: parsed.enableTradeSync !== false,
+                            enableDcx: parsed.enableDcx !== false && parsed.enableDcx !== 'false'
                         });
                         instances[tier].set(targetSym, inst);
                         if (parsed.mountOnly) {
@@ -5271,6 +5354,9 @@ const server = http.createServer(async (req, res) => {
                         if (parsed.newUserFlow !== undefined) inst.newUserFlow = Boolean(parsed.newUserFlow);
                         // Use !== false comparison so string 'false' is treated correctly
                         if (parsed.enableTradeSync !== undefined) inst.enableTradeSync = parsed.enableTradeSync !== false && parsed.enableTradeSync !== 'false';
+                        if (parsed.enableDcx !== undefined) {
+                            inst.setEnableDcx(parsed.enableDcx !== false && parsed.enableDcx !== 'false');
+                        }
                         log.info(targetSym, `Config updated for existing instance.`, null, tier);
                         saveMarketConfigToDisk(inst);
                     }
