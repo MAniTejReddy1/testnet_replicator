@@ -2234,40 +2234,123 @@
       color: #fff;
       box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05);
   }
+  /* Advanced Leverage Slider Styling */
   .crypto-slider-wrap {
-      margin: 16px 0;
+      margin: 22px 0 16px;
       position: relative;
+      padding: 0 2px;
   }
   .crypto-slider {
       -webkit-appearance: none;
+      appearance: none;
       width: 100%;
-      height: 4px;
-      border-radius: 2px;
-      background: rgba(255, 255, 255, 0.1);
+      height: 6px;
+      border-radius: 999px;
+      background: var(--slider-track-bg, rgba(255, 255, 255, 0.1));
       outline: none;
+      cursor: pointer;
+      position: relative;
+      transition: background 0.1s ease;
   }
   .crypto-slider::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 16px;
-      height: 16px;
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
-      background: #fff;
-      border: 3px solid #3b66f5;
-      cursor: pointer;
-      box-shadow: 0 0 10px rgba(59, 102, 245, 0.5);
-      transition: transform 0.1s;
+      background: #ffffff;
+      border: 3.5px solid var(--slider-accent, var(--cyan));
+      cursor: grab;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 12px var(--slider-glow, rgba(6, 182, 212, 0.45));
+      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease, border-color 0.2s ease;
   }
   .crypto-slider::-webkit-slider-thumb:hover {
-      transform: scale(1.15);
+      transform: scale(1.22);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), 0 0 16px var(--slider-glow, rgba(6, 182, 212, 0.7));
+  }
+  .crypto-slider:active::-webkit-slider-thumb {
+      cursor: grabbing;
+      transform: scale(1.3);
+  }
+  .crypto-slider::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 3.5px solid var(--slider-accent, var(--cyan));
+      cursor: grab;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 12px var(--slider-glow, rgba(6, 182, 212, 0.45));
+      transition: transform 0.15s ease;
   }
   .crypto-slider-ticks {
       display: flex;
       justify-content: space-between;
-      margin-top: 4px;
+      margin-top: 8px;
       font-size: 10px;
-      color: rgba(255, 255, 255, 0.4);
-      font-family: monospace;
+      font-weight: 600;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      user-select: none;
+  }
+  .crypto-slider-ticks span {
+      cursor: pointer;
+      padding: 2px 4px;
+      border-radius: 4px;
+      transition: all 0.15s;
+  }
+  .crypto-slider-ticks span:hover {
+      color: var(--text-main);
+      transform: translateY(-1px);
+  }
+  .crypto-slider-ticks span.active {
+      color: var(--cyan);
+      font-weight: 800;
+  }
+  .lev-quick-pill {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 6px;
+      padding: 6px 0;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      cursor: pointer;
+      transition: all 0.16s ease;
+      text-align: center;
+      user-select: none;
+  }
+  .lev-quick-pill:hover {
+      border-color: var(--cyan);
+      color: var(--text-main);
+      background: var(--glass-hover);
+      transform: translateY(-1px);
+  }
+  .lev-quick-pill.active {
+      background: rgba(6, 182, 212, 0.15) !important;
+      border-color: var(--cyan) !important;
+      color: var(--cyan) !important;
+      box-shadow: 0 0 10px rgba(6, 182, 212, 0.25);
+  }
+  .lev-risk-bar {
+      display: flex;
+      height: 4px;
+      border-radius: 99px;
+      overflow: hidden;
+      gap: 3px;
+      margin-top: 10px;
+      background: transparent;
+  }
+  .lev-risk-seg {
+      flex: 1;
+      height: 100%;
+      border-radius: 99px;
+      opacity: 0.2;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  .lev-risk-seg.active {
+      opacity: 1;
+      transform: scaleY(1.3);
   }
   .pct-btn {
       background: rgba(255, 255, 255, 0.02);
@@ -2365,14 +2448,24 @@
             const container = document.getElementById('toast-container');
             if (!container) return;
 
+            // Handle object/error messages
+            if (msg instanceof Error) msg = msg.message;
+            if (typeof msg === 'object' && msg !== null) msg = msg.error || msg.message || JSON.stringify(msg);
+
             // Legacy boolean signature compat
             if (type === true)  type = 'error';
             if (type === false) type = 'info';
 
-            // Auto-infer type from leading emoji
-            if (type === 'info') {
-                if (typeof msg === 'string' && msg.startsWith('\u2713')) type = 'success';
-                else if (typeof msg === 'string' && msg.startsWith('\u2717')) type = 'error';
+            // Auto-infer type from leading emoji or message content
+            if (type === 'info' && typeof msg === 'string') {
+                const s = msg.trim().toLowerCase();
+                if (s.startsWith('✓') || s.startsWith('✅') || s.includes('successfully') || s.includes('onboarding success') || s.includes('order placed') || s.includes('position closed')) {
+                    type = 'success';
+                } else if (s.startsWith('✗') || s.startsWith('❌') || s.startsWith('✕') || s.includes('error') || s.includes('failed') || s.includes('fail') || s.includes('invalid')) {
+                    type = 'error';
+                } else if (s.startsWith('⚠') || s.startsWith('warn') || s.includes('warning')) {
+                    type = 'warn';
+                }
             }
 
             // Cap stack — remove oldest if over limit
@@ -2381,30 +2474,37 @@
                 if (oldest) oldest.remove();
             }
 
-            const palette = {
-                error:   { color: '#f43f5e', bg: 'rgba(244,63,94,0.12)',   icon: '✕', border: 'rgba(244,63,94,0.35)' },
-                success: { color: '#10b981', bg: 'rgba(16,185,129,0.12)',  icon: '✓', border: 'rgba(16,185,129,0.35)' },
-                info:    { color: '#06b6d4', bg: 'rgba(6,182,212,0.12)',   icon: '·', border: 'rgba(6,182,212,0.35)' },
-                warn:    { color: '#eab308', bg: 'rgba(234,179,8,0.12)',   icon: '!', border: 'rgba(234,179,8,0.35)' },
+            const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+
+            const palette = isLight ? {
+                error:   { color: '#e11d48', bg: '#ffffff', border: '#fecdd3', iconBg: '#ffe4e6', iconColor: '#e11d48', icon: '✕', text: '#0f172a', prog: '#f43f5e', shadow: '0 10px 25px -4px rgba(225,29,72,0.15), 0 4px 12px rgba(15,23,42,0.06)' },
+                success: { color: '#059669', bg: '#ffffff', border: '#a7f3d0', iconBg: '#d1fae5', iconColor: '#059669', icon: '✓', text: '#0f172a', prog: '#10b981', shadow: '0 10px 25px -4px rgba(5,150,105,0.15), 0 4px 12px rgba(15,23,42,0.06)' },
+                info:    { color: '#0284c7', bg: '#ffffff', border: '#bae6fd', iconBg: '#e0f2fe', iconColor: '#0284c7', icon: 'ℹ', text: '#0f172a', prog: '#0ea5e9', shadow: '0 10px 25px -4px rgba(2,132,199,0.15), 0 4px 12px rgba(15,23,42,0.06)' },
+                warn:    { color: '#d97706', bg: '#ffffff', border: '#fde68a', iconBg: '#fef3c7', iconColor: '#d97706', icon: '⚠', text: '#0f172a', prog: '#f59e0b', shadow: '0 10px 25px -4px rgba(217,119,6,0.15), 0 4px 12px rgba(15,23,42,0.06)' },
+            } : {
+                error:   { color: '#fb7185', bg: '#0f172a', border: 'rgba(244,63,94,0.4)', iconBg: 'rgba(244,63,94,0.2)', iconColor: '#fb7185', icon: '✕', text: '#f8fafc', prog: '#f43f5e', shadow: '0 12px 32px rgba(0,0,0,0.65), 0 0 16px rgba(244,63,94,0.18)' },
+                success: { color: '#34d399', bg: '#0f172a', border: 'rgba(16,185,129,0.4)', iconBg: 'rgba(16,185,129,0.2)', iconColor: '#34d399', icon: '✓', text: '#f8fafc', prog: '#10b981', shadow: '0 12px 32px rgba(0,0,0,0.65), 0 0 16px rgba(16,185,129,0.18)' },
+                info:    { color: '#38bdf8', bg: '#0f172a', border: 'rgba(6,182,212,0.4)', iconBg: 'rgba(6,182,212,0.2)', iconColor: '#38bdf8', icon: 'ℹ', text: '#f8fafc', prog: '#06b6d4', shadow: '0 12px 32px rgba(0,0,0,0.65), 0 0 16px rgba(6,182,212,0.18)' },
+                warn:    { color: '#fbbf24', bg: '#0f172a', border: 'rgba(234,179,8,0.4)', iconBg: 'rgba(234,179,8,0.2)', iconColor: '#fbbf24', icon: '⚠', text: '#f8fafc', prog: '#eab308', shadow: '0 12px 32px rgba(0,0,0,0.65), 0 0 16px rgba(234,179,8,0.18)' },
             };
+
             const p = palette[type] || palette.info;
             const dur = DURATION[type] || 2500;
 
-            // Strip leading ✓/✗ emoji — already shown via icon
-            const cleanMsg = typeof msg === 'string' ? msg.replace(/^[✓✗⚡·\s]+/, '').trim() : msg;
+            // Strip leading emojis/status icons
+            const cleanMsg = typeof msg === 'string' ? msg.replace(/^[✓✗❌✅⚡⌛⚠·✕\s]+/, '').trim() : msg;
 
             const el = document.createElement('div');
-            el.setAttribute('role', 'alert');
+            el.setAttribute('role', type === 'error' ? 'alert' : 'status');
+            el.setAttribute('aria-live', 'polite');
             el.style.cssText = [
                 'display:flex', 'align-items:center', 'gap:10px',
                 `background:${p.bg}`,
-                'backdrop-filter:blur(16px)',
-                '-webkit-backdrop-filter:blur(16px)',
                 `border:1px solid ${p.border}`,
                 'border-radius:10px',
-                'padding:10px 14px',
-                `box-shadow:0 4px 24px rgba(0,0,0,0.45),0 0 0 1px rgba(255,255,255,0.04),inset 0 1px 0 rgba(255,255,255,0.06)`,
-                'max-width:340px', 'min-width:220px',
+                'padding:11px 14px',
+                `box-shadow:${p.shadow}`,
+                'max-width:380px', 'min-width:240px',
                 'pointer-events:auto',
                 'cursor:pointer',
                 'user-select:none',
@@ -2415,16 +2515,15 @@
                 'overflow:hidden',
             ].join(';');
 
-            el.innerHTML = [
-                `<div style="flex-shrink:0;width:20px;height:20px;border-radius:50%;background:${p.bg};border:1px solid ${p.border};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:${p.color};">${p.icon}</div>`,
-                `<span style="font-family:'Inter',sans-serif;font-size:11.5px;font-weight:500;color:rgba(255,255,255,0.88);line-height:1.4;flex:1;">${cleanMsg}</span>`,
-                `<div style="flex-shrink:0;font-size:13px;color:rgba(255,255,255,0.25);line-height:1;padding-left:4px;">✕</div>`,
-                // Progress bar
-                `<div style="position:absolute;bottom:0;left:0;height:1.5px;width:100%;background:${p.color};opacity:0.6;transform-origin:left;animation:fb-prog ${dur}ms linear forwards;"></div>`,
-            ].join('');
+            const closeColor = isLight ? '#94a3b8' : 'rgba(255,255,255,0.4)';
 
-            // Dismiss on click
-            el.addEventListener('click', () => dismiss(el));
+            el.innerHTML = [
+                `<div style="flex-shrink:0;width:24px;height:24px;border-radius:50%;background:${p.iconBg};border:1px solid ${p.border};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:${p.iconColor};">${p.icon}</div>`,
+                `<span style="font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:${p.text};line-height:1.45;flex:1;word-break:break-word;">${cleanMsg}</span>`,
+                `<div class="fb-close-btn" style="flex-shrink:0;font-size:14px;font-weight:700;color:${closeColor};line-height:1;padding:4px;cursor:pointer;border-radius:4px;transition:color 0.15s;" title="Dismiss">✕</div>`,
+                // Progress bar
+                `<div class="fb-progress" style="position:absolute;bottom:0;left:0;height:2.5px;width:100%;background:${p.prog};opacity:0.85;transform-origin:left;animation:fb-prog ${dur}ms linear forwards;"></div>`,
+            ].join('');
 
             container.prepend(el);
 
@@ -2442,16 +2541,43 @@
                 el.style.transform = 'translateX(0)';
             }));
 
-            // Auto dismiss
-            const timer = setTimeout(() => dismiss(el), dur);
-            el._fbTimer = timer;
+            // Pause on hover
+            let remaining = dur;
+            let start = Date.now();
+            let timerId = null;
 
-            function dismiss(node) {
-                clearTimeout(node._fbTimer);
-                node.style.opacity = '0';
-                node.style.transform = 'translateX(14px)';
-                setTimeout(() => node.remove(), 280);
+            function startTimer() {
+                start = Date.now();
+                timerId = setTimeout(() => dismiss(el), remaining);
+                const prog = el.querySelector('.fb-progress');
+                if (prog) prog.style.animationPlayState = 'running';
             }
+
+            function pauseTimer() {
+                clearTimeout(timerId);
+                remaining -= (Date.now() - start);
+                const prog = el.querySelector('.fb-progress');
+                if (prog) prog.style.animationPlayState = 'paused';
+            }
+
+            el.addEventListener('mouseenter', pauseTimer);
+            el.addEventListener('mouseleave', () => {
+                if (remaining > 0) startTimer();
+                else dismiss(el);
+            });
+
+            // Dismiss handler
+            function dismiss(node) {
+                if (node._isDismissed) return;
+                node._isDismissed = true;
+                clearTimeout(timerId);
+                node.style.opacity = '0';
+                node.style.transform = 'translateX(16px) scale(0.96)';
+                setTimeout(() => node.remove(), 260);
+            }
+
+            el.addEventListener('click', () => dismiss(el));
+            startTimer();
         };
 
         // Override alert()
@@ -3456,10 +3582,41 @@
       color: rgba(15, 23, 42, 0.6) !important;
   }
   :root[data-theme="light"] .crypto-slider {
-      background: rgba(0, 0, 0, 0.08) !important;
+      background: #e2e8f0;
+  }
+  :root[data-theme="light"] .crypto-slider::-webkit-slider-thumb {
+      background: #ffffff !important;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.2), 0 0 10px var(--slider-glow, rgba(6, 182, 212, 0.35)) !important;
   }
   :root[data-theme="light"] .crypto-slider-ticks span {
-      color: rgba(15, 23, 42, 0.5) !important;
+      color: #64748b !important;
+  }
+  :root[data-theme="light"] .crypto-slider-ticks span:hover {
+      color: #0f172a !important;
+  }
+  :root[data-theme="light"] .crypto-slider-ticks span.active {
+      color: #0284c7 !important;
+  }
+  :root[data-theme="light"] .lev-quick-pill {
+      background: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      color: #64748b !important;
+  }
+  :root[data-theme="light"] .lev-quick-pill:hover {
+      background: #f8fafc !important;
+      border-color: #0284c7 !important;
+      color: #0f172a !important;
+  }
+  :root[data-theme="light"] .lev-quick-pill.active {
+      background: #e0f2fe !important;
+      border-color: #0284c7 !important;
+      color: #0284c7 !important;
+      box-shadow: 0 0 8px rgba(2, 132, 199, 0.2) !important;
+  }
+  :root[data-theme="light"] #l2-lev-bubble {
+      background: #ffffff !important;
+      color: #0f172a !important;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15) !important;
   }
   :root[data-theme="light"] .badge-gray {
       background: rgba(0, 0, 0, 0.06) !important;
@@ -4937,8 +5094,9 @@ window.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify(payload)
                 });
                 const data = await res.json();
-                if (data.error || data.msg || (data.code && data.code < 0)) {
-                    throw new Error(data.error || data.msg || ('Code ' + data.code));
+                const isErr = !res.ok || data.error || (data.code !== undefined && data.code !== 200);
+                if (isErr) {
+                    throw new Error(data.error || data.msg || ('Error ' + (data.code || res.status)));
                 }
                 return data;
             };
@@ -4982,24 +5140,55 @@ window.addEventListener('DOMContentLoaded', () => {
                     'Adjust Leverage',
                     symbol, subheaderHtml,
                     `<div style="display:flex;flex-direction:column;gap:14px;">
+                        <!-- Stepper Input & Dynamic Risk Pill -->
                         <div class="l2-field-group">
-                            <label style="font-size:11px;color:var(--text-muted);font-weight:600;">Target Leverage</label>
-                            <div style="display:flex; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:10px; align-items:center; padding:2px;">
-                                <button type="button" onclick="window.stepL2Lev(-1)" style="background:none; border:none; color:var(--text-muted); font-size:20px; padding:0 16px; cursor:pointer;">−</button>
-                                <input id="fapi-lev-val" class="l2-num-input" type="number" min="1" max="100" value="${leverage}" style="flex:1; background:none; border:none; color:var(--text-main); text-align:center; font-size:16px; font-family:'JetBrains Mono',monospace; outline:none;" oninput="window.setL2Lev(this.value);">
-                                <button type="button" onclick="window.stepL2Lev(1)" style="background:none; border:none; color:var(--text-muted); font-size:20px; padding:0 16px; cursor:pointer;">+</button>
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                                <label style="font-size:11px;color:var(--text-muted);font-weight:600;margin:0;">Target Leverage</label>
+                                <span id="l2-lev-risk-pill" style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace;transition:all 0.2s ease;">1× • LOW RISK</span>
+                            </div>
+                            <div style="display:flex; background:var(--input-bg); border:1px solid var(--border); border-radius:10px; align-items:center; padding:3px 4px; box-shadow:inset 0 1px 2px rgba(0,0,0,0.08);">
+                                <button type="button" onclick="window.stepL2Lev(-1)" style="background:none; border:none; color:var(--text-muted); font-size:22px; font-weight:700; width:44px; height:38px; cursor:pointer; border-radius:6px; transition:all 0.15s; display:flex; align-items:center; justify-content:center;" onmouseover="this.style.color='var(--text-main)';this.style.background='var(--glass-hover)'" onmouseout="this.style.color='var(--text-muted)';this.style.background='transparent'">−</button>
+                                <div style="flex:1; display:flex; align-items:center; justify-content:center; gap:2px;">
+                                    <input id="fapi-lev-val" class="l2-num-input" type="number" min="1" max="100" value="${leverage}" style="width:68px; background:none; border:none; color:var(--text-main); text-align:center; font-size:20px; font-weight:800; font-family:'JetBrains Mono',monospace; outline:none;" oninput="window.setL2Lev(this.value);">
+                                    <span style="font-size:16px; font-weight:800; color:var(--cyan); font-family:'JetBrains Mono',monospace;">×</span>
+                                </div>
+                                <button type="button" onclick="window.stepL2Lev(1)" style="background:none; border:none; color:var(--text-muted); font-size:22px; font-weight:700; width:44px; height:38px; cursor:pointer; border-radius:6px; transition:all 0.15s; display:flex; align-items:center; justify-content:center;" onmouseover="this.style.color='var(--text-main)';this.style.background='var(--glass-hover)'" onmouseout="this.style.color='var(--text-muted)';this.style.background='transparent'">+</button>
                             </div>
                         </div>
+
+                        <!-- Smooth Leverage Slider with Floating Value Bubble -->
                         <div class="crypto-slider-wrap">
+                            <div id="l2-lev-bubble" style="position:absolute; top:-24px; left:0; transform:translateX(-50%); background:var(--panel, #1e293b); border:1px solid var(--cyan); color:var(--text-main); font-size:10px; font-weight:800; font-family:'JetBrains Mono',monospace; padding:1px 6px; border-radius:4px; pointer-events:none; white-space:nowrap; box-shadow:0 2px 8px rgba(0,0,0,0.3); transition:left 0.05s ease, border-color 0.2s; z-index:2;">
+                                ${leverage}×
+                            </div>
                             <input id="l2-lev-slider" class="crypto-slider" type="range" min="1" max="100" value="${leverage}" oninput="window.setL2Lev(this.value)">
                             <div class="crypto-slider-ticks">
-                                <span onclick="window.setL2Lev(1)" style="cursor:pointer;">1x</span>
-                                <span onclick="window.setL2Lev(20)" style="cursor:pointer;">20x</span>
-                                <span onclick="window.setL2Lev(40)" style="cursor:pointer;">40x</span>
-                                <span onclick="window.setL2Lev(60)" style="cursor:pointer;">60x</span>
-                                <span onclick="window.setL2Lev(80)" style="cursor:pointer;">80x</span>
-                                <span onclick="window.setL2Lev(100)" style="cursor:pointer;">100x</span>
+                                <span onclick="window.setL2Lev(1)" data-val="1">1x</span>
+                                <span onclick="window.setL2Lev(10)" data-val="10">10x</span>
+                                <span onclick="window.setL2Lev(25)" data-val="25">25x</span>
+                                <span onclick="window.setL2Lev(50)" data-val="50">50x</span>
+                                <span onclick="window.setL2Lev(75)" data-val="75">75x</span>
+                                <span onclick="window.setL2Lev(100)" data-val="100">100x</span>
                             </div>
+                        </div>
+
+                        <!-- Quick-Select Snap Buttons -->
+                        <div style="display:grid; grid-template-columns: repeat(7, 1fr); gap:6px;">
+                            <button type="button" class="lev-quick-pill" data-val="1" onclick="window.setL2Lev(1)">1×</button>
+                            <button type="button" class="lev-quick-pill" data-val="5" onclick="window.setL2Lev(5)">5×</button>
+                            <button type="button" class="lev-quick-pill" data-val="10" onclick="window.setL2Lev(10)">10×</button>
+                            <button type="button" class="lev-quick-pill" data-val="20" onclick="window.setL2Lev(20)">20×</button>
+                            <button type="button" class="lev-quick-pill" data-val="50" onclick="window.setL2Lev(50)">50×</button>
+                            <button type="button" class="lev-quick-pill" data-val="75" onclick="window.setL2Lev(75)">75×</button>
+                            <button type="button" class="lev-quick-pill" data-val="100" onclick="window.setL2Lev(100)">100×</button>
+                        </div>
+
+                        <!-- 4-Stage Risk Meter Bar -->
+                        <div class="lev-risk-bar" title="Risk Meter: Low (1-10x), Moderate (11-25x), High (26-50x), Extreme (51-100x)">
+                            <div id="lev-seg-1" class="lev-risk-seg" style="background:#10b981;"></div>
+                            <div id="lev-seg-2" class="lev-risk-seg" style="background:#06b6d4;"></div>
+                            <div id="lev-seg-3" class="lev-risk-seg" style="background:#eab308;"></div>
+                            <div id="lev-seg-4" class="lev-risk-seg" style="background:#f43f5e;"></div>
                         </div>
                         
                         <!-- Real-time Leverage Impact Preview -->
@@ -5022,7 +5211,7 @@ window.addEventListener('DOMContentLoaded', () => {
                             </div>
                         </div>
 
-                        <div id="l2-lev-warning" style="font-size:11px; color:var(--text-muted); line-height:1.4;">
+                        <div id="l2-lev-warning" style="font-size:11px; color:var(--text-muted); line-height:1.45; min-height:28px;">
                             Higher leverage increases liquidation risk. Ensure sufficient margin is maintained.
                         </div>
                     </div>`,
@@ -5046,9 +5235,90 @@ window.addEventListener('DOMContentLoaded', () => {
                     const num = Math.max(1, Math.min(100, parseInt(val) || 1));
                     const input = document.getElementById('fapi-lev-val');
                     const slider = document.getElementById('l2-lev-slider');
-                    if (input) input.value = num;
+                    const bubble = document.getElementById('l2-lev-bubble');
+                    const riskPill = document.getElementById('l2-lev-risk-pill');
+                    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+
+                    if (input && document.activeElement !== input) input.value = num;
                     if (slider) slider.value = num;
-                    
+
+                    // Calculate slider fill percentage & track gradient
+                    const pct = ((num - 1) / 99) * 100;
+
+                    let riskColor = '#10b981';
+                    let riskGlow = 'rgba(16, 185, 129, 0.45)';
+                    let riskLabel = 'LOW RISK';
+                    let riskBg = 'rgba(16, 185, 129, 0.12)';
+                    let riskBorder = 'rgba(16, 185, 129, 0.35)';
+
+                    if (num <= 10) {
+                        riskColor = '#10b981';
+                        riskGlow = 'rgba(16, 185, 129, 0.45)';
+                        riskLabel = 'LOW RISK';
+                        riskBg = isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.12)';
+                        riskBorder = isLight ? '#a7f3d0' : 'rgba(16, 185, 129, 0.35)';
+                    } else if (num <= 25) {
+                        riskColor = isLight ? '#0284c7' : '#06b6d4';
+                        riskGlow = 'rgba(6, 182, 212, 0.45)';
+                        riskLabel = 'MODERATE';
+                        riskBg = isLight ? '#f0f9ff' : 'rgba(6, 182, 212, 0.12)';
+                        riskBorder = isLight ? '#bae6fd' : 'rgba(6, 182, 212, 0.35)';
+                    } else if (num <= 50) {
+                        riskColor = isLight ? '#d97706' : '#eab308';
+                        riskGlow = 'rgba(234, 179, 8, 0.45)';
+                        riskLabel = 'HIGH RISK';
+                        riskBg = isLight ? '#fefce8' : 'rgba(234, 179, 8, 0.12)';
+                        riskBorder = isLight ? '#fde68a' : 'rgba(234, 179, 8, 0.35)';
+                    } else {
+                        riskColor = isLight ? '#e11d48' : '#f43f5e';
+                        riskGlow = 'rgba(244, 63, 94, 0.45)';
+                        riskLabel = 'EXTREME RISK';
+                        riskBg = isLight ? '#fff1f2' : 'rgba(244, 63, 94, 0.12)';
+                        riskBorder = isLight ? '#fecdd3' : 'rgba(244, 63, 94, 0.35)';
+                    }
+
+                    if (slider) {
+                        slider.style.setProperty('--slider-accent', riskColor);
+                        slider.style.setProperty('--slider-glow', riskGlow);
+                        const trackBg = isLight ? '#e2e8f0' : 'rgba(255, 255, 255, 0.08)';
+                        slider.style.background = `linear-gradient(to right, ${riskColor} 0%, ${riskColor} ${pct}%, ${trackBg} ${pct}%, ${trackBg} 100%)`;
+                    }
+
+                    if (bubble) {
+                        bubble.style.left = `calc(${pct}% + ${(10 - pct * 0.2)}px)`;
+                        bubble.textContent = num + '×';
+                        bubble.style.borderColor = riskColor;
+                    }
+
+                    if (riskPill) {
+                        riskPill.textContent = `${num}× • ${riskLabel}`;
+                        riskPill.style.color = riskColor;
+                        riskPill.style.background = riskBg;
+                        riskPill.style.border = `1px solid ${riskBorder}`;
+                    }
+
+                    // Update active snap pill buttons
+                    document.querySelectorAll('.lev-quick-pill').forEach(btn => {
+                        const val = parseInt(btn.dataset.val);
+                        btn.classList.toggle('active', val === num);
+                    });
+
+                    // Update active slider ticks
+                    document.querySelectorAll('.crypto-slider-ticks span').forEach(sp => {
+                        const val = parseInt(sp.dataset.val);
+                        sp.classList.toggle('active', val === num);
+                    });
+
+                    // Update 4-segment risk meter bar
+                    const seg1 = document.getElementById('lev-seg-1');
+                    const seg2 = document.getElementById('lev-seg-2');
+                    const seg3 = document.getElementById('lev-seg-3');
+                    const seg4 = document.getElementById('lev-seg-4');
+                    if (seg1) seg1.classList.toggle('active', num >= 1);
+                    if (seg2) seg2.classList.toggle('active', num > 10);
+                    if (seg3) seg3.classList.toggle('active', num > 25);
+                    if (seg4) seg4.classList.toggle('active', num > 50);
+
                     const reqMarginEl = document.getElementById('l2-lev-req-margin');
                     const maxSizeEl = document.getElementById('l2-lev-max-size');
                     const warnEl = document.getElementById('l2-lev-warning');
@@ -5059,7 +5329,25 @@ window.addEventListener('DOMContentLoaded', () => {
                         if (newReq > (availBal + marginInPos)) {
                             if (warnEl) warnEl.innerHTML = `<span style="color:#fb7185;font-weight:700;">⚠️ Insufficient balance to maintain position at ${num}× leverage.</span>`;
                         } else if (warnEl) {
-                            warnEl.innerHTML = `Higher leverage increases liquidation risk. Ensure sufficient margin is maintained.`;
+                            if (num <= 10) {
+                                warnEl.innerHTML = `<span style="color:var(--emerald);">✓ Low liquidation risk. Standard leverage for balanced margin safety.</span>`;
+                            } else if (num <= 25) {
+                                warnEl.innerHTML = `<span style="color:var(--cyan);">ℹ Moderate leverage. Position liquidation distance is reduced; monitor volatility.</span>`;
+                            } else if (num <= 50) {
+                                warnEl.innerHTML = `<span style="color:var(--yellow);font-weight:600;">⚠️ High leverage. Margin call buffer is narrow; volatility may trigger liquidation.</span>`;
+                            } else {
+                                warnEl.innerHTML = `<span style="color:var(--rose);font-weight:700;">🚨 Extreme leverage. Very small market fluctuation will trigger liquidation.</span>`;
+                            }
+                        }
+                    } else if (warnEl) {
+                        if (num <= 10) {
+                            warnEl.innerHTML = `<span style="color:var(--emerald);">✓ Low liquidation risk. Standard leverage for balanced margin safety.</span>`;
+                        } else if (num <= 25) {
+                            warnEl.innerHTML = `<span style="color:var(--cyan);">ℹ Moderate leverage. Position liquidation distance is reduced; monitor volatility.</span>`;
+                        } else if (num <= 50) {
+                            warnEl.innerHTML = `<span style="color:var(--yellow);font-weight:600;">⚠️ High leverage. Margin call buffer is narrow; volatility may trigger liquidation.</span>`;
+                        } else {
+                            warnEl.innerHTML = `<span style="color:var(--rose);font-weight:700;">🚨 Extreme leverage. Very small market fluctuation will trigger liquidation.</span>`;
                         }
                     }
 
@@ -5781,8 +6069,12 @@ window.addEventListener('DOMContentLoaded', () => {
         bindTog('tog-flash', v => { flashOn = v; });
 
         function showToast(msgStr, isErr = false) {
-            window.showFlushbar(msgStr, isErr ? 'error' : 'info');
+            let type = 'info';
+            if (isErr === true) type = 'error';
+            else if (typeof isErr === 'string') type = isErr;
+            window.showFlushbar(msgStr, type);
         }
+        window.showToast = showToast;
 
         let activePreset = null;
         let scenarioStepsGlobal = [];
