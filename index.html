@@ -1902,29 +1902,146 @@
     background: rgba(6, 182, 212, 0.1);
   }
 
+  /* Enhanced Field Tags & Spec Pills */
+  .term-field-tag {
+    font-size: 8.5px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    padding: 1.5px 5px;
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    text-transform: uppercase;
+  }
+  .term-tag-price {
+    background: rgba(6, 182, 212, 0.15);
+    color: var(--cyan);
+    border: 1px solid rgba(6, 182, 212, 0.35);
+  }
+  .term-tag-qty {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--emerald);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+  }
+  .term-tag-stop {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+  }
+  .term-tag-mkt {
+    background: rgba(168, 85, 247, 0.15);
+    color: #c084fc;
+    border: 1px solid rgba(168, 85, 247, 0.35);
+  }
+
+  .term-spec-pill {
+    font-size: 8px;
+    font-weight: 700;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-muted);
+    letter-spacing: 0.3px;
+  }
+  :root[data-theme="light"] .term-spec-pill {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #64748b;
+  }
+
+  /* One-Click Snap Correction Button */
+  .term-snap-btn {
+    font-size: 8px;
+    font-weight: 800;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.25) 0%, rgba(245, 158, 11, 0.12) 100%);
+    border: 1px solid rgba(245, 158, 11, 0.5);
+    color: #fef08a;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    animation: iconVibrate 1.8s infinite ease-in-out;
+    transition: all 0.15s ease;
+  }
+  .term-snap-btn:hover {
+    background: #f59e0b;
+    color: #000;
+    border-color: #f59e0b;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+    transform: scale(1.05);
+  }
+  :root[data-theme="light"] .term-snap-btn {
+    background: #fef3c7;
+    border-color: #f59e0b;
+    color: #b45309;
+  }
+
+  /* Enhanced High-Clarity Input Box */
   .term-input-box {
+    position: relative;
     display: flex;
     align-items: center;
-    background: var(--input-bg);
-    border: 1px solid var(--border);
-    border-radius: 6px;
+    background: rgba(11, 17, 30, 0.85);
+    border: 1.5px solid rgba(255, 255, 255, 0.14);
+    border-radius: 7px;
     padding: 0 4px;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    height: 33px;
+    box-sizing: border-box;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
+  :root[data-theme="light"] .term-input-box {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+  .term-input-box:hover {
+    border-color: rgba(255, 255, 255, 0.28);
+  }
+  :root[data-theme="light"] .term-input-box:hover {
+    border-color: #94a3b8;
+  }
+
+  /* Focus Glow */
   .term-input-box:focus-within {
-    border-color: var(--cyan);
-    box-shadow: 0 0 10px rgba(6, 182, 212, 0.25);
+    border-color: var(--cyan) !important;
+    background: rgba(11, 17, 30, 0.98);
+    box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.22), 0 2px 10px rgba(6, 182, 212, 0.2) !important;
   }
+  :root[data-theme="light"] .term-input-box:focus-within {
+    background: #ffffff;
+    border-color: #0284c7 !important;
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.2) !important;
+  }
+
+  /* Validation Warning & Error States on Fields */
+  .term-input-box.field-state-warn {
+    border-color: #f59e0b !important;
+    background: rgba(245, 158, 11, 0.08) !important;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25), 0 0 10px rgba(245, 158, 11, 0.15) !important;
+  }
+  .term-input-box.field-state-error {
+    border-color: #ef4444 !important;
+    background: rgba(239, 68, 68, 0.08) !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25), 0 0 12px rgba(239, 68, 68, 0.2) !important;
+  }
+  .term-input-box.field-state-valid {
+    border-color: rgba(16, 185, 129, 0.45);
+  }
+
   .term-input {
     flex: 1;
     background: transparent;
     border: none;
     outline: none;
     color: var(--text-main);
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 13.5px;
+    font-weight: 800;
     font-family: 'JetBrains Mono', monospace;
-    padding: 7px 6px;
+    padding: 6px;
     min-width: 0;
   }
   .term-input::-webkit-outer-spin-button,
@@ -1937,32 +2054,65 @@
     appearance: textfield !important;
   }
   .term-input-unit {
-    font-size: 9.5px;
-    font-weight: 700;
+    font-size: 9px;
+    font-weight: 800;
     color: var(--text-muted);
-    padding: 0 6px;
-    font-family: 'Inter', sans-serif;
-  }
-  .term-stepper-btn {
-    width: 22px;
-    height: 22px;
+    padding: 2px 5px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 4px;
-    border: 1px solid var(--border);
-    background: rgba(255, 255, 255, 0.04);
-    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.5px;
+    margin: 0 2px;
+  }
+  :root[data-theme="light"] .term-input-unit {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+    color: #64748b;
+  }
+
+  /* High-Contrast Steppers */
+  .term-stepper-btn {
+    width: 23px;
+    height: 23px;
+    border-radius: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-main);
     font-size: 13px;
-    font-weight: 700;
+    font-weight: 800;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     line-height: 1;
-    transition: all 0.15s ease;
+    transition: all 0.12s ease;
+    user-select: none;
+    flex-shrink: 0;
+  }
+  :root[data-theme="light"] .term-stepper-btn {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #1e293b;
   }
   .term-stepper-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text-main);
-    border-color: var(--text-muted);
+    background: var(--cyan);
+    color: #000;
+    border-color: var(--cyan);
+    box-shadow: 0 0 8px rgba(6, 182, 212, 0.4);
+    transform: scale(1.06);
+  }
+  .term-stepper-btn:active {
+    transform: scale(0.92);
+  }
+
+  .term-market-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 8px #10b981;
+    animation: iconVibrate 2s infinite ease-in-out;
   }
 
   .term-advanced-accordion {
@@ -4754,24 +4904,31 @@
         <!-- 1. Trigger Price (Visible in STOP & STOP_MARKET) -->
         <div id="trade-stop-price-wrap" class="term-col" style="display:none;">
           <div class="term-col-header">
-            <label class="term-input-label">Trigger Price</label>
+            <div style="display:flex;align-items:center;gap:4px;min-width:0;">
+              <span class="term-field-tag term-tag-stop">TRIGGER</span>
+              <span class="term-spec-pill" id="term-stop-tick-badge" title="Price tick increment">Tick: —</span>
+              <button class="term-snap-btn" id="trade-stop-price-fix" onclick="window.fixStopPriceTick()" title="Click to align trigger price to valid tick" style="display:none;">⚡ Snap</button>
+            </div>
             <div class="term-quick-chips">
               <span class="term-chip" onclick="window.setTermStopPriceFrom('mark')">Mark</span>
               <span class="term-chip" onclick="window.setTermStopPriceFrom('last')">Last</span>
             </div>
           </div>
-          <div class="term-input-box">
-            <button class="term-stepper-btn" onclick="window.stepTermStopPrice(-1)">−</button>
+          <div class="term-input-box" id="trade-stop-price-box">
+            <button class="term-stepper-btn" onclick="window.stepTermStopPrice(-1)" title="Decrease by 1 Tick">−</button>
             <input id="trade-stop-price" type="number" step="any" placeholder="0.00" oninput="window.calcTermEstimates()" class="term-input">
             <span class="term-input-unit">USDT</span>
-            <button class="term-stepper-btn" onclick="window.stepTermStopPrice(1)">+</button>
+            <button class="term-stepper-btn" onclick="window.stepTermStopPrice(1)" title="Increase by 1 Tick">+</button>
           </div>
         </div>
 
         <!-- 2. Trailing Callback Rate (Visible in TRAILING_STOP_MARKET) -->
         <div id="trade-callback-wrap" class="term-col" style="display:none;">
           <div class="term-col-header">
-            <label class="term-input-label">Callback Rate</label>
+            <div style="display:flex;align-items:center;gap:4px;">
+              <span class="term-field-tag term-tag-stop">CALLBACK</span>
+              <span class="term-spec-pill">Rate</span>
+            </div>
             <div class="term-quick-chips">
               <span class="term-chip" onclick="window.setTermCbRate(0.5)">0.5%</span>
               <span class="term-chip" onclick="window.setTermCbRate(1.0)">1%</span>
@@ -4787,13 +4944,17 @@
         <!-- 3. Market Price View (Visible in MARKET) -->
         <div id="trade-market-price-wrap" class="term-col">
           <div class="term-col-header">
-            <label class="term-input-label">Order Price</label>
-            <div class="term-quick-chips">
-              <span class="term-chip-active">Market BBO</span>
+            <div style="display:flex;align-items:center;gap:4px;">
+              <span class="term-field-tag term-tag-mkt">EXECUTION</span>
+              <span class="term-spec-pill" style="color:var(--cyan);border-color:rgba(6,182,212,0.3);background:rgba(6,182,212,0.08);">BBO</span>
             </div>
+            <span class="term-chip-active">Market Price</span>
           </div>
-          <div class="term-market-box" title="Executes immediately at best available order book price">
-            <span class="term-market-tag">⚡ MARKET</span>
+          <div class="term-market-box" id="trade-market-box" title="Executes immediately at current best available order book price">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span class="term-market-dot"></span>
+              <span class="term-market-tag">MARKET</span>
+            </div>
             <span class="term-market-sub" id="term-market-sub-price">Best Execution</span>
           </div>
         </div>
@@ -4801,37 +4962,46 @@
         <!-- 4. Limit Order Price (Visible in LIMIT & STOP) -->
         <div id="trade-price-wrap" class="term-col" style="display:none;">
           <div class="term-col-header">
-            <label class="term-input-label">Order Price</label>
+            <div style="display:flex;align-items:center;gap:4px;min-width:0;">
+              <span class="term-field-tag term-tag-price">PRICE</span>
+              <span class="term-spec-pill" id="term-tick-badge" title="Price tick increment">Tick: —</span>
+              <button class="term-snap-btn" id="trade-price-fix" onclick="window.fixPriceTick()" title="Click to align price to valid tick" style="display:none;">⚡ Snap</button>
+            </div>
             <div class="term-quick-chips">
               <span class="term-chip" onclick="window.setTermPriceFrom('ltp')">Last</span>
               <span class="term-chip" onclick="window.setTermPriceFrom('bid')">Bid</span>
               <span class="term-chip" onclick="window.setTermPriceFrom('ask')">Ask</span>
             </div>
           </div>
-          <div class="term-input-box">
-            <button class="term-stepper-btn" onclick="window.stepTermPrice(-1)">−</button>
+          <div class="term-input-box" id="trade-price-box">
+            <button class="term-stepper-btn" onclick="window.stepTermPrice(-1)" title="Decrease by 1 Tick">−</button>
             <input id="trade-price" type="number" step="any" placeholder="0.00" oninput="window.calcTermEstimates()" class="term-input">
             <span class="term-input-unit">USDT</span>
-            <button class="term-stepper-btn" onclick="window.stepTermPrice(1)">+</button>
+            <button class="term-stepper-btn" onclick="window.stepTermPrice(1)" title="Increase by 1 Tick">+</button>
           </div>
         </div>
 
         <!-- 5. Order Quantity & Percentage Chips (ALWAYS visible beside price) -->
         <div id="trade-qty-wrap" class="term-col">
           <div class="term-col-header">
-            <label class="term-input-label">Qty (<span id="term-base-asset">BASE</span>) <span class="term-quick-chip-btn" id="term-chip-min-qty" onclick="window.setTermMinQty()" title="Set minimum order quantity (5 USDT notional)" style="display:none;">Min</span></label>
+            <div style="display:flex;align-items:center;gap:4px;min-width:0;">
+              <span class="term-field-tag term-tag-qty">QTY</span>
+              <span class="term-spec-pill" id="term-step-badge" title="Lot size step increment">Step: —</span>
+              <button class="term-snap-btn" id="trade-qty-fix" onclick="window.fixQtyStep()" title="Click to align quantity to valid lot size" style="display:none;">⚡ Snap</button>
+            </div>
             <div class="term-quick-chips">
+              <span class="term-chip" onclick="window.setTermMinQty()" title="Set to minimum order quantity">Min</span>
               <span class="term-chip" onclick="window.setTermQtyPct(25)">25%</span>
               <span class="term-chip" onclick="window.setTermQtyPct(50)">50%</span>
               <span class="term-chip" onclick="window.setTermQtyPct(75)">75%</span>
               <span class="term-chip" onclick="window.setTermQtyPct(100)">100%</span>
             </div>
           </div>
-          <div class="term-input-box">
-            <button class="term-stepper-btn" onclick="window.stepTermQty(-1)">−</button>
+          <div class="term-input-box" id="trade-qty-box">
+            <button class="term-stepper-btn" onclick="window.stepTermQty(-1)" title="Decrease by 1 Step">−</button>
             <input id="trade-qty" type="number" step="any" placeholder="0.00" oninput="window.calcTermEstimates()" class="term-input">
             <span id="term-qty-asset-label" class="term-input-unit">QTY</span>
-            <button class="term-stepper-btn" onclick="window.stepTermQty(1)">+</button>
+            <button class="term-stepper-btn" onclick="window.stepTermQty(1)" title="Increase by 1 Step">+</button>
           </div>
         </div>
 
@@ -8064,19 +8234,164 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         };
 
+        window.getSymbolTickSize = function() {
+            const inst = cachedInstances[activeTabSymbol];
+            const diag = inst?.diagnostics || {};
+            if (diag.tickSize && parseFloat(diag.tickSize) > 0) return parseFloat(diag.tickSize);
+            const prec = (typeof pPrec !== 'undefined' && pPrec !== null) ? pPrec : (diag.pricePrecision !== undefined ? diag.pricePrecision : 4);
+            return Math.pow(10, -prec);
+        };
+
+        window.getSymbolQtyStep = function() {
+            const inst = cachedInstances[activeTabSymbol];
+            const diag = inst?.diagnostics || {};
+            if (diag.qtyStep && parseFloat(diag.qtyStep) > 0) return parseFloat(diag.qtyStep);
+            const prec = (typeof qPrec !== 'undefined' && qPrec !== null) ? qPrec : (diag.qtyPrecision !== undefined ? diag.qtyPrecision : 2);
+            return Math.pow(10, -prec);
+        };
+
+        window.getSymbolMinQty = function() {
+            const inst = cachedInstances[activeTabSymbol];
+            const diag = inst?.diagnostics || {};
+            if (diag.minQty && parseFloat(diag.minQty) > 0) return parseFloat(diag.minQty);
+            return window.getSymbolQtyStep();
+        };
+
+        window.validatePriceTick = function(price, customTick) {
+            if (!price || isNaN(price) || price <= 0) return { valid: true };
+            const tick = customTick || window.getSymbolTickSize();
+            if (!tick || tick <= 0) return { valid: true, tick: tick };
+
+            const tickDecimals = Math.max(0, -Math.round(Math.log10(tick)));
+            const priceStr = String(price);
+            const decParts = priceStr.split('.');
+            if (decParts[1] && decParts[1].length > tickDecimals) {
+                const nearestCount = Math.round(price / tick);
+                const nearest = (nearestCount * tick).toFixed(tickDecimals);
+                return {
+                    valid: false,
+                    reason: `Exceeds max precision (${tickDecimals} decimals for tick ${tick})`,
+                    nearest: nearest,
+                    tick: tick
+                };
+            }
+
+            const count = Math.round(price / tick);
+            const expected = count * tick;
+            const diff = Math.abs(price - expected);
+            if (diff > 1e-8 && diff > (tick * 1e-4)) {
+                const nearest = (count * tick).toFixed(tickDecimals);
+                return {
+                    valid: false,
+                    reason: `Must be a multiple of tick size (${tick})`,
+                    nearest: nearest,
+                    tick: tick
+                };
+            }
+            return { valid: true, tick: tick };
+        };
+
+        window.validateQtyStep = function(qty, customStep, customMin) {
+            if (!qty || isNaN(qty) || qty <= 0) return { valid: true };
+            const step = customStep || window.getSymbolQtyStep();
+            const minQ = customMin || window.getSymbolMinQty();
+            if (!step || step <= 0) return { valid: true, step: step };
+
+            const stepDecimals = Math.max(0, -Math.round(Math.log10(step)));
+            const qtyStr = String(qty);
+            const decParts = qtyStr.split('.');
+
+            if (minQ > 0 && qty < (minQ - 1e-8)) {
+                return {
+                    valid: false,
+                    reason: `Quantity (${qty}) is below Min Qty (${minQ})`,
+                    nearest: minQ.toFixed(stepDecimals),
+                    step: step,
+                    isMinError: true
+                };
+            }
+
+            if (decParts[1] && decParts[1].length > stepDecimals) {
+                const nearestCount = Math.max(1, Math.round(qty / step));
+                const nearest = (nearestCount * step).toFixed(stepDecimals);
+                return {
+                    valid: false,
+                    reason: `Exceeds max precision (${stepDecimals} decimals for step ${step})`,
+                    nearest: nearest,
+                    step: step
+                };
+            }
+
+            const count = Math.round(qty / step);
+            const expected = count * step;
+            const diff = Math.abs(qty - expected);
+            if (diff > 1e-8 && diff > (step * 1e-4)) {
+                const nearestCount = Math.max(1, Math.round(qty / step));
+                const nearest = (nearestCount * step).toFixed(stepDecimals);
+                return {
+                    valid: false,
+                    reason: `Must be a multiple of lot size (${step})`,
+                    nearest: nearest,
+                    step: step
+                };
+            }
+            return { valid: true, step: step };
+        };
+
+        window.fixPriceTick = function() {
+            const pInput = document.getElementById('trade-price');
+            if (!pInput || !pInput.value) return;
+            const tick = window.getSymbolTickSize();
+            const dec = Math.max(0, -Math.round(Math.log10(tick)));
+            const count = Math.round(parseFloat(pInput.value) / tick);
+            pInput.value = (count * tick).toFixed(dec);
+            window.calcTermEstimates();
+            showToast(`✓ Price snapped to tick ${tick}: ${pInput.value}`);
+        };
+
+        window.fixStopPriceTick = function() {
+            const spInput = document.getElementById('trade-stop-price');
+            if (!spInput || !spInput.value) return;
+            const tick = window.getSymbolTickSize();
+            const dec = Math.max(0, -Math.round(Math.log10(tick)));
+            const count = Math.round(parseFloat(spInput.value) / tick);
+            spInput.value = (count * tick).toFixed(dec);
+            window.calcTermEstimates();
+            showToast(`✓ Trigger price snapped to tick ${tick}: ${spInput.value}`);
+        };
+
+        window.fixQtyStep = function() {
+            const qInput = document.getElementById('trade-qty');
+            if (!qInput || !qInput.value) return;
+            const step = window.getSymbolQtyStep();
+            const minQ = window.getSymbolMinQty();
+            const dec = Math.max(0, -Math.round(Math.log10(step)));
+            let val = parseFloat(qInput.value);
+            if (val < minQ) {
+                qInput.value = minQ.toFixed(dec);
+            } else {
+                const count = Math.max(1, Math.round(val / step));
+                qInput.value = (count * step).toFixed(dec);
+            }
+            window.calcTermEstimates();
+            showToast(`✓ Quantity snapped to step ${step}: ${qInput.value}`);
+        };
+
         window.stepTermStopPrice = function(direction) {
             const stopInput = document.getElementById('trade-stop-price');
             if (!stopInput) return;
-            const inst = cachedInstances[activeTabSymbol];
-            const precision = (typeof pPrec !== 'undefined' && pPrec !== null) ? pPrec : (inst?.diagnostics?.pricePrecision !== undefined ? inst.diagnostics.pricePrecision : 4);
-            const step = Math.pow(10, -precision);
+            const tick = window.getSymbolTickSize();
+            const precision = Math.max(0, -Math.round(Math.log10(tick)));
             let cur = parseFloat(stopInput.value);
             if (isNaN(cur) || cur <= 0) {
+                const inst = cachedInstances[activeTabSymbol];
                 const diag = inst?.diagnostics || {};
                 cur = parseFloat(diag.testnetMarkPrice) || parseFloat(diag.binanceMarkPrice) || parseFloat(diag.testnetLtp) || 0;
             }
-            cur = Math.max(step, cur + (direction * step));
-            stopInput.value = cur.toFixed(precision);
+            let count = Math.round(cur / tick);
+            count += direction;
+            if (count < 1) count = 1;
+            stopInput.value = (count * tick).toFixed(precision);
             window.calcTermEstimates();
         };
 
@@ -8100,7 +8415,10 @@ window.addEventListener('DOMContentLoaded', () => {
             if (p > 0) {
                 const priceInput = document.getElementById('trade-price');
                 if (priceInput) {
-                    priceInput.value = p.toFixed(pPrec || 4);
+                    const tick = window.getSymbolTickSize();
+                    const precision = Math.max(0, -Math.round(Math.log10(tick)));
+                    const count = Math.round(p / tick);
+                    priceInput.value = (count * tick).toFixed(precision);
                     window.calcTermEstimates();
                 }
             }
@@ -8109,16 +8427,18 @@ window.addEventListener('DOMContentLoaded', () => {
         window.stepTermPrice = function(direction) {
             const priceInput = document.getElementById('trade-price');
             if (!priceInput) return;
-            const inst = cachedInstances[activeTabSymbol];
-            const precision = (typeof pPrec !== 'undefined' && pPrec !== null) ? pPrec : (inst?.diagnostics?.pricePrecision !== undefined ? inst.diagnostics.pricePrecision : 4);
-            const step = Math.pow(10, -precision);
+            const tick = window.getSymbolTickSize();
+            const precision = Math.max(0, -Math.round(Math.log10(tick)));
             let cur = parseFloat(priceInput.value);
             if (isNaN(cur) || cur <= 0) {
+                const inst = cachedInstances[activeTabSymbol];
                 const diag = inst?.diagnostics || {};
                 cur = parseFloat(diag.testnetLtp) || parseFloat(diag.binanceLtp) || 0;
             }
-            cur = Math.max(step, cur + (direction * step));
-            priceInput.value = cur.toFixed(precision);
+            let count = Math.round(cur / tick);
+            count += direction;
+            if (count < 1) count = 1;
+            priceInput.value = (count * tick).toFixed(precision);
             window.calcTermEstimates();
         };
 
@@ -8126,7 +8446,8 @@ window.addEventListener('DOMContentLoaded', () => {
             const inst = cachedInstances[activeTabSymbol];
             if (!inst) return;
             const diag = inst.diagnostics || {};
-            const precision = (typeof pPrec !== 'undefined' && pPrec !== null) ? pPrec : (diag.pricePrecision !== undefined ? diag.pricePrecision : 4);
+            const tick = window.getSymbolTickSize();
+            const precision = Math.max(0, -Math.round(Math.log10(tick)));
             let p = 0;
             if (source === 'mark') {
                 p = parseFloat(diag.testnetMarkPrice) || parseFloat(diag.binanceMarkPrice) || parseFloat(diag.testnetLtp) || 0;
@@ -8136,7 +8457,8 @@ window.addEventListener('DOMContentLoaded', () => {
             if (p > 0) {
                 const stopInput = document.getElementById('trade-stop-price');
                 if (stopInput) {
-                    stopInput.value = p.toFixed(precision);
+                    const count = Math.round(p / tick);
+                    stopInput.value = (count * tick).toFixed(precision);
                     window.calcTermEstimates();
                 }
             }
@@ -8176,12 +8498,13 @@ window.addEventListener('DOMContentLoaded', () => {
                 return showToast('⚠ Awaiting market price feed to calculate quantity percentage', true);
             }
 
-            // Max buying power with 1% safety margin
             const maxBuyingPower = avail * leverage * 0.99;
             const maxBaseQty = maxBuyingPower / price;
             const targetQty = (maxBaseQty * pct) / 100;
-            const precision = (typeof qPrec !== 'undefined' && qPrec !== null) ? qPrec : (inst?.diagnostics?.qtyPrecision !== undefined ? inst.diagnostics.qtyPrecision : 2);
-            const finalQty = Math.max(Math.pow(10, -precision), parseFloat(targetQty.toFixed(precision)));
+            const step = window.getSymbolQtyStep();
+            const precision = Math.max(0, -Math.round(Math.log10(step)));
+            const count = Math.max(1, Math.round(targetQty / step));
+            const finalQty = (count * step).toFixed(precision);
 
             const qtyInput = document.getElementById('trade-qty');
             if (qtyInput) {
@@ -8193,12 +8516,13 @@ window.addEventListener('DOMContentLoaded', () => {
         window.stepTermQty = function(direction) {
             const qtyInput = document.getElementById('trade-qty');
             if (!qtyInput) return;
-            const inst = cachedInstances[activeTabSymbol];
-            const precision = (typeof qPrec !== 'undefined' && qPrec !== null) ? qPrec : (inst?.diagnostics?.qtyPrecision !== undefined ? inst.diagnostics.qtyPrecision : 2);
-            const step = Math.pow(10, -precision);
+            const step = window.getSymbolQtyStep();
+            const precision = Math.max(0, -Math.round(Math.log10(step)));
             let cur = parseFloat(qtyInput.value) || 0;
-            cur = Math.max(step, cur + (direction * step));
-            qtyInput.value = cur.toFixed(precision);
+            let count = Math.round(cur / step);
+            count += direction;
+            if (count < 1) count = 1;
+            qtyInput.value = (count * step).toFixed(precision);
             window.calcTermEstimates();
         };
 
@@ -8216,13 +8540,20 @@ window.addEventListener('DOMContentLoaded', () => {
             }
             if (!price || price <= 0) return showToast('Awaiting market price feed', true);
 
-            const precision = (typeof qPrec !== 'undefined' && qPrec !== null) ? qPrec : (diag.qtyPrecision !== undefined ? diag.qtyPrecision : 2);
-            const minQty = Math.max(Math.pow(10, -precision), parseFloat((5.05 / price).toFixed(precision)));
+            const step = window.getSymbolQtyStep();
+            const minQ = window.getSymbolMinQty();
+            const minNotional = parseFloat(diag.minNotional || 5.0) + 0.05;
+            const precision = Math.max(0, -Math.round(Math.log10(step)));
+            let reqQty = minNotional / price;
+            if (reqQty < minQ) reqQty = minQ;
+            const count = Math.max(1, Math.ceil(reqQty / step));
+            const finalQty = (count * step).toFixed(precision);
+
             const qtyInput = document.getElementById('trade-qty');
             if (qtyInput) {
-                qtyInput.value = minQty;
+                qtyInput.value = finalQty;
                 window.calcTermEstimates();
-                showToast(`Quantity set to ${minQty} (~$5.05 notional)`);
+                showToast(`✓ Quantity set to ${finalQty} (~$${(finalQty * price).toFixed(2)} notional)`);
             }
         };
 
@@ -8329,6 +8660,104 @@ window.addEventListener('DOMContentLoaded', () => {
                     estLiqEl.textContent = '—';
                 }
                 if (minQtyChip) minQtyChip.style.display = 'none';
+            }
+
+            const activeType = document.getElementById('trade-type')?.value || 'MARKET';
+
+            // Real-time Price Tick Validation & Field Highlighting
+            const priceBox = document.getElementById('trade-price-box');
+            const priceFixBtn = document.getElementById('trade-price-fix');
+            window.termPriceTickError = null;
+            if (price > 0 && (activeType === 'LIMIT' || activeType === 'STOP' || activeType === 'TAKE_PROFIT')) {
+                const tickCheck = window.validatePriceTick(price);
+                if (!tickCheck.valid) {
+                    window.termPriceTickError = tickCheck;
+                    if (priceBox) {
+                        priceBox.classList.remove('field-state-valid');
+                        priceBox.classList.add('field-state-warn');
+                    }
+                    if (priceFixBtn) {
+                        priceFixBtn.style.display = 'inline-flex';
+                        priceFixBtn.textContent = `⚡ Snap: ${tickCheck.nearest}`;
+                        priceFixBtn.title = `Click to align price to tick ${tickCheck.tick} (${tickCheck.nearest})`;
+                    }
+                } else {
+                    if (priceBox) {
+                        priceBox.classList.remove('field-state-warn');
+                        priceBox.classList.add('field-state-valid');
+                    }
+                    if (priceFixBtn) priceFixBtn.style.display = 'none';
+                }
+            } else {
+                if (priceBox) {
+                    priceBox.classList.remove('field-state-warn');
+                    priceBox.classList.remove('field-state-valid');
+                }
+                if (priceFixBtn) priceFixBtn.style.display = 'none';
+            }
+
+            // Real-time Trigger Price Tick Validation & Field Highlighting
+            const stopPriceBox = document.getElementById('trade-stop-price-box');
+            const stopPriceFixBtn = document.getElementById('trade-stop-price-fix');
+            window.termStopTickError = null;
+            if (stopPrice > 0 && (activeType === 'STOP' || activeType === 'STOP_MARKET' || activeType === 'TAKE_PROFIT_MARKET')) {
+                const stopCheck = window.validatePriceTick(stopPrice);
+                if (!stopCheck.valid) {
+                    window.termStopTickError = stopCheck;
+                    if (stopPriceBox) {
+                        stopPriceBox.classList.remove('field-state-valid');
+                        stopPriceBox.classList.add('field-state-warn');
+                    }
+                    if (stopPriceFixBtn) {
+                        stopPriceFixBtn.style.display = 'inline-flex';
+                        stopPriceFixBtn.textContent = `⚡ Snap: ${stopCheck.nearest}`;
+                        stopPriceFixBtn.title = `Click to align trigger price to tick ${stopCheck.tick} (${stopCheck.nearest})`;
+                    }
+                } else {
+                    if (stopPriceBox) {
+                        stopPriceBox.classList.remove('field-state-warn');
+                        stopPriceBox.classList.add('field-state-valid');
+                    }
+                    if (stopPriceFixBtn) stopPriceFixBtn.style.display = 'none';
+                }
+            } else {
+                if (stopPriceBox) {
+                    stopPriceBox.classList.remove('field-state-warn');
+                    stopPriceBox.classList.remove('field-state-valid');
+                }
+                if (stopPriceFixBtn) stopPriceFixBtn.style.display = 'none';
+            }
+
+            // Real-time Quantity Step Validation & Field Highlighting
+            const qtyBox = document.getElementById('trade-qty-box');
+            const qtyFixBtn = document.getElementById('trade-qty-fix');
+            window.termQtyStepError = null;
+            if (qty > 0) {
+                const qtyCheck = window.validateQtyStep(qty);
+                if (!qtyCheck.valid) {
+                    window.termQtyStepError = qtyCheck;
+                    if (qtyBox) {
+                        qtyBox.classList.remove('field-state-valid');
+                        qtyBox.classList.add('field-state-warn');
+                    }
+                    if (qtyFixBtn) {
+                        qtyFixBtn.style.display = 'inline-flex';
+                        qtyFixBtn.textContent = `⚡ Snap: ${qtyCheck.nearest}`;
+                        qtyFixBtn.title = `Click to align quantity to step ${qtyCheck.step} (${qtyCheck.nearest})`;
+                    }
+                } else {
+                    if (qtyBox) {
+                        qtyBox.classList.remove('field-state-warn');
+                        qtyBox.classList.add('field-state-valid');
+                    }
+                    if (qtyFixBtn) qtyFixBtn.style.display = 'none';
+                }
+            } else {
+                if (qtyBox) {
+                    qtyBox.classList.remove('field-state-warn');
+                    qtyBox.classList.remove('field-state-valid');
+                }
+                if (qtyFixBtn) qtyFixBtn.style.display = 'none';
             }
 
             // Real-time evaluation of Order Price Limits, Mark Bands, Circuit Breakers & Book Depth
@@ -8755,6 +9184,29 @@ window.addEventListener('DOMContentLoaded', () => {
                 bannerMsg = `Trails market with <strong>${cbRate.toFixed(1)}%</strong> callback. Bound by ${isBuy ? `Cap ($${fmtPrice(mktBuyCap)})` : `Floor ($${fmtPrice(mktSellFloor)})`}.`;
             }
 
+            // Real-time Override: Price Tick & Quantity Step Safeguards
+            if (bannerState !== 'state-error') {
+                if (window.termPriceTickError && price > 0 && (type === 'LIMIT' || type === 'STOP' || type === 'TAKE_PROFIT')) {
+                    bannerState = 'state-warning';
+                    bannerIcon = '⚠️';
+                    bannerBadge = 'PRICE TICK ERROR';
+                    bannerStat = `Tick: ${window.termPriceTickError.tick}`;
+                    bannerMsg = `Price <strong>$${fmtPrice(price)}</strong> is not a valid tick. Must be multiple of <strong>${window.termPriceTickError.tick}</strong>. Click <strong>"⚡ Snap: ${window.termPriceTickError.nearest}"</strong> to align.`;
+                } else if (window.termStopTickError && stopPrice > 0 && (type === 'STOP' || type === 'STOP_MARKET' || type === 'TAKE_PROFIT_MARKET')) {
+                    bannerState = 'state-warning';
+                    bannerIcon = '⚠️';
+                    bannerBadge = 'TRIGGER TICK ERROR';
+                    bannerStat = `Tick: ${window.termStopTickError.tick}`;
+                    bannerMsg = `Trigger Price <strong>$${fmtPrice(stopPrice)}</strong> is not a valid tick. Must be multiple of <strong>${window.termStopTickError.tick}</strong>. Click <strong>"⚡ Snap: ${window.termStopTickError.nearest}"</strong> to align.`;
+                } else if (window.termQtyStepError && qty > 0) {
+                    bannerState = 'state-warning';
+                    bannerIcon = '⚠️';
+                    bannerBadge = window.termQtyStepError.isMinError ? 'BELOW MIN QTY' : 'INVALID LOT SIZE';
+                    bannerStat = `Step: ${window.termQtyStepError.step}`;
+                    bannerMsg = `${window.termQtyStepError.reason}. Click <strong>"⚡ Snap: ${window.termQtyStepError.nearest}"</strong> to align.`;
+                }
+            }
+
             // Trigger failure shake animation on state change to error or warning
             const prevState = bannerEl.dataset.prevState || '';
             bannerEl.dataset.prevState = bannerState;
@@ -8932,6 +9384,16 @@ window.addEventListener('DOMContentLoaded', () => {
                 btnText.textContent = `${window.termActiveSide || 'BUY'} / ${(window.termActiveSide || 'BUY') === 'BUY' ? 'LONG' : 'SHORT'} ${activeTabSymbol || ''}`;
             }
 
+            // Update Field Spec Pills (Tick & Step)
+            const curTick = window.getSymbolTickSize();
+            const curStep = window.getSymbolQtyStep();
+            const tickBadge = document.getElementById('term-tick-badge');
+            if (tickBadge) tickBadge.textContent = `Tick: ${curTick}`;
+            const stopTickBadge = document.getElementById('term-stop-tick-badge');
+            if (stopTickBadge) stopTickBadge.textContent = `Tick: ${curTick}`;
+            const stepBadge = document.getElementById('term-step-badge');
+            if (stepBadge) stepBadge.textContent = `Step: ${curStep}`;
+
             window.calcTermEstimates();
         };
 
@@ -8976,6 +9438,39 @@ window.addEventListener('DOMContentLoaded', () => {
             if (!qty || qty <= 0) {
                 highlightInputError('trade-qty');
                 return showToast('✗ Invalid Quantity', true);
+            }
+
+            // Pre-submission Guard 1: Quantity Step & Min Qty Validation
+            const qtyCheck = window.validateQtyStep(qty);
+            if (!qtyCheck.valid) {
+                highlightInputError('trade-qty');
+                return showToast(`✗ Invalid Quantity: ${qtyCheck.reason}. Nearest valid: ${qtyCheck.nearest}. Click "⚡ Snap" to align.`, true);
+            }
+
+            // Pre-submission Guard 2: Price Tick Validation
+            if (type === 'LIMIT' || type === 'STOP' || type === 'TAKE_PROFIT') {
+                if (!price || price <= 0 || isNaN(price)) {
+                    highlightInputError('trade-price');
+                    return showToast('✗ Invalid or missing Price', true);
+                }
+                const tickCheck = window.validatePriceTick(price);
+                if (!tickCheck.valid) {
+                    highlightInputError('trade-price');
+                    return showToast(`✗ Invalid Price: Must be multiple of ${tickCheck.tick} (Nearest: ${tickCheck.nearest}). Click "⚡ Snap" to align.`, true);
+                }
+            }
+
+            // Pre-submission Guard 3: Trigger Price Tick Validation
+            if (type === 'STOP' || type === 'STOP_MARKET' || type === 'TAKE_PROFIT_MARKET') {
+                if (!stopPrice || stopPrice <= 0 || isNaN(stopPrice)) {
+                    highlightInputError('trade-stop-price');
+                    return showToast('✗ Invalid or missing Stop Price', true);
+                }
+                const stopCheck = window.validatePriceTick(stopPrice);
+                if (!stopCheck.valid) {
+                    highlightInputError('trade-stop-price');
+                    return showToast(`✗ Invalid Trigger Price: Must be multiple of ${stopCheck.tick} (Nearest: ${stopCheck.nearest}). Click "⚡ Snap" to align.`, true);
+                }
             }
 
             const payload = {
