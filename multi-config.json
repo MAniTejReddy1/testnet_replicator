@@ -7,6 +7,33 @@
   {
     "sourceSymbol": "DOGEUSDT",
     "targetSymbol": "DOGEUSDT",
-    "tier": "PERF"
+    "tier": "PERF",
+    "minSize": 50,
+    "maxSize": 100,
+    "takerSize": 50,
+    "makerUseRawQty": false,
+    "takerUseRawQty": false,
+    "depthLevels": 20,
+    "bufferPct": 0,
+    "tradeDelayMs": 0,
+    "cancelOnStop": false,
+    "newUserFlow": false,
+    "enableTradeSync": true
+  },
+  {
+    "sourceSymbol": "XRPUSDT",
+    "targetSymbol": "XRPUSDT",
+    "tier": "QA_STAGING",
+    "minSize": 50,
+    "maxSize": 100,
+    "takerSize": 50,
+    "makerUseRawQty": false,
+    "takerUseRawQty": false,
+    "depthLevels": 20,
+    "bufferPct": 0,
+    "tradeDelayMs": 0,
+    "cancelOnStop": false,
+    "newUserFlow": false,
+    "enableTradeSync": true
   }
 ]

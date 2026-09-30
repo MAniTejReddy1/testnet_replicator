@@ -315,8 +315,8 @@ const portfolios = {
         user2: { walletBalance: "0.00", availableBalance: "0.00", unrealizedProfit: "0.00", positions: [], openOrdersCount: 0, error: null }
     },
     PERF: {
-        user1: { walletBalance: "5000.00", availableBalance: "5000.00", unrealizedProfit: "0.00", positions: [], openOrdersCount: 0, error: null },
-        user2: { walletBalance: "5000.00", availableBalance: "5000.00", unrealizedProfit: "0.00", positions: [], openOrdersCount: 0, error: null }
+        user1: { walletBalance: "0.00", availableBalance: "0.00", unrealizedProfit: "0.00", positions: [], openOrdersCount: 0, error: null },
+        user2: { walletBalance: "0.00", availableBalance: "0.00", unrealizedProfit: "0.00", positions: [], openOrdersCount: 0, error: null }
     }
 };
 portfolios["QA-STAGING"] = portfolios.QA_STAGING;
@@ -656,15 +656,113 @@ async function sendSignedRequest(url, method, payload, userConfig, timeoutMs = 5
     }
     if (!tier) tier = globalActiveTier;
 
-    // --- PERF Mock Interceptor ---
-    // The provided API keys for PERF only have TRADING permissions, resulting in 401s for account/read APIs.
-    // We mock these to prevent error spam and allow the replicator to run.
+    // --- PERF API Adapter ---
+    // On PERF, position and account read endpoints authenticate via internal derivatives endpoints
+    // using the user's bearer token. We bridge those calls to return standard FAPI v2 formatted data.
     if (tier === 'PERF' || tier === 'PERF_STAGING' || tier === 'PERF-STAGING') {
         const urlStr = typeof url === 'string' ? url : url.toString();
-        if (urlStr.includes('/fapi/v2/account')) {
-            return { ok: true, status: 200, data: { assets: [{ asset: 'USDT', walletBalance: "5000.00", availableBalance: "5000.00", crossUnPnl: "0.00" }], positions: [] }, latencyMs: 10 };
+        const parsedUrl = new URL(urlStr);
+
+        if (urlStr.includes('/fapi/v2/positionRisk')) {
+            if (userConfig.bearer_token) {
+                try {
+                    const startT = Date.now();
+                    const pRes = await fetch(`${parsedUrl.origin}/api/v1/derivatives/futures/positions`, {
+                        headers: { 'Authorization': userConfig.bearer_token }
+                    });
+                    const lat = Date.now() - startT;
+                    if (pRes.ok) {
+                        const rawPositions = await pRes.json();
+                        const positions = (Array.isArray(rawPositions) ? rawPositions : []).map(p => {
+                            const sym = p.symbol || (p.pair ? p.pair.replace(/^B-/, '').replace(/_/g, '') : '');
+                            const amt = parseFloat(p.positionAmt || p.size || p.active_pos || 0);
+                            const entryPrice = parseFloat(p.entryPrice || p.avg_price || 0);
+                            const markPrice = parseFloat(p.markPrice || p.mark_price || 0);
+                            const unPnL = (p.unRealizedProfit !== undefined && p.unRealizedProfit !== null)
+                                ? parseFloat(p.unRealizedProfit)
+                                : ((markPrice - entryPrice) * amt);
+                            return {
+                                symbol: sym,
+                                positionAmt: String(amt),
+                                entryPrice: String(entryPrice),
+                                markPrice: String(markPrice),
+                                unRealizedProfit: String(unPnL.toFixed(4)),
+                                liquidationPrice: String(p.liquidationPrice || p.liquidation_price || 0),
+                                leverage: String(p.leverage || 1),
+                                maxNotionalValue: "1000000",
+                                marginType: p.margin_type || "isolated",
+                                isolatedMargin: String(p.locked_margin || 0),
+                                isAutoAddMargin: "false",
+                                positionSide: "BOTH",
+                                notional: String((Math.abs(amt) * markPrice).toFixed(4)),
+                                isolatedWallet: String(p.locked_margin || 0),
+                                updateTime: p.updated_at || Date.now()
+                            };
+                        });
+                        const reqSym = parsedUrl.searchParams.get('symbol') || (payload && payload.symbol);
+                        const data = reqSym ? positions.filter(p => p.symbol === reqSym.toUpperCase()) : positions;
+                        return { ok: true, status: 200, data, latencyMs: lat };
+                    }
+                } catch (e) {
+                    log.error(userConfig.label || 'User', `Failed to fetch PERF positions via bearer_token: ${e.message}`, null, tier);
+                }
+            }
+            return { ok: true, status: 200, data: [], latencyMs: 10 };
         }
-        if (urlStr.includes('/fapi/v1/leverage') || urlStr.includes('/fapi/v1/userTrades') || urlStr.includes('/fapi/v2/positionRisk') || urlStr.includes('/fapi/v1/allOpenOrders')) {
+
+        if (urlStr.includes('/fapi/v2/account')) {
+            if (userConfig.bearer_token) {
+                try {
+                    const startT = Date.now();
+                    const wRes = await fetch(`${parsedUrl.origin}/api/v1/derivatives/futures/wallets`, {
+                        headers: { 'Authorization': userConfig.bearer_token }
+                    });
+                    const lat = Date.now() - startT;
+                    if (wRes.ok) {
+                        const wallets = await wRes.json();
+                        const usdt = Array.isArray(wallets) ? (wallets.find(w => (w.currency_short_name || w.asset) === 'USDT') || {}) : {};
+                        const bal = parseFloat(usdt.balance || 0);
+                        const locked = parseFloat(usdt.locked_balance || 0);
+                        const avail = Math.max(0, bal - locked);
+                        const accountData = {
+                            feeTier: 0,
+                            canTrade: true,
+                            canDeposit: true,
+                            canWithdraw: true,
+                            totalWalletBalance: bal.toFixed(2),
+                            availableBalance: avail.toFixed(2),
+                            totalUnrealizedProfit: "0.00",
+                            totalMarginBalance: bal.toFixed(2),
+                            totalInitialMargin: locked.toFixed(2),
+                            totalMaintMargin: "0.00",
+                            assets: [
+                                {
+                                    asset: 'USDT',
+                                    walletBalance: bal.toFixed(2),
+                                    unrealizedProfit: '0.00',
+                                    marginBalance: bal.toFixed(2),
+                                    maintMargin: '0.00',
+                                    initialMargin: locked.toFixed(2),
+                                    positionInitialMargin: '0.00',
+                                    openOrderInitialMargin: locked.toFixed(2),
+                                    maxWithdrawAmount: avail.toFixed(2),
+                                    crossWalletBalance: bal.toFixed(2),
+                                    crossUnPnl: '0.00',
+                                    availableBalance: avail.toFixed(2)
+                                }
+                            ],
+                            positions: []
+                        };
+                        return { ok: true, status: 200, data: accountData, latencyMs: lat };
+                    }
+                } catch (e) {
+                    log.error(userConfig.label || 'User', `Failed to fetch PERF wallet via bearer_token: ${e.message}`, null, tier);
+                }
+            }
+            return { ok: true, status: 200, data: { assets: [{ asset: 'USDT', walletBalance: "0.00", availableBalance: "0.00", crossUnPnl: "0.00" }], positions: [] }, latencyMs: 10 };
+        }
+
+        if (urlStr.includes('/fapi/v1/leverage') || urlStr.includes('/fapi/v1/userTrades')) {
             return { ok: true, status: 200, data: [], latencyMs: 10 };
         }
     }
@@ -1586,7 +1684,8 @@ class PrivateWsClient {
                                 // Position closed — remove it
                                 if (idx !== -1) positions.splice(idx, 1);
                             } else {
-                                const inst = instrumentsMap[posSymbol] || { pricePrecision: 4, qtyPrecision: 3 };
+                                const tierMap = (instrumentsMap && instrumentsMap[this.tier]) || (instrumentsMap && instrumentsMap.PRODUCTION) || {};
+                                const inst = tierMap[posSymbol] || { pricePrecision: 4, qtyPrecision: 3 };
                                 const updatedPos = {
                                     symbol: posSymbol,
                                     side: posAmt > 0 ? 'LONG' : 'SHORT',
@@ -3709,20 +3808,27 @@ let manualOverride = false;
 // ==========================================
 function autoParsePositions(data, tier = 'PRODUCTION') {
     if (!Array.isArray(data)) return [];
-    return data.filter(pos => parseFloat(pos.positionAmt || pos.size || 0) !== 0).map(pos => {
-        const amt  = parseFloat(pos.positionAmt || pos.size || 0);
-        const tierMap = instrumentsMap[tier] || {};
-        const inst = tierMap[pos.symbol] || { pricePrecision: 4, qtyPrecision: 3 };
+    return data.filter(pos => parseFloat(pos.positionAmt || pos.size || pos.active_pos || 0) !== 0).map(pos => {
+        const amt  = parseFloat(pos.positionAmt || pos.size || pos.active_pos || 0);
+        const rawSym = pos.symbol || (pos.pair ? pos.pair.replace(/^B-/, '').replace(/_/g, '') : '');
+        const tierMap = (instrumentsMap && instrumentsMap[tier]) || (instrumentsMap && instrumentsMap.PRODUCTION) || {};
+        const inst = tierMap[rawSym] || { pricePrecision: 4, qtyPrecision: 3 };
+        const entryPrice = parseFloat(pos.entryPrice || pos.avg_price || 0);
+        const markPrice = parseFloat(pos.markPrice  || pos.mark_price || 0);
+        let unPnL = parseFloat(pos.unRealizedProfit || pos.unrealizedProfit || 0);
+        if (!unPnL && entryPrice && markPrice) {
+            unPnL = (markPrice - entryPrice) * amt;
+        }
         return {
-            symbol:        pos.symbol,
+            symbol:        rawSym,
             side:          amt > 0 ? 'LONG' : 'SHORT',
             size:          Math.abs(amt).toFixed(inst.qtyPrecision),
-            entryPrice:    parseFloat(pos.entryPrice || 0).toFixed(inst.pricePrecision),
-            markPrice:     parseFloat(pos.markPrice  || 0).toFixed(inst.pricePrecision),
-            unrealizedPnL: parseFloat(pos.unRealizedProfit || pos.unrealizedProfit || 0).toFixed(2),
-            leverage:      pos.leverage || "5",
-            liqPrice:      parseFloat(pos.liquidationPrice || 0).toFixed(inst.pricePrecision),
-            margin:        parseFloat(pos.isolatedWallet || pos.currentMargin || 0).toFixed(2)
+            entryPrice:    entryPrice.toFixed(inst.pricePrecision),
+            markPrice:     markPrice.toFixed(inst.pricePrecision),
+            unrealizedPnL: unPnL.toFixed(2),
+            leverage:      pos.leverage || "1",
+            liqPrice:      parseFloat(pos.liquidationPrice || pos.liquidation_price || 0).toFixed(inst.pricePrecision),
+            margin:        parseFloat(pos.isolatedWallet || pos.currentMargin || pos.locked_margin || 0).toFixed(2)
         };
     });
 }
@@ -3731,12 +3837,24 @@ function autoParseAccount(data) {
     const parsed = { 
         walletBalance: "0.00", 
         availableBalance: "0.00", 
-        unrealizedProfit: "0.00",
+        unrealizedProfit: "0.00", 
         marginBalance: "0.00",
         maintMargin: "0.00",
         initialMargin: "0.00"
     };
     if (!data) return parsed;
+    if (Array.isArray(data)) {
+        const usdt = data.find(w => (w.currency_short_name || w.asset) === 'USDT');
+        if (usdt) {
+            const bal = parseFloat(usdt.balance || 0);
+            const locked = parseFloat(usdt.locked_balance || 0);
+            parsed.walletBalance = bal.toFixed(2);
+            parsed.availableBalance = Math.max(0, bal - locked).toFixed(2);
+            parsed.marginBalance = bal.toFixed(2);
+            parsed.initialMargin = locked.toFixed(2);
+        }
+        return parsed;
+    }
     const usdtAsset = (data.assets || []).find(a => a.asset === 'USDT');
     if (usdtAsset) {
         parsed.walletBalance    = parseFloat(usdtAsset.balance || usdtAsset.walletBalance || 0).toFixed(2);
@@ -3766,8 +3884,12 @@ async function getUserPortfolio(userConfig, tier = 'PRODUCTION') {
     else errorMsg = `API Failed (${res.status})`;
 
     let posRes = await sendSignedRequest(`${hpoBase}/fapi/v2/positionRisk`, 'GET', null, userConfig, 50000, tier);
-    if (posRes.ok) positionData = posRes.data;
-    else if (!errorMsg) errorMsg = `Positions API Failed (${posRes.status})`;
+    if (posRes.ok) {
+        positionData = posRes.data;
+        if (errorMsg && accountData) errorMsg = null;
+    } else if (!errorMsg) {
+        errorMsg = `Positions API Failed (${posRes.status})`;
+    }
 
     const portfolio = { 
         walletBalance: "0.00", 
@@ -3792,6 +3914,13 @@ async function getUserPortfolio(userConfig, tier = 'PRODUCTION') {
         portfolio.initialMargin    = pAcc.initialMargin;
     }
     if (positionData) portfolio.positions = autoParsePositions(positionData, tier);
+
+    // Sum unrealized profit across positions if account didn't supply it
+    if (portfolio.positions.length > 0 && parseFloat(portfolio.unrealizedProfit || 0) === 0) {
+        const totalUpnl = portfolio.positions.reduce((acc, p) => acc + (parseFloat(p.unrealizedPnL) || 0), 0);
+        portfolio.unrealizedProfit = totalUpnl.toFixed(2);
+    }
+
     return portfolio;
 }
 

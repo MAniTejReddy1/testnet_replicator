@@ -15891,11 +15891,18 @@ document.addEventListener('mousemove', (e) => {
         const maxEl = document.getElementById('qa-inst-band-max');
         const sym = getActiveSymbol();
         
-        let anchorMark = 2.50;
-        if (sym.includes('BTC')) anchorMark = 95000.0;
-        else if (sym.includes('ETH')) anchorMark = 3200.0;
-        else if (sym.includes('SOL')) anchorMark = 180.0;
-        else if (sym.includes('DOGE')) anchorMark = 0.25;
+        let anchorMark = parseFloat(window.activeMarkPrice || window.latestMarkPrice || 0);
+        if (!anchorMark || isNaN(anchorMark)) {
+            const curInst = window.serverState?.instances?.[sym] || window.serverState?.instances?.[(typeof getActiveTargetSymbol === 'function' ? getActiveTargetSymbol() : sym)];
+            anchorMark = parseFloat(curInst?.testnetMarkPrice || curInst?.binanceMarkPrice || curInst?.testnetLtp || curInst?.binanceLtp || 0);
+        }
+        if (!anchorMark || isNaN(anchorMark)) {
+            anchorMark = 2.50;
+            if (sym.includes('BTC')) anchorMark = 95000.0;
+            else if (sym.includes('ETH')) anchorMark = 3200.0;
+            else if (sym.includes('SOL')) anchorMark = 180.0;
+            else if (sym.includes('DOGE')) anchorMark = 0.25;
+        }
 
         const upMult = parseFloat(qaInstrumentData.multiplier_up) || 5.0;
         const downMult = parseFloat(qaInstrumentData.multiplier_down) || 5.0;
