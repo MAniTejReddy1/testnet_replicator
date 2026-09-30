@@ -772,6 +772,8 @@
   .btn-move-mark-up:hover { background: rgba(0,230,118,.22); box-shadow: 0 6px 18px rgba(0,230,118,0.25); border-color: rgba(0,230,118,.6); }
   .btn-move-mark-down { background: rgba(255,51,102,.12); color: #ff3366; border-color: rgba(255,51,102,.35); }
   .btn-move-mark-down:hover { background: rgba(255,51,102,.22); box-shadow: 0 6px 18px rgba(255,51,102,0.25); border-color: rgba(255,51,102,.6); }
+  .btn-clear-liquidity { background: rgba(244,63,94,.14); color: #fb7185; border-color: rgba(244,63,94,.38); }
+  .btn-clear-liquidity:hover { background: rgba(244,63,94,.24); box-shadow: 0 6px 18px rgba(244,63,94,0.25); border-color: rgba(244,63,94,.65); }
   
   /* Sections */
   .sec-label { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); font-weight: 600; }
@@ -4025,9 +4027,6 @@
         <button class="ctrl-btn btn-pause"  id="btn-cmd-pause"><span style="margin-right:6px">⏸</span> PAUSE</button>
         <button class="ctrl-btn btn-stop"   id="btn-cmd-stop"><span style="margin-right:6px">⏹</span> STOP</button>
         <button class="ctrl-btn btn-reload" id="btn-cmd-reload"><span style="margin-right:6px">↻</span> RELOAD</button>
-        <div style="width: 1px; height: 18px; background: var(--border); margin: 0 4px;"></div>
-        <button class="ctrl-btn btn-move-mark-up" id="btn-move-mark-up" title="Move Mark above Index price (+2%): Pre-clears orders, Maker places 3 Buys &amp; 3 Sells above index (10x min notional each), Taker sells (2x min notional) to consume Maker top Buy &amp; shift LTP"><span style="margin-right:6px">📈</span> MOVE MARK &gt; INDEX</button>
-        <button class="ctrl-btn btn-move-mark-down" id="btn-move-mark-down" title="Move Mark below Index price (-2%): Pre-clears orders, Maker places 3 Buys &amp; 3 Sells below index (10x min notional each), Taker buys (2x min notional) to consume Maker top Sell &amp; shift LTP"><span style="margin-right:6px">📉</span> MOVE MARK &lt; INDEX</button>
     </div>
     <div style="display:flex; gap: 12px; font-size: 11px; align-items:center; flex-wrap:wrap;">
         <div class="tele-pill">
@@ -5069,9 +5068,27 @@
       </div>
       
       <!-- Panel Body -->
-      <div id="scen-panel-body" style="display:none; border-top:1px solid var(--border); height:auto; transition:all 0.3s; overflow:hidden; padding:20px; gap:20px;">
-          <!-- Left half: Form Controls -->
-          <div style="flex:1.2; display:flex; flex-direction:column; gap:16px;">
+      <div id="scen-panel-body" style="display:none; flex-direction:column; border-top:1px solid var(--border); height:auto; transition:all 0.3s; overflow:hidden; padding:20px; gap:16px;">
+          <!-- Mark Price & Orderbook Liquidity Controls -->
+          <div style="background: linear-gradient(135deg, rgba(168,85,247,0.08) 0%, rgba(99,102,241,0.05) 100%); border: 1px solid rgba(168,85,247,0.25); border-radius: 10px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                  <div style="width: 28px; height: 28px; border-radius: 6px; background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3); display: flex; align-items: center; justify-content: center; font-size: 13px;">⚡</div>
+                  <div>
+                      <div style="font-size: 11px; font-weight: 700; color: #d8b4fe; text-transform: uppercase; letter-spacing: 0.5px;">Mark Price &amp; Liquidity Intervention</div>
+                      <div style="font-size: 10px; color: var(--text-muted);">Direct testnet market manipulation &amp; orderbook cleansing for active market</div>
+                  </div>
+              </div>
+              <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                  <button class="ctrl-btn btn-move-mark-up" id="btn-move-mark-up" title="Move Mark above Index price (+2%): Pre-clears orders, Maker places 3 Buys &amp; 3 Sells above index (10x min notional each), Taker sells (2x min notional) to consume Maker top Buy &amp; shift LTP"><span style="margin-right:6px">📈</span> MOVE MARK &gt; INDEX</button>
+                  <button class="ctrl-btn btn-move-mark-down" id="btn-move-mark-down" title="Move Mark below Index price (-2%): Pre-clears orders, Maker places 3 Buys &amp; 3 Sells below index (10x min notional each), Taker buys (2x min notional) to consume Maker top Sell &amp; shift LTP"><span style="margin-right:6px">📉</span> MOVE MARK &lt; INDEX</button>
+                  <button class="ctrl-btn btn-clear-liquidity" id="btn-clear-liquidity" title="Clear Orderbook Liquidity: Cancels all open orders for all accounts on this environment for this market, then consumes any residual orders using taker account"><span style="margin-right:6px">🧹</span> CLEAR ORDERBOOK LIQUIDITY</button>
+              </div>
+          </div>
+
+          <!-- Main Scenario Content: Presets & Live Diagnostics -->
+          <div style="display: flex; gap: 20px; width: 100%;">
+              <!-- Left half: Form Controls -->
+              <div style="flex:1.2; display:flex; flex-direction:column; gap:16px;">
               <div id="pnl-scen-preset-global" style="display:flex; flex-direction:column; gap:12px; width:100%;">
                   <div style="display:flex; justify-content:space-between; align-items:center;">
                       <label style="font-size:11px;color:var(--text-muted);font-weight:600;letter-spacing:1px;text-transform:uppercase;">Select Scenario Simulation Template</label>
@@ -5158,11 +5175,12 @@
               </div>
               <button id="btn-scenario-trigger-l1" class="l2-confirm-btn" style="margin-top:12px; font-weight:bold; letter-spacing:0.5px;">⚡ TRIGGER SIMULATION PRESET</button>
           </div>
+          </div>
       </div>
   </div>
 </div>
 
-<div style="display:grid;grid-template-columns:35% 35% 30%;gap:16px;padding:24px;">
+<div style="display:grid;grid-template-columns:35% 35% 30%;gap:16px;padding:0 24px 24px;">
   <div class="panel" style="display:flex;flex-direction:column;height:590px;overflow:hidden;">
     <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);">
       <div><div class="sec-label">Source</div><div class="sec-title" style="color:var(--yellow)">CoinDCX Perpetual</div></div>
@@ -10302,6 +10320,59 @@ window.addEventListener('DOMContentLoaded', () => {
 
         const moveMarkDownBtn = document.getElementById('btn-move-mark-down');
         if (moveMarkDownBtn) moveMarkDownBtn.onclick = () => window.triggerMoveMark('BELOW');
+
+        window.triggerClearLiquidity = async function() {
+            if (!activeTabSymbol) return showToast("Select a market tab first!", true);
+            const btn = document.getElementById('btn-clear-liquidity');
+            const origHtml = btn ? btn.innerHTML : '';
+
+            const confirmed = confirm(`Are you sure you want to CLEAR ORDERBOOK LIQUIDITY for ${activeTabSymbol}?\n\nThis will:\n1. Pause replication on this market\n2. Cancel ALL open orders across ALL accounts on this environment\n3. Consume any residual orders in the orderbook using the Taker account`);
+            if (!confirmed) return;
+
+            try {
+                if (btn) {
+                    btn.disabled = true;
+                    btn.style.opacity = '0.7';
+                    btn.innerHTML = `<span style="margin-right:6px">⏳</span> CLEARING...`;
+                }
+                showToast(`⏳ Clearing orderbook liquidity for ${activeTabSymbol}...`);
+
+                const res = await fetch(window.getApiUrl('/api/engine/clear-liquidity'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        symbol: activeTabSymbol
+                    })
+                });
+
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    let msg = `✓ Liquidity cleared! Cancelled orders on ${data.cancelledAccounts} account(s)`;
+                    if (data.consumedBids > 0 || data.consumedAsks > 0) {
+                        msg += ` | Consumed ${data.consumedBids} Bid(s) & ${data.consumedAsks} Ask(s) via Taker`;
+                    } else {
+                        msg += ` | No residual orders to consume`;
+                    }
+                    showToast(msg);
+                } else {
+                    const err = data.error || 'Failed to clear liquidity';
+                    showToast(`✗ Failed to clear liquidity: ${err}`, true);
+                }
+            } catch (e) {
+                showToast(`✗ Network error: ${e.message}`, true);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    btn.innerHTML = origHtml;
+                }
+                if (typeof window.refreshOrdersTab === 'function') window.refreshOrdersTab();
+                if (typeof window.renderPortfolios === 'function') window.renderPortfolios();
+            }
+        };
+
+        const clearLiqBtn = document.getElementById('btn-clear-liquidity');
+        if (clearLiqBtn) clearLiqBtn.onclick = () => window.triggerClearLiquidity();
 
         const fmt = (v, d) => parseFloat(v||0).toFixed(d);
         function fmtK(v) { const n = parseFloat(v||0); return n >= 1000 ? (n/1000).toFixed(1)+'K' : n.toFixed(0); }

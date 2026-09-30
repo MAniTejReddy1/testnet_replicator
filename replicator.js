@@ -5722,6 +5722,196 @@ const server = http.createServer(async (req, res) => {
 
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     return res.end(JSON.stringify(result));
+                } else if (pathname === '/api/engine/clear-liquidity') {
+                    const tier = (parsed.tier || globalActiveTier || 'PRODUCTION').toUpperCase();
+                    const inst = (instances[tier] || new Map()).get(targetSym);
+
+                    if (!targetSym) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, error: 'Target symbol is required' }));
+                    }
+
+                    // 1. Pause engine replication loop so orders are not immediately restocked
+                    if (inst) {
+                        inst.pause();
+                        inst.restingBids = [];
+                        inst.restingAsks = [];
+                    }
+
+                    log.info(targetSym, `[CLEAR-LIQUIDITY] Starting orderbook liquidity clearing on ${tier}...`);
+
+                    // 2. Step 1: Cancel all open orders for ALL accounts in this environment for this market
+                    const tierUsers = globalUsers[tier] || {};
+                    const userEntries = Object.entries(tierUsers).filter(([_, u]) => u && (u.apiKey || u.key) && (u.secretKey || u.secret));
+                    const hpoBase = (TIER_URLS[tier] || TIER_URLS.PRODUCTION).HPO;
+                    const mdsReadBase = (TIER_URLS[tier] || TIER_URLS.PRODUCTION).MDS_READ;
+
+                    log.info(targetSym, `[CLEAR-LIQUIDITY] Step 1: Cancelling open orders across ${userEntries.length} user account(s) on ${tier}...`);
+
+                    let cancelledAccounts = 0;
+                    await Promise.allSettled(userEntries.map(async ([userId, userObj]) => {
+                        try {
+                            await sendSignedRequest(`${hpoBase}/fapi/v1/allOpenOrders`, 'DELETE', { symbol: targetSym }, userObj, 10000, tier);
+                        } catch(e) {}
+
+                        try {
+                            const openRes = await sendSignedRequest(`${hpoBase}/fapi/v1/openOrders`, 'GET', { symbol: targetSym }, userObj, 15000, tier);
+                            if (openRes.ok && Array.isArray(openRes.data) && openRes.data.length > 0) {
+                                await Promise.allSettled(openRes.data.map(o => {
+                                    const oId = o.orderId || o.id;
+                                    return sendSignedRequest(`${hpoBase}/fapi/v1/order`, 'DELETE', { symbol: targetSym, orderId: oId }, userObj, 10000, tier);
+                                }));
+                            }
+                        } catch(e) {}
+
+                        cancelledAccounts++;
+                    }));
+
+                    // Brief wait for matching engine to register cancellations
+                    await new Promise(r => setTimeout(r, 350));
+
+                    // 3. Step 2: Query orderbook to see if any orders remain
+                    let currentDepth = { bids: [], asks: [] };
+                    try {
+                        const dRes = await fetch(`${mdsReadBase}/fapi/v1/depth?symbol=${targetSym}&limit=100`);
+                        if (dRes.ok) {
+                            const dData = await dRes.json();
+                            if (dData && (dData.bids || dData.asks)) {
+                                currentDepth = {
+                                    bids: dData.bids || [],
+                                    asks: dData.asks || []
+                                };
+                            }
+                        }
+                    } catch(e) {
+                        log.warn(targetSym, `[CLEAR-LIQUIDITY] Failed to fetch depth from MDS: ${e.message}`);
+                    }
+
+                    const remainingAsks = currentDepth.asks || [];
+                    const remainingBids = currentDepth.bids || [];
+                    log.info(targetSym, `[CLEAR-LIQUIDITY] Post-cancel book depth: ${remainingBids.length} bids, ${remainingAsks.length} asks.`);
+
+                    let consumedAsks = 0;
+                    let consumedBids = 0;
+
+                    // 4. Step 3: If orders still present, consume them using taker account
+                    if (remainingAsks.length > 0 || remainingBids.length > 0) {
+                        const tierRoles = globalRoles[tier] || { makerId: '', takerId: '' };
+                        const takerUser = tierUsers[tierRoles.takerId || 'user2'] || 
+                                          tierUsers['user2'] || 
+                                          Object.values(tierUsers)[1] || 
+                                          Object.values(tierUsers)[0];
+
+                        if (!takerUser) {
+                            log.warn(targetSym, `[CLEAR-LIQUIDITY] Cannot consume residual orders: No taker account found on ${tier}`);
+                        } else {
+                            const tierMap = instrumentsMap[tier] || {};
+                            const symMeta = tierMap[targetSym] || {};
+                            const tickSize = parseFloat(symMeta.tickSize) || 0.0001;
+                            const qtyStep = parseFloat(symMeta.qtyStep) || 1.0;
+                            const minNotional = Math.max(parseFloat(symMeta.minNotional) || 6.0, 6.0);
+                            const qtyPrec = symMeta.qtyPrecision !== undefined ? symMeta.qtyPrecision : (qtyStep > 0 ? Math.max(0, -Math.round(Math.log10(qtyStep))) : 0);
+                            const pricePrec = symMeta.pricePrecision !== undefined ? symMeta.pricePrecision : (tickSize > 0 ? Math.max(0, -Math.round(Math.log10(tickSize))) : 4);
+
+                            log.info(targetSym, `[CLEAR-LIQUIDITY] Step 2: Consuming residual orders using taker (${tierRoles.takerId || 'user2'})...`);
+
+                            // Consume Asks (lowest price first): Taker BUY
+                            const sortedAsks = [...remainingAsks].sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]));
+                            for (const [askPriceRaw, askQtyRaw] of sortedAsks) {
+                                const p = parseFloat(askPriceRaw);
+                                let q = parseFloat(askQtyRaw);
+                                if (!p || !q || isNaN(p) || isNaN(q)) continue;
+
+                                let notional = p * q;
+                                if (notional < minNotional) {
+                                    const steps = Math.ceil((minNotional / p) / qtyStep);
+                                    q = steps * qtyStep;
+                                }
+                                const priceStr = p.toFixed(pricePrec);
+                                const qtyStr = q.toFixed(qtyPrec);
+
+                                const takerPayload = {
+                                    symbol: targetSym,
+                                    side: 'BUY',
+                                    type: 'LIMIT',
+                                    price: priceStr,
+                                    quantity: qtyStr,
+                                    timeInForce: 'IOC'
+                                };
+                                let tRes = await sendSignedRequest(`${hpoBase}/fapi/v1/order`, 'POST', takerPayload, takerUser, 10000, tier);
+                                if (!tRes.ok) {
+                                    takerPayload.timeInForce = 'GTC';
+                                    tRes = await sendSignedRequest(`${hpoBase}/fapi/v1/order`, 'POST', takerPayload, takerUser, 10000, tier);
+                                }
+                                if (tRes.ok) {
+                                    consumedAsks++;
+                                    log.info(targetSym, `[CLEAR-LIQUIDITY] Consumed Ask: ${qtyStr} @ ${priceStr}`);
+                                } else {
+                                    log.warn(targetSym, `[CLEAR-LIQUIDITY] Failed to consume Ask @ ${priceStr}: ${JSON.stringify(tRes.data || tRes.status)}`);
+                                }
+                            }
+
+                            // Consume Bids (highest price first): Taker SELL
+                            const sortedBids = [...remainingBids].sort((a, b) => parseFloat(b[0]) - parseFloat(a[0]));
+                            for (const [bidPriceRaw, bidQtyRaw] of sortedBids) {
+                                const p = parseFloat(bidPriceRaw);
+                                let q = parseFloat(bidQtyRaw);
+                                if (!p || !q || isNaN(p) || isNaN(q)) continue;
+
+                                let notional = p * q;
+                                if (notional < minNotional) {
+                                    const steps = Math.ceil((minNotional / p) / qtyStep);
+                                    q = steps * qtyStep;
+                                }
+                                const priceStr = p.toFixed(pricePrec);
+                                const qtyStr = q.toFixed(qtyPrec);
+
+                                const takerPayload = {
+                                    symbol: targetSym,
+                                    side: 'SELL',
+                                    type: 'LIMIT',
+                                    price: priceStr,
+                                    quantity: qtyStr,
+                                    timeInForce: 'IOC'
+                                };
+                                let tRes = await sendSignedRequest(`${hpoBase}/fapi/v1/order`, 'POST', takerPayload, takerUser, 10000, tier);
+                                if (!tRes.ok) {
+                                    takerPayload.timeInForce = 'GTC';
+                                    tRes = await sendSignedRequest(`${hpoBase}/fapi/v1/order`, 'POST', takerPayload, takerUser, 10000, tier);
+                                }
+                                if (tRes.ok) {
+                                    consumedBids++;
+                                    log.info(targetSym, `[CLEAR-LIQUIDITY] Consumed Bid: ${qtyStr} @ ${priceStr}`);
+                                } else {
+                                    log.warn(targetSym, `[CLEAR-LIQUIDITY] Failed to consume Bid @ ${priceStr}: ${JSON.stringify(tRes.data || tRes.status)}`);
+                                }
+                            }
+
+                            // Clean any unfilled GTC taker orders
+                            await new Promise(r => setTimeout(r, 300));
+                            try {
+                                await sendSignedRequest(`${hpoBase}/fapi/v1/allOpenOrders`, 'DELETE', { symbol: targetSym }, takerUser, 10000, tier);
+                            } catch(e) {}
+                        }
+                    }
+
+                    if (inst) {
+                        inst.testnetDepth = { bids: [], asks: [] };
+                    }
+                    lastPortfolioSyncTime = 0;
+                    broadcastToUI(true);
+
+                    log.success(targetSym, `[CLEAR-LIQUIDITY] Finished: cancelled ${cancelledAccounts} acc(s), consumed ${consumedBids} bids, ${consumedAsks} asks.`);
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({
+                        success: true,
+                        symbol: targetSym,
+                        tier,
+                        cancelledAccounts,
+                        consumedBids,
+                        consumedAsks
+                    }));
                 } else {
                     const inst = (instances[globalActiveTier] || new Map()).get(targetSym);
                     if (pathname === '/api/engine/start'  && inst) inst.start();
