@@ -4351,10 +4351,9 @@ window.addEventListener('DOMContentLoaded', () => {
                 const btn = document.getElementById('tab-' + u + '-' + tab);
                 if (btn) btn.classList.add('on');
             }
+            window.renderPortfolios();
             if (tab !== 'pos') {
                 window.fetchOrders(u, tab);
-            } else {
-                window.renderPortfolios();
             }
         };
 
