@@ -2092,102 +2092,179 @@
   }
 
   /* Order Safeguard & Liquidity Banner in Terminal */
+  /* Advanced Order Safeguards & Liquidity HUD in Terminal */
   .term-safeguard-banner {
     display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    padding: 8px 10px;
-    border-radius: 6px;
+    flex-direction: column;
+    gap: 4px;
+    padding: 7px 10px;
+    border-radius: 7px;
     font-size: 10px;
-    line-height: 1.35;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    line-height: 1.3;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     box-sizing: border-box;
     position: relative;
     overflow: hidden;
     margin-bottom: 2px;
+    backdrop-filter: blur(8px);
   }
   .term-safeguard-banner.state-warning {
-    background: rgba(245, 158, 11, 0.09);
-    border: 1px solid rgba(245, 158, 11, 0.35);
-    color: #fbbf24;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(245, 158, 11, 0.04) 100%);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    box-shadow: 0 2px 10px rgba(245, 158, 11, 0.08);
   }
   .term-safeguard-banner.state-error {
-    background: rgba(239, 68, 68, 0.09);
-    border: 1px solid rgba(239, 68, 68, 0.38);
-    color: #f87171;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.14) 0%, rgba(239, 68, 68, 0.04) 100%);
+    border: 1px solid rgba(239, 68, 68, 0.45);
+    box-shadow: 0 2px 10px rgba(239, 68, 68, 0.1);
   }
   .term-safeguard-banner.state-info {
-    background: rgba(6, 182, 212, 0.08);
-    border: 1px solid rgba(6, 182, 212, 0.3);
-    color: #38bdf8;
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(6, 182, 212, 0.03) 100%);
+    border: 1px solid rgba(6, 182, 212, 0.35);
+    box-shadow: 0 2px 10px rgba(6, 182, 212, 0.06);
   }
   .term-safeguard-banner.state-success {
-    background: rgba(16, 185, 129, 0.08);
-    border: 1px solid rgba(16, 185, 129, 0.3);
-    color: #34d399;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(16, 185, 129, 0.04) 100%);
+    border: 1px solid rgba(16, 185, 129, 0.38);
+    box-shadow: 0 2px 10px rgba(16, 185, 129, 0.08);
   }
-  .tsb-icon {
-    font-size: 13px;
-    flex-shrink: 0;
-    line-height: 1.1;
-    margin-top: 1px;
+  .tsb-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
   }
-  .tsb-content {
-    flex: 1;
+  .tsb-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     min-width: 0;
   }
+  .tsb-icon {
+    font-size: 12px;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .tsb-badge {
+    font-size: 8px;
+    padding: 1.5px 5px;
+    border-radius: 4px;
+    font-weight: 800;
+    text-transform: uppercase;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+  .state-warning .tsb-badge { background: rgba(245, 158, 11, 0.25); color: #fde68a; border: 1px solid rgba(245, 158, 11, 0.45); }
+  .state-error .tsb-badge { background: rgba(239, 68, 68, 0.25); color: #fecaca; border: 1px solid rgba(239, 68, 68, 0.45); }
+  .state-info .tsb-badge { background: rgba(6, 182, 212, 0.22); color: #bae6fd; border: 1px solid rgba(6, 182, 212, 0.45); }
+  .state-success .tsb-badge { background: rgba(16, 185, 129, 0.25); color: #bbf7d0; border: 1px solid rgba(16, 185, 129, 0.45); }
+
   .tsb-title {
     font-weight: 700;
     font-size: 10px;
-    letter-spacing: 0.3px;
-    margin-bottom: 2px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    letter-spacing: 0.2px;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
+  .tsb-right {
+    flex-shrink: 0;
+  }
+  .tsb-stat-pill {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1.5px 6px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--text-main);
+    white-space: nowrap;
+  }
+  .tsb-bar-wrap {
+    height: 3px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 99px;
+    overflow: hidden;
+    margin: 1px 0;
+  }
+  .tsb-bar-fill {
+    height: 100%;
+    border-radius: 99px;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .state-warning .tsb-bar-fill { background: #f59e0b; }
+  .state-error .tsb-bar-fill { background: #ef4444; }
+  .state-info .tsb-bar-fill { background: #06b6d4; }
+  .state-success .tsb-bar-fill { background: #10b981; }
+
   .tsb-msg {
     font-size: 9.5px;
-    opacity: 0.94;
-    word-break: break-word;
+    line-height: 1.35;
+    color: var(--text-muted);
     font-family: 'Inter', sans-serif;
   }
   .tsb-msg strong, .tsb-msg b {
     font-family: 'JetBrains Mono', monospace;
     font-weight: 700;
+    color: var(--text-main);
   }
-  .tsb-badge {
-    font-size: 8px;
-    padding: 1px 4px;
-    border-radius: 3px;
-    font-weight: 800;
-    text-transform: uppercase;
-    font-family: 'JetBrains Mono', monospace;
-    letter-spacing: 0.4px;
-  }
-  .state-warning .tsb-badge { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
-  .state-error .tsb-badge { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
-  .state-info .tsb-badge { background: rgba(6, 182, 212, 0.2); color: #38bdf8; border: 1px solid rgba(6, 182, 212, 0.4); }
-  .state-success .tsb-badge { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+  .state-warning .tsb-msg strong { color: #fde68a; }
+  .state-error .tsb-msg strong { color: #fca5a5; }
+  .state-info .tsb-msg strong { color: #7dd3fc; }
+  .state-success .tsb-msg strong { color: #86efac; }
 
+  /* Light Theme overrides */
   :root[data-theme="light"] .term-safeguard-banner.state-warning {
     background: #fffbeb !important;
-    border-color: #fde68a !important;
-    color: #b45309 !important;
+    border-color: #fcd34d !important;
   }
+  :root[data-theme="light"] .state-warning .tsb-badge {
+    background: #fef3c7 !important;
+    color: #b45309 !important;
+    border-color: #fde68a !important;
+  }
+  :root[data-theme="light"] .state-warning .tsb-msg strong { color: #b45309 !important; }
+
   :root[data-theme="light"] .term-safeguard-banner.state-error {
     background: #fef2f2 !important;
-    border-color: #fecaca !important;
-    color: #b91c1c !important;
+    border-color: #fca5a5 !important;
   }
+  :root[data-theme="light"] .state-error .tsb-badge {
+    background: #fee2e2 !important;
+    color: #b91c1c !important;
+    border-color: #fecaca !important;
+  }
+  :root[data-theme="light"] .state-error .tsb-msg strong { color: #b91c1c !important; }
+
   :root[data-theme="light"] .term-safeguard-banner.state-info {
     background: #f0f9ff !important;
-    border-color: #bae6fd !important;
-    color: #0369a1 !important;
+    border-color: #7dd3fc !important;
   }
+  :root[data-theme="light"] .state-info .tsb-badge {
+    background: #e0f2fe !important;
+    color: #0369a1 !important;
+    border-color: #bae6fd !important;
+  }
+  :root[data-theme="light"] .state-info .tsb-msg strong { color: #0369a1 !important; }
+
   :root[data-theme="light"] .term-safeguard-banner.state-success {
     background: #f0fdf4 !important;
-    border-color: #bbf7d0 !important;
+    border-color: #86efac !important;
+  }
+  :root[data-theme="light"] .state-success .tsb-badge {
+    background: #dcfce7 !important;
     color: #15803d !important;
+    border-color: #bbf7d0 !important;
+  }
+  :root[data-theme="light"] .state-success .tsb-msg strong { color: #15803d !important; }
+
+  :root[data-theme="light"] .tsb-stat-pill {
+    background: #f8fafc !important;
+    border-color: #e2e8f0 !important;
+    color: #1e293b !important;
   }
 
   .term-main-action-btn {
@@ -4528,13 +4605,22 @@
         </div>
       </div>
 
-      <!-- Dynamic Order Safeguards & Liquidity Warning/Info Banner -->
+      <!-- Advanced Order Safeguards & Liquidity HUD -->
       <div id="term-safeguard-banner" class="term-safeguard-banner state-info" style="display:none;">
-        <div class="tsb-icon" id="tsb-icon">ℹ️</div>
-        <div class="tsb-content">
-          <div class="tsb-title" id="tsb-title"><span>Order Safeguard Notice</span></div>
-          <div class="tsb-msg" id="tsb-msg">Checking exchange price boundaries...</div>
+        <div class="tsb-top-row">
+          <div class="tsb-left">
+            <span class="tsb-icon" id="tsb-icon">ℹ️</span>
+            <span class="tsb-badge" id="tsb-badge">DEPTH READY</span>
+            <span class="tsb-title" id="tsb-title">Market Buy</span>
+          </div>
+          <div class="tsb-right">
+            <span class="tsb-stat-pill" id="tsb-stat">Avg: —</span>
+          </div>
         </div>
+        <div class="tsb-bar-wrap" id="tsb-bar-wrap" style="display:none;">
+          <div class="tsb-bar-fill" id="tsb-bar-fill" style="width: 100%;"></div>
+        </div>
+        <div class="tsb-msg" id="tsb-msg">Checking exchange price boundaries...</div>
       </div>
 
       <!-- Hidden Legacy Action Buttons for API / Script compatibility -->
@@ -7851,9 +7937,13 @@ window.addEventListener('DOMContentLoaded', () => {
         window.evaluateOrderSafeguardsAndLiquidity = function() {
             const bannerEl = document.getElementById('term-safeguard-banner');
             const iconEl = document.getElementById('tsb-icon');
+            const badgeEl = document.getElementById('tsb-badge');
             const titleEl = document.getElementById('tsb-title');
+            const statEl = document.getElementById('tsb-stat');
+            const barWrap = document.getElementById('tsb-bar-wrap');
+            const barFill = document.getElementById('tsb-bar-fill');
             const msgEl = document.getElementById('tsb-msg');
-            if (!bannerEl || !iconEl || !titleEl || !msgEl) return;
+            if (!bannerEl || !iconEl || !msgEl) return;
 
             if (!activeTabSymbol) {
                 bannerEl.style.display = 'none';
@@ -7911,9 +8001,12 @@ window.addEventListener('DOMContentLoaded', () => {
 
             let bannerState = 'state-info';
             let bannerIcon = 'ℹ️';
-            let bannerTitle = 'Order Safeguard Notice';
+            let bannerTitle = `${type.replace(/_/g, ' ')} ${side}`;
             let bannerBadge = '';
+            let bannerStat = '';
             let bannerMsg = '';
+            let showBar = false;
+            let barFillPct = 100;
 
             const isBuy = side === 'BUY';
 
@@ -7921,66 +8014,61 @@ window.addEventListener('DOMContentLoaded', () => {
             // 1. LIMIT ORDERS
             // -------------------------------------------------------------
             if (type === 'LIMIT') {
+                bannerTitle = `Limit ${side}`;
                 if (price <= 0) {
                     bannerState = 'state-info';
                     bannerIcon = 'ℹ️';
-                    bannerTitle = isBuy ? 'Limit Buy Protection' : 'Limit Sell Protection';
-                    bannerBadge = isBuy ? (maxBuy ? `MAX: ${fmtPrice(maxBuy)}` : '') : (minSell ? `MIN: ${fmtPrice(minSell)}` : '');
+                    bannerBadge = 'BOUNDS READY';
+                    bannerStat = isBuy ? (maxBuy ? `Max: $${fmtPrice(maxBuy)}` : '') : (minSell ? `Min: $${fmtPrice(minSell)}` : '');
                     bannerMsg = isBuy
-                        ? `Enter order price at or below exchange <strong>Max Buy (${fmtPrice(maxBuy)})</strong>. Mark Upper: ${fmtPrice(markUpper)}.`
-                        : `Enter order price at or above exchange <strong>Min Sell (${fmtPrice(minSell)})</strong>. Mark Lower: ${fmtPrice(markLower)}.`;
+                        ? `Orders must be ≤ <strong>$${fmtPrice(maxBuy)}</strong> (Max Buy). Mark Upper: <strong>$${fmtPrice(markUpper)}</strong>.`
+                        : `Orders must be ≥ <strong>$${fmtPrice(minSell)}</strong> (Min Sell). Mark Lower: <strong>$${fmtPrice(markLower)}</strong>.`;
                 } else if (isBuy) {
+                    bannerStat = maxBuy ? `Max: $${fmtPrice(maxBuy)}` : `Price: $${fmtPrice(price)}`;
                     if (maxBuy !== null && price > maxBuy) {
                         bannerState = 'state-warning';
                         bannerIcon = '⚠️';
-                        bannerTitle = 'Limit Buy Exceeds Max Buy Limit';
-                        bannerBadge = 'REJECTION RISK';
-                        const extraReasons = [];
-                        if (markUpper !== null && price > markUpper) extraReasons.push(`Mark Upper (${fmtPrice(markUpper)})`);
-                        if (cbUpper !== null && price > cbUpper) extraReasons.push(`CB Upper (${fmtPrice(cbUpper)})`);
-                        const reasonSuffix = extraReasons.length > 0 ? ` [Breaches: ${extraReasons.join(', ')}]` : '';
-                        bannerMsg = `Entered Limit Price <strong>$${fmtPrice(price)}</strong> exceeds exchange <strong>Max Buy Limit ($${fmtPrice(maxBuy)})</strong>${reasonSuffix}. Exchange safeguards will reject limit buy orders above this price cap.`;
+                        bannerBadge = 'EXCEEDS MAX BUY';
+                        const extra = (cbUpper && price > cbUpper) ? ` & CB Upper ($${fmtPrice(cbUpper)})` : '';
+                        bannerMsg = `Price <strong>$${fmtPrice(price)}</strong> exceeds Max Buy limit <strong>$${fmtPrice(maxBuy)}</strong>${extra}. Exchange will reject order.`;
                     } else if (markUpper !== null && price > markUpper) {
                         bannerState = 'state-warning';
                         bannerIcon = '⚠️';
-                        bannerTitle = 'Limit Buy Exceeds Mark Upper Band';
-                        bannerBadge = 'ABOVE BAND';
-                        bannerMsg = `Price <strong>$${fmtPrice(price)}</strong> is above Mark Upper Band ($${fmtPrice(markUpper)}). Order will be placed above the active mark price corridor.`;
+                        bannerBadge = 'ABOVE MARK BAND';
+                        bannerMsg = `Price <strong>$${fmtPrice(price)}</strong> is above Mark Upper <strong>$${fmtPrice(markUpper)}</strong>. High execution premium.`;
                     } else {
                         bannerState = 'state-success';
                         bannerIcon = '✓';
-                        bannerTitle = 'Limit Buy Within Bounds';
-                        bannerBadge = 'COMPLIANT';
                         const bestAsk = asks.length > 0 ? parseFloat(asks[0][0]) : null;
-                        const matchType = (bestAsk !== null && price >= bestAsk) ? `Taker (matches instantly @ ≤ $${fmtPrice(bestAsk)})` : 'Maker (posts to order book)';
-                        bannerMsg = `Price <strong>$${fmtPrice(price)}</strong> is compliant with exchange limits (≤ Max Buy $${fmtPrice(maxBuy)}). Execution: <strong>${matchType}</strong>.`;
+                        const isTaker = (bestAsk !== null && price >= bestAsk);
+                        bannerBadge = isTaker ? 'TAKER MATCH' : 'MAKER READY';
+                        bannerMsg = isTaker
+                            ? `Price <strong>$${fmtPrice(price)}</strong> crosses Best Ask <strong>$${fmtPrice(bestAsk)}</strong> • Instant execution.`
+                            : `Price <strong>$${fmtPrice(price)}</strong> is compliant (≤ Max Buy $${fmtPrice(maxBuy)}) • Will rest in book.`;
                     }
                 } else {
                     // SELL side
+                    bannerStat = minSell ? `Min: $${fmtPrice(minSell)}` : `Price: $${fmtPrice(price)}`;
                     if (minSell !== null && price < minSell) {
                         bannerState = 'state-warning';
                         bannerIcon = '⚠️';
-                        bannerTitle = 'Limit Sell Below Min Sell Limit';
-                        bannerBadge = 'REJECTION RISK';
-                        const extraReasons = [];
-                        if (markLower !== null && price < markLower) extraReasons.push(`Mark Lower (${fmtPrice(markLower)})`);
-                        if (cbLower !== null && price < cbLower) extraReasons.push(`CB Lower (${fmtPrice(cbLower)})`);
-                        const reasonSuffix = extraReasons.length > 0 ? ` [Breaches: ${extraReasons.join(', ')}]` : '';
-                        bannerMsg = `Entered Limit Price <strong>$${fmtPrice(price)}</strong> is below exchange <strong>Min Sell Limit ($${fmtPrice(minSell)})</strong>${reasonSuffix}. Exchange safeguards will reject limit sell orders below this price floor.`;
+                        bannerBadge = 'BELOW MIN SELL';
+                        const extra = (cbLower && price < cbLower) ? ` & CB Lower ($${fmtPrice(cbLower)})` : '';
+                        bannerMsg = `Price <strong>$${fmtPrice(price)}</strong> is below Min Sell floor <strong>$${fmtPrice(minSell)}</strong>${extra}. Exchange will reject order.`;
                     } else if (markLower !== null && price < markLower) {
                         bannerState = 'state-warning';
                         bannerIcon = '⚠️';
-                        bannerTitle = 'Limit Sell Below Mark Lower Band';
-                        bannerBadge = 'BELOW BAND';
-                        bannerMsg = `Price <strong>$${fmtPrice(price)}</strong> is below Mark Lower Band ($${fmtPrice(markLower)}). Order will be placed below the active mark price corridor.`;
+                        bannerBadge = 'BELOW MARK BAND';
+                        bannerMsg = `Price <strong>$${fmtPrice(price)}</strong> is below Mark Lower <strong>$${fmtPrice(markLower)}</strong>. Deep discount execution.`;
                     } else {
                         bannerState = 'state-success';
                         bannerIcon = '✓';
-                        bannerTitle = 'Limit Sell Within Bounds';
-                        bannerBadge = 'COMPLIANT';
                         const bestBid = bids.length > 0 ? parseFloat(bids[0][0]) : null;
-                        const matchType = (bestBid !== null && price <= bestBid) ? `Taker (matches instantly @ ≥ $${fmtPrice(bestBid)})` : 'Maker (posts to order book)';
-                        bannerMsg = `Price <strong>$${fmtPrice(price)}</strong> is compliant with exchange limits (≥ Min Sell $${fmtPrice(minSell)}). Execution: <strong>${matchType}</strong>.`;
+                        const isTaker = (bestBid !== null && price <= bestBid);
+                        bannerBadge = isTaker ? 'TAKER MATCH' : 'MAKER READY';
+                        bannerMsg = isTaker
+                            ? `Price <strong>$${fmtPrice(price)}</strong> crosses Best Bid <strong>$${fmtPrice(bestBid)}</strong> • Instant execution.`
+                            : `Price <strong>$${fmtPrice(price)}</strong> is compliant (≥ Min Sell $${fmtPrice(minSell)}) • Will rest in book.`;
                     }
                 }
             }
@@ -7989,34 +8077,33 @@ window.addEventListener('DOMContentLoaded', () => {
             // 2. MARKET ORDERS
             // -------------------------------------------------------------
             else if (type === 'MARKET') {
+                bannerTitle = `Market ${side}`;
                 if (isBuy) {
-                    // Market Buy takes from Asks up to mktBuyCap
                     const validAsks = asks.filter(a => mktBuyCap === null || parseFloat(a[0]) <= mktBuyCap);
                     const totalAvail = validAsks.reduce((acc, a) => acc + parseFloat(a[1]), 0);
 
                     if (asks.length === 0) {
                         bannerState = 'state-error';
                         bannerIcon = '🛑';
-                        bannerTitle = 'Zero Order Book Liquidity';
-                        bannerBadge = 'NO ASKS';
-                        bannerMsg = `Order book has no ask orders available. Market Buy cannot execute and will fail.`;
+                        bannerBadge = 'ZERO DEPTH';
+                        bannerStat = 'Avail: 0';
+                        bannerMsg = `Order book has no ask orders available. Market Buy will immediately fail.`;
                     } else if (validAsks.length === 0) {
                         const bestAsk = parseFloat(asks[0][0]);
                         bannerState = 'state-error';
                         bannerIcon = '⚠️';
-                        bannerTitle = 'Market Buy Cap Exceeded';
-                        bannerBadge = 'NO LIQUIDITY IN BAND';
-                        bannerMsg = `Best Ask is <strong>$${fmtPrice(bestAsk)}</strong>, which exceeds the exchange <strong>Market Buy Cap ($${fmtPrice(mktBuyCap)})</strong> [Protection: ±${mktBoundPct}]. No liquidity exists within allowable bounds. Market Buy will be rejected or auto-cancelled.`;
+                        bannerBadge = 'EXCEEDS CAP';
+                        bannerStat = `Cap: $${fmtPrice(mktBuyCap)}`;
+                        bannerMsg = `Best Ask <strong>$${fmtPrice(bestAsk)}</strong> exceeds Market Buy Cap <strong>$${fmtPrice(mktBuyCap)}</strong> [±${mktBoundPct}]. Order will be rejected.`;
                     } else {
                         const bestAsk = parseFloat(validAsks[0][0]);
                         if (qty <= 0) {
                             bannerState = 'state-info';
                             bannerIcon = 'ℹ️';
-                            bannerTitle = 'Market Buy Depth Available';
-                            bannerBadge = `CAP: $${fmtPrice(mktBuyCap)}`;
-                            bannerMsg = `Best Ask: <strong>$${fmtPrice(bestAsk)}</strong> • Depth in band: <strong>${fmtQty(totalAvail)} ${base}</strong> (up to Cap $${fmtPrice(mktBuyCap)}). Enter quantity to simulate fill price.`;
+                            bannerBadge = 'DEPTH READY';
+                            bannerStat = `Avail: ${fmtQty(totalAvail)} ${base}`;
+                            bannerMsg = `Best Ask <strong>$${fmtPrice(bestAsk)}</strong> • Depth in band: <strong>${fmtQty(totalAvail)} ${base}</strong> (Cap: $${fmtPrice(mktBuyCap)}). Enter qty.`;
                         } else {
-                            // Simulate orderbook fill
                             let rem = qty;
                             let cumCost = 0;
                             let filled = 0;
@@ -8033,52 +8120,55 @@ window.addEventListener('DOMContentLoaded', () => {
                                 if (rem <= 0) break;
                             }
                             const avgFill = filled > 0 ? (cumCost / filled) : bestAsk;
+                            const fillRatio = Math.min(100, Math.max(0, (filled / qty) * 100));
+
+                            showBar = true;
+                            barFillPct = fillRatio;
 
                             if (qty > totalAvail) {
                                 bannerState = 'state-warning';
                                 bannerIcon = '⚠️';
-                                bannerTitle = 'Partial Fill: Insufficient Depth';
-                                bannerBadge = 'DEPTH EXHAUSTED';
+                                bannerBadge = `PARTIAL FILL (${fillRatio.toFixed(0)}%)`;
+                                bannerStat = `Avg: ~$${fmtPrice(avgFill)}`;
                                 const unfilled = qty - filled;
-                                bannerMsg = `Requested <strong>${fmtQty(qty)} ${base}</strong> exceeds available book depth (<strong>${fmtQty(totalAvail)} ${base}</strong>) up to cap $${fmtPrice(mktBuyCap)}. Only <strong>${fmtQty(filled)} ${base}</strong> will fill @ avg <strong>~$${fmtPrice(avgFill)}</strong> (Range: $${fmtPrice(bestAsk)} → $${fmtPrice(lastPrice)}). Remaining <strong>${fmtQty(unfilled)} ${base}</strong> will cancel/expire.`;
+                                bannerMsg = `Only <strong>${fmtQty(filled)} ${base}</strong> fillable @ avg <strong>~$${fmtPrice(avgFill)}</strong>. Remainder <strong>${fmtQty(unfilled)} ${base}</strong> expires (exceeds band depth).`;
                             } else {
                                 bannerState = 'state-success';
                                 bannerIcon = '✓';
-                                bannerTitle = 'Est. Market Buy Execution';
                                 bannerBadge = '100% FILLABLE';
+                                bannerStat = `Avg: ~$${fmtPrice(avgFill)}`;
                                 const slippagePct = bestAsk > 0 ? (((avgFill - bestAsk) / bestAsk) * 100).toFixed(2) : '0.00';
-                                bannerMsg = `Order will fill <strong>100%</strong> (${fmtQty(qty)} ${base}) @ avg <strong>~$${fmtPrice(avgFill)}</strong> (Range: $${fmtPrice(bestAsk)} → $${fmtPrice(lastPrice)} • Slippage: +${slippagePct}%). Within Market Buy Cap ($${fmtPrice(mktBuyCap)}).`;
+                                bannerMsg = `Fills <strong>100%</strong> @ avg <strong>~$${fmtPrice(avgFill)}</strong> (Range: $${fmtPrice(bestAsk)} → $${fmtPrice(lastPrice)} • Slippage: +${slippagePct}%).`;
                             }
                         }
                     }
                 } else {
-                    // Market Sell takes from Bids down to mktSellFloor
+                    // SELL side
                     const validBids = bids.filter(b => mktSellFloor === null || parseFloat(b[0]) >= mktSellFloor);
                     const totalAvail = validBids.reduce((acc, b) => acc + parseFloat(b[1]), 0);
 
                     if (bids.length === 0) {
                         bannerState = 'state-error';
                         bannerIcon = '🛑';
-                        bannerTitle = 'Zero Order Book Liquidity';
-                        bannerBadge = 'NO BIDS';
-                        bannerMsg = `Order book has no bid orders available. Market Sell cannot execute and will fail.`;
+                        bannerBadge = 'ZERO DEPTH';
+                        bannerStat = 'Avail: 0';
+                        bannerMsg = `Order book has no bid orders available. Market Sell will immediately fail.`;
                     } else if (validBids.length === 0) {
                         const bestBid = parseFloat(bids[0][0]);
                         bannerState = 'state-error';
                         bannerIcon = '⚠️';
-                        bannerTitle = 'Market Sell Floor Exceeded';
-                        bannerBadge = 'NO LIQUIDITY IN BAND';
-                        bannerMsg = `Best Bid is <strong>$${fmtPrice(bestBid)}</strong>, which is below the exchange <strong>Market Sell Floor ($${fmtPrice(mktSellFloor)})</strong> [Protection: ±${mktBoundPct}]. No liquidity exists within allowable bounds. Market Sell will be rejected or auto-cancelled.`;
+                        bannerBadge = 'BELOW FLOOR';
+                        bannerStat = `Floor: $${fmtPrice(mktSellFloor)}`;
+                        bannerMsg = `Best Bid <strong>$${fmtPrice(bestBid)}</strong> is below Market Sell Floor <strong>$${fmtPrice(mktSellFloor)}</strong> [±${mktBoundPct}]. Order will be rejected.`;
                     } else {
                         const bestBid = parseFloat(validBids[0][0]);
                         if (qty <= 0) {
                             bannerState = 'state-info';
                             bannerIcon = 'ℹ️';
-                            bannerTitle = 'Market Sell Depth Available';
-                            bannerBadge = `FLOOR: $${fmtPrice(mktSellFloor)}`;
-                            bannerMsg = `Best Bid: <strong>$${fmtPrice(bestBid)}</strong> • Depth in band: <strong>${fmtQty(totalAvail)} ${base}</strong> (down to Floor $${fmtPrice(mktSellFloor)}). Enter quantity to simulate fill price.`;
+                            bannerBadge = 'DEPTH READY';
+                            bannerStat = `Avail: ${fmtQty(totalAvail)} ${base}`;
+                            bannerMsg = `Best Bid <strong>$${fmtPrice(bestBid)}</strong> • Depth in band: <strong>${fmtQty(totalAvail)} ${base}</strong> (Floor: $${fmtPrice(mktSellFloor)}). Enter qty.`;
                         } else {
-                            // Simulate orderbook fill
                             let rem = qty;
                             let cumCost = 0;
                             let filled = 0;
@@ -8095,21 +8185,25 @@ window.addEventListener('DOMContentLoaded', () => {
                                 if (rem <= 0) break;
                             }
                             const avgFill = filled > 0 ? (cumCost / filled) : bestBid;
+                            const fillRatio = Math.min(100, Math.max(0, (filled / qty) * 100));
+
+                            showBar = true;
+                            barFillPct = fillRatio;
 
                             if (qty > totalAvail) {
                                 bannerState = 'state-warning';
                                 bannerIcon = '⚠️';
-                                bannerTitle = 'Partial Fill: Insufficient Depth';
-                                bannerBadge = 'DEPTH EXHAUSTED';
+                                bannerBadge = `PARTIAL FILL (${fillRatio.toFixed(0)}%)`;
+                                bannerStat = `Avg: ~$${fmtPrice(avgFill)}`;
                                 const unfilled = qty - filled;
-                                bannerMsg = `Requested <strong>${fmtQty(qty)} ${base}</strong> exceeds available book depth (<strong>${fmtQty(totalAvail)} ${base}</strong>) down to floor $${fmtPrice(mktSellFloor)}. Only <strong>${fmtQty(filled)} ${base}</strong> will fill @ avg <strong>~$${fmtPrice(avgFill)}</strong> (Range: $${fmtPrice(bestBid)} → $${fmtPrice(lastPrice)}). Remaining <strong>${fmtQty(unfilled)} ${base}</strong> will cancel/expire.`;
+                                bannerMsg = `Only <strong>${fmtQty(filled)} ${base}</strong> fillable @ avg <strong>~$${fmtPrice(avgFill)}</strong>. Remainder <strong>${fmtQty(unfilled)} ${base}</strong> expires (exceeds band depth).`;
                             } else {
                                 bannerState = 'state-success';
                                 bannerIcon = '✓';
-                                bannerTitle = 'Est. Market Sell Execution';
                                 bannerBadge = '100% FILLABLE';
+                                bannerStat = `Avg: ~$${fmtPrice(avgFill)}`;
                                 const slippagePct = bestBid > 0 ? (((bestBid - avgFill) / bestBid) * 100).toFixed(2) : '0.00';
-                                bannerMsg = `Order will fill <strong>100%</strong> (${fmtQty(qty)} ${base}) @ avg <strong>~$${fmtPrice(avgFill)}</strong> (Range: $${fmtPrice(bestBid)} → $${fmtPrice(lastPrice)} • Slippage: -${slippagePct}%). Above Market Sell Floor ($${fmtPrice(mktSellFloor)}).`;
+                                bannerMsg = `Fills <strong>100%</strong> @ avg <strong>~$${fmtPrice(avgFill)}</strong> (Range: $${fmtPrice(bestBid)} → $${fmtPrice(lastPrice)} • Slippage: -${slippagePct}%).`;
                             }
                         }
                     }
@@ -8120,39 +8214,31 @@ window.addEventListener('DOMContentLoaded', () => {
             // 3. STOP LIMIT ORDERS (STOP or TAKE_PROFIT)
             // -------------------------------------------------------------
             else if (type === 'STOP' || type === 'TAKE_PROFIT') {
-                const orderTypeName = type === 'TAKE_PROFIT' ? 'Take Profit Limit' : 'Stop Limit';
+                const label = type === 'TAKE_PROFIT' ? 'Take Profit Limit' : 'Stop Limit';
+                bannerTitle = `${label} ${side}`;
                 if (stopPrice <= 0 || price <= 0) {
                     bannerState = 'state-info';
                     bannerIcon = 'ℹ️';
-                    bannerTitle = `${orderTypeName} Setup`;
-                    bannerBadge = isBuy ? (maxBuy ? `MAX: $${fmtPrice(maxBuy)}` : '') : (minSell ? `MIN: $${fmtPrice(minSell)}` : '');
-                    bannerMsg = `Enter Trigger Price and Limit Price. Limit order price must respect ${isBuy ? `Max Buy ($${fmtPrice(maxBuy)})` : `Min Sell ($${fmtPrice(minSell)})`} when triggered.`;
+                    bannerBadge = 'SETUP';
+                    bannerStat = isBuy ? (maxBuy ? `Max: $${fmtPrice(maxBuy)}` : '') : (minSell ? `Min: $${fmtPrice(minSell)}` : '');
+                    bannerMsg = `Enter Trigger & Limit Price. Must respect ${isBuy ? `Max Buy ($${fmtPrice(maxBuy)})` : `Min Sell ($${fmtPrice(minSell)})`} upon trigger.`;
                 } else {
-                    let triggerNotice = '';
-                    if (isBuy && markUpper && stopPrice > markUpper) {
-                        triggerNotice = ` Trigger is above Mark Upper ($${fmtPrice(markUpper)}).`;
-                    } else if (!isBuy && markLower && stopPrice < markLower) {
-                        triggerNotice = ` Trigger is below Mark Lower ($${fmtPrice(markLower)}).`;
-                    }
-
+                    bannerStat = `Trigger: $${fmtPrice(stopPrice)}`;
                     if (isBuy && maxBuy !== null && price > maxBuy) {
                         bannerState = 'state-warning';
                         bannerIcon = '⚠️';
-                        bannerTitle = `${orderTypeName}: Limit Exceeds Max Buy`;
                         bannerBadge = 'TRIGGER RISK';
-                        bannerMsg = `Limit Price <strong>$${fmtPrice(price)}</strong> exceeds <strong>Max Buy ($${fmtPrice(maxBuy)})</strong>.${triggerNotice} When trigger ($${fmtPrice(stopPrice)}) is hit, the submitted limit order will be rejected if the boundary is still breached.`;
+                        bannerMsg = `Limit <strong>$${fmtPrice(price)}</strong> exceeds Max Buy <strong>$${fmtPrice(maxBuy)}</strong>. Order will reject once triggered at $${fmtPrice(stopPrice)}.`;
                     } else if (!isBuy && minSell !== null && price < minSell) {
                         bannerState = 'state-warning';
                         bannerIcon = '⚠️';
-                        bannerTitle = `${orderTypeName}: Limit Below Min Sell`;
                         bannerBadge = 'TRIGGER RISK';
-                        bannerMsg = `Limit Price <strong>$${fmtPrice(price)}</strong> is below <strong>Min Sell ($${fmtPrice(minSell)})</strong>.${triggerNotice} When trigger ($${fmtPrice(stopPrice)}) is hit, the submitted limit order will be rejected if the boundary is still breached.`;
+                        bannerMsg = `Limit <strong>$${fmtPrice(price)}</strong> is below Min Sell <strong>$${fmtPrice(minSell)}</strong>. Order will reject once triggered at $${fmtPrice(stopPrice)}.`;
                     } else {
                         bannerState = 'state-success';
                         bannerIcon = '✓';
-                        bannerTitle = `${orderTypeName} Configured`;
                         bannerBadge = 'VALID';
-                        bannerMsg = `When market reaches Trigger <strong>$${fmtPrice(stopPrice)}</strong>, a Limit Order will be placed at <strong>$${fmtPrice(price)}</strong> (Compliant with limits: ${isBuy ? `≤ $${fmtPrice(maxBuy)}` : `≥ $${fmtPrice(minSell)}`}).`;
+                        bannerMsg = `Triggers @ <strong>$${fmtPrice(stopPrice)}</strong> → Places Limit order @ <strong>$${fmtPrice(price)}</strong> (within exchange limits).`;
                     }
                 }
             }
@@ -8161,7 +8247,8 @@ window.addEventListener('DOMContentLoaded', () => {
             // 4. STOP MARKET ORDERS (STOP_MARKET or TAKE_PROFIT_MARKET)
             // -------------------------------------------------------------
             else if (type === 'STOP_MARKET' || type === 'TAKE_PROFIT_MARKET') {
-                const orderTypeName = type === 'TAKE_PROFIT_MARKET' ? 'Take Profit Market' : 'Stop Market';
+                const label = type === 'TAKE_PROFIT_MARKET' ? 'Take Profit Market' : 'Stop Market';
+                bannerTitle = `${label} ${side}`;
                 const depthSide = isBuy ? asks : bids;
                 const capPrice = isBuy ? mktBuyCap : mktSellFloor;
                 const validOrders = isBuy
@@ -8172,22 +8259,21 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (stopPrice <= 0) {
                     bannerState = 'state-info';
                     bannerIcon = 'ℹ️';
-                    bannerTitle = `${orderTypeName} Setup`;
-                    bannerBadge = isBuy ? `CAP: $${fmtPrice(capPrice)}` : `FLOOR: $${fmtPrice(capPrice)}`;
-                    bannerMsg = `Enter Trigger Price. When triggered, a Market ${side} will execute within exchange ${isBuy ? 'Buy Cap' : 'Sell Floor'} limits (±${mktBoundPct}).`;
+                    bannerBadge = 'SETUP';
+                    bannerStat = isBuy ? `Cap: $${fmtPrice(capPrice)}` : `Floor: $${fmtPrice(capPrice)}`;
+                    bannerMsg = `Enter Trigger Price. Executes market order within protection band [±${mktBoundPct}] upon trigger.`;
                 } else {
+                    bannerStat = `Trigger: $${fmtPrice(stopPrice)}`;
                     if (validOrders.length === 0) {
                         bannerState = 'state-warning';
                         bannerIcon = '⚠️';
-                        bannerTitle = `${orderTypeName}: Low Book Liquidity`;
-                        bannerBadge = 'CAUTION';
-                        bannerMsg = `When triggered @ <strong>$${fmtPrice(stopPrice)}</strong>, Market ${side} will fire immediately. Current book has zero liquidity within ${isBuy ? 'Cap' : 'Floor'} ($${fmtPrice(capPrice)}). Order may fail if liquidity is not replenished prior to trigger.`;
+                        bannerBadge = 'LOW DEPTH';
+                        bannerMsg = `Zero depth within ${isBuy ? 'Cap' : 'Floor'} <strong>$${fmtPrice(capPrice)}</strong>. Order may fail if depth isn't filled before trigger.`;
                     } else {
                         bannerState = 'state-info';
                         bannerIcon = 'ℹ️';
-                        bannerTitle = `${orderTypeName} Trigger Configured`;
                         bannerBadge = 'READY';
-                        bannerMsg = `When market hits Trigger <strong>$${fmtPrice(stopPrice)}</strong>, a Market ${side} will fire. Execution capped at <strong>$${fmtPrice(capPrice)}</strong>. Current book has <strong>${fmtQty(availDepth)} ${base}</strong> available in protection band.`;
+                        bannerMsg = `Triggers @ <strong>$${fmtPrice(stopPrice)}</strong> → Fires Market ${side}. Current depth: <strong>${fmtQty(availDepth)} ${base}</strong> in band.`;
                     }
                 }
             }
@@ -8197,17 +8283,34 @@ window.addEventListener('DOMContentLoaded', () => {
             // -------------------------------------------------------------
             else if (type === 'TRAILING_STOP_MARKET') {
                 const cbRate = parseFloat(document.getElementById('trade-callback-rate')?.value) || 1.0;
+                bannerTitle = `Trailing Stop ${side}`;
                 bannerState = 'state-info';
                 bannerIcon = 'ℹ️';
-                bannerTitle = 'Trailing Stop Market';
                 bannerBadge = `CB: ${cbRate.toFixed(1)}%`;
-                bannerMsg = `Tracks market extremes with a <strong>${cbRate.toFixed(1)}%</strong> callback delta. Once triggered, market execution will be constrained by ${isBuy ? `Market Buy Cap ($${fmtPrice(mktBuyCap)})` : `Market Sell Floor ($${fmtPrice(mktSellFloor)})`}.`;
+                bannerStat = isBuy ? `Cap: $${fmtPrice(mktBuyCap)}` : `Floor: $${fmtPrice(mktSellFloor)}`;
+                bannerMsg = `Trails market with <strong>${cbRate.toFixed(1)}%</strong> callback. Bound by ${isBuy ? `Cap ($${fmtPrice(mktBuyCap)})` : `Floor ($${fmtPrice(mktSellFloor)})`}.`;
             }
 
-            // Update DOM banner
+            // Render HUD elements
             bannerEl.className = `term-safeguard-banner ${bannerState}`;
             iconEl.textContent = bannerIcon;
-            titleEl.innerHTML = `<span>${bannerTitle}</span> ${bannerBadge ? `<span class="tsb-badge">${bannerBadge}</span>` : ''}`;
+            if (badgeEl) {
+                badgeEl.textContent = bannerBadge || '';
+                badgeEl.style.display = bannerBadge ? 'inline-block' : 'none';
+            }
+            if (titleEl) titleEl.textContent = bannerTitle;
+            if (statEl) {
+                statEl.textContent = bannerStat || '';
+                statEl.style.display = bannerStat ? 'inline-block' : 'none';
+            }
+            if (barWrap && barFill) {
+                if (showBar) {
+                    barWrap.style.display = 'block';
+                    barFill.style.width = `${barFillPct}%`;
+                } else {
+                    barWrap.style.display = 'none';
+                }
+            }
             msgEl.innerHTML = bannerMsg;
             bannerEl.style.display = 'flex';
         };
