@@ -317,10 +317,10 @@
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    width: 24px;
-    height: 44px;
-    background: var(--panel);
-    border: 1px solid var(--border);
+    width: 26px;
+    height: 48px;
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     color: var(--text-muted);
     display: flex;
     align-items: center;
@@ -328,19 +328,21 @@
     cursor: pointer;
     z-index: 10;
     border-radius: 6px;
-    font-size: 11px;
-    font-weight: 800;
-    transition: all 0.15s ease;
+    font-size: 13px;
+    font-weight: 700;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     opacity: 0.85;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
     user-select: none;
+    backdrop-filter: blur(8px);
   }
   .ticker-scroll-btn:hover {
     opacity: 1;
     color: var(--cyan);
     border-color: var(--cyan);
-    background: var(--glass-hover);
-    transform: translateY(-50%) scale(1.05);
+    background: rgba(6, 182, 212, 0.18);
+    box-shadow: 0 0 16px rgba(6, 182, 212, 0.35);
+    transform: translateY(-50%) scale(1.06);
   }
   .ticker-scroll-btn.left { left: 4px; }
   .ticker-scroll-btn.right { right: 4px; }
@@ -348,8 +350,8 @@
   /* Ticker Scroll Container */
   .ticker-scroll-container {
     display: flex;
-    gap: 8px;
-    padding: 6px 32px 8px 32px;
+    gap: 10px;
+    padding: 6px 36px 8px 36px;
     overflow-x: auto;
     flex-wrap: nowrap;
     align-items: stretch;
@@ -357,7 +359,7 @@
     width: 100%;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+    scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
   }
   .ticker-scroll-container::-webkit-scrollbar {
     height: 3px;
@@ -366,7 +368,7 @@
     background: transparent;
   }
   .ticker-scroll-container::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.14);
     border-radius: 3px;
   }
   .ticker-scroll-container::-webkit-scrollbar-thumb:hover {
@@ -375,50 +377,52 @@
 
   /* Compact Pro Ticker Card */
   .ticker-card {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 7px 11px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.015) 100%), var(--panel);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 9px;
+    padding: 7px 12px;
     flex: 0 0 auto;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    height: 64px;
+    height: 70px;
     box-sizing: border-box;
-    backdrop-filter: var(--glass-blur);
+    backdrop-filter: blur(16px);
     transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     position: relative;
     overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
   }
   .ticker-card:hover {
-    border-color: rgba(6, 182, 212, 0.4);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
   }
   .ticker-card-hdr {
     display: flex;
     justify-content: space-between;
     align-items: center;
     line-height: 1;
-    margin-bottom: 3px;
+    margin-bottom: 2px;
   }
   .ticker-card-title {
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.6px;
     color: var(--text-muted);
     font-family: 'Inter', sans-serif;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     white-space: nowrap;
   }
   .tc-badge {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 8.5px;
+    font-size: 9px;
     font-weight: 700;
     color: var(--text-muted);
-    background: rgba(255, 255, 255, 0.04);
-    padding: 1px 5px;
-    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 6px;
+    border-radius: 4px;
     border: 1px solid var(--border);
     transition: all 0.25s ease;
     white-space: nowrap;
@@ -435,70 +439,95 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 6px;
-    height: 18px;
+    gap: 8px;
+    height: 20px;
     line-height: 1;
   }
   .tc-tag {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 26px;
-    height: 15px;
-    border-radius: 3px;
-    font-size: 7.5px;
+    height: 16px;
+    padding: 0 5px;
+    border-radius: 4px;
+    font-size: 8px;
     font-weight: 800;
     font-family: 'JetBrains Mono', monospace;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.4px;
     flex-shrink: 0;
   }
-  .tc-tag-dcx { background: rgba(234, 179, 8, 0.14); color: var(--yellow); border: 1px solid rgba(234, 179, 8, 0.25); }
-  .tc-tag-tst { background: rgba(6, 182, 212, 0.14); color: var(--cyan); border: 1px solid rgba(6, 182, 212, 0.25); }
-  .tc-tag-up  { background: rgba(16, 185, 129, 0.14); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.25); }
-  .tc-tag-dn  { background: rgba(244, 63, 94, 0.14); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.25); }
+  .tc-tag-dcx { background: rgba(234, 179, 8, 0.16); color: #fde047; border: 1px solid rgba(234, 179, 8, 0.35); }
+  .tc-tag-tst { background: rgba(6, 182, 212, 0.16); color: #67e8f9; border: 1px solid rgba(6, 182, 212, 0.35); }
+  .tc-tag-up  { background: rgba(16, 185, 129, 0.16); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); }
+  .tc-tag-dn  { background: rgba(244, 63, 94, 0.16); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.35); }
 
-  .tc-val-gold    { color: var(--yellow); font-size: 13.5px; font-weight: 800; font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
-  .tc-val-cyan    { color: var(--cyan); font-size: 13.5px; font-weight: 800; font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
-  .tc-val-emerald { color: #10b981; font-size: 13px; font-weight: 800; font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
-  .tc-val-rose    { color: #f43f5e; font-size: 13px; font-weight: 800; font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
+  .tc-val-gold    { color: #facc15; font-size: 14px; font-weight: 700; font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; letter-spacing: -0.2px; }
+  .tc-val-cyan    { color: #38bdf8; font-size: 14px; font-weight: 700; font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; letter-spacing: -0.2px; }
+  .tc-val-emerald { color: #34d399; font-size: 13.5px; font-weight: 700; font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; letter-spacing: -0.2px; }
+  .tc-val-rose    { color: #fb7185; font-size: 13.5px; font-weight: 700; font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; letter-spacing: -0.2px; }
 
-  /* Accent top borders for cards */
-  .tc-accent-cyan::before    { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--cyan); opacity: 0.8; }
-  .tc-accent-bidask::before  { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #10b981, #f43f5e); opacity: 0.8; }
-  .tc-accent-purple::before  { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: #a855f7; opacity: 0.8; }
-  .tc-accent-blue::before    { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: #3b82f6; opacity: 0.8; }
-  .tc-accent-rose::before    { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: #f43f5e; opacity: 0.8; }
-  .tc-accent-emerald::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: #10b981; opacity: 0.8; }
-  .tc-accent-yellow::before  { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--yellow); opacity: 0.8; }
+  /* Accent top borders & glowing hover effects for cards */
+  .tc-accent-cyan::before    { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #06b6d4, #38bdf8); }
+  .tc-accent-cyan:hover      { border-color: rgba(6, 182, 212, 0.5); box-shadow: 0 8px 24px -4px rgba(6, 182, 212, 0.22); }
+
+  .tc-accent-bidask::before  { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #10b981, #f43f5e); }
+  .tc-accent-bidask:hover    { border-color: rgba(16, 185, 129, 0.5); box-shadow: 0 8px 24px -4px rgba(16, 185, 129, 0.18); }
+
+  .tc-accent-purple::before  { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #a855f7, #c084fc); }
+  .tc-accent-purple:hover    { border-color: rgba(168, 85, 247, 0.5); box-shadow: 0 8px 24px -4px rgba(168, 85, 247, 0.22); }
+
+  .tc-accent-blue::before    { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+  .tc-accent-blue:hover      { border-color: rgba(59, 130, 246, 0.5); box-shadow: 0 8px 24px -4px rgba(59, 130, 246, 0.22); }
+
+  .tc-accent-rose::before    { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #f43f5e, #fb7185); }
+  .tc-accent-rose:hover      { border-color: rgba(244, 63, 94, 0.5); box-shadow: 0 8px 24px -4px rgba(244, 63, 94, 0.22); }
+
+  .tc-accent-emerald::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #10b981, #34d399); }
+  .tc-accent-emerald:hover   { border-color: rgba(16, 185, 129, 0.5); box-shadow: 0 8px 24px -4px rgba(16, 185, 129, 0.22); }
+
+  .tc-accent-yellow::before  { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #eab308, #facc15); }
+  .tc-accent-yellow:hover    { border-color: rgba(234, 179, 8, 0.5); box-shadow: 0 8px 24px -4px rgba(234, 179, 8, 0.22); }
 
   /* Light Theme overrides for Ticker HUD */
   :root[data-theme="light"] .ticker-card {
     background: #ffffff !important;
     border-color: #e2e8f0 !important;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
   }
   :root[data-theme="light"] .ticker-card:hover {
     border-color: #0284c7 !important;
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.1);
   }
   :root[data-theme="light"] .ticker-card-title {
-    color: #64748b !important;
+    color: #475569 !important;
   }
   :root[data-theme="light"] .tc-badge {
-    background: #f1f5f9 !important;
-    border-color: #e2e8f0 !important;
-    color: #475569 !important;
+    background: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+    color: #334155 !important;
+  }
+  :root[data-theme="light"] .tc-val-gold {
+    color: #d97706 !important;
+  }
+  :root[data-theme="light"] .tc-val-cyan {
+    color: #0284c7 !important;
+  }
+  :root[data-theme="light"] .tc-val-emerald {
+    color: #059669 !important;
+  }
+  :root[data-theme="light"] .tc-val-rose {
+    color: #e11d48 !important;
   }
   :root[data-theme="light"] .ticker-scroll-btn {
     background: #ffffff !important;
     border-color: #cbd5e1 !important;
-    color: #475569 !important;
-    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+    color: #334155 !important;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
   }
   :root[data-theme="light"] .ticker-scroll-btn:hover {
     color: #0284c7 !important;
     border-color: #0284c7 !important;
-    background: #f8fafc !important;
+    background: #f0f9ff !important;
   }
   :root[data-theme="light"] .ticker-scroll-container::-webkit-scrollbar-thumb {
     background: #cbd5e1;
@@ -3070,213 +3099,221 @@
 </div>
 
 <div class="ticker-wrap-outer">
-  <button class="ticker-scroll-btn left" onclick="window.scrollTicker(-1)" title="Scroll Left" aria-label="Scroll Left">&lt;</button>
+  <button class="ticker-scroll-btn left" onclick="window.scrollTicker(-1)" title="Scroll Left (or use mousewheel)" aria-label="Scroll Left">&lt;</button>
   <div class="ticker-scroll-container" id="ticker-scroll">
     <!-- Card 1: LTP -->
-    <div class="ticker-card tc-accent-cyan" style="min-width: 175px;">
+    <div class="ticker-card tc-accent-cyan" style="min-width: 185px;">
       <div class="ticker-card-hdr">
-        <span class="ticker-card-title">Last Price (LTP)</span>
-        <span id="ltp-drift-badge" class="tc-badge">Drift: —</span>
+        <span class="ticker-card-title"><span style="color:var(--cyan); font-size:11px;">●</span> Last Price (LTP)</span>
+        <span id="ltp-drift-badge" class="tc-badge" title="CoinDCX vs Testnet LTP Drift %">Drift: —</span>
       </div>
       <div class="ticker-card-body">
         <div class="tc-row">
-          <span class="tc-tag tc-tag-dcx">DCX</span>
+          <span class="tc-tag tc-tag-dcx" title="CoinDCX Last Traded Price">DCX</span>
           <span class="ticker-val tc-val-gold" id="t-bltp">—</span>
         </div>
         <div class="tc-row">
-          <span class="tc-tag tc-tag-tst">TST</span>
+          <span class="tc-tag tc-tag-tst" title="Testnet Last Traded Price">TST</span>
           <span class="ticker-val tc-val-cyan" id="t-sltp">—</span>
         </div>
       </div>
     </div>
+
     <!-- Card 2: Best Bid / Ask -->
-    <div class="ticker-card tc-accent-bidask" style="min-width: 260px;">
+    <div class="ticker-card tc-accent-bidask" style="min-width: 280px;">
       <div class="ticker-card-hdr">
-        <span class="ticker-card-title">Best Bid / Ask</span>
+        <span class="ticker-card-title"><span style="color:#10b981; font-size:11px;">⇅</span> Best Bid / Ask</span>
         <div style="display:flex; gap:4px;">
-          <span id="bid-drift-badge" class="tc-badge">B: —</span>
-          <span id="ask-drift-badge" class="tc-badge">A: —</span>
+          <span id="bid-drift-badge" class="tc-badge" title="Bid Price Drift">B: —</span>
+          <span id="ask-drift-badge" class="tc-badge" title="Ask Price Drift">A: —</span>
         </div>
       </div>
       <div class="ticker-card-body" style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
         <div style="display:flex; flex-direction:column; gap:2px; border-right:1px solid var(--border); padding-right:8px;">
           <div class="tc-row">
-            <span class="tc-tag tc-tag-up" title="CoinDCX Bid">BID</span>
-            <span class="ticker-val tc-val-gold" id="t-bbid">—</span>
+            <span class="tc-tag tc-tag-up" title="CoinDCX Best Bid">BID</span>
+            <span class="ticker-val tc-val-gold" id="t-bbid" style="font-size:13.5px;">—</span>
           </div>
           <div class="tc-row">
-            <span class="tc-tag tc-tag-tst" title="Testnet Bid">TST</span>
-            <span class="ticker-val tc-val-cyan" id="t-sbid">—</span>
+            <span class="tc-tag tc-tag-tst" title="Testnet Best Bid">TST</span>
+            <span class="ticker-val tc-val-cyan" id="t-sbid" style="font-size:13.5px;">—</span>
           </div>
         </div>
         <div style="display:flex; flex-direction:column; gap:2px;">
           <div class="tc-row">
-            <span class="tc-tag tc-tag-dn" title="CoinDCX Ask">ASK</span>
-            <span class="ticker-val tc-val-gold" id="t-bask">—</span>
+            <span class="tc-tag tc-tag-dn" title="CoinDCX Best Ask">ASK</span>
+            <span class="ticker-val tc-val-gold" id="t-bask" style="font-size:13.5px;">—</span>
           </div>
           <div class="tc-row">
-            <span class="tc-tag tc-tag-tst" title="Testnet Ask">TST</span>
-            <span class="ticker-val tc-val-cyan" id="t-sask">—</span>
+            <span class="tc-tag tc-tag-tst" title="Testnet Best Ask">TST</span>
+            <span class="ticker-val tc-val-cyan" id="t-sask" style="font-size:13.5px;">—</span>
           </div>
         </div>
       </div>
     </div>
+
     <!-- Card 3: Mark Price -->
-    <div class="ticker-card tc-accent-purple" style="min-width: 170px;">
+    <div class="ticker-card tc-accent-purple" style="min-width: 180px;">
       <div class="ticker-card-hdr">
-        <span class="ticker-card-title">Mark Price</span>
-        <span id="mp-drift-badge" class="tc-badge">Drift: —</span>
+        <span class="ticker-card-title"><span style="color:#c084fc; font-size:10px;">◆</span> Mark Price</span>
+        <span id="mp-drift-badge" class="tc-badge" title="Mark Price Drift %">Drift: —</span>
       </div>
       <div class="ticker-card-body">
         <div class="tc-row">
-          <span class="tc-tag tc-tag-dcx">DCX</span>
+          <span class="tc-tag tc-tag-dcx" title="CoinDCX Mark Price">DCX</span>
           <span class="ticker-val tc-val-gold" id="t-bmp">—</span>
         </div>
         <div class="tc-row">
-          <span class="tc-tag tc-tag-tst">TST</span>
+          <span class="tc-tag tc-tag-tst" title="Testnet Mark Price">TST</span>
           <span class="ticker-val tc-val-cyan" id="t-smp">—</span>
         </div>
       </div>
     </div>
-    <!-- Card 4: Mark Price Bands (Grouped with Mark Price) -->
-    <div class="ticker-card tc-accent-purple" style="min-width: 175px;">
+
+    <!-- Card 4: Mark Price Bands (Adjacent to Mark Price) -->
+    <div class="ticker-card tc-accent-purple" style="min-width: 185px;">
       <div class="ticker-card-hdr">
-        <span class="ticker-card-title">Mark Bands</span>
-        <span id="mark-bands-badge" class="tc-badge">Range: —</span>
+        <span class="ticker-card-title"><span style="color:#c084fc; font-size:10px;">⊞</span> Mark Bands</span>
+        <span id="mark-bands-badge" class="tc-badge" title="Mark Price Allowable Band Range">Range: —</span>
       </div>
       <div class="ticker-card-body">
         <div class="tc-row">
-          <span class="tc-tag tc-tag-up">UP</span>
+          <span class="tc-tag tc-tag-up" title="Upper Mark Band: Mark * (1 + Band%)">▲ UP</span>
           <span class="ticker-val tc-val-emerald" id="t-mark-upper">—</span>
         </div>
         <div class="tc-row">
-          <span class="tc-tag tc-tag-dn">DN</span>
+          <span class="tc-tag tc-tag-dn" title="Lower Mark Band: Mark * (1 - Band%)">▼ DN</span>
           <span class="ticker-val tc-val-rose" id="t-mark-lower">—</span>
         </div>
       </div>
     </div>
+
     <!-- Card 5: Index Price -->
-    <div class="ticker-card tc-accent-blue" style="min-width: 170px;">
+    <div class="ticker-card tc-accent-blue" style="min-width: 180px;">
       <div class="ticker-card-hdr">
-        <span class="ticker-card-title">Index Price</span>
-        <span id="ip-drift-badge" class="tc-badge">Drift: —</span>
+        <span class="ticker-card-title"><span style="color:#60a5fa; font-size:10px;">◎</span> Index Price</span>
+        <span id="ip-drift-badge" class="tc-badge" title="Index Price Drift %">Drift: —</span>
       </div>
       <div class="ticker-card-body">
         <div class="tc-row">
-          <span class="tc-tag tc-tag-dcx">DCX</span>
+          <span class="tc-tag tc-tag-dcx" title="CoinDCX Underlying Index Price">DCX</span>
           <span class="ticker-val tc-val-gold" id="t-bip">—</span>
         </div>
         <div class="tc-row">
-          <span class="tc-tag tc-tag-tst">TST</span>
+          <span class="tc-tag tc-tag-tst" title="Testnet Underlying Index Price">TST</span>
           <span class="ticker-val tc-val-cyan" id="t-sip">—</span>
         </div>
       </div>
     </div>
-    <!-- Card 6: Circuit Breakers (CB) (Grouped with Index Price) -->
-    <div class="ticker-card tc-accent-rose" style="min-width: 175px;">
+
+    <!-- Card 6: Circuit Breakers (CB) (Adjacent to Index Price) -->
+    <div class="ticker-card tc-accent-rose" style="min-width: 185px;">
       <div class="ticker-card-hdr">
-        <span class="ticker-card-title">Circuit Breaker</span>
-        <span id="cb-band-badge" class="tc-badge" style="color:var(--red); border-color:rgba(239,68,68,0.3); background:rgba(239,68,68,0.08);">Band: —</span>
+        <span class="ticker-card-title"><span style="color:#fb7185; font-size:10px;">⚡</span> Circuit Breaker</span>
+        <span id="cb-band-badge" class="tc-badge" style="color:var(--red); border-color:rgba(239,68,68,0.3); background:rgba(239,68,68,0.08);" title="Circuit Breaker Limit Percentage">Band: —</span>
       </div>
       <div class="ticker-card-body">
         <div class="tc-row">
-          <span class="tc-tag tc-tag-up">UP</span>
+          <span class="tc-tag tc-tag-up" title="CB Upper Threshold (Trading halt above)">▲ UP</span>
           <span class="ticker-val tc-val-emerald" id="t-cb-upper">—</span>
         </div>
         <div class="tc-row">
-          <span class="tc-tag tc-tag-dn">DN</span>
+          <span class="tc-tag tc-tag-dn" title="CB Lower Threshold (Trading halt below)">▼ DN</span>
           <span class="ticker-val tc-val-rose" id="t-cb-lower">—</span>
         </div>
       </div>
     </div>
+
     <!-- Card 7: Order Price Limits (Safeguards) -->
-    <div class="ticker-card tc-accent-emerald" style="min-width: 275px;">
+    <div class="ticker-card tc-accent-emerald" style="min-width: 285px;">
       <div class="ticker-card-hdr">
         <div style="display:flex; align-items:center; gap:5px;">
-          <span class="ticker-card-title" title="Exchange Price Boundaries: Maximum allowable Buy and Minimum allowable Sell prices enforced to prevent fat-finger orders and extreme market slippage">Order Price Limits</span>
-          <span style="font-size:8px; color:var(--text-muted); opacity:0.75;" title="Left: Limit Order Bounds | Right: Market Order Caps">(Limit &bull; Mkt)</span>
+          <span class="ticker-card-title" title="Exchange Price Boundaries: Maximum allowable Buy and Minimum allowable Sell prices enforced to prevent fat-finger orders and extreme market slippage"><span style="color:#34d399; font-size:10px;">🛡</span> Order Limits</span>
+          <span style="font-size:8.5px; color:var(--text-muted); opacity:0.8;" title="Left: Limit Order Bounds | Right: Market Order Caps">(Limit &bull; Mkt)</span>
         </div>
         <span id="order-limits-badge" class="tc-badge" title="Market Take Bound: Maximum slippage tolerance for market orders">Bound: —</span>
       </div>
       <div class="ticker-card-body" style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
         <div style="display:flex; flex-direction:column; gap:2px; border-right:1px solid var(--border); padding-right:8px;">
           <div class="tc-row">
-            <span class="tc-tag tc-tag-up" style="width:auto; padding:0 4px; font-size:7px; font-weight:800;" title="Max Buy Limit Order allowed (Ceiling): min(Mark Upper, CB Upper)">MAX BUY</span>
-            <span class="ticker-val tc-val-emerald" id="t-max-buy" style="font-size:11.5px; font-weight:800;">—</span>
+            <span class="tc-tag tc-tag-up" style="font-size:7.5px;" title="Max Buy Limit Order allowed (Ceiling): min(Mark Upper, CB Upper)">MAX BUY</span>
+            <span class="ticker-val tc-val-emerald" id="t-max-buy" style="font-size:12.5px;">—</span>
           </div>
           <div class="tc-row">
-            <span class="tc-tag tc-tag-dn" style="width:auto; padding:0 4px; font-size:7px; font-weight:800;" title="Min Sell Limit Order allowed (Floor): max(Mark Lower, CB Lower)">MIN SELL</span>
-            <span class="ticker-val tc-val-rose" id="t-min-sell" style="font-size:11.5px; font-weight:800;">—</span>
+            <span class="tc-tag tc-tag-dn" style="font-size:7.5px;" title="Min Sell Limit Order allowed (Floor): max(Mark Lower, CB Lower)">MIN SELL</span>
+            <span class="ticker-val tc-val-rose" id="t-min-sell" style="font-size:12.5px;">—</span>
           </div>
         </div>
         <div style="display:flex; flex-direction:column; gap:2px;">
           <div class="tc-row">
-            <span class="tc-tag tc-tag-up" style="width:auto; padding:0 4px; font-size:7px; font-weight:800;" title="Market Buy Price Ceiling (Execution Cap): orders won't execute above this">MKT BUY</span>
-            <span class="ticker-val tc-val-emerald" id="t-mkt-buy" style="font-size:11.5px; font-weight:800;">—</span>
+            <span class="tc-tag tc-tag-up" style="font-size:7.5px;" title="Market Buy Price Ceiling (Execution Cap): orders won't execute above this">MKT BUY</span>
+            <span class="ticker-val tc-val-emerald" id="t-mkt-buy" style="font-size:12.5px;">—</span>
           </div>
           <div class="tc-row">
-            <span class="tc-tag tc-tag-dn" style="width:auto; padding:0 4px; font-size:7px; font-weight:800;" title="Market Sell Price Floor (Execution Floor): orders won't execute below this">MKT SELL</span>
-            <span class="ticker-val tc-val-rose" id="t-mkt-sell" style="font-size:11.5px; font-weight:800;">—</span>
+            <span class="tc-tag tc-tag-dn" style="font-size:7.5px;" title="Market Sell Price Floor (Execution Floor): orders won't execute below this">MKT SELL</span>
+            <span class="ticker-val tc-val-rose" id="t-mkt-sell" style="font-size:12.5px;">—</span>
           </div>
         </div>
       </div>
     </div>
+
     <!-- Card 8: Funding Rate -->
-    <div class="ticker-card tc-accent-yellow" id="funding-card" style="min-width: 195px;">
+    <div class="ticker-card tc-accent-yellow" id="funding-card" style="min-width: 200px;">
       <div class="ticker-card-hdr">
-        <span class="ticker-card-title">Funding Rate</span>
-        <span id="funding-drift-badge" class="tc-badge">Drift: —</span>
+        <span class="ticker-card-title"><span style="color:#facc15; font-size:10px;">⏱</span> Funding Rate</span>
+        <span id="funding-drift-badge" class="tc-badge" title="Funding Rate Drift %">Drift: —</span>
       </div>
       <div class="ticker-card-body">
         <div class="tc-row">
-          <span class="tc-tag tc-tag-dcx">DCX</span>
-          <span class="ticker-val tc-val-gold" id="t-bin-funding" style="font-size:11.5px; font-weight:700;">—</span>
+          <span class="tc-tag tc-tag-dcx" title="CoinDCX Predicted Funding Rate">DCX</span>
+          <span class="ticker-val tc-val-gold" id="t-bin-funding" style="font-size:12px;">—</span>
         </div>
         <div class="tc-row">
-          <span class="tc-tag tc-tag-tst">TST</span>
-          <span class="ticker-val tc-val-cyan" id="t-stage-funding" style="font-size:11.5px; font-weight:700;">—</span>
+          <span class="tc-tag tc-tag-tst" title="Testnet Predicted Funding Rate">TST</span>
+          <span class="ticker-val tc-val-cyan" id="t-stage-funding" style="font-size:12px;">—</span>
         </div>
       </div>
     </div>
+
     <!-- Card 9: 24h Statistics -->
-    <div class="ticker-card tc-accent-cyan" style="min-width: 245px;">
+    <div class="ticker-card tc-accent-cyan" style="min-width: 255px;">
       <div class="ticker-card-hdr">
-        <span class="ticker-card-title">24h Statistics</span>
-        <span class="tc-badge" style="opacity:0.7;">HIGH / LOW / VOL</span>
+        <span class="ticker-card-title"><span style="color:var(--cyan); font-size:10px;">📊</span> 24h Statistics</span>
+        <span class="tc-badge" style="opacity:0.75;">HIGH / LOW / VOL</span>
       </div>
       <div class="ticker-card-body" style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
         <div style="display:flex; flex-direction:column; gap:1px; border-right:1px solid var(--border); padding-right:8px;">
           <div style="display:flex; justify-content:space-between; align-items:center; font-size:9.5px;">
-            <span style="color:var(--yellow); font-weight:800; font-family:'JetBrains Mono',monospace;">DCX H</span>
-            <span id="t-bin-24h-high" style="font-family:'JetBrains Mono',monospace; font-weight:800; color:var(--text-main); font-size:10.5px;">—</span>
+            <span style="color:#fde047; font-weight:800; font-family:'JetBrains Mono',monospace;">DCX H</span>
+            <span id="t-bin-24h-high" style="font-family:'JetBrains Mono',monospace; font-weight:800; color:var(--text-main); font-size:11px;">—</span>
           </div>
           <div style="display:flex; justify-content:space-between; align-items:center; font-size:9.5px;">
             <span style="color:var(--text-muted); font-weight:700;">L</span>
-            <span id="t-bin-24h-low" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-main); font-size:10px;">—</span>
+            <span id="t-bin-24h-low" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-main); font-size:10.5px;">—</span>
           </div>
           <div style="display:flex; justify-content:space-between; align-items:center; font-size:9.5px;">
             <span style="color:var(--text-muted); font-weight:700;">V</span>
-            <span id="t-bin-24h-vol" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-muted); font-size:9.5px;">—</span>
+            <span id="t-bin-24h-vol" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-muted); font-size:10px;">—</span>
           </div>
         </div>
         <div style="display:flex; flex-direction:column; gap:1px;">
           <div style="display:flex; justify-content:space-between; align-items:center; font-size:9.5px;">
-            <span style="color:var(--cyan); font-weight:800; font-family:'JetBrains Mono',monospace;">TST H</span>
-            <span id="t-stage-24h-high" style="font-family:'JetBrains Mono',monospace; font-weight:800; color:var(--text-main); font-size:10.5px;">—</span>
+            <span style="color:#67e8f9; font-weight:800; font-family:'JetBrains Mono',monospace;">TST H</span>
+            <span id="t-stage-24h-high" style="font-family:'JetBrains Mono',monospace; font-weight:800; color:var(--text-main); font-size:11px;">—</span>
           </div>
           <div style="display:flex; justify-content:space-between; align-items:center; font-size:9.5px;">
             <span style="color:var(--text-muted); font-weight:700;">L</span>
-            <span id="t-stage-24h-low" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-main); font-size:10px;">—</span>
+            <span id="t-stage-24h-low" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-main); font-size:10.5px;">—</span>
           </div>
           <div style="display:flex; justify-content:space-between; align-items:center; font-size:9.5px;">
             <span style="color:var(--text-muted); font-weight:700;">V</span>
-            <span id="t-stage-24h-vol" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-muted); font-size:9.5px;">—</span>
+            <span id="t-stage-24h-vol" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-muted); font-size:10px;">—</span>
           </div>
         </div>
       </div>
     </div>
   </div>
-  <button class="ticker-scroll-btn right" onclick="window.scrollTicker(1)" title="Scroll Right" aria-label="Scroll Right">&gt;</button>
+  <button class="ticker-scroll-btn right" onclick="window.scrollTicker(1)" title="Scroll Right (or use mousewheel)" aria-label="Scroll Right">&gt;</button>
 </div>
 </div>
 
@@ -3287,6 +3324,18 @@
             el.scrollBy({ left: dir * 280, behavior: 'smooth' });
         }
     };
+    // Enable smooth mousewheel horizontal scroll on ticker
+    (function initTickerWheel() {
+        const ts = document.getElementById('ticker-scroll');
+        if (ts) {
+            ts.addEventListener('wheel', function(e) {
+                if (e.deltaY !== 0) {
+                    e.preventDefault();
+                    ts.scrollLeft += e.deltaY;
+                }
+            }, { passive: false });
+        }
+    })();
     function adjustHeaderOffset() {
         const hw = document.querySelector('.sticky-header-wrapper');
         if (hw) {
