@@ -3770,6 +3770,7 @@
       <button class="env-tab on" data-env="PRODUCTION" style="background:transparent; border:none; color:var(--text-muted); padding: 4px 10px; font-size: 9px; font-weight:700; font-family:inherit; cursor:pointer; border-radius: 5px; transition: all 0.2s;">PRODUCTION</button>
       <button class="env-tab" data-env="QA_STAGING" style="background:transparent; border:none; color:var(--text-muted); padding: 4px 10px; font-size: 9px; font-weight:700; font-family:inherit; cursor:pointer; border-radius: 5px; transition: all 0.2s;">QA_STAGING</button>
       <button class="env-tab" data-env="DEV_STAGING" style="background:transparent; border:none; color:var(--text-muted); padding: 4px 10px; font-size: 9px; font-weight:700; font-family:inherit; cursor:pointer; border-radius: 5px; transition: all 0.2s;">DEV_STAGING</button>
+      <button class="env-tab" data-env="PERF" style="background:transparent; border:none; color:var(--text-muted); padding: 4px 10px; font-size: 9px; font-weight:700; font-family:inherit; cursor:pointer; border-radius: 5px; transition: all 0.2s;">PERF</button>
     </div>
   </div>
   <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;flex:1 1 auto;justify-content:center;min-width:0;">
@@ -4228,6 +4229,7 @@
         <option value="PRODUCTION">PRODUCTION (Testnet Exchange)</option>
         <option value="QA_STAGING">QA_STAGING (Testnet Futures)</option>
         <option value="DEV_STAGING">DEV_STAGING (Staging Exchange Futures)</option>
+        <option value="PERF">PERF (Performance Exchange Futures)</option>
     </select>
     
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
@@ -6921,7 +6923,7 @@ window.addEventListener('DOMContentLoaded', () => {
         };
 
         window.activeTabSymbol = null;
-        window.lastActiveSymbolByEnv = { PRODUCTION: null, QA_STAGING: null, DEV_STAGING: null, JAPAN: null, STAGING: null };
+        window.lastActiveSymbolByEnv = { PRODUCTION: null, QA_STAGING: null, DEV_STAGING: null, PERF: null, JAPAN: null, STAGING: null };
         try {
             const savedSymbols = localStorage.getItem('replicator_last_active_symbols');
             if (savedSymbols) Object.assign(window.lastActiveSymbolByEnv, JSON.parse(savedSymbols));
@@ -12535,7 +12537,7 @@ window.addEventListener('DOMContentLoaded', () => {
             let msgText = l.msg || '';
             msgText = msgText.replace(/Binance/gi, 'CoinDCX').replace(/Stage/gi, 'Testnet');
 
-            const tierColor = logTier === 'PRODUCTION' ? '#10b981' : (logTier === 'QA_STAGING' || logTier === 'QA-STAGING' || logTier === 'JAPAN') ? '#eab308' : '#06b6d4';
+            const tierColor = logTier === 'PRODUCTION' ? '#10b981' : (logTier === 'QA_STAGING' || logTier === 'QA-STAGING' || logTier === 'JAPAN') ? '#eab308' : (logTier === 'PERF' || logTier === 'PERF_STAGING' || logTier === 'PERF-STAGING') ? '#a855f7' : '#06b6d4';
 
             const row = document.createElement('div');
             row.id = 'tl-' + i;
@@ -12983,10 +12985,14 @@ window.addEventListener('DOMContentLoaded', () => {
                 const TIER_WS_GATEWAYS = {
                     PRODUCTION: "wss://testnet-exchange-futures-socket-gateway.dcxstage.com",
                     QA_STAGING: "wss://testnet-futures-socket-gateway.dcxstage.com",
-                    DEV_STAGING: "wss://staging-exchange-futures-socket-gateway.dcxstage.com"
+                    DEV_STAGING: "wss://staging-exchange-futures-socket-gateway.dcxstage.com",
+                    PERF: "wss://performance-futures-socket-gateway.dcxstage.com"
                 };
                 TIER_WS_GATEWAYS["QA-STAGING"] = TIER_WS_GATEWAYS.QA_STAGING;
                 TIER_WS_GATEWAYS["DEV-STAGING"] = TIER_WS_GATEWAYS.DEV_STAGING;
+                TIER_WS_GATEWAYS["PERF"] = TIER_WS_GATEWAYS.PERF;
+                TIER_WS_GATEWAYS["PERF-STAGING"] = TIER_WS_GATEWAYS.PERF;
+                TIER_WS_GATEWAYS["PERF_STAGING"] = TIER_WS_GATEWAYS.PERF;
                 const wsUrl = `wss://fstream.binance.com/public/ws/${binanceSourceSym.toLowerCase()}@kline_${interval}`;
                 window.tvWs = new WebSocket(wsUrl);
                 window.tvWs.onopen = () => window.injectTerminalEvent('SUCCESS', pair, `[WS] Connected to Kline stream: ${interval}`, null, 'ws');
@@ -14248,7 +14254,7 @@ window.renderMarketListTable = function() {
     
     let symbols = [];
     if (exchangeSymbols.length > 0) {
-        symbols = exchangeSymbols.map(s => s.symbol.toUpperCase());
+        symbols = [...new Set(exchangeSymbols.map(s => s.symbol.toUpperCase()))];
     } else {
         const tierInstruments = (window.payload && window.payload.instruments && window.payload.instruments[activeTier]) || {};
         symbols = Object.keys(tierInstruments);
@@ -14493,7 +14499,7 @@ document.addEventListener('mousemove', (e) => {
 
     <!-- Production Notice Banner (if active tier is PRODUCTION) -->
     <div id="qa-prod-warning-banner" style="display:none; padding:10px 20px; background:rgba(248,81,73,0.1); border-bottom:1px solid rgba(248,81,73,0.3); color:#f85149; font-size:11.5px; align-items:center; justify-content:space-between; flex-shrink:0;">
-      <span>⚠️ <b>Warning:</b> Current Global Environment is <b>PRODUCTION</b>. QA API endpoints are only available on <b>QA_STAGING</b> and <b>DEV_STAGING</b>. Please switch environment in the top navbar.</span>
+      <span>⚠️ <b>Warning:</b> Current Global Environment is <b>PRODUCTION</b>. QA API endpoints are only available on <b>QA_STAGING</b>, <b>DEV_STAGING</b>, and <b>PERF</b>. Please switch environment in the top navbar.</span>
     </div>
 
     <!-- Main Navigation Bar -->
@@ -14939,8 +14945,13 @@ document.addEventListener('mousemove', (e) => {
 
     const HPO_DOMAINS = {
         QA_STAGING: 'https://testnet-futures-hpo.dcxstage.com',
-        DEV_STAGING: 'https://staging-exchange-futures-hpo.dcxstage.com'
+        DEV_STAGING: 'https://staging-exchange-futures-hpo.dcxstage.com',
+        PERF: 'https://performance-exchange-hpo.dcxstage.com'
     };
+    HPO_DOMAINS["QA-STAGING"] = HPO_DOMAINS.QA_STAGING;
+    HPO_DOMAINS["DEV-STAGING"] = HPO_DOMAINS.DEV_STAGING;
+    HPO_DOMAINS["PERF-STAGING"] = HPO_DOMAINS.PERF;
+    HPO_DOMAINS["PERF_STAGING"] = HPO_DOMAINS.PERF;
 
     function getActiveGlobalTier() {
         if (window.activeEnvFilter) {

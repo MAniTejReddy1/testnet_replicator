@@ -4,7 +4,7 @@ pipeline {
     parameters {
         choice(
             name: 'ACTIVE_TIER',
-            choices: ['PRODUCTION', 'QA_STAGING', 'DEV_STAGING'],
+            choices: ['PRODUCTION', 'QA_STAGING', 'DEV_STAGING', 'PERF'],
             description: 'Environment tier to run the replicator on (default: PRODUCTION)'
         )
         string(

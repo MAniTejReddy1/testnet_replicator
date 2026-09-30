@@ -16,11 +16,19 @@ const TIER_URLS = {
         ONBOARDING: "https://staging-exchange-api.dcxstage.com",
         RAILS: "https://staging-exchange-rails-api.dcxstage.com",
         HPO: "https://staging-exchange-futures-hpo.dcxstage.com"
+    },
+    PERF: {
+        ONBOARDING: "https://performance-exchange-hpo.dcxstage.com",
+        RAILS: "",
+        HPO: "https://performance-exchange-hpo.dcxstage.com"
     }
 };
 // Aliases for hyphenated environment strings
 TIER_URLS["QA-STAGING"] = TIER_URLS.QA_STAGING;
 TIER_URLS["DEV-STAGING"] = TIER_URLS.DEV_STAGING;
+TIER_URLS["PERF"] = TIER_URLS.PERF;
+TIER_URLS["PERF-STAGING"] = TIER_URLS.PERF;
+TIER_URLS["PERF_STAGING"] = TIER_URLS.PERF;
 
 const activeTier = (process.env.ACTIVE_TIER || 'PRODUCTION').toUpperCase().replace(/-/g, '_');
 const config = TIER_URLS[activeTier] || TIER_URLS.PRODUCTION;

@@ -615,8 +615,13 @@ function writeEnvironment() {
     var tierUrls = {
         PRODUCTION: "https://testnet-exchange-hpo.dcxstage.com",
         QA_STAGING: "https://testnet-futures-hpo.dcxstage.com",
-        DEV_STAGING: "https://staging-exchange-futures-hpo.dcxstage.com"
+        DEV_STAGING: "https://staging-exchange-futures-hpo.dcxstage.com",
+        PERF: "https://performance-exchange-hpo.dcxstage.com"
     };
+    tierUrls["QA-STAGING"] = tierUrls.QA_STAGING;
+    tierUrls["DEV-STAGING"] = tierUrls.DEV_STAGING;
+    tierUrls["PERF-STAGING"] = tierUrls.PERF;
+    tierUrls["PERF_STAGING"] = tierUrls.PERF;
     var baseUrl = tierUrls[tier] || tierUrls.PRODUCTION;
     var lines = [
         'BASE_URL=' + baseUrl,

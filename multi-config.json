@@ -3,5 +3,10 @@
     "sourceSymbol": "BTCUSDT",
     "targetSymbol": "BTCUSDT",
     "tier": "PRODUCTION"
+  },
+  {
+    "sourceSymbol": "DOGEUSDT",
+    "targetSymbol": "DOGEUSDT",
+    "tier": "PERF"
   }
 ]
