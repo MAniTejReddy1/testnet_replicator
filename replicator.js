@@ -864,9 +864,10 @@ async function loadInstruments(tier = 'PRODUCTION') {
                         instrumentsMap[tier][symbol].multiplierDown = parseFloat(pctPrice.multiplierDown);
                     }
                     // Extract MIN_NOTIONAL limit
-                    const minNotional = sym.filters.find(f => f.filterType === 'MIN_NOTIONAL');
-                    if (minNotional && minNotional.notional) {
-                        instrumentsMap[tier][symbol].minNotional = parseFloat(minNotional.notional);
+                    const minNotional = sym.filters.find(f => f.filterType === 'MIN_NOTIONAL' || f.filterType === 'NOTIONAL');
+                    if (minNotional) {
+                        const notionalVal = parseFloat(minNotional.notional || minNotional.minNotional);
+                        if (notionalVal > 0) instrumentsMap[tier][symbol].minNotional = notionalVal;
                     }
                 }
             });
@@ -5091,13 +5092,15 @@ const server = http.createServer(async (req, res) => {
                     const buyPriceStr = buyPrice.toFixed(pricePrec);
                     const sellPriceStr = sellPrice.toFixed(pricePrec);
 
-                    // 6. Calculate Quantities to meet minNotional ($5.50 USDT threshold)
-                    const targetNotional = 5.50;
+                    // 6. Calculate Quantities to meet minNotional * 10 threshold (e.g. 6.0 USDT * 10 = 60 USDT)
+                    const baseMinNotional = Math.max(parseFloat(symMeta.minNotional) || 6.0, 6.0);
+                    const notionalMultiplier = parseFloat(parsed.notionalMultiplier) || 10;
+                    const targetNotional = baseMinNotional * notionalMultiplier;
                     const calcQty = (price) => {
                         const raw = Math.max(minQty, targetNotional / price);
                         const steps = Math.ceil(raw / qtyStep);
                         let q = steps * qtyStep;
-                        if ((q * price) < 5.05) {
+                        if ((q * price) < targetNotional) {
                             q = (steps + 1) * qtyStep;
                         }
                         return q.toFixed(qtyPrec);
