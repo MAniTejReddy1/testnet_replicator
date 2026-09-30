@@ -2128,6 +2128,62 @@
     border: 1px solid rgba(16, 185, 129, 0.38);
     box-shadow: 0 2px 10px rgba(16, 185, 129, 0.08);
   }
+
+  /* Failure & Warning Animations */
+  @keyframes hudShake {
+    0%, 100% { transform: translateX(0); }
+    15% { transform: translateX(-4px) rotate(-0.5deg); }
+    30% { transform: translateX(4px) rotate(0.5deg); }
+    45% { transform: translateX(-3px); }
+    60% { transform: translateX(3px); }
+    75% { transform: translateX(-1.5px); }
+  }
+  @keyframes iconVibrate {
+    0%, 100% { transform: scale(1) rotate(0deg); }
+    20% { transform: scale(1.18) rotate(-8deg); }
+    40% { transform: scale(1.18) rotate(8deg); }
+    60% { transform: scale(1.12) rotate(-4deg); }
+    80% { transform: scale(1.08) rotate(4deg); }
+  }
+  @keyframes glowAlertRed {
+    0%, 100% { box-shadow: 0 2px 10px rgba(239, 68, 68, 0.15), inset 0 0 0 rgba(239, 68, 68, 0); }
+    50% { box-shadow: 0 4px 18px rgba(239, 68, 68, 0.35), inset 0 0 8px rgba(239, 68, 68, 0.2); }
+  }
+  @keyframes glowAlertAmber {
+    0%, 100% { box-shadow: 0 2px 10px rgba(245, 158, 11, 0.12), inset 0 0 0 rgba(245, 158, 11, 0); }
+    50% { box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3), inset 0 0 8px rgba(245, 158, 11, 0.15); }
+  }
+
+  .term-safeguard-banner.state-error {
+    animation: glowAlertRed 2s infinite ease-in-out;
+  }
+  .term-safeguard-banner.state-warning {
+    animation: glowAlertAmber 2.4s infinite ease-in-out;
+  }
+  .term-safeguard-banner.state-error .tsb-icon {
+    animation: iconVibrate 1.2s infinite ease-in-out;
+    display: inline-block;
+  }
+  .term-safeguard-banner.state-warning .tsb-icon {
+    animation: iconVibrate 2s infinite ease-in-out;
+    display: inline-block;
+  }
+  .term-safeguard-banner.hud-shake {
+    animation: hudShake 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  }
+
+  /* Form / Button Shake Animation on Validation Failure */
+  .term-field-error {
+    border-color: #ef4444 !important;
+    background: rgba(239, 68, 68, 0.08) !important;
+    animation: hudShake 0.38s ease-in-out;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.3) !important;
+  }
+  .btn-shake-error {
+    animation: hudShake 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important;
+    box-shadow: 0 0 16px rgba(239, 68, 68, 0.6) !important;
+  }
   .tsb-top-row {
     display: flex;
     justify-content: space-between;
@@ -2893,14 +2949,32 @@
             if (!document.getElementById('fb-kf')) {
                 const s = document.createElement('style');
                 s.id = 'fb-kf';
-                s.textContent = '@keyframes fb-prog{from{transform:scaleX(1)}to{transform:scaleX(0)}}';
+                s.textContent = `
+                    @keyframes fb-prog{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+                    @keyframes fbShake{
+                        0%, 100% { transform: translateX(0); }
+                        15% { transform: translateX(-6px) rotate(-1deg); }
+                        30% { transform: translateX(6px) rotate(1deg); }
+                        45% { transform: translateX(-4px) rotate(-0.5deg); }
+                        60% { transform: translateX(4px) rotate(0.5deg); }
+                        75% { transform: translateX(-2px); }
+                    }
+                    @keyframes fbPulseErr{
+                        0%, 100% { box-shadow: ${p.shadow}; }
+                        50% { box-shadow: 0 12px 36px rgba(244,63,94,0.35), 0 0 18px rgba(244,63,94,0.45); }
+                    }
+                `;
                 document.head.appendChild(s);
             }
 
-            // Animate in
+            // Animate in with error shake if applicable
             requestAnimationFrame(() => requestAnimationFrame(() => {
                 el.style.opacity = '1';
-                el.style.transform = 'translateX(0)';
+                if (type === 'error') {
+                    el.style.animation = 'fbShake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both, fbPulseErr 1.5s 0.45s 2 ease-in-out';
+                } else {
+                    el.style.transform = 'translateX(0)';
+                }
             }));
 
             // Pause on hover
@@ -8291,8 +8365,16 @@ window.addEventListener('DOMContentLoaded', () => {
                 bannerMsg = `Trails market with <strong>${cbRate.toFixed(1)}%</strong> callback. Bound by ${isBuy ? `Cap ($${fmtPrice(mktBuyCap)})` : `Floor ($${fmtPrice(mktSellFloor)})`}.`;
             }
 
-            // Render HUD elements
+            // Trigger failure shake animation on state change to error or warning
+            const prevState = bannerEl.dataset.prevState || '';
+            bannerEl.dataset.prevState = bannerState;
             bannerEl.className = `term-safeguard-banner ${bannerState}`;
+            if ((bannerState === 'state-error' || bannerState === 'state-warning') && prevState !== bannerState) {
+                bannerEl.classList.remove('hud-shake');
+                void bannerEl.offsetWidth; // Force reflow to retrigger animation
+                bannerEl.classList.add('hud-shake');
+            }
+
             iconEl.textContent = bannerIcon;
             if (badgeEl) {
                 badgeEl.textContent = bannerBadge || '';
@@ -8464,6 +8546,31 @@ window.addEventListener('DOMContentLoaded', () => {
         };
 
         window.submitManualTrade = async function(side) {
+            const highlightInputError = (inputId) => {
+                const el = document.getElementById(inputId);
+                if (el) {
+                    el.classList.remove('term-field-error');
+                    void el.offsetWidth;
+                    el.classList.add('term-field-error');
+                    el.focus();
+                    setTimeout(() => el.classList.remove('term-field-error'), 1800);
+                }
+                const mainBtn = document.getElementById('term-main-btn');
+                if (mainBtn) {
+                    mainBtn.classList.remove('btn-shake-error');
+                    void mainBtn.offsetWidth;
+                    mainBtn.classList.add('btn-shake-error');
+                    setTimeout(() => mainBtn.classList.remove('btn-shake-error'), 600);
+                }
+                const hudBanner = document.getElementById('term-safeguard-banner');
+                if (hudBanner && hudBanner.style.display !== 'none') {
+                    hudBanner.classList.remove('hud-shake');
+                    void hudBanner.offsetWidth;
+                    hudBanner.classList.add('hud-shake');
+                    setTimeout(() => hudBanner.classList.remove('hud-shake'), 600);
+                }
+            };
+
             if (!activeTabSymbol) return showToast('✗ Select a market first', true);
             const activeTier = activeEnvFilter || (window.payload && window.payload.tier) || 'PRODUCTION';
             const userToTrade = window.tradeUser || document.getElementById('sel-trade-user')?.value || 'user1';
@@ -8476,7 +8583,10 @@ window.addEventListener('DOMContentLoaded', () => {
             const stp = document.getElementById('trade-stp').value;
             const reduceOnly = document.getElementById('trade-reduce-only').checked;
 
-            if (!qty || qty <= 0) return showToast('✗ Invalid Quantity', true);
+            if (!qty || qty <= 0) {
+                highlightInputError('trade-qty');
+                return showToast('✗ Invalid Quantity', true);
+            }
 
             const payload = {
                 symbol: activeTabSymbol,
@@ -8489,22 +8599,37 @@ window.addEventListener('DOMContentLoaded', () => {
             if (reduceOnly) payload.reduceOnly = "true";
 
             if (type === 'LIMIT') {
-                if (!price || price <= 0 || isNaN(price)) return showToast('✗ Invalid or missing Price', true);
+                if (!price || price <= 0 || isNaN(price)) {
+                    highlightInputError('trade-price');
+                    return showToast('✗ Invalid or missing Price', true);
+                }
                 if (!tif) return showToast('✗ Time in Force is required for LIMIT orders', true);
                 payload.price = price;
                 payload.timeInForce = tif;
             } else if (type === 'STOP' || type === 'TAKE_PROFIT') {
-                if (!price || price <= 0 || isNaN(price)) return showToast('✗ Invalid or missing Price', true);
-                if (!stopPrice || stopPrice <= 0 || isNaN(stopPrice)) return showToast('✗ Invalid or missing Stop Price', true);
+                if (!price || price <= 0 || isNaN(price)) {
+                    highlightInputError('trade-price');
+                    return showToast('✗ Invalid or missing Price', true);
+                }
+                if (!stopPrice || stopPrice <= 0 || isNaN(stopPrice)) {
+                    highlightInputError('trade-stop-price');
+                    return showToast('✗ Invalid or missing Stop Price', true);
+                }
                 if (!tif) return showToast('✗ Time in Force is required for STOP/TAKE_PROFIT orders', true);
                 payload.price = price;
                 payload.stopPrice = stopPrice;
                 payload.timeInForce = tif;
             } else if (type === 'STOP_MARKET' || type === 'TAKE_PROFIT_MARKET') {
-                if (!stopPrice || stopPrice <= 0 || isNaN(stopPrice)) return showToast('✗ Invalid or missing Stop Price', true);
+                if (!stopPrice || stopPrice <= 0 || isNaN(stopPrice)) {
+                    highlightInputError('trade-stop-price');
+                    return showToast('✗ Invalid or missing Stop Price', true);
+                }
                 payload.stopPrice = stopPrice;
             } else if (type === 'TRAILING_STOP_MARKET') {
-                if (!cbRate || cbRate < 0.1 || cbRate > 5.0 || isNaN(cbRate)) return showToast('✗ Callback rate must be between 0.1 and 5', true);
+                if (!cbRate || cbRate < 0.1 || cbRate > 5.0 || isNaN(cbRate)) {
+                    highlightInputError('trade-callback-rate');
+                    return showToast('✗ Callback rate must be between 0.1 and 5', true);
+                }
                 payload.callbackRate = cbRate;
             }
 
@@ -8534,6 +8659,13 @@ window.addEventListener('DOMContentLoaded', () => {
                 });
                 const data = await res.json();
                 if (data.error || data.msg || data.code < 0) {
+                    const mainBtn = document.getElementById('term-main-btn');
+                    if (mainBtn) {
+                        mainBtn.classList.remove('btn-shake-error');
+                        void mainBtn.offsetWidth;
+                        mainBtn.classList.add('btn-shake-error');
+                        setTimeout(() => mainBtn.classList.remove('btn-shake-error'), 600);
+                    }
                     showToast(`✗ Order Failed: ${data.error || data.msg}`, true);
                 } else {
                     showToast(`✓ Order Placed (${side} ${qty} ${payload.symbol})`);
@@ -8546,6 +8678,13 @@ window.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             } catch (err) {
+                const mainBtn = document.getElementById('term-main-btn');
+                if (mainBtn) {
+                    mainBtn.classList.remove('btn-shake-error');
+                    void mainBtn.offsetWidth;
+                    mainBtn.classList.add('btn-shake-error');
+                    setTimeout(() => mainBtn.classList.remove('btn-shake-error'), 600);
+                }
                 showToast(`✗ Request Failed: ${err.message}`, true);
             }
         };
@@ -8554,6 +8693,7 @@ window.addEventListener('DOMContentLoaded', () => {
             if (!activeTabSymbol) return showToast('✗ Select a market first', true);
             const activeTier = activeEnvFilter || (window.payload && window.payload.tier) || 'PRODUCTION';
             const userToTrade = window.tradeUser || document.getElementById('sel-trade-user')?.value || 'user1';
+            const exitBtn = document.getElementById('term-close-pos-btn');
             try {
                 const res = await fetch(window.getApiUrl('/fapi/v1/exitPosition'), {
                     method: 'POST',
@@ -8566,6 +8706,12 @@ window.addEventListener('DOMContentLoaded', () => {
                 });
                 const data = await res.json();
                 if (data.error || data.msg || data.code < 0) {
+                    if (exitBtn) {
+                        exitBtn.classList.remove('btn-shake-error');
+                        void exitBtn.offsetWidth;
+                        exitBtn.classList.add('btn-shake-error');
+                        setTimeout(() => exitBtn.classList.remove('btn-shake-error'), 600);
+                    }
                     showToast(`✗ Close Failed: ${data.error || data.msg}`, true);
                 } else {
                     showToast(`✓ Position Closed successfully`);
@@ -8578,6 +8724,12 @@ window.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             } catch (err) {
+                if (exitBtn) {
+                    exitBtn.classList.remove('btn-shake-error');
+                    void exitBtn.offsetWidth;
+                    exitBtn.classList.add('btn-shake-error');
+                    setTimeout(() => exitBtn.classList.remove('btn-shake-error'), 600);
+                }
                 showToast(`✗ Request Failed: ${err.message}`, true);
             }
         };
