@@ -2039,56 +2039,227 @@
     color: #0f172a;
   }
 
-  .term-scroll-body {
+  .term-body-container {
     flex: 1 1 0;
     min-height: 0;
     overflow-y: auto !important;
     overflow-x: hidden !important;
-  }
-  .term-scroll-body > * {
-    flex-shrink: 0 !important;
-  }
-  .term-scroll-body::-webkit-scrollbar {
-    width: 5px;
-  }
-  .term-scroll-body::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .term-scroll-body::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.15);
-    border-radius: 4px;
-  }
-  .term-scroll-body::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
-  }
-
-  .term-preflight-card {
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 7px 10px;
-    margin-bottom: 10px;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    justify-content: space-between;
+    gap: 7px;
   }
-  :root[data-theme="light"] .term-preflight-card {
-    background: rgba(0, 0, 0, 0.02);
+  .term-body-container::-webkit-scrollbar {
+    width: 4px;
   }
-  .term-preflight-row {
+  .term-body-container::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .term-body-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+  }
+
+  /* Account & Balances Strip */
+  .term-account-strip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    background: var(--input-bg);
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+  .term-acc-left, .term-acc-right {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+  }
+  .term-bal-pill {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 9.5px;
+  }
+
+  /* Dual-Column Inputs Grid */
+  .term-inputs-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    align-items: stretch;
+  }
+  .term-col {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+  .term-col-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    min-height: 17px;
+  }
+  .term-market-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(6, 182, 212, 0.08);
+    border: 1px dashed rgba(6, 182, 212, 0.4);
+    padding: 0 8px;
+    border-radius: 6px;
+    height: 32px;
+    box-sizing: border-box;
+    user-select: none;
+  }
+  :root[data-theme="light"] .term-market-box {
+    background: rgba(6, 182, 212, 0.05);
+    border-color: rgba(6, 182, 212, 0.5);
+  }
+  .term-market-tag {
     font-size: 10px;
+    font-weight: 800;
+    color: var(--cyan);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.5px;
+  }
+  .term-market-sub {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .term-chip-active {
+    font-size: 8px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: rgba(6, 182, 212, 0.18);
+    border: 1px solid rgba(6, 182, 212, 0.45);
+    color: var(--cyan);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.3px;
+  }
+
+  /* Advanced Inline Tools Bar */
+  .term-tools-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 8px;
+  }
+  :root[data-theme="light"] .term-tools-bar {
+    background: rgba(0, 0, 0, 0.02);
+  }
+  .term-tool-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .term-tool-label {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+  }
+  .term-tool-select {
+    padding: 2px 18px 2px 6px;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 4px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    color: var(--text-main);
+    height: 22px;
+  }
+  .term-tool-checkbox-wrap {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .term-tool-checkbox {
+    cursor: pointer;
+    width: 14px;
+    height: 14px;
+    accent-color: var(--cyan);
+  }
+
+  /* Pre-flight Financial Estimates Strip (3-Column Layout) */
+  .term-preflight-card {
+    background: rgba(0, 0, 0, 0.22);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 8px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+  }
+  :root[data-theme="light"] .term-preflight-card {
+    background: rgba(0, 0, 0, 0.025);
+  }
+  .term-pf-col {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
   }
   .term-pf-label {
+    font-size: 8.5px;
+    font-weight: 700;
     color: var(--text-muted);
-    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .term-pf-val {
     font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
     font-weight: 700;
     color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Action Row */
+  .term-action-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .term-reset-btn {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+  }
+  .term-reset-btn:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.4);
   }
 
   /* Order Safeguard & Liquidity Banner in Terminal */
@@ -4526,26 +4697,24 @@
       </div>
     </div>
 
-    <!-- Scrollable Terminal Body -->
-    <div class="term-scroll-body" style="padding:12px 14px 8px;flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:10px;">
-      <!-- Account & Quick Balances Strip -->
-      <div style="display:flex;flex-direction:column;gap:4px;">
-        <div class="term-account-bar" style="margin-bottom:0;">
-          <div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1;">
-            <select id="sel-trade-user" class="term-user-select" onchange="window.setTradeUser(this.value)" data-no-custom="true"></select>
-            <span id="term-user-role-badge" class="port-role-badge role-maker">MAKER</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-            <button class="term-lev-badge" id="term-lev-badge" onclick="window.openTerminalLevModal()" title="Change Account Leverage">5× LEV</button>
-            <button class="term-quick-add-btn" onclick="window.seedTerminalUserBalance()" title="Add USDT to this selected account">+ USDT</button>
-          </div>
+    <!-- Terminal Body Container (Clean Non-Scrollable Layout) -->
+    <div class="term-body-container" style="padding:10px 12px 10px;flex:1;min-height:0;display:flex;flex-direction:column;justify-content:space-between;gap:7px;overflow:hidden;">
+      
+      <!-- Unified Account & Quick Balance Strip -->
+      <div class="term-account-strip">
+        <div class="term-acc-left">
+          <select id="sel-trade-user" class="term-user-select" onchange="window.setTradeUser(this.value)" data-no-custom="true"></select>
+          <span id="term-user-role-badge" class="port-role-badge role-maker">MAKER</span>
+          <button class="term-lev-badge" id="term-lev-badge" onclick="window.openTerminalLevModal()" title="Change Account Leverage">5× LEV</button>
         </div>
-        <div class="term-balance-row" style="margin-bottom:0;">
-          <span class="term-bal-label">Avail:</span>
-          <span id="term-avail-bal" class="term-bal-val">0.00 USDT</span>
-          <span class="term-bal-divider">|</span>
-          <span class="term-bal-label">Pos:</span>
-          <span id="term-pos-badge" class="term-pos-val">None</span>
+        <div class="term-acc-right">
+          <span class="term-bal-pill">
+            <span class="term-bal-label">Avail:</span>
+            <span id="term-avail-bal" class="term-bal-val">0.00 USDT</span>
+          </span>
+          <span class="term-bal-divider" style="opacity:0.3;">|</span>
+          <span id="term-pos-badge" class="term-pos-val" style="font-size:9.5px;">None</span>
+          <button class="term-quick-add-btn" onclick="window.seedTerminalUserBalance()" title="Add USDT to this selected account">+ USDT</button>
         </div>
       </div>
 
@@ -4579,137 +4748,151 @@
         <option value="TRAILING_STOP_MARKET">Trailing Stop Market</option>
       </select>
 
-      <!-- Trigger Price (Stop / Stop Market / Take Profit) -->
-      <div id="trade-stop-price-wrap" style="display:none;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-          <label class="term-input-label">Trigger Price</label>
-          <div class="term-quick-chips">
-            <span class="term-chip" onclick="window.setTermStopPriceFrom('mark')">Mark</span>
-            <span class="term-chip" onclick="window.setTermStopPriceFrom('last')">Last</span>
-          </div>
-        </div>
-        <div class="term-input-box">
-          <input id="trade-stop-price" type="number" step="any" placeholder="0.00" oninput="window.calcTermEstimates()" class="term-input">
-          <span class="term-input-unit">USDT</span>
-        </div>
-      </div>
-
-      <!-- Order Price (Limit / Stop Limit) -->
-      <div id="trade-price-wrap" style="display:none;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-          <label class="term-input-label">Order Price</label>
-          <div class="term-quick-chips">
-            <span class="term-chip" onclick="window.setTermPriceFrom('ltp')">Last</span>
-            <span class="term-chip" onclick="window.setTermPriceFrom('bid')">Bid 1</span>
-            <span class="term-chip" onclick="window.setTermPriceFrom('ask')">Ask 1</span>
-            <span class="term-chip" onclick="window.setTermPriceFrom('mid')">Mid</span>
-          </div>
-        </div>
-        <div class="term-input-box">
-          <button class="term-stepper-btn" onclick="window.stepTermPrice(-1)">−</button>
-          <input id="trade-price" type="number" step="any" placeholder="0.00" oninput="window.calcTermEstimates()" class="term-input">
-          <span class="term-input-unit">USDT</span>
-          <button class="term-stepper-btn" onclick="window.stepTermPrice(1)">+</button>
-        </div>
-      </div>
-
-      <!-- Time In Force (TIF) Quick Dropdown for Limit / Stop Limit Orders -->
-      <div id="trade-tif-wrap" style="display:none;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-          <label class="term-input-label">Time In Force (TIF)</label>
-        </div>
-        <select id="trade-tif" class="term-mini-select" data-no-custom="true">
-          <option value="GTC">GTC (Good Till Cancel)</option>
-          <option value="IOC">IOC (Immediate or Cancel)</option>
-          <option value="FOK">FOK (Fill or Kill)</option>
-          <option value="GTX">GTX (Post Only / Maker Only)</option>
-        </select>
-      </div>
-
-      <!-- Trailing Callback Rate -->
-      <div id="trade-callback-wrap" style="display:none;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-          <label class="term-input-label">Callback Rate (0.1% - 5.0%)</label>
-          <div class="term-quick-chips">
-            <span class="term-chip" onclick="window.setTermCbRate(0.5)">0.5%</span>
-            <span class="term-chip" onclick="window.setTermCbRate(1.0)">1.0%</span>
-            <span class="term-chip" onclick="window.setTermCbRate(2.0)">2.0%</span>
-            <span class="term-chip" onclick="window.setTermCbRate(3.0)">3.0%</span>
-          </div>
-        </div>
-        <div class="term-input-box">
-          <input id="trade-callback-rate" type="number" step="0.1" min="0.1" max="5.0" placeholder="1.0" value="1.0" class="term-input">
-          <span class="term-input-unit">%</span>
-        </div>
-      </div>
-
-      <!-- Order Quantity & Percentage Slider/Pills -->
-      <div id="trade-qty-wrap">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-          <label class="term-input-label">Quantity (<span id="term-base-asset">BASE</span>) <span class="term-quick-chip-btn" id="term-chip-min-qty" onclick="window.setTermMinQty()" title="Set minimum order quantity (5 USDT notional)" style="display:none;">Min Qty</span></label>
-          <div class="term-quick-chips">
-            <span class="term-chip" onclick="window.setTermQtyPct(25)">25%</span>
-            <span class="term-chip" onclick="window.setTermQtyPct(50)">50%</span>
-            <span class="term-chip" onclick="window.setTermQtyPct(75)">75%</span>
-            <span class="term-chip" onclick="window.setTermQtyPct(100)">100%</span>
-          </div>
-        </div>
-        <div class="term-input-box">
-          <button class="term-stepper-btn" onclick="window.stepTermQty(-1)">−</button>
-          <input id="trade-qty" type="number" step="any" placeholder="0.00" oninput="window.calcTermEstimates()" class="term-input">
-          <span id="term-qty-asset-label" class="term-input-unit">QTY</span>
-          <button class="term-stepper-btn" onclick="window.stepTermQty(1)">+</button>
-        </div>
-      </div>
-
-      <!-- Advanced Execution Accordion -->
-      <div class="term-advanced-accordion" id="term-advanced-acc">
-        <div class="term-advanced-hdr" onclick="window.toggleTermAdvanced()">
-          <span>⚙ Execution Flags (STP, Reduce Only)</span>
-          <span id="term-adv-icon">▾</span>
-        </div>
-        <div class="term-advanced-body" id="term-advanced-body" style="display:none;">
-          <div style="display:flex;flex-direction:column;gap:8px;">
-            <div id="trade-stp-wrap">
-              <label class="term-mini-label">Self-Trade Prev. (STP)</label>
-              <select id="trade-stp" class="term-mini-select" data-no-custom="true">
-                <option value="NONE">NONE (Default)</option>
-                <option value="EXPIRE_TAKER">EXPIRE_TAKER</option>
-                <option value="EXPIRE_MAKER">EXPIRE_MAKER</option>
-                <option value="EXPIRE_BOTH">EXPIRE_BOTH</option>
-              </select>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);padding:6px 10px;border-radius:6px;border:1px solid var(--border);">
-              <div>
-                <div style="font-size:11px;color:var(--text-main);font-weight:700;">Reduce Only</div>
-                <div style="font-size:9.5px;color:var(--text-muted);">Only close/reduce open position</div>
-              </div>
-              <input type="checkbox" id="trade-reduce-only" onchange="window.calcTermEstimates()" style="cursor:pointer;width:16px;height:16px;accent-color:var(--cyan);">
+      <!-- Dual-Column Dynamic Order Inputs Grid (Price & Qty side-by-side) -->
+      <div class="term-inputs-grid" id="term-inputs-grid">
+        
+        <!-- 1. Trigger Price (Visible in STOP & STOP_MARKET) -->
+        <div id="trade-stop-price-wrap" class="term-col" style="display:none;">
+          <div class="term-col-header">
+            <label class="term-input-label">Trigger Price</label>
+            <div class="term-quick-chips">
+              <span class="term-chip" onclick="window.setTermStopPriceFrom('mark')">Mark</span>
+              <span class="term-chip" onclick="window.setTermStopPriceFrom('last')">Last</span>
             </div>
           </div>
+          <div class="term-input-box">
+            <button class="term-stepper-btn" onclick="window.stepTermStopPrice(-1)">−</button>
+            <input id="trade-stop-price" type="number" step="any" placeholder="0.00" oninput="window.calcTermEstimates()" class="term-input">
+            <span class="term-input-unit">USDT</span>
+            <button class="term-stepper-btn" onclick="window.stepTermStopPrice(1)">+</button>
+          </div>
         </div>
-      </div>
-    </div> <!-- End Scrollable Terminal Body -->
 
-    <!-- Fixed Pinned Footer: Pre-flight & Actions -->
-    <div class="term-fixed-footer" style="flex-shrink:0;padding:8px 14px 12px;border-top:1px solid var(--border);background:var(--panel);display:flex;flex-direction:column;gap:8px;">
-      <!-- Pre-flight Estimates Card -->
+        <!-- 2. Trailing Callback Rate (Visible in TRAILING_STOP_MARKET) -->
+        <div id="trade-callback-wrap" class="term-col" style="display:none;">
+          <div class="term-col-header">
+            <label class="term-input-label">Callback Rate</label>
+            <div class="term-quick-chips">
+              <span class="term-chip" onclick="window.setTermCbRate(0.5)">0.5%</span>
+              <span class="term-chip" onclick="window.setTermCbRate(1.0)">1%</span>
+              <span class="term-chip" onclick="window.setTermCbRate(2.0)">2%</span>
+            </div>
+          </div>
+          <div class="term-input-box">
+            <input id="trade-callback-rate" type="number" step="0.1" min="0.1" max="5.0" placeholder="1.0" value="1.0" class="term-input" oninput="window.calcTermEstimates()">
+            <span class="term-input-unit">%</span>
+          </div>
+        </div>
+
+        <!-- 3. Market Price View (Visible in MARKET) -->
+        <div id="trade-market-price-wrap" class="term-col">
+          <div class="term-col-header">
+            <label class="term-input-label">Order Price</label>
+            <div class="term-quick-chips">
+              <span class="term-chip-active">Market BBO</span>
+            </div>
+          </div>
+          <div class="term-market-box" title="Executes immediately at best available order book price">
+            <span class="term-market-tag">⚡ MARKET</span>
+            <span class="term-market-sub" id="term-market-sub-price">Best Execution</span>
+          </div>
+        </div>
+
+        <!-- 4. Limit Order Price (Visible in LIMIT & STOP) -->
+        <div id="trade-price-wrap" class="term-col" style="display:none;">
+          <div class="term-col-header">
+            <label class="term-input-label">Order Price</label>
+            <div class="term-quick-chips">
+              <span class="term-chip" onclick="window.setTermPriceFrom('ltp')">Last</span>
+              <span class="term-chip" onclick="window.setTermPriceFrom('bid')">Bid</span>
+              <span class="term-chip" onclick="window.setTermPriceFrom('ask')">Ask</span>
+            </div>
+          </div>
+          <div class="term-input-box">
+            <button class="term-stepper-btn" onclick="window.stepTermPrice(-1)">−</button>
+            <input id="trade-price" type="number" step="any" placeholder="0.00" oninput="window.calcTermEstimates()" class="term-input">
+            <span class="term-input-unit">USDT</span>
+            <button class="term-stepper-btn" onclick="window.stepTermPrice(1)">+</button>
+          </div>
+        </div>
+
+        <!-- 5. Order Quantity & Percentage Chips (ALWAYS visible beside price) -->
+        <div id="trade-qty-wrap" class="term-col">
+          <div class="term-col-header">
+            <label class="term-input-label">Qty (<span id="term-base-asset">BASE</span>) <span class="term-quick-chip-btn" id="term-chip-min-qty" onclick="window.setTermMinQty()" title="Set minimum order quantity (5 USDT notional)" style="display:none;">Min</span></label>
+            <div class="term-quick-chips">
+              <span class="term-chip" onclick="window.setTermQtyPct(25)">25%</span>
+              <span class="term-chip" onclick="window.setTermQtyPct(50)">50%</span>
+              <span class="term-chip" onclick="window.setTermQtyPct(75)">75%</span>
+              <span class="term-chip" onclick="window.setTermQtyPct(100)">100%</span>
+            </div>
+          </div>
+          <div class="term-input-box">
+            <button class="term-stepper-btn" onclick="window.stepTermQty(-1)">−</button>
+            <input id="trade-qty" type="number" step="any" placeholder="0.00" oninput="window.calcTermEstimates()" class="term-input">
+            <span id="term-qty-asset-label" class="term-input-unit">QTY</span>
+            <button class="term-stepper-btn" onclick="window.stepTermQty(1)">+</button>
+          </div>
+        </div>
+
+        <!-- 6. Time In Force wrap for Stop Limit (Visible in STOP) -->
+        <div id="trade-tif-wrap" class="term-col" style="display:none;">
+          <div class="term-col-header">
+            <label class="term-input-label">Time In Force</label>
+          </div>
+          <select id="trade-tif-stop" class="term-mini-select" data-no-custom="true" onchange="const t=document.getElementById('trade-tif'); if(t) t.value=this.value;" style="height:32px;">
+            <option value="GTC">GTC (Good Till Cancel)</option>
+            <option value="IOC">IOC (Immediate or Cancel)</option>
+            <option value="FOK">FOK (Fill or Kill)</option>
+            <option value="GTX">GTX (Post Only)</option>
+          </select>
+        </div>
+
+      </div> <!-- End Dual-Column Grid -->
+
+      <!-- Advanced Inline Tools Bar (STP, Reduce-Only, TIF) -->
+      <div class="term-tools-bar">
+        <div class="term-tool-item" id="trade-tif-tool" style="display:none;">
+          <span class="term-tool-label">TIF:</span>
+          <select id="trade-tif" class="term-tool-select" data-no-custom="true" onchange="const el=document.getElementById('trade-tif-stop'); if(el) el.value=this.value;">
+            <option value="GTC">GTC</option>
+            <option value="IOC">IOC</option>
+            <option value="FOK">FOK</option>
+            <option value="GTX">GTX (Post)</option>
+          </select>
+        </div>
+        <div class="term-tool-item" id="trade-stp-wrap">
+          <span class="term-tool-label">STP:</span>
+          <select id="trade-stp" class="term-tool-select" data-no-custom="true">
+            <option value="NONE">None</option>
+            <option value="EXPIRE_TAKER">Exp. Taker</option>
+            <option value="EXPIRE_MAKER">Exp. Maker</option>
+            <option value="EXPIRE_BOTH">Exp. Both</option>
+          </select>
+        </div>
+        <label class="term-tool-checkbox-wrap" title="Only reduce or close open position without increasing liability">
+          <input type="checkbox" id="trade-reduce-only" onchange="window.calcTermEstimates()" class="term-tool-checkbox">
+          <span class="term-tool-label" style="font-weight:700;color:var(--text-main);">Reduce-Only</span>
+        </label>
+      </div>
+
+      <!-- Pre-flight Financial Estimates Strip (3-Column Layout) -->
       <div class="term-preflight-card" style="margin-bottom:0;">
-        <div class="term-preflight-row">
-          <span class="term-pf-label">Order Value:</span>
+        <div class="term-pf-col">
+          <span class="term-pf-label">Order Value</span>
           <span id="term-est-val" class="term-pf-val">≈ 0.00 USDT</span>
         </div>
-        <div class="term-preflight-row">
-          <span class="term-pf-label">Est. Margin:</span>
+        <div class="term-pf-col">
+          <span class="term-pf-label">Est. Margin</span>
           <span id="term-est-cost" class="term-pf-val" style="color:var(--cyan);">≈ 0.00 USDT</span>
         </div>
-        <div class="term-preflight-row">
-          <span class="term-pf-label">Est. Liq Price:</span>
+        <div class="term-pf-col">
+          <span class="term-pf-label">Est. Liq Price</span>
           <span id="term-est-liq" class="term-pf-val" style="color:var(--yellow);">—</span>
         </div>
       </div>
 
-      <!-- Advanced Order Safeguards & Liquidity HUD -->
+      <!-- Safeguard & Liquidity HUD Banner -->
       <div id="term-safeguard-banner" class="term-safeguard-banner state-info" style="display:none;">
         <div class="tsb-top-row">
           <div class="tsb-left">
@@ -4731,16 +4914,15 @@
       <button id="btn-buy" style="display:none;" onclick="window.submitManualTrade('BUY')"></button>
       <button id="btn-sell" style="display:none;" onclick="window.submitManualTrade('SELL')"></button>
 
-      <!-- Main Action Button -->
-      <button id="term-main-btn" class="term-main-action-btn btn-buy-theme" onclick="window.submitManualTradeFromTerminal()">
-        <span id="term-btn-icon">▲</span> <span id="term-btn-text">BUY / LONG</span>
-      </button>
-      
-      <!-- Sub Action Row: Reset Form -->
-      <div style="display:flex;justify-content:flex-end;">
-        <button class="term-reset-btn" onclick="window.resetTermForm()" title="Reset order inputs" style="width:100%;display:flex;align-items:center;justify-content:center;gap:6px;padding:7px 12px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:6px;color:var(--text-muted);cursor:pointer;font-size:11px;font-weight:600;transition:all 0.15s ease;">✕ Clear Order Inputs</button>
+      <!-- Action Row: Main Action Button + Compact Reset Button -->
+      <div class="term-action-row">
+        <button id="term-main-btn" class="term-main-action-btn btn-buy-theme" onclick="window.submitManualTradeFromTerminal()">
+          <span id="term-btn-icon">▲</span> <span id="term-btn-text">BUY / LONG</span>
+        </button>
+        <button class="term-reset-btn" onclick="window.resetTermForm()" title="Clear and reset order inputs">✕</button>
       </div>
-    </div>
+
+    </div> <!-- End Terminal Body Container -->
   </div>
 </div>
 
@@ -7826,29 +8008,35 @@ window.addEventListener('DOMContentLoaded', () => {
         window.updateTradeFormUI = function() {
             const type = document.getElementById('trade-type')?.value || 'MARKET';
             
+            const marketWrap = document.getElementById('trade-market-price-wrap');
             const priceWrap = document.getElementById('trade-price-wrap');
             const stopPriceWrap = document.getElementById('trade-stop-price-wrap');
             const callbackWrap = document.getElementById('trade-callback-wrap');
             const tifWrap = document.getElementById('trade-tif-wrap');
             const qtyWrap = document.getElementById('trade-qty-wrap');
+            const tifTool = document.getElementById('trade-tif-tool');
 
+            if (marketWrap) marketWrap.style.display = 'none';
             if (priceWrap) priceWrap.style.display = 'none';
             if (stopPriceWrap) stopPriceWrap.style.display = 'none';
             if (callbackWrap) callbackWrap.style.display = 'none';
             if (tifWrap) tifWrap.style.display = 'none';
-            if (qtyWrap) qtyWrap.style.display = 'block';
+            if (qtyWrap) qtyWrap.style.display = 'flex';
+            if (tifTool) tifTool.style.display = 'none';
 
-            if (type === 'LIMIT') {
-                if (priceWrap) priceWrap.style.display = 'block';
-                if (tifWrap) tifWrap.style.display = 'block';
+            if (type === 'MARKET') {
+                if (marketWrap) marketWrap.style.display = 'flex';
+            } else if (type === 'LIMIT') {
+                if (priceWrap) priceWrap.style.display = 'flex';
+                if (tifTool) tifTool.style.display = 'flex';
             } else if (type === 'STOP' || type === 'TAKE_PROFIT') {
-                if (stopPriceWrap) stopPriceWrap.style.display = 'block';
-                if (priceWrap) priceWrap.style.display = 'block';
-                if (tifWrap) tifWrap.style.display = 'block';
+                if (stopPriceWrap) stopPriceWrap.style.display = 'flex';
+                if (priceWrap) priceWrap.style.display = 'flex';
+                if (tifWrap) tifWrap.style.display = 'flex';
             } else if (type === 'STOP_MARKET' || type === 'TAKE_PROFIT_MARKET') {
-                if (stopPriceWrap) stopPriceWrap.style.display = 'block';
+                if (stopPriceWrap) stopPriceWrap.style.display = 'flex';
             } else if (type === 'TRAILING_STOP_MARKET') {
-                if (callbackWrap) callbackWrap.style.display = 'block';
+                if (callbackWrap) callbackWrap.style.display = 'flex';
             }
             
             // Sync pill selection
@@ -7856,6 +8044,40 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (pill.dataset.type === type) pill.classList.add('active');
                 else pill.classList.remove('active');
             });
+
+            if (typeof window.updateTermMarketBadge === 'function') {
+                window.updateTermMarketBadge();
+            }
+        };
+
+        window.updateTermMarketBadge = function() {
+            const subEl = document.getElementById('term-market-sub-price');
+            if (!subEl) return;
+            const inst = cachedInstances[activeTabSymbol];
+            const diag = inst?.diagnostics || {};
+            const ltp = parseFloat(diag.testnetLtp) || parseFloat(diag.binanceLtp) || 0;
+            if (ltp > 0) {
+                const prec = (typeof pPrec !== 'undefined' && pPrec !== null) ? pPrec : (diag.pricePrecision || 4);
+                subEl.textContent = `≈ $${ltp.toFixed(prec)}`;
+            } else {
+                subEl.textContent = 'Best Execution';
+            }
+        };
+
+        window.stepTermStopPrice = function(direction) {
+            const stopInput = document.getElementById('trade-stop-price');
+            if (!stopInput) return;
+            const inst = cachedInstances[activeTabSymbol];
+            const precision = (typeof pPrec !== 'undefined' && pPrec !== null) ? pPrec : (inst?.diagnostics?.pricePrecision !== undefined ? inst.diagnostics.pricePrecision : 4);
+            const step = Math.pow(10, -precision);
+            let cur = parseFloat(stopInput.value);
+            if (isNaN(cur) || cur <= 0) {
+                const diag = inst?.diagnostics || {};
+                cur = parseFloat(diag.testnetMarkPrice) || parseFloat(diag.binanceMarkPrice) || parseFloat(diag.testnetLtp) || 0;
+            }
+            cur = Math.max(step, cur + (direction * step));
+            stopInput.value = cur.toFixed(precision);
+            window.calcTermEstimates();
         };
 
         window.setTermPriceFrom = function(source) {
@@ -8112,6 +8334,10 @@ window.addEventListener('DOMContentLoaded', () => {
             // Real-time evaluation of Order Price Limits, Mark Bands, Circuit Breakers & Book Depth
             if (window.evaluateOrderSafeguardsAndLiquidity) {
                 window.evaluateOrderSafeguardsAndLiquidity();
+            }
+
+            if (typeof window.updateTermMarketBadge === 'function') {
+                window.updateTermMarketBadge();
             }
         };
 
