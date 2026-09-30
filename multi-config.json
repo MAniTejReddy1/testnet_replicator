@@ -2,19 +2,7 @@
   {
     "sourceSymbol": "BTCUSDT",
     "targetSymbol": "BTCUSDT",
-    "tier": "PRODUCTION",
-    "minSize": 10,
-    "maxSize": 50000,
-    "takerSize": 10,
-    "makerUseRawQty": false,
-    "takerUseRawQty": false,
-    "depthLevels": 20,
-    "bufferPct": 0,
-    "tradeDelayMs": 0,
-    "cancelOnStop": false,
-    "newUserFlow": false,
-    "enableTradeSync": true,
-    "enableDcx": true
+    "tier": "PRODUCTION"
   },
   {
     "sourceSymbol": "DOGEUSDT",
@@ -46,8 +34,7 @@
     "tradeDelayMs": 0,
     "cancelOnStop": false,
     "newUserFlow": false,
-    "enableTradeSync": true,
-    "enableDcx": true
+    "enableTradeSync": true
   },
   {
     "sourceSymbol": "BTCUSDT",
@@ -127,8 +114,7 @@
     "tradeDelayMs": 0,
     "cancelOnStop": false,
     "newUserFlow": false,
-    "enableTradeSync": true,
-    "enableDcx": true
+    "enableTradeSync": true
   },
   {
     "sourceSymbol": "ETHUSDT",
@@ -160,7 +146,6 @@
     "tradeDelayMs": 0,
     "cancelOnStop": false,
     "newUserFlow": false,
-    "enableTradeSync": true,
-    "enableDcx": true
+    "enableTradeSync": true
   }
 ]

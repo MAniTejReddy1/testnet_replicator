@@ -9,12 +9,6 @@
       if (btn) btn.innerHTML = '🌙';
     });
   }
-  if (localStorage.getItem('replicator_enable_dcx') === '0') {
-    document.documentElement.classList.add('no-dcx');
-    document.addEventListener('DOMContentLoaded', () => {
-      document.body.classList.add('no-dcx');
-    });
-  }
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -655,192 +649,6 @@
 
   .tc-accent-yellow::before  { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #eab308, #facc15); }
   .tc-accent-yellow:hover    { border-color: rgba(234, 179, 8, 0.5); box-shadow: 0 8px 24px -4px rgba(234, 179, 8, 0.22); }
-
-  /* CoinDCX Feed & Orderbook Toggle Modes */
-  html.no-dcx .dcx-data-row,
-  body.no-dcx .dcx-data-row,
-  html.no-dcx .dcx-data-col,
-  body.no-dcx .dcx-data-col,
-  html.no-dcx #dcx-book-panel,
-  body.no-dcx #dcx-book-panel,
-  html.no-dcx #ltp-drift-badge,
-  body.no-dcx #ltp-drift-badge,
-  html.no-dcx #bid-drift-badge,
-  body.no-dcx #bid-drift-badge,
-  html.no-dcx #ask-drift-badge,
-  body.no-dcx #ask-drift-badge,
-  html.no-dcx #mp-drift-badge,
-  body.no-dcx #mp-drift-badge,
-  html.no-dcx #ip-drift-badge,
-  body.no-dcx #ip-drift-badge,
-  html.no-dcx #funding-drift-badge,
-  body.no-dcx #funding-drift-badge,
-  html.no-dcx #tele-sync-pill,
-  body.no-dcx #tele-sync-pill {
-    display: none !important;
-  }
-
-  html.no-dcx #tele-nodcx-badge,
-  body.no-dcx #tele-nodcx-badge {
-    display: inline-flex !important;
-  }
-
-  html.no-dcx #orderbook-grid,
-  body.no-dcx #orderbook-grid {
-    grid-template-columns: minmax(0, 1.25fr) minmax(460px, 490px) !important;
-    gap: 20px !important;
-  }
-
-  /* Centered and beautifully formatted testnet orderbook rows when DCX book is hidden */
-  html.no-dcx #stage-book-panel .book-hdr,
-  body.no-dcx #stage-book-panel .book-hdr {
-    grid-template-columns: 160px 1fr 160px !important;
-    padding: 8px 32px !important;
-    max-width: 900px;
-    margin: 0 auto;
-    width: 100%;
-    box-sizing: border-box;
-  }
-  html.no-dcx #stage-book-panel .d-row,
-  body.no-dcx #stage-book-panel .d-row {
-    grid-template-columns: 160px 1fr 160px !important;
-    padding: 4px 32px !important;
-    font-size: 12px !important;
-    max-width: 900px;
-    margin: 0 auto;
-    box-sizing: border-box;
-  }
-  html.no-dcx #stage-book-panel .d-spread,
-  body.no-dcx #stage-book-panel .d-spread {
-    padding: 8px 32px !important;
-    font-size: 12px !important;
-    max-width: 900px;
-    margin: 4px auto;
-    box-sizing: border-box;
-    border-radius: 6px;
-  }
-
-  /* Card 2: Keep vertical divider and emerald/rose distinction */
-  html.no-dcx .bid-container,
-  body.no-dcx .bid-container {
-    border-right: 1px solid var(--border) !important;
-    padding-right: 8px !important;
-  }
-  html.no-dcx .bid-container .tc-row,
-  body.no-dcx .bid-container .tc-row,
-  html.no-dcx .bid-container + div .tc-row,
-  body.no-dcx .bid-container + div .tc-row {
-    height: 32px !important;
-  }
-
-  html.no-dcx .dcx-grid-2col,
-  body.no-dcx .dcx-grid-2col {
-    grid-template-columns: 1fr !important;
-  }
-
-  /* Card 9 shrinks cleanly to single column */
-  html.no-dcx #card-24h-stats,
-  body.no-dcx #card-24h-stats {
-    min-width: 175px !important;
-  }
-
-  /* Subheader telemetry indicator when DCX is paused */
-  html.no-dcx #tele-dcx-pill,
-  body.no-dcx #tele-dcx-pill {
-    background: rgba(255, 255, 255, 0.02) !important;
-    border-color: rgba(255, 255, 255, 0.08) !important;
-  }
-  html.no-dcx #tele-dcx-dot,
-  body.no-dcx #tele-dcx-dot {
-    background: #64748b !important;
-    box-shadow: none !important;
-    animation: none !important;
-  }
-  html.no-dcx #c-bping,
-  body.no-dcx #c-bping {
-    color: #64748b !important;
-    text-decoration: none !important;
-    font-weight: 600 !important;
-    opacity: 0.9 !important;
-  }
-
-  html.no-dcx #btn-quick-toggle-dcx,
-  body.no-dcx #btn-quick-toggle-dcx {
-    background: rgba(100, 116, 139, 0.15) !important;
-    border-color: rgba(100, 116, 139, 0.3) !important;
-    color: #94a3b8 !important;
-  }
-
-  /* Single metric hero typography when DCX is hidden in Cards 1, 3, 5, 8 */
-  html.no-dcx .ticker-card-body > .dcx-data-row + .tc-row,
-  body.no-dcx .ticker-card-body > .dcx-data-row + .tc-row {
-    height: 32px !important;
-    align-items: center !important;
-  }
-  html.no-dcx .ticker-card-body > .dcx-data-row + .tc-row .ticker-val,
-  body.no-dcx .ticker-card-body > .dcx-data-row + .tc-row .ticker-val {
-    font-size: 16.5px !important;
-    font-weight: 800 !important;
-  }
-  html.no-dcx .ticker-card-body > .dcx-data-row + .tc-row .tc-tag,
-  body.no-dcx .ticker-card-body > .dcx-data-row + .tc-row .tc-tag {
-    height: 18px !important;
-    font-size: 8.5px !important;
-    padding: 0 6px !important;
-  }
-
-  html.no-dcx .dcx-only-tag,
-  body.no-dcx .dcx-only-tag {
-    display: none !important;
-  }
-  html.no-dcx .nodcx-only-tag,
-  body.no-dcx .nodcx-only-tag {
-    display: inline !important;
-  }
-
-  /* Distinct color-coding for cards in no-dcx mode */
-  html.no-dcx #tag-sbid,
-  body.no-dcx #tag-sbid {
-    background: rgba(16, 185, 129, 0.16) !important;
-    color: #34d399 !important;
-    border-color: rgba(16, 185, 129, 0.35) !important;
-  }
-  html.no-dcx #tag-sask,
-  body.no-dcx #tag-sask {
-    background: rgba(244, 63, 94, 0.16) !important;
-    color: #fb7185 !important;
-    border-color: rgba(244, 63, 94, 0.35) !important;
-  }
-  html.no-dcx #t-sbid,
-  body.no-dcx #t-sbid {
-    color: #10b981 !important;
-    font-size: 15px !important;
-    font-weight: 800 !important;
-  }
-  html.no-dcx #t-sask,
-  body.no-dcx #t-sask {
-    color: #f43f5e !important;
-    font-size: 15px !important;
-    font-weight: 800 !important;
-  }
-  html.no-dcx #tag-smp,
-  body.no-dcx #tag-smp {
-    background: rgba(168, 85, 247, 0.16) !important;
-    color: #c084fc !important;
-    border-color: rgba(168, 85, 247, 0.35) !important;
-  }
-  html.no-dcx #tag-sip,
-  body.no-dcx #tag-sip {
-    background: rgba(59, 130, 246, 0.16) !important;
-    color: #60a5fa !important;
-    border-color: rgba(59, 130, 246, 0.35) !important;
-  }
-  html.no-dcx #tag-sfunding,
-  body.no-dcx #tag-sfunding {
-    background: rgba(234, 179, 8, 0.16) !important;
-    color: #facc15 !important;
-    border-color: rgba(234, 179, 8, 0.35) !important;
-  }
 
   /* Light Theme overrides for Ticker HUD */
   :root[data-theme="light"] .ticker-card {
@@ -2240,14 +2048,12 @@
   }
   .term-quick-chips {
     display: flex;
-    gap: 3px;
-    align-items: center;
-    flex-shrink: 0;
+    gap: 4px;
   }
   .term-chip {
-    font-size: 8px;
+    font-size: 8.5px;
     font-weight: 700;
-    padding: 1px 4px;
+    padding: 1px 5px;
     border-radius: 3px;
     background: var(--input-bg);
     border: 1px solid var(--border);
@@ -2255,8 +2061,6 @@
     cursor: pointer;
     transition: all 0.15s ease;
     font-family: 'JetBrains Mono', monospace;
-    white-space: nowrap;
-    line-height: 1.2;
   }
   .term-chip:hover {
     color: var(--cyan);
@@ -2577,13 +2381,12 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 6px;
+    gap: 8px;
     background: rgba(255, 255, 255, 0.025);
     padding: 5px 8px;
     border-radius: 8px;
     border: 1px solid var(--border);
     box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
-    min-width: 0;
   }
   :root[data-theme="light"] .term-header-strip {
     background: rgba(0, 0, 0, 0.02);
@@ -2592,9 +2395,8 @@
   .term-hdr-user-block {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
     min-width: 0;
-    flex-shrink: 1;
   }
   .term-hdr-avatar {
     width: 22px;
@@ -2612,11 +2414,8 @@
   .term-hdr-user-details {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 5px;
     min-width: 0;
-  }
-  .term-hdr-action-block {
-    flex-shrink: 0;
   }
   .term-lev-badge-enhanced {
     display: inline-flex;
@@ -2657,15 +2456,14 @@
   .term-hdr-pos-block {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 5px;
     background: var(--input-bg);
     border: 1px solid var(--border);
-    padding: 3px 6px;
+    padding: 3px 7px;
     border-radius: 6px;
-    font-size: 9px;
+    font-size: 9.5px;
     font-family: 'JetBrains Mono', monospace;
     white-space: nowrap;
-    flex-shrink: 0;
   }
   .term-pos-indicator-dot {
     width: 6px;
@@ -2780,10 +2578,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    min-height: 18px;
-    gap: 4px;
-    flex-wrap: wrap;
-    min-width: 0;
+    min-height: 17px;
   }
   .term-market-box {
     display: flex;
@@ -4240,25 +4035,20 @@
             <span style="color:var(--text-muted);margin-right:6px;">PAIR</span>
             <span id="c-pair" style="color:var(--text-main);font-weight:700;">—</span>
         </div>
-        <div class="tele-pill" id="tele-dcx-pill">
-            <span class="pulse-dot pulse-dot-yellow" id="tele-dcx-dot"></span>
+        <div class="tele-pill">
+            <span class="pulse-dot pulse-dot-yellow"></span>
             <span style="color:var(--text-muted);margin-right:6px;">CoinDCX</span>
             <span id="c-bping" style="color:var(--yellow);font-weight:700;">0ms</span>
-            <button id="btn-quick-toggle-dcx" onclick="window.toggleDcxData()" title="Quick Toggle CoinDCX Feed & Orderbook" style="margin-left:6px; background:rgba(234,179,8,0.15); border:1px solid rgba(234,179,8,0.3); color:var(--yellow); border-radius:4px; font-size:9px; padding:1px 6px; cursor:pointer; font-weight:700; transition:all 0.15s ease;">DCX: ON</button>
         </div>
         <div class="tele-pill">
             <span class="pulse-dot pulse-dot-cyan"></span>
             <span style="color:var(--text-muted);margin-right:6px;">TESTNET</span>
             <span id="c-sping" style="color:var(--cyan);font-weight:700;">0ms</span>
         </div>
-        <div class="tele-pill" id="tele-sync-pill">
+        <div class="tele-pill">
             <span class="pulse-dot pulse-dot-emerald"></span>
             <span style="color:var(--text-muted);margin-right:6px;">SYNC RATIO</span>
             <span id="c-sync" style="color:var(--bid);font-weight:700;">100%</span>
-        </div>
-        <div class="tele-pill" id="tele-nodcx-badge" style="display:none; background:rgba(6,182,212,0.08); border:1px solid rgba(6,182,212,0.25); color:var(--cyan); font-weight:700; font-size:10px;">
-            <span class="pulse-dot pulse-dot-cyan"></span>
-            <span>TESTNET NATIVE MODE</span>
         </div>
         <div id="flag-scenario" class="flag-pill" style="display:none;background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.2);color:var(--ask);box-shadow:0 0 10px rgba(244,63,94,0.1);font-family:'JetBrains Mono',monospace;">SCENARIO IDLE</div>
     </div>
@@ -4274,12 +4064,12 @@
         <span id="ltp-drift-badge" class="tc-badge" title="CoinDCX vs Testnet LTP Drift %">Drift: —</span>
       </div>
       <div class="ticker-card-body">
-        <div class="tc-row dcx-data-row">
+        <div class="tc-row">
           <span class="tc-tag tc-tag-dcx" title="CoinDCX Last Traded Price">DCX</span>
           <span class="ticker-val tc-val-gold" id="t-bltp">—</span>
         </div>
         <div class="tc-row">
-          <span class="tc-tag tc-tag-tst" id="tag-sltp" title="Testnet Last Traded Price"><span class="dcx-only-tag">TST</span><span class="nodcx-only-tag" style="display:none;">LTP</span></span>
+          <span class="tc-tag tc-tag-tst" title="Testnet Last Traded Price">TST</span>
           <span class="ticker-val tc-val-cyan" id="t-sltp">—</span>
         </div>
       </div>
@@ -4295,23 +4085,23 @@
         </div>
       </div>
       <div class="ticker-card-body" style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-        <div class="bid-container" style="display:flex; flex-direction:column; gap:2px; border-right:1px solid var(--border); padding-right:8px;">
-          <div class="tc-row dcx-data-row">
+        <div style="display:flex; flex-direction:column; gap:2px; border-right:1px solid var(--border); padding-right:8px;">
+          <div class="tc-row">
             <span class="tc-tag tc-tag-up" title="CoinDCX Best Bid">BID</span>
             <span class="ticker-val tc-val-gold" id="t-bbid" style="font-size:13.5px;">—</span>
           </div>
           <div class="tc-row">
-            <span class="tc-tag tc-tag-tst" id="tag-sbid" title="Testnet Best Bid"><span class="dcx-only-tag">TST</span><span class="nodcx-only-tag" style="display:none;">BID</span></span>
+            <span class="tc-tag tc-tag-tst" title="Testnet Best Bid">TST</span>
             <span class="ticker-val tc-val-cyan" id="t-sbid" style="font-size:13.5px;">—</span>
           </div>
         </div>
         <div style="display:flex; flex-direction:column; gap:2px;">
-          <div class="tc-row dcx-data-row">
+          <div class="tc-row">
             <span class="tc-tag tc-tag-dn" title="CoinDCX Best Ask">ASK</span>
             <span class="ticker-val tc-val-gold" id="t-bask" style="font-size:13.5px;">—</span>
           </div>
           <div class="tc-row">
-            <span class="tc-tag tc-tag-tst" id="tag-sask" title="Testnet Best Ask"><span class="dcx-only-tag">TST</span><span class="nodcx-only-tag" style="display:none;">ASK</span></span>
+            <span class="tc-tag tc-tag-tst" title="Testnet Best Ask">TST</span>
             <span class="ticker-val tc-val-cyan" id="t-sask" style="font-size:13.5px;">—</span>
           </div>
         </div>
@@ -4325,12 +4115,12 @@
         <span id="mp-drift-badge" class="tc-badge" title="Mark Price Drift %">Drift: —</span>
       </div>
       <div class="ticker-card-body">
-        <div class="tc-row dcx-data-row">
+        <div class="tc-row">
           <span class="tc-tag tc-tag-dcx" title="CoinDCX Mark Price">DCX</span>
           <span class="ticker-val tc-val-gold" id="t-bmp">—</span>
         </div>
         <div class="tc-row">
-          <span class="tc-tag tc-tag-tst" id="tag-smp" title="Testnet Mark Price"><span class="dcx-only-tag">TST</span><span class="nodcx-only-tag" style="display:none;">MARK</span></span>
+          <span class="tc-tag tc-tag-tst" title="Testnet Mark Price">TST</span>
           <span class="ticker-val tc-val-cyan" id="t-smp">—</span>
         </div>
       </div>
@@ -4361,12 +4151,12 @@
         <span id="ip-drift-badge" class="tc-badge" title="Index Price Drift %">Drift: —</span>
       </div>
       <div class="ticker-card-body">
-        <div class="tc-row dcx-data-row">
+        <div class="tc-row">
           <span class="tc-tag tc-tag-dcx" title="CoinDCX Underlying Index Price">DCX</span>
           <span class="ticker-val tc-val-gold" id="t-bip">—</span>
         </div>
         <div class="tc-row">
-          <span class="tc-tag tc-tag-tst" id="tag-sip" title="Testnet Underlying Index Price"><span class="dcx-only-tag">TST</span><span class="nodcx-only-tag" style="display:none;">INDEX</span></span>
+          <span class="tc-tag tc-tag-tst" title="Testnet Underlying Index Price">TST</span>
           <span class="ticker-val tc-val-cyan" id="t-sip">—</span>
         </div>
       </div>
@@ -4430,25 +4220,25 @@
         <span id="funding-drift-badge" class="tc-badge" title="Funding Rate Drift %">Drift: —</span>
       </div>
       <div class="ticker-card-body">
-        <div class="tc-row dcx-data-row">
+        <div class="tc-row">
           <span class="tc-tag tc-tag-dcx" title="CoinDCX Predicted Funding Rate">DCX</span>
           <span class="ticker-val tc-val-gold" id="t-bin-funding" style="font-size:12px;">—</span>
         </div>
         <div class="tc-row">
-          <span class="tc-tag tc-tag-tst" id="tag-sfunding" title="Testnet Predicted Funding Rate"><span class="dcx-only-tag">TST</span><span class="nodcx-only-tag" style="display:none;">RATE</span></span>
+          <span class="tc-tag tc-tag-tst" title="Testnet Predicted Funding Rate">TST</span>
           <span class="ticker-val tc-val-cyan" id="t-stage-funding" style="font-size:12px;">—</span>
         </div>
       </div>
     </div>
 
     <!-- Card 9: 24h Statistics -->
-    <div class="ticker-card tc-accent-cyan" id="card-24h-stats" style="min-width: 255px;">
+    <div class="ticker-card tc-accent-cyan" style="min-width: 255px;">
       <div class="ticker-card-hdr">
         <span class="ticker-card-title"><span style="color:var(--cyan); font-size:10px;">📊</span> 24h Statistics</span>
         <span class="tc-badge" style="opacity:0.75;">HIGH / LOW / VOL</span>
       </div>
-      <div class="ticker-card-body dcx-grid-2col" style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-        <div class="dcx-data-col" style="display:flex; flex-direction:column; gap:1px; border-right:1px solid var(--border); padding-right:8px;">
+      <div class="ticker-card-body" style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div style="display:flex; flex-direction:column; gap:1px; border-right:1px solid var(--border); padding-right:8px;">
           <div style="display:flex; justify-content:space-between; align-items:center; font-size:9.5px;">
             <span style="color:#fde047; font-weight:800; font-family:'JetBrains Mono',monospace;">DCX H</span>
             <span id="t-bin-24h-high" style="font-family:'JetBrains Mono',monospace; font-weight:800; color:var(--text-main); font-size:11px;">—</span>
@@ -4655,24 +4445,6 @@
       <label style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--input-bg);padding:10px;border-radius:8px;">
         <span style="color:var(--text-main);font-size:11px;font-weight:500;">Flash FX</span><div class="tog on" id="tog-flash"></div>
       </label>
-    </div>
-  </div>
-  
-  <div class="panel" style="padding:16px;margin-bottom:16px;">
-    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;font-weight:600;display:flex;align-items:center;gap:8px;">
-      <div style="width:4px;height:12px;background:var(--yellow);border-radius:2px;"></div>CoinDCX Feeds &amp; Comparison
-    </div>
-    <div style="background:var(--input-bg);padding:12px;border-radius:8px;display:flex;flex-direction:column;gap:10px;">
-      <label style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" id="tog-dcx-feed-wrap">
-        <div>
-          <div style="color:var(--text-main);font-size:12px;font-weight:600;">Enable CoinDCX Data</div>
-          <div style="color:var(--text-muted);font-size:10px;margin-top:2px;">Sync DCX orderbook, ticker feeds &amp; price drift metrics</div>
-        </div>
-        <div class="tog on" id="tog-dcx-feed"></div>
-      </label>
-      <div style="font-size:10px;color:var(--text-muted);line-height:1.4;border-top:1px solid var(--border);padding-top:8px;">
-        Disabling cuts backend DCX WebSockets/REST polling and shifts the UI to an ultra-fast, full-width Testnet-only view.
-      </div>
     </div>
   </div>
   
@@ -5390,8 +5162,8 @@
   </div>
 </div>
 
-<div id="orderbook-grid" style="display:grid;grid-template-columns:35% 35% 30%;gap:16px;padding:0 24px 24px;">
-  <div class="panel" id="dcx-book-panel" style="display:flex;flex-direction:column;height:590px;overflow:hidden;">
+<div style="display:grid;grid-template-columns:35% 35% 30%;gap:16px;padding:24px;">
+  <div class="panel" style="display:flex;flex-direction:column;height:590px;overflow:hidden;">
     <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);">
       <div><div class="sec-label">Source</div><div class="sec-title" style="color:var(--yellow)">CoinDCX Perpetual</div></div>
       <div id="bin-spread-badge" style="font-size:11px;padding:4px 10px;border-radius:99px;background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);color:#c084fc;font-weight:600;letter-spacing:1px;">Spread —</div>
@@ -5402,7 +5174,7 @@
     <div style="flex:1;min-height:0;overflow-y:auto;padding:4px 0;" id="bin-bids"></div>
   </div>
   
-  <div class="panel panel-accent" id="stage-book-panel" style="display:flex;flex-direction:column;height:590px;overflow:hidden;">
+  <div class="panel panel-accent" style="display:flex;flex-direction:column;height:590px;overflow:hidden;">
     <div style="padding:14px 16px;border-bottom:1px solid rgba(6,182,212,0.15);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);">
       <div><div class="sec-label">Target · Testnet WS</div><div class="sec-title" style="color:var(--cyan)">Testnet Orderbook</div></div>
       <div id="stage-spread-badge" style="font-size:11px;padding:4px 10px;border-radius:99px;background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.3);color:var(--cyan);font-weight:600;letter-spacing:1px;">Spread —</div>
@@ -5698,7 +5470,7 @@
 </div>
 
 
-<div id="portfolio-grid" style="display:grid;grid-template-columns:minmax(0, 1fr) minmax(0, 1fr) 375px;gap:16px;padding:0 24px 24px;">
+<div style="display:grid;grid-template-columns:minmax(0, 1fr) minmax(0, 1fr) 375px;gap:16px;padding:0 24px 24px;">
   <div class="panel" style="display:flex;flex-direction:column;height:590px;overflow:hidden;" id="u1-panel">
     <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);flex-shrink:0;">
       <div style="display:flex;align-items:center;gap:10px;">
@@ -7609,12 +7381,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 takerUseRawQtyState = getVal(diag.takerUseRawQty, savedConfig.takerUseRawQty, false) === true;
                 const trTog = document.getElementById('tog-taker-raw');
                 if (takerUseRawQtyState) trTog.classList.add('on'); else trTog.classList.remove('on');
-
-                const dcxState = diag.enableDcx !== undefined ? (diag.enableDcx !== false) : (window.dcxDataEnabled !== false);
-                const dcxTog = document.getElementById('tog-dcx-feed');
-                if (dcxTog) {
-                    if (dcxState) dcxTog.classList.add('on'); else dcxTog.classList.remove('on');
-                }
             }
         };
         document.getElementById('btn-close').onclick = () => { document.getElementById('drawer').classList.remove('open'); document.getElementById('overlay').classList.remove('open'); };
@@ -7646,80 +7412,6 @@ window.addEventListener('DOMContentLoaded', () => {
             const el = document.getElementById('tog-taker-raw');
             if (takerUseRawQtyState) el.classList.add('on'); else el.classList.remove('on');
         };
-
-        const togDcxWrap = document.getElementById('tog-dcx-feed-wrap');
-        if (togDcxWrap) {
-            togDcxWrap.onclick = () => {
-                window.toggleDcxData();
-            };
-        }
-
-        window.dcxDataEnabled = localStorage.getItem('replicator_enable_dcx') !== '0';
-
-        window.setDcxDataEnabled = function(enable, silent = false) {
-            window.dcxDataEnabled = !!enable;
-            localStorage.setItem('replicator_enable_dcx', window.dcxDataEnabled ? '1' : '0');
-            
-            const tog = document.getElementById('tog-dcx-feed');
-            if (tog) {
-                if (window.dcxDataEnabled) tog.classList.add('on');
-                else tog.classList.remove('on');
-            }
-
-            const btnQuick = document.getElementById('btn-quick-toggle-dcx');
-            if (btnQuick) {
-                btnQuick.textContent = window.dcxDataEnabled ? 'DCX: ON' : 'DCX: OFF';
-                if (window.dcxDataEnabled) {
-                    btnQuick.style.background = 'rgba(234,179,8,0.15)';
-                    btnQuick.style.borderColor = 'rgba(234,179,8,0.3)';
-                    btnQuick.style.color = 'var(--yellow)';
-                } else {
-                    btnQuick.style.background = 'rgba(255,255,255,0.05)';
-                    btnQuick.style.borderColor = 'rgba(255,255,255,0.15)';
-                    btnQuick.style.color = 'var(--text-muted)';
-                }
-            }
-
-            if (window.dcxDataEnabled) {
-                document.documentElement.classList.remove('no-dcx');
-                document.body.classList.remove('no-dcx');
-            } else {
-                document.documentElement.classList.add('no-dcx');
-                document.body.classList.add('no-dcx');
-                const bAsks = document.getElementById('bin-asks');
-                const bBids = document.getElementById('bin-bids');
-                if (bAsks) bAsks.innerHTML = '';
-                if (bBids) bBids.innerHTML = '';
-                const cPing = document.getElementById('c-bping');
-                if (cPing) cPing.textContent = 'OFF';
-            }
-
-            if (!silent) {
-                fetch(window.getApiUrl('/api/config/dcx-feed'), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ enableDcx: window.dcxDataEnabled, symbol: window.activeTabSymbol })
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (data && data.success) {
-                        showToast(window.dcxDataEnabled ? '✓ CoinDCX feeds & orderbook enabled' : '✓ CoinDCX feeds disabled (Testnet-only view)', 'info');
-                    } else {
-                        showToast('✗ Failed to update CoinDCX feed state', true);
-                    }
-                })
-                .catch(err => {
-                    console.error('Error toggling CoinDCX feed:', err);
-                });
-            }
-        };
-
-        window.toggleDcxData = function() {
-            window.setDcxDataEnabled(!window.dcxDataEnabled);
-        };
-
-        // Initialize UI state immediately
-        window.setDcxDataEnabled(window.dcxDataEnabled, true);
 
         function bindTog(id, cb) {
             const el = document.getElementById(id);
@@ -8855,7 +8547,7 @@ window.addEventListener('DOMContentLoaded', () => {
             if (!sym) { msg.style.color='#f43f5e'; msg.textContent='✗ Symbol required'; return; }
             if (minV && maxV && parseFloat(minV) >= parseFloat(maxV)) { msg.style.color='#f43f5e'; msg.textContent='✗ Min must be < Max'; return; }
 
-            const body = { symbol: sym, targetSymbol: tgt, tier: tier, cancelOnStop: cancelOnStopState, newUserFlow: newUserState, makerUseRawQty: makerUseRawQtyState, takerUseRawQty: takerUseRawQtyState, enableTradeSync: true, enableDcx: window.dcxDataEnabled !== false };
+            const body = { symbol: sym, targetSymbol: tgt, tier: tier, cancelOnStop: cancelOnStopState, newUserFlow: newUserState, makerUseRawQty: makerUseRawQtyState, takerUseRawQty: takerUseRawQtyState, enableTradeSync: true };
             if (minV) body.minSize = parseFloat(minV);
             if (maxV) body.maxSize = parseFloat(maxV);
             if (takerV) body.takerSize = parseFloat(takerV);
@@ -12194,7 +11886,7 @@ window.addEventListener('DOMContentLoaded', () => {
             else if (instance.status === 'PAUSED') { dot.className = 'dot-paused'; statusTxt.innerHTML = "<span class='c-yellow fw-bold'>PAUSED</span>"; }
             else { dot.className = 'dot-dead'; statusTxt.innerHTML = "<span class='c-rose fw-bold'>STOPPED</span>"; }
 
-            document.getElementById('c-bping').textContent = window.dcxDataEnabled ? ((diag.binanceLatency||0) + 'ms') : 'OFF';
+            document.getElementById('c-bping').textContent = (diag.binanceLatency||0) + 'ms';
             document.getElementById('c-sping').textContent = (diag.testnetLatency||0) + 'ms';
             document.getElementById('c-sync').textContent = (diag.syncRatio||'100') + '%';
             
@@ -12718,12 +12410,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
             // OK/FAIL counts are now rendered by updateTradeStream into #ltp-chips
 
-            if (window.dcxDataEnabled !== false && instance.binanceDepth) {
-                renderBook(document.getElementById('bin-asks'), document.getElementById('bin-bids'), document.getElementById('bin-spread-badge'), document.getElementById('bin-spread-mid'), instance.binanceDepth.asks || [], instance.binanceDepth.bids || [], true);
-            }
-            if (instance.testnetDepth) {
-                renderBook(document.getElementById('stage-asks'), document.getElementById('stage-bids'), document.getElementById('stage-spread-badge'), document.getElementById('stage-spread-mid'), instance.testnetDepth.asks || [], instance.testnetDepth.bids || [], false);
-            }
+            renderBook(document.getElementById('bin-asks'), document.getElementById('bin-bids'), document.getElementById('bin-spread-badge'), document.getElementById('bin-spread-mid'), instance.binanceDepth.asks, instance.binanceDepth.bids, true);
+            renderBook(document.getElementById('stage-asks'), document.getElementById('stage-bids'), document.getElementById('stage-spread-badge'), document.getElementById('stage-spread-mid'), instance.testnetDepth.asks, instance.testnetDepth.bids, false);
             if (window.MarketAggTradeManager) {
                 window.MarketAggTradeManager.handleBackendTrades(instance.aggTrades);
             } else if (instance.aggTrades && instance.aggTrades.length) {
