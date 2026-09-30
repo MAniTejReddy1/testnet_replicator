@@ -8235,7 +8235,7 @@ window.addEventListener('DOMContentLoaded', () => {
         };
 
         window.getSymbolTickSize = function() {
-            const inst = cachedInstances[activeTabSymbol];
+            const inst = (window.cachedInstances && activeTabSymbol && window.cachedInstances[activeTabSymbol]) ? window.cachedInstances[activeTabSymbol] : null;
             const diag = inst?.diagnostics || {};
             if (diag.tickSize && parseFloat(diag.tickSize) > 0) return parseFloat(diag.tickSize);
             const prec = (typeof pPrec !== 'undefined' && pPrec !== null) ? pPrec : (diag.pricePrecision !== undefined ? diag.pricePrecision : 4);
@@ -8243,7 +8243,7 @@ window.addEventListener('DOMContentLoaded', () => {
         };
 
         window.getSymbolQtyStep = function() {
-            const inst = cachedInstances[activeTabSymbol];
+            const inst = (window.cachedInstances && activeTabSymbol && window.cachedInstances[activeTabSymbol]) ? window.cachedInstances[activeTabSymbol] : null;
             const diag = inst?.diagnostics || {};
             if (diag.qtyStep && parseFloat(diag.qtyStep) > 0) return parseFloat(diag.qtyStep);
             const prec = (typeof qPrec !== 'undefined' && qPrec !== null) ? qPrec : (diag.qtyPrecision !== undefined ? diag.qtyPrecision : 2);
@@ -8251,7 +8251,7 @@ window.addEventListener('DOMContentLoaded', () => {
         };
 
         window.getSymbolMinQty = function() {
-            const inst = cachedInstances[activeTabSymbol];
+            const inst = (window.cachedInstances && activeTabSymbol && window.cachedInstances[activeTabSymbol]) ? window.cachedInstances[activeTabSymbol] : null;
             const diag = inst?.diagnostics || {};
             if (diag.minQty && parseFloat(diag.minQty) > 0) return parseFloat(diag.minQty);
             return window.getSymbolQtyStep();
@@ -8558,30 +8558,31 @@ window.addEventListener('DOMContentLoaded', () => {
         };
 
         window.calcTermEstimates = function() {
-            const inst = cachedInstances[activeTabSymbol];
-            const activeTier = activeEnvFilter || (window.payload && window.payload.tier) || 'PRODUCTION';
-            const tierPorts = (window.payload && window.payload.portfolios && window.payload.portfolios[activeTier]) || {};
-            const uId = window.tradeUser || document.getElementById('sel-trade-user')?.value || 'user1';
-            const port = tierPorts[uId] || {};
-            const availBal = parseFloat(port.availableBalance || 0);
-            const pos = (port.positions || []).find(p => p.symbol === activeTabSymbol) || {};
-            const leverage = parseFloat(pos.leverage) || 5;
+            try {
+                const inst = (window.cachedInstances && activeTabSymbol && window.cachedInstances[activeTabSymbol]) ? window.cachedInstances[activeTabSymbol] : null;
+                const activeTier = activeEnvFilter || (window.payload && window.payload.tier) || 'PRODUCTION';
+                const tierPorts = (window.payload && window.payload.portfolios && window.payload.portfolios[activeTier]) || {};
+                const uId = window.tradeUser || document.getElementById('sel-trade-user')?.value || 'user1';
+                const port = tierPorts[uId] || {};
+                const availBal = parseFloat(port.availableBalance || 0);
+                const pos = (port.positions || []).find(p => p.symbol === activeTabSymbol) || {};
+                const leverage = parseFloat(pos.leverage) || 5;
 
-            let price = parseFloat(document.getElementById('trade-price')?.value);
-            if (!price || isNaN(price) || price <= 0) {
-                const stopVal = parseFloat(document.getElementById('trade-stop-price')?.value);
-                if (stopVal && !isNaN(stopVal) && stopVal > 0) price = stopVal;
-            }
-            if (!price || isNaN(price) || price <= 0) {
-                const diag = inst?.diagnostics || {};
-                price = parseFloat(diag.testnetLtp) || parseFloat(diag.binanceLtp) || parseFloat(diag.testnetMarkPrice) || parseFloat(diag.binanceMarkPrice) || 0;
-            }
-            if (!price || isNaN(price) || price <= 0) {
-                const tLtp = parseFloat(document.getElementById('t-sltp')?.textContent);
-                const bLtp = parseFloat(document.getElementById('t-bltp')?.textContent);
-                price = (!isNaN(tLtp) && tLtp > 0) ? tLtp : ((!isNaN(bLtp) && bLtp > 0) ? bLtp : 0);
-            }
-            const qty = parseFloat(document.getElementById('trade-qty')?.value) || 0;
+                const stopPrice = parseFloat(document.getElementById('trade-stop-price')?.value) || 0;
+                let price = parseFloat(document.getElementById('trade-price')?.value);
+                if (!price || isNaN(price) || price <= 0) {
+                    if (stopPrice > 0) price = stopPrice;
+                }
+                if (!price || isNaN(price) || price <= 0) {
+                    const diag = inst?.diagnostics || {};
+                    price = parseFloat(diag.testnetLtp) || parseFloat(diag.binanceLtp) || parseFloat(diag.testnetMarkPrice) || parseFloat(diag.binanceMarkPrice) || 0;
+                }
+                if (!price || isNaN(price) || price <= 0) {
+                    const tLtp = parseFloat(document.getElementById('t-sltp')?.textContent);
+                    const bLtp = parseFloat(document.getElementById('t-bltp')?.textContent);
+                    price = (!isNaN(tLtp) && tLtp > 0) ? tLtp : ((!isNaN(bLtp) && bLtp > 0) ? bLtp : 0);
+                }
+                const qty = parseFloat(document.getElementById('trade-qty')?.value) || 0;
 
             const estValEl = document.getElementById('term-est-val');
             const estCostEl = document.getElementById('term-est-cost');
@@ -8768,7 +8769,10 @@ window.addEventListener('DOMContentLoaded', () => {
             if (typeof window.updateTermMarketBadge === 'function') {
                 window.updateTermMarketBadge();
             }
-        };
+        } catch (err) {
+            console.error('Error in calcTermEstimates:', err);
+        }
+    };
 
         window.evaluateOrderSafeguardsAndLiquidity = function() {
             const bannerEl = document.getElementById('term-safeguard-banner');
@@ -9385,16 +9389,20 @@ window.addEventListener('DOMContentLoaded', () => {
             }
 
             // Update Field Spec Pills (Tick & Step)
-            const curTick = window.getSymbolTickSize();
-            const curStep = window.getSymbolQtyStep();
-            const tickBadge = document.getElementById('term-tick-badge');
-            if (tickBadge) tickBadge.textContent = `Tick: ${curTick}`;
-            const stopTickBadge = document.getElementById('term-stop-tick-badge');
-            if (stopTickBadge) stopTickBadge.textContent = `Tick: ${curTick}`;
-            const stepBadge = document.getElementById('term-step-badge');
-            if (stepBadge) stepBadge.textContent = `Step: ${curStep}`;
+            try {
+                const curTick = window.getSymbolTickSize();
+                const curStep = window.getSymbolQtyStep();
+                const tickBadge = document.getElementById('term-tick-badge');
+                if (tickBadge) tickBadge.textContent = `Tick: ${curTick}`;
+                const stopTickBadge = document.getElementById('term-stop-tick-badge');
+                if (stopTickBadge) stopTickBadge.textContent = `Tick: ${curTick}`;
+                const stepBadge = document.getElementById('term-step-badge');
+                if (stepBadge) stepBadge.textContent = `Step: ${curStep}`;
 
-            window.calcTermEstimates();
+                window.calcTermEstimates();
+            } catch (err) {
+                console.error('Error updating terminal specs or estimates:', err);
+            }
         };
 
         window.submitManualTrade = async function(side) {
@@ -10592,7 +10600,11 @@ window.addEventListener('DOMContentLoaded', () => {
             const activeTier = instance.tier || 'PRODUCTION';
             document.getElementById('c-pair').textContent = activeTabSymbol + srcStr + ' [' + activeTier + ']';
             if (typeof window.updateTerminalAccountInfo === 'function') {
-                window.updateTerminalAccountInfo();
+                try {
+                    window.updateTerminalAccountInfo();
+                } catch (e) {
+                    console.error('Error updating terminal account info:', e);
+                }
             }
 
             const scEl = document.getElementById('flag-scenario');
