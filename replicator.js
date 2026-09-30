@@ -5015,11 +5015,179 @@ const server = http.createServer(async (req, res) => {
                         res.writeHead(200);
                         return res.end(JSON.stringify({ success: true }));
                     }
+                } else if (pathname === '/api/engine/move-mark') {
+                    const inst = (instances[globalActiveTier] || new Map()).get(targetSym);
+                    if (!inst) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, error: `Engine instance not found for symbol ${targetSym}` }));
+                    }
+
+                    const direction = (parsed.direction || 'ABOVE').toUpperCase();
+                    const offsetPct = parseFloat(parsed.offsetPct) || 2.0;
+
+                    // 1. Pause engine replication loop so orders are not immediately overwritten
+                    inst.pause();
+
+                    // 2. Precondition: Wipe all existing open orders for both Maker (User 1) and Taker (User 2)
+                    log.info(targetSym, `[MOVE-MARK] Precondition: Cancelling all open orders before shifting mark (${direction} ${offsetPct}%)...`);
+                    await inst.wipeOrders();
+
+                    // 3. Determine base Index Price
+                    let indexPrice = parseFloat(inst.testnetIndexPrice);
+                    if (!indexPrice || isNaN(indexPrice) || indexPrice <= 0) {
+                        indexPrice = parseFloat(inst.binanceIndexPrice) || parseFloat(inst.testnetMarkPrice) || parseFloat(inst.testnetLtp) || parseFloat(inst.binanceLtp);
+                    }
+                    if (!indexPrice || isNaN(indexPrice) || indexPrice <= 0) {
+                        try {
+                            const mdsBase = (TIER_URLS[inst.tier] || TIER_URLS[globalActiveTier]).MDS_READ;
+                            const pRes = await fetch(`${mdsBase}/fapi/v1/premiumIndex?symbol=${targetSym}`);
+                            if (pRes.ok) {
+                                const pData = await pRes.json();
+                                if (pData && pData.indexPrice) indexPrice = parseFloat(pData.indexPrice);
+                            }
+                        } catch (e) {}
+                    }
+                    if (!indexPrice || isNaN(indexPrice) || indexPrice <= 0) {
+                        try {
+                            const bRes = await fetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${sym}`);
+                            if (bRes.ok) {
+                                const bData = await bRes.json();
+                                if (bData && bData.indexPrice) indexPrice = parseFloat(bData.indexPrice);
+                            }
+                        } catch (e) {}
+                    }
+                    if (!indexPrice || isNaN(indexPrice) || indexPrice <= 0) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: false, error: `Unable to obtain valid Index Price for ${targetSym}` }));
+                    }
+
+                    // 4. Retrieve exchange instruments metadata (tickSize, qtyStep, minQty, precisions)
+                    const tierMap = instrumentsMap[inst.tier] || {};
+                    const symMeta = tierMap[targetSym] || {};
+                    const tickSize = parseFloat(symMeta.tickSize) || 0.0001;
+                    const qtyStep = parseFloat(symMeta.qtyStep) || 1.0;
+                    const minQty = parseFloat(symMeta.minQty) || qtyStep;
+                    const pricePrec = symMeta.pricePrecision !== undefined ? symMeta.pricePrecision : (tickSize > 0 ? Math.max(0, -Math.round(Math.log10(tickSize))) : 4);
+                    const qtyPrec = symMeta.qtyPrecision !== undefined ? symMeta.qtyPrecision : (qtyStep > 0 ? Math.max(0, -Math.round(Math.log10(qtyStep))) : 0);
+
+                    // 5. Calculate Target Prices based on direction
+                    let buyPrice, sellPrice;
+                    if (direction === 'ABOVE' || direction === 'UP') {
+                        // Target = Index Price * 1.02 (+2%)
+                        const rawTarget = indexPrice * (1 + (offsetPct / 100));
+                        buyPrice = Math.round(rawTarget / tickSize) * tickSize;
+                        sellPrice = buyPrice + tickSize;
+                    } else {
+                        // Target = Index Price * 0.98 (-2%)
+                        const rawTarget = indexPrice * (1 - (offsetPct / 100));
+                        sellPrice = Math.round(rawTarget / tickSize) * tickSize;
+                        buyPrice = Math.max(sellPrice - tickSize, tickSize);
+                        if (sellPrice <= tickSize) {
+                            sellPrice = tickSize * 2;
+                            buyPrice = tickSize;
+                        }
+                    }
+
+                    const buyPriceStr = buyPrice.toFixed(pricePrec);
+                    const sellPriceStr = sellPrice.toFixed(pricePrec);
+
+                    // 6. Calculate Quantities to meet minNotional ($5.50 USDT threshold)
+                    const targetNotional = 5.50;
+                    const calcQty = (price) => {
+                        const raw = Math.max(minQty, targetNotional / price);
+                        const steps = Math.ceil(raw / qtyStep);
+                        let q = steps * qtyStep;
+                        if ((q * price) < 5.05) {
+                            q = (steps + 1) * qtyStep;
+                        }
+                        return q.toFixed(qtyPrec);
+                    };
+
+                    const buyQtyStr = calcQty(buyPrice);
+                    const sellQtyStr = calcQty(sellPrice);
+
+                    // 7. Retrieve users: User 1 (Maker) Limit Buy, User 2 (Taker) Limit Sell
+                    const tierUsers = globalUsers[inst.tier] || {};
+                    const tierRoles = globalRoles[inst.tier] || { makerId: '', takerId: '' };
+                    const makerUser = tierUsers[tierRoles.makerId || 'user1'];
+                    const takerUser = tierUsers[tierRoles.takerId || 'user2'];
+
+                    if (!makerUser || !takerUser) {
+                        res.writeHead(400, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ 
+                            success: false, 
+                            error: `User credentials not configured on ${inst.tier} (Maker: ${tierRoles.makerId || 'user1'}, Taker: ${tierRoles.takerId || 'user2'})` 
+                        }));
+                    }
+
+                    const hpoBase = (TIER_URLS[inst.tier] || TIER_URLS[globalActiveTier]).HPO;
+
+                    const buyPayload = {
+                        symbol: targetSym,
+                        side: 'BUY',
+                        type: 'LIMIT',
+                        price: buyPriceStr,
+                        quantity: buyQtyStr,
+                        timeInForce: 'GTC'
+                    };
+
+                    const sellPayload = {
+                        symbol: targetSym,
+                        side: 'SELL',
+                        type: 'LIMIT',
+                        price: sellPriceStr,
+                        quantity: sellQtyStr,
+                        timeInForce: 'GTC'
+                    };
+
+                    log.info(targetSym, `[MOVE-MARK] Placing orders: Buy @ ${buyPriceStr} (${tierRoles.makerId || 'user1'}), Sell @ ${sellPriceStr} (${tierRoles.takerId || 'user2'}) | Ref Index: ${indexPrice}`);
+
+                    const [buyRes, sellRes] = await Promise.all([
+                        sendSignedRequest(`${hpoBase}/fapi/v1/order`, 'POST', buyPayload, makerUser, 20000, inst.tier),
+                        sendSignedRequest(`${hpoBase}/fapi/v1/order`, 'POST', sellPayload, takerUser, 20000, inst.tier)
+                    ]);
+
+                    lastPortfolioSyncTime = 0;
+                    broadcastToUI(true);
+
+                    const buySuccess = buyRes.ok || buyRes.status === 200;
+                    const sellSuccess = sellRes.ok || sellRes.status === 200;
+
+                    const result = {
+                        success: buySuccess && sellSuccess,
+                        direction,
+                        symbol: targetSym,
+                        indexPrice,
+                        buy: {
+                            user: tierRoles.makerId || 'user1',
+                            price: buyPriceStr,
+                            quantity: buyQtyStr,
+                            success: buySuccess,
+                            response: buyRes.data || { status: buyRes.status, error: buyRes.error }
+                        },
+                        sell: {
+                            user: tierRoles.takerId || 'user2',
+                            price: sellPriceStr,
+                            quantity: sellQtyStr,
+                            success: sellSuccess,
+                            response: sellRes.data || { status: sellRes.status, error: sellRes.error }
+                        }
+                    };
+
+                    if (result.success) {
+                        log.success(targetSym, `[MOVE-MARK] Mark shifted ${direction} successfully! (Buy: ${buyPriceStr}, Sell: ${sellPriceStr})`);
+                    } else {
+                        log.warn(targetSym, `[MOVE-MARK] Orders partially placed: Buy ${buySuccess ? 'OK' : buyRes.status}, Sell ${sellSuccess ? 'OK' : sellRes.status}`);
+                    }
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify(result));
                 } else {
                     const inst = (instances[globalActiveTier] || new Map()).get(targetSym);
                     if (pathname === '/api/engine/start'  && inst) inst.start();
                     else if (pathname === '/api/engine/pause'  && inst) inst.pause();
                     else if (pathname === '/api/engine/stop'   && inst) await inst.stop();
+                    else if (pathname === '/api/engine/wipe'   && inst) await inst.wipeOrders();
                     else if (pathname === '/api/engine/reload' && inst) {
                         inst.reloadEngine().catch(e => log.error(inst.symbol, `[RELOAD] Background reload failed: ${e.message}`));
                     }

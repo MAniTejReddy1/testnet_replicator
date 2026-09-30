@@ -606,6 +606,10 @@
   .btn-stop:hover { background: rgba(255,51,102,.2); box-shadow: 0 6px 18px rgba(255,51,102,0.22); border-color: rgba(255,51,102,.5); }
   .btn-reload { background: rgba(213,0,249,.1); color: #e040fb; border-color: rgba(213,0,249,.3); }
   .btn-reload:hover { background: rgba(213,0,249,.18); box-shadow: 0 6px 18px rgba(213,0,249,0.18); border-color: rgba(213,0,249,.45); }
+  .btn-move-mark-up   { background: rgba(0,230,118,.12); color: #00e676; border-color: rgba(0,230,118,.35); }
+  .btn-move-mark-up:hover { background: rgba(0,230,118,.22); box-shadow: 0 6px 18px rgba(0,230,118,0.25); border-color: rgba(0,230,118,.6); }
+  .btn-move-mark-down { background: rgba(255,51,102,.12); color: #ff3366; border-color: rgba(255,51,102,.35); }
+  .btn-move-mark-down:hover { background: rgba(255,51,102,.22); box-shadow: 0 6px 18px rgba(255,51,102,0.25); border-color: rgba(255,51,102,.6); }
   
   /* Sections */
   .sec-label { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); font-weight: 600; }
@@ -3853,11 +3857,14 @@
 </script>
 
 <div style="padding: 12px 24px; display:flex; justify-content:space-between; align-items:center; background: var(--panel); backdrop-filter: var(--glass-blur); border-bottom: 1px solid var(--border);">
-    <div style="display:flex; gap: 10px;">
+    <div style="display:flex; gap: 10px; align-items:center; flex-wrap:wrap;">
         <button class="ctrl-btn btn-start"  id="btn-cmd-start"><span style="margin-right:6px">▶</span> START</button>
         <button class="ctrl-btn btn-pause"  id="btn-cmd-pause"><span style="margin-right:6px">⏸</span> PAUSE</button>
         <button class="ctrl-btn btn-stop"   id="btn-cmd-stop"><span style="margin-right:6px">⏹</span> STOP</button>
         <button class="ctrl-btn btn-reload" id="btn-cmd-reload"><span style="margin-right:6px">↻</span> RELOAD</button>
+        <div style="width: 1px; height: 18px; background: var(--border); margin: 0 4px;"></div>
+        <button class="ctrl-btn btn-move-mark-up" id="btn-move-mark-up" title="Move Mark above Index price (+2%): Pre-clears all open orders, pauses engine, places User 1 Limit Buy and User 2 Limit Sell (+1 tick)"><span style="margin-right:6px">📈</span> MOVE MARK &gt; INDEX</button>
+        <button class="ctrl-btn btn-move-mark-down" id="btn-move-mark-down" title="Move Mark below Index price (-2%): Pre-clears all open orders, pauses engine, places User 1 Limit Buy (-1 tick) and User 2 Limit Sell"><span style="margin-right:6px">📉</span> MOVE MARK &lt; INDEX</button>
     </div>
     <div style="display:flex; gap: 12px; font-size: 11px; align-items:center; flex-wrap:wrap;">
         <div class="tele-pill">
@@ -9974,6 +9981,58 @@ window.addEventListener('DOMContentLoaded', () => {
         document.getElementById('btn-cmd-pause').onclick = () => window.sendEngineCmd('pause');
         document.getElementById('btn-cmd-stop').onclick = () => window.sendEngineCmd('stop');
         document.getElementById('btn-cmd-reload').onclick = () => window.sendEngineCmd('reload');
+
+        window.triggerMoveMark = async function(direction) {
+            if (!activeTabSymbol) return showToast("Select a market tab first!", true);
+            const dirUpper = (direction || 'ABOVE').toUpperCase();
+            const isAbove = dirUpper === 'ABOVE' || dirUpper === 'UP';
+            const btnId = isAbove ? 'btn-move-mark-up' : 'btn-move-mark-down';
+            const btn = document.getElementById(btnId);
+            const origHtml = btn ? btn.innerHTML : '';
+
+            try {
+                if (btn) {
+                    btn.disabled = true;
+                    btn.style.opacity = '0.7';
+                    btn.innerHTML = `<span style="margin-right:6px">⏳</span> PROCESSING...`;
+                }
+                showToast(`⏳ Clearing orders & shifting Mark ${isAbove ? 'above (+2%)' : 'below (-2%)'} Index...`);
+
+                const res = await fetch(window.getApiUrl('/api/engine/move-mark'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        symbol: activeTabSymbol,
+                        direction: isAbove ? 'ABOVE' : 'BELOW',
+                        offsetPct: 2.0
+                    })
+                });
+
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    showToast(`✓ Mark moved ${isAbove ? 'above' : 'below'} Index! Buy @ $${data.buy?.price} (${data.buy?.user}), Sell @ $${data.sell?.price} (${data.sell?.user})`);
+                } else {
+                    const err = data.error || (data.buy?.response?.msg || data.sell?.response?.msg) || 'Failed to place orders';
+                    showToast(`✗ Failed to move mark: ${err}`, true);
+                }
+            } catch (e) {
+                showToast(`✗ Network error: ${e.message}`, true);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    btn.innerHTML = origHtml;
+                }
+                if (typeof window.refreshOrdersTab === 'function') window.refreshOrdersTab();
+                if (typeof window.renderPortfolios === 'function') window.renderPortfolios();
+            }
+        };
+
+        const moveMarkUpBtn = document.getElementById('btn-move-mark-up');
+        if (moveMarkUpBtn) moveMarkUpBtn.onclick = () => window.triggerMoveMark('ABOVE');
+
+        const moveMarkDownBtn = document.getElementById('btn-move-mark-down');
+        if (moveMarkDownBtn) moveMarkDownBtn.onclick = () => window.triggerMoveMark('BELOW');
 
         const fmt = (v, d) => parseFloat(v||0).toFixed(d);
         function fmtK(v) { const n = parseFloat(v||0); return n >= 1000 ? (n/1000).toFixed(1)+'K' : n.toFixed(0); }
