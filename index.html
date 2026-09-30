@@ -2210,28 +2210,189 @@
     border-radius: 4px;
   }
 
-  /* Account & Balances Strip */
-  .term-account-strip {
+  /* Enhanced Top Header Strip: User, Leverage, Position */
+  .term-header-strip {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 6px;
-    background: var(--input-bg);
-    padding: 4px 8px;
-    border-radius: 6px;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.025);
+    padding: 5px 8px;
+    border-radius: 8px;
     border: 1px solid var(--border);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
   }
-  .term-acc-left, .term-acc-right {
+  :root[data-theme="light"] .term-header-strip {
+    background: rgba(0, 0, 0, 0.02);
+    border-color: rgba(0, 0, 0, 0.08);
+  }
+  .term-hdr-user-block {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+  .term-hdr-avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(6, 182, 212, 0.12);
+    border: 1px solid rgba(6, 182, 212, 0.35);
+    color: var(--cyan);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+  .term-hdr-user-details {
     display: flex;
     align-items: center;
     gap: 5px;
     min-width: 0;
   }
-  .term-bal-pill {
+  .term-lev-badge-enhanced {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(99, 102, 241, 0.15));
+    border: 1px solid rgba(168, 85, 247, 0.4);
+    color: #c084fc;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    white-space: nowrap;
+  }
+  .term-lev-badge-enhanced:hover {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.25), rgba(99, 102, 241, 0.25));
+    border-color: #d8b4fe;
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(168, 85, 247, 0.4);
+    transform: translateY(-1px);
+  }
+  .term-lev-badge-enhanced:active {
+    transform: translateY(1px);
+  }
+  .term-lev-edit-icon {
+    font-size: 9px;
+    opacity: 0.6;
+    margin-left: 1px;
+    transition: opacity 0.15s;
+  }
+  .term-lev-badge-enhanced:hover .term-lev-edit-icon {
+    opacity: 1;
+  }
+  .term-hdr-pos-block {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    padding: 3px 7px;
+    border-radius: 6px;
+    font-size: 9.5px;
+    font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap;
+  }
+  .term-pos-indicator-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    transition: all 0.2s;
+  }
+  .term-pos-dot-long {
+    background: #10b981 !important;
+    box-shadow: 0 0 6px #10b981 !important;
+  }
+  .term-pos-dot-short {
+    background: #f43f5e !important;
+    box-shadow: 0 0 6px #f43f5e !important;
+  }
+  .term-pos-hdr-label {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0.4px;
+  }
+
+  /* Dedicated Balance & Add Funds Strip below Order Value */
+  .term-balance-bar {
     display: flex;
     align-items: center;
-    gap: 3px;
+    justify-content: space-between;
+    gap: 8px;
+    background: rgba(6, 182, 212, 0.04);
+    border: 1px solid rgba(6, 182, 212, 0.18);
+    padding: 4px 8px;
+    border-radius: 6px;
+    box-sizing: border-box;
+    transition: all 0.2s ease;
+  }
+  :root[data-theme="light"] .term-balance-bar {
+    background: rgba(6, 182, 212, 0.04);
+    border-color: rgba(6, 182, 212, 0.25);
+  }
+  .term-bal-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+  .term-bal-icon {
+    font-size: 11px;
+    opacity: 0.85;
+  }
+  .term-bal-label {
     font-size: 9.5px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .term-bal-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--cyan);
+    letter-spacing: 0.3px;
+  }
+  .term-quick-add-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    color: #10b981;
+    font-size: 9.5px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .term-quick-add-btn:hover {
+    background: #10b981;
+    color: #ffffff;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+    transform: translateY(-1px);
+  }
+  .term-quick-add-btn:active {
+    transform: translateY(1px);
+  }
+  .term-add-plus {
+    font-size: 12px;
+    font-weight: 900;
+    line-height: 1;
   }
 
   /* Dual-Column Inputs Grid */
@@ -3013,9 +3174,9 @@
       -webkit-appearance: none;
       appearance: none;
       width: 100%;
-      height: 6px;
+      height: 4px;
       border-radius: 999px;
-      background: var(--slider-track-bg, rgba(255, 255, 255, 0.1));
+      background: var(--slider-track-bg, rgba(255, 255, 255, 0.08));
       outline: none;
       cursor: pointer;
       position: relative;
@@ -3024,37 +3185,37 @@
   .crypto-slider::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 20px;
-      height: 20px;
+      width: 14px;
+      height: 14px;
       border-radius: 50%;
       background: #ffffff;
-      border: 3.5px solid var(--slider-accent, var(--cyan));
+      border: 3px solid var(--slider-accent, var(--cyan));
       cursor: grab;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 12px var(--slider-glow, rgba(6, 182, 212, 0.45));
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35), 0 0 10px var(--slider-glow, rgba(6, 182, 212, 0.45));
       transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease, border-color 0.2s ease;
   }
   .crypto-slider::-webkit-slider-thumb:hover {
-      transform: scale(1.22);
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), 0 0 16px var(--slider-glow, rgba(6, 182, 212, 0.7));
+      transform: scale(1.28);
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45), 0 0 14px var(--slider-glow, rgba(6, 182, 212, 0.7));
   }
   .crypto-slider:active::-webkit-slider-thumb {
       cursor: grabbing;
-      transform: scale(1.3);
+      transform: scale(1.35);
   }
   .crypto-slider::-moz-range-thumb {
-      width: 20px;
-      height: 20px;
+      width: 14px;
+      height: 14px;
       border-radius: 50%;
       background: #ffffff;
-      border: 3.5px solid var(--slider-accent, var(--cyan));
+      border: 3px solid var(--slider-accent, var(--cyan));
       cursor: grab;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 12px var(--slider-glow, rgba(6, 182, 212, 0.45));
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35), 0 0 10px var(--slider-glow, rgba(6, 182, 212, 0.45));
       transition: transform 0.15s ease;
   }
   .crypto-slider-ticks {
       display: flex;
       justify-content: space-between;
-      margin-top: 8px;
+      margin-top: 10px;
       font-size: 10px;
       font-weight: 600;
       color: var(--text-muted);
@@ -3063,17 +3224,41 @@
   }
   .crypto-slider-ticks span {
       cursor: pointer;
-      padding: 2px 4px;
+      padding: 2px 5px;
       border-radius: 4px;
       transition: all 0.15s;
+      position: relative;
+  }
+  .crypto-slider-ticks span::before {
+      content: '';
+      position: absolute;
+      top: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 1px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.18);
+      border-radius: 1px;
+      transition: all 0.15s;
+  }
+  :root[data-theme="light"] .crypto-slider-ticks span::before {
+      background: rgba(0, 0, 0, 0.18);
   }
   .crypto-slider-ticks span:hover {
       color: var(--text-main);
       transform: translateY(-1px);
   }
+  .crypto-slider-ticks span:hover::before {
+      background: var(--text-main);
+      height: 5px;
+  }
   .crypto-slider-ticks span.active {
       color: var(--cyan);
       font-weight: 800;
+  }
+  .crypto-slider-ticks span.active::before {
+      background: var(--cyan);
+      height: 6px;
   }
   .lev-quick-pill {
       background: var(--input-bg);
@@ -4850,21 +5035,26 @@
     <!-- Terminal Body Container (Clean Non-Scrollable Layout) -->
     <div class="term-body-container" style="padding:10px 12px 10px;flex:1;min-height:0;display:flex;flex-direction:column;justify-content:space-between;gap:7px;overflow:hidden;">
       
-      <!-- Unified Account & Quick Balance Strip -->
-      <div class="term-account-strip">
-        <div class="term-acc-left">
-          <select id="sel-trade-user" class="term-user-select" onchange="window.setTradeUser(this.value)" data-no-custom="true"></select>
-          <span id="term-user-role-badge" class="port-role-badge role-maker">MAKER</span>
-          <button class="term-lev-badge" id="term-lev-badge" onclick="window.openTerminalLevModal()" title="Change Account Leverage">5× LEV</button>
+      <!-- Enhanced Top Header: User Profile, Leverage & Position Overview -->
+      <div class="term-header-strip">
+        <div class="term-hdr-user-block">
+          <div class="term-hdr-avatar" id="term-hdr-avatar" title="Active Trade Account">👤</div>
+          <div class="term-hdr-user-details">
+            <select id="sel-trade-user" class="term-user-select" onchange="window.setTradeUser(this.value)" data-no-custom="true" title="Select trading user account"></select>
+            <span id="term-user-role-badge" class="port-role-badge role-maker">MAKER</span>
+          </div>
         </div>
-        <div class="term-acc-right">
-          <span class="term-bal-pill">
-            <span class="term-bal-label">Avail:</span>
-            <span id="term-avail-bal" class="term-bal-val">0.00 USDT</span>
-          </span>
-          <span class="term-bal-divider" style="opacity:0.3;">|</span>
-          <span id="term-pos-badge" class="term-pos-val" style="font-size:9.5px;">None</span>
-          <button class="term-quick-add-btn" onclick="window.seedTerminalUserBalance()" title="Add USDT to this selected account">+ USDT</button>
+        <div class="term-hdr-action-block">
+          <button class="term-lev-badge-enhanced" id="term-lev-badge" onclick="window.openTerminalLevModal()" title="Click to adjust account leverage">
+            <span class="term-lev-icon">⚡</span>
+            <span id="term-lev-text">5× LEV</span>
+            <span class="term-lev-edit-icon">✏️</span>
+          </button>
+        </div>
+        <div class="term-hdr-pos-block" id="term-pos-wrap" title="Current open position on active market">
+          <span class="term-pos-indicator-dot" id="term-pos-dot"></span>
+          <span class="term-pos-hdr-label">POS:</span>
+          <span id="term-pos-badge" class="term-pos-val">None</span>
         </div>
       </div>
 
@@ -5060,6 +5250,18 @@
           <span class="term-pf-label">Est. Liq Price</span>
           <span id="term-est-liq" class="term-pf-val" style="color:var(--yellow);">—</span>
         </div>
+      </div>
+
+      <!-- Dedicated Balance & Add Funds Strip below Order Value & Estimates -->
+      <div class="term-balance-bar" id="term-balance-bar">
+        <div class="term-bal-left">
+          <span class="term-bal-icon">💳</span>
+          <span class="term-bal-label">Avail:</span>
+          <span id="term-avail-bal" class="term-bal-val">0.00 USDT</span>
+        </div>
+        <button class="term-quick-add-btn" id="term-add-funds-btn" onclick="window.seedTerminalUserBalance()" title="Add USDT testnet funds to this account">
+          <span class="term-add-plus">+</span> Add Funds
+        </button>
       </div>
 
       <!-- Safeguard & Liquidity HUD Banner -->
@@ -8223,12 +8425,17 @@ window.addEventListener('DOMContentLoaded', () => {
         window.updateTermMarketBadge = function() {
             const subEl = document.getElementById('term-market-sub-price');
             if (!subEl) return;
-            const inst = cachedInstances[activeTabSymbol];
+            const inst = (window.cachedInstances && activeTabSymbol && window.cachedInstances[activeTabSymbol]) ? window.cachedInstances[activeTabSymbol] : null;
             const diag = inst?.diagnostics || {};
-            const ltp = parseFloat(diag.testnetLtp) || parseFloat(diag.binanceLtp) || 0;
-            if (ltp > 0) {
-                const prec = (typeof pPrec !== 'undefined' && pPrec !== null) ? pPrec : (diag.pricePrecision || 4);
-                subEl.textContent = `≈ $${ltp.toFixed(prec)}`;
+            const testnetDepth = inst?.testnetDepth || { bids: [], asks: [] };
+            const isBuy = (window.termActiveSide || 'BUY') === 'BUY';
+            const bookSide = isBuy ? (testnetDepth.asks || []) : (testnetDepth.bids || []);
+            const bboPrice = bookSide.length > 0 ? parseFloat(bookSide[0][0]) : (parseFloat(diag.testnetLtp) || 0);
+            const prec = (typeof pPrec !== 'undefined' && pPrec !== null) ? pPrec : (diag.pricePrecision || 4);
+            if (bboPrice > 0) {
+                subEl.textContent = `≈ $${bboPrice.toFixed(prec)}`;
+            } else if (bookSide.length === 0) {
+                subEl.textContent = 'No Testnet Depth';
             } else {
                 subEl.textContent = 'Best Execution';
             }
@@ -8386,7 +8593,7 @@ window.addEventListener('DOMContentLoaded', () => {
             if (isNaN(cur) || cur <= 0) {
                 const inst = cachedInstances[activeTabSymbol];
                 const diag = inst?.diagnostics || {};
-                cur = parseFloat(diag.testnetMarkPrice) || parseFloat(diag.binanceMarkPrice) || parseFloat(diag.testnetLtp) || 0;
+                cur = parseFloat(diag.testnetMarkPrice) || parseFloat(diag.testnetLtp) || 0;
             }
             let count = Math.round(cur / tick);
             count += direction;
@@ -8396,21 +8603,30 @@ window.addEventListener('DOMContentLoaded', () => {
         };
 
         window.setTermPriceFrom = function(source) {
-            const inst = cachedInstances[activeTabSymbol];
+            const inst = (window.cachedInstances && activeTabSymbol && window.cachedInstances[activeTabSymbol]) ? window.cachedInstances[activeTabSymbol] : null;
             if (!inst) return;
             const diag = inst.diagnostics || {};
             const testnetDepth = inst.testnetDepth || { bids: [], asks: [] };
-            const binDepth = inst.binanceDepth || { bids: [], asks: [] };
             let p = 0;
 
-            const ltp = parseFloat(diag.testnetLtp) || parseFloat(diag.binanceLtp) || 0;
-            const bid1 = parseFloat(testnetDepth.bids[0]?.[0]) || parseFloat(binDepth.bids[0]?.[0]) || ltp;
-            const ask1 = parseFloat(testnetDepth.asks[0]?.[0]) || parseFloat(binDepth.asks[0]?.[0]) || ltp;
+            const ltp = parseFloat(diag.testnetLtp) || 0;
+            const bid1 = parseFloat(testnetDepth.bids?.[0]?.[0]) || 0;
+            const ask1 = parseFloat(testnetDepth.asks?.[0]?.[0]) || 0;
 
-            if (source === 'ltp') p = ltp;
-            else if (source === 'bid') p = bid1;
-            else if (source === 'ask') p = ask1;
-            else if (source === 'mid') p = (bid1 + ask1) / 2;
+            if (source === 'ltp') {
+                p = ltp || (bid1 > 0 ? bid1 : ask1);
+                if (p <= 0) return showToast('⚠ No testnet last trade price available', true);
+            } else if (source === 'bid') {
+                p = bid1 || ltp;
+                if (p <= 0) return showToast('⚠ Testnet orderbook has no bid liquidity', true);
+            } else if (source === 'ask') {
+                p = ask1 || ltp;
+                if (p <= 0) return showToast('⚠ Testnet orderbook has no ask liquidity', true);
+            } else if (source === 'mid') {
+                if (bid1 > 0 && ask1 > 0) p = (bid1 + ask1) / 2;
+                else p = ltp || bid1 || ask1;
+                if (p <= 0) return showToast('⚠ Testnet orderbook depth unavailable for mid-price', true);
+            }
 
             if (p > 0) {
                 const priceInput = document.getElementById('trade-price');
@@ -8431,9 +8647,10 @@ window.addEventListener('DOMContentLoaded', () => {
             const precision = Math.max(0, -Math.round(Math.log10(tick)));
             let cur = parseFloat(priceInput.value);
             if (isNaN(cur) || cur <= 0) {
-                const inst = cachedInstances[activeTabSymbol];
+                const inst = (window.cachedInstances && activeTabSymbol && window.cachedInstances[activeTabSymbol]) ? window.cachedInstances[activeTabSymbol] : null;
                 const diag = inst?.diagnostics || {};
-                cur = parseFloat(diag.testnetLtp) || parseFloat(diag.binanceLtp) || 0;
+                const testnetDepth = inst?.testnetDepth || { bids: [], asks: [] };
+                cur = parseFloat(diag.testnetLtp) || parseFloat(testnetDepth.bids?.[0]?.[0]) || parseFloat(testnetDepth.asks?.[0]?.[0]) || 0;
             }
             let count = Math.round(cur / tick);
             count += direction;
@@ -8443,16 +8660,17 @@ window.addEventListener('DOMContentLoaded', () => {
         };
 
         window.setTermStopPriceFrom = function(source) {
-            const inst = cachedInstances[activeTabSymbol];
+            const inst = (window.cachedInstances && activeTabSymbol && window.cachedInstances[activeTabSymbol]) ? window.cachedInstances[activeTabSymbol] : null;
             if (!inst) return;
             const diag = inst.diagnostics || {};
+            const testnetDepth = inst.testnetDepth || { bids: [], asks: [] };
             const tick = window.getSymbolTickSize();
             const precision = Math.max(0, -Math.round(Math.log10(tick)));
             let p = 0;
             if (source === 'mark') {
-                p = parseFloat(diag.testnetMarkPrice) || parseFloat(diag.binanceMarkPrice) || parseFloat(diag.testnetLtp) || 0;
+                p = parseFloat(diag.testnetMarkPrice) || parseFloat(diag.testnetLtp) || 0;
             } else {
-                p = parseFloat(diag.testnetLtp) || parseFloat(diag.binanceLtp) || 0;
+                p = parseFloat(diag.testnetLtp) || parseFloat(testnetDepth.bids?.[0]?.[0]) || 0;
             }
             if (p > 0) {
                 const stopInput = document.getElementById('trade-stop-price');
@@ -8461,6 +8679,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     stopInput.value = (count * tick).toFixed(precision);
                     window.calcTermEstimates();
                 }
+            } else {
+                showToast(`⚠ No testnet ${source === 'mark' ? 'mark' : 'last'} price available`, true);
             }
         };
 
@@ -8483,19 +8703,19 @@ window.addEventListener('DOMContentLoaded', () => {
             }
             if (!price || isNaN(price) || price <= 0) {
                 const diag = inst?.diagnostics || {};
-                price = parseFloat(diag.testnetLtp) || parseFloat(diag.binanceLtp) || parseFloat(diag.testnetMarkPrice) || parseFloat(diag.binanceMarkPrice) || 0;
+                const tDepth = inst?.testnetDepth || { bids: [], asks: [] };
+                price = parseFloat(diag.testnetLtp) || parseFloat(diag.testnetMarkPrice) || parseFloat(tDepth.bids?.[0]?.[0]) || parseFloat(tDepth.asks?.[0]?.[0]) || 0;
             }
             if (!price || isNaN(price) || price <= 0) {
                 const tLtp = parseFloat(document.getElementById('t-sltp')?.textContent);
-                const bLtp = parseFloat(document.getElementById('t-bltp')?.textContent);
-                price = (!isNaN(tLtp) && tLtp > 0) ? tLtp : ((!isNaN(bLtp) && bLtp > 0) ? bLtp : 0);
+                price = (!isNaN(tLtp) && tLtp > 0) ? tLtp : 0;
             }
 
             if (avail <= 0) {
-                return showToast('⚠ No available USDT balance. Click "+ USDT" to add funds.', true);
+                return showToast('⚠ No available USDT balance. Click "+ Add Funds" to seed balance.', true);
             }
             if (price <= 0) {
-                return showToast('⚠ Awaiting market price feed to calculate quantity percentage', true);
+                return showToast('⚠ Awaiting Testnet price feed to calculate quantity percentage', true);
             }
 
             const maxBuyingPower = avail * leverage * 0.99;
@@ -8527,7 +8747,7 @@ window.addEventListener('DOMContentLoaded', () => {
         };
 
         window.setTermMinQty = function() {
-            const inst = cachedInstances[activeTabSymbol];
+            const inst = (window.cachedInstances && activeTabSymbol && window.cachedInstances[activeTabSymbol]) ? window.cachedInstances[activeTabSymbol] : null;
             if (!inst) return;
             const diag = inst.diagnostics || {};
             let price = parseFloat(document.getElementById('trade-price')?.value);
@@ -8536,9 +8756,10 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (stopVal && !isNaN(stopVal) && stopVal > 0) price = stopVal;
             }
             if (!price || isNaN(price) || price <= 0) {
-                price = parseFloat(diag.testnetLtp) || parseFloat(diag.binanceLtp) || parseFloat(diag.testnetMarkPrice) || parseFloat(diag.binanceMarkPrice) || 0;
+                const tDepth = inst?.testnetDepth || { bids: [], asks: [] };
+                price = parseFloat(diag.testnetLtp) || parseFloat(diag.testnetMarkPrice) || parseFloat(tDepth.bids?.[0]?.[0]) || parseFloat(tDepth.asks?.[0]?.[0]) || 0;
             }
-            if (!price || price <= 0) return showToast('Awaiting market price feed', true);
+            if (!price || price <= 0) return showToast('Awaiting Testnet price feed', true);
 
             const step = window.getSymbolQtyStep();
             const minQ = window.getSymbolMinQty();
@@ -8575,12 +8796,12 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
                 if (!price || isNaN(price) || price <= 0) {
                     const diag = inst?.diagnostics || {};
-                    price = parseFloat(diag.testnetLtp) || parseFloat(diag.binanceLtp) || parseFloat(diag.testnetMarkPrice) || parseFloat(diag.binanceMarkPrice) || 0;
+                    const tDepth = inst?.testnetDepth || { bids: [], asks: [] };
+                    price = parseFloat(diag.testnetLtp) || parseFloat(diag.testnetMarkPrice) || parseFloat(tDepth.bids?.[0]?.[0]) || parseFloat(tDepth.asks?.[0]?.[0]) || 0;
                 }
                 if (!price || isNaN(price) || price <= 0) {
                     const tLtp = parseFloat(document.getElementById('t-sltp')?.textContent);
-                    const bLtp = parseFloat(document.getElementById('t-bltp')?.textContent);
-                    price = (!isNaN(tLtp) && tLtp > 0) ? tLtp : ((!isNaN(bLtp) && bLtp > 0) ? bLtp : 0);
+                    price = (!isNaN(tLtp) && tLtp > 0) ? tLtp : 0;
                 }
                 const qty = parseFloat(document.getElementById('trade-qty')?.value) || 0;
 
@@ -8831,7 +9052,7 @@ window.addEventListener('DOMContentLoaded', () => {
             const openPosSide = activePos ? (activePos.side || (openPosSize > 0 ? 'LONG' : (openPosSize < 0 ? 'SHORT' : 'NONE'))) : 'NONE';
 
             // Price boundaries & reference data
-            const rawMark = parseFloat(diag.testnetMarkPrice) || parseFloat(diag.binanceMarkPrice) || parseFloat(diag.testnetLtp) || 0;
+            const rawMark = parseFloat(diag.testnetMarkPrice) || parseFloat(diag.testnetLtp) || 0;
             const markUpper = (diag.markUpperBand !== null && diag.markUpperBand !== undefined) ? parseFloat(diag.markUpperBand) : null;
             const markLower = (diag.markLowerBand !== null && diag.markLowerBand !== undefined) ? parseFloat(diag.markLowerBand) : null;
             const cbUpper = (diag.cbUpperBand !== null && diag.cbUpperBand !== undefined) ? parseFloat(diag.cbUpperBand) : null;
@@ -8843,11 +9064,10 @@ window.addEventListener('DOMContentLoaded', () => {
             const mktSellFloor = (diag.marketSellPrice !== null && diag.marketSellPrice !== undefined) ? parseFloat(diag.marketSellPrice) : null;
             const mktBoundPct = (diag.marketTakeBoundPct !== undefined && diag.marketTakeBoundPct !== null) ? `${diag.marketTakeBoundPct}%` : '—';
 
-            // Live order book depth (Testnet primary, fallback to Binance)
+            // Live order book depth (Strictly Testnet orderbook only — never use DCX/Binance in terminal)
             const testnetDepth = inst.testnetDepth || { bids: [], asks: [] };
-            const binDepth = inst.binanceDepth || { bids: [], asks: [] };
-            const asks = (testnetDepth.asks && testnetDepth.asks.length > 0) ? testnetDepth.asks : (binDepth.asks || []);
-            const bids = (testnetDepth.bids && testnetDepth.bids.length > 0) ? testnetDepth.bids : (binDepth.bids || []);
+            const asks = (testnetDepth.asks && Array.isArray(testnetDepth.asks)) ? testnetDepth.asks : [];
+            const bids = (testnetDepth.bids && Array.isArray(testnetDepth.bids)) ? testnetDepth.bids : [];
 
             let bannerState = 'state-info';
             let bannerIcon = 'ℹ️';
@@ -9345,26 +9565,33 @@ window.addEventListener('DOMContentLoaded', () => {
                 availEl.textContent = `${avail.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT`;
             }
 
-            // Active Position
+            // Active Position & Leverage
             const pos = (port.positions || []).find(p => p.symbol === activeTabSymbol);
             const posBadge = document.getElementById('term-pos-badge');
+            const posDot = document.getElementById('term-pos-dot');
+            const levText = document.getElementById('term-lev-text');
             const levBadge = document.getElementById('term-lev-badge');
+
+            const leverageVal = (pos && pos.leverage) ? pos.leverage : 5;
+            if (levText) levText.textContent = `${leverageVal}× LEV`;
+            else if (levBadge) levBadge.textContent = `${leverageVal}× LEV`;
+
             if (pos && parseFloat(pos.size) !== 0) {
+                const isLong = pos.side === 'LONG';
                 if (posBadge) {
-                    const isLong = pos.side === 'LONG';
                     posBadge.className = isLong ? 'pos-side-pill pos-long' : 'pos-side-pill pos-short';
                     posBadge.textContent = `${pos.side} ${pos.size}`;
                 }
-                if (levBadge && pos.leverage) {
-                    levBadge.textContent = `${pos.leverage}× LEV`;
+                if (posDot) {
+                    posDot.className = isLong ? 'term-pos-indicator-dot term-pos-dot-long' : 'term-pos-indicator-dot term-pos-dot-short';
                 }
             } else {
                 if (posBadge) {
                     posBadge.className = 'term-pos-val';
                     posBadge.textContent = 'None';
                 }
-                if (levBadge) {
-                    levBadge.textContent = '5× LEV';
+                if (posDot) {
+                    posDot.className = 'term-pos-indicator-dot';
                 }
             }
 
@@ -9527,11 +9754,12 @@ window.addEventListener('DOMContentLoaded', () => {
             }
 
             // Pre-flight Financial Validation 1: Min Notional (< 5.00 USDT)
-            const inst = cachedInstances[activeTabSymbol];
+            const inst = (window.cachedInstances && activeTabSymbol && window.cachedInstances[activeTabSymbol]) ? window.cachedInstances[activeTabSymbol] : null;
             const diag = inst?.diagnostics || {};
+            const testnetDepth = inst?.testnetDepth || { bids: [], asks: [] };
             let estPrice = price;
             if (!estPrice || estPrice <= 0) {
-                estPrice = parseFloat(diag.testnetLtp) || parseFloat(diag.binanceLtp) || parseFloat(diag.testnetMarkPrice) || parseFloat(diag.binanceMarkPrice) || 0;
+                estPrice = parseFloat(diag.testnetLtp) || parseFloat(diag.testnetMarkPrice) || parseFloat(testnetDepth.bids?.[0]?.[0]) || parseFloat(testnetDepth.asks?.[0]?.[0]) || 0;
             }
             if (estPrice > 0 && (estPrice * qty) < 5.00) {
                 highlightInputError('trade-qty');
@@ -9571,29 +9799,31 @@ window.addEventListener('DOMContentLoaded', () => {
 
             // Pre-flight Validation 4: High Slippage Interactive Confirmation for Market Orders
             if (type === 'MARKET') {
-                const testnetDepth = inst.testnetDepth || { bids: [], asks: [] };
-                const binDepth = inst.binanceDepth || { bids: [], asks: [] };
-                const asks = (testnetDepth.asks && testnetDepth.asks.length > 0) ? testnetDepth.asks : (binDepth.asks || []);
-                const bids = (testnetDepth.bids && testnetDepth.bids.length > 0) ? testnetDepth.bids : (binDepth.bids || []);
+                const asks = (testnetDepth.asks && Array.isArray(testnetDepth.asks)) ? testnetDepth.asks : [];
+                const bids = (testnetDepth.bids && Array.isArray(testnetDepth.bids)) ? testnetDepth.bids : [];
                 const isBuySide = side === 'BUY';
                 const bookSide = isBuySide ? asks : bids;
 
-                if (bookSide.length > 0) {
-                    const topPrice = parseFloat(bookSide[0][0]);
-                    let rem = qty;
-                    let cumCost = 0;
-                    let filled = 0;
-                    for (let i = 0; i < bookSide.length; i++) {
-                        const p = parseFloat(bookSide[i][0]);
-                        const q = parseFloat(bookSide[i][1]);
-                        const take = Math.min(rem, q);
-                        cumCost += take * p;
-                        filled += take;
-                        rem -= take;
-                        if (rem <= 0) break;
-                    }
-                    const avgExecution = filled > 0 ? (cumCost / filled) : topPrice;
-                    const slipPct = topPrice > 0 ? (Math.abs(avgExecution - topPrice) / topPrice * 100) : 0;
+                if (bookSide.length === 0) {
+                    highlightInputError('term-main-btn');
+                    return showToast(`✗ Market order rejected: Testnet orderbook has zero ${isBuySide ? 'ask' : 'bid'} liquidity to fill this order.`, true);
+                }
+
+                const topPrice = parseFloat(bookSide[0][0]);
+                let rem = qty;
+                let cumCost = 0;
+                let filled = 0;
+                for (let i = 0; i < bookSide.length; i++) {
+                    const p = parseFloat(bookSide[i][0]);
+                    const q = parseFloat(bookSide[i][1]);
+                    const take = Math.min(rem, q);
+                    cumCost += take * p;
+                    filled += take;
+                    rem -= take;
+                    if (rem <= 0) break;
+                }
+                const avgExecution = filled > 0 ? (cumCost / filled) : topPrice;
+                const slipPct = topPrice > 0 ? (Math.abs(avgExecution - topPrice) / topPrice * 100) : 0;
 
                     if (slipPct >= 2.5 && !window._bypassSlippageModal) {
                         const bodyHtml = `
@@ -9622,7 +9852,6 @@ window.addEventListener('DOMContentLoaded', () => {
                         });
                         return;
                     }
-                }
             }
 
             // Non-blocking safeguard warning toast if placing outside exchange limits
