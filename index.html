@@ -302,55 +302,212 @@
   .chip-label { font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; font-weight:600; }
   .chip-val   { font-size:14px; font-weight:700; margin-top:4px; font-family: 'JetBrains Mono', monospace; }
   
-  /* Ticker Cards */
-  .ticker-card { background: var(--panel); border: 1px solid var(--panel-border); border-radius: 12px; padding: 16px 20px; flex: 1; flex-shrink: 0; backdrop-filter: var(--glass-blur); transition: transform 0.3s var(--ease), border-color 0.3s var(--ease), box-shadow 0.3s var(--ease); }
-  .ticker-card:hover { transform: translateY(-2px); border-color: rgba(0, 229, 255, 0.25); box-shadow: 0 12px 30px rgba(0, 229, 255, 0.08); }
+  /* ========================================================================= */
+  /* UPGRADED PRICES CARDS COMPONENT (TICKER HUD)                              */
+  /* ========================================================================= */
+  .ticker-wrap-outer {
+    position: relative;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
+  .ticker-scroll-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 44px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 800;
+    transition: all 0.15s ease;
+    opacity: 0.85;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    user-select: none;
+  }
+  .ticker-scroll-btn:hover {
+    opacity: 1;
+    color: var(--cyan);
+    border-color: var(--cyan);
+    background: var(--glass-hover);
+    transform: translateY(-50%) scale(1.05);
+  }
+  .ticker-scroll-btn.left { left: 4px; }
+  .ticker-scroll-btn.right { right: 4px; }
 
   /* Ticker Scroll Container */
   .ticker-scroll-container {
+    display: flex;
+    gap: 8px;
+    padding: 6px 32px 8px 32px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    scroll-behavior: smooth;
+    width: 100%;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+    scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
   }
   .ticker-scroll-container::-webkit-scrollbar {
-    height: 6px;
+    height: 3px;
   }
   .ticker-scroll-container::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.1);
-    border-radius: 4px;
+    background: transparent;
   }
   .ticker-scroll-container::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.15);
-    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 3px;
   }
   .ticker-scroll-container::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 229, 255, 0.4);
+    background: var(--cyan);
   }
 
-  /* Spotlight mouse hover glow effect */
-  .ticker-card, .panel {
+  /* Compact Pro Ticker Card */
+  .ticker-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 11px;
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 64px;
+    box-sizing: border-box;
+    backdrop-filter: var(--glass-blur);
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     position: relative;
+    overflow: hidden;
   }
-  .ticker-card::after, .panel::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(300px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(255, 255, 255, 0.02), transparent 45%);
-    border-radius: inherit;
-    z-index: 1;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.4s var(--ease);
+  .ticker-card:hover {
+    border-color: rgba(6, 182, 212, 0.4);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+    transform: translateY(-1px);
   }
-  :root[data-theme="light"] .ticker-card::after, :root[data-theme="light"] .panel::after {
-    background: radial-gradient(300px circle at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(0, 0, 0, 0.015), transparent 45%);
+  .ticker-card-hdr {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    line-height: 1;
+    margin-bottom: 3px;
   }
-  .ticker-card:hover::after, .panel:hover::after {
-    opacity: 1;
+  .ticker-card-title {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-muted);
+    font-family: 'Inter', sans-serif;
+    white-space: nowrap;
   }
-  .ticker-label { font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; font-weight:600; }
-  .ticker-val   { font-size:24px; font-weight:700; font-variant-numeric:tabular-nums; margin-top:6px; font-family: 'JetBrains Mono', monospace; text-shadow: var(--text-shadow); }
-  .ticker-sub   { font-size:10px; color:var(--text-muted); margin-top:4px; }
+  .tc-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8.5px;
+    font-weight: 700;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.04);
+    padding: 1px 5px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    transition: all 0.25s ease;
+    white-space: nowrap;
+    line-height: 1.1;
+  }
+  .ticker-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    justify-content: center;
+    flex: 1;
+  }
+  .tc-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    height: 18px;
+    line-height: 1;
+  }
+  .tc-tag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 15px;
+    border-radius: 3px;
+    font-size: 7.5px;
+    font-weight: 800;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
+  }
+  .tc-tag-dcx { background: rgba(234, 179, 8, 0.14); color: var(--yellow); border: 1px solid rgba(234, 179, 8, 0.25); }
+  .tc-tag-tst { background: rgba(6, 182, 212, 0.14); color: var(--cyan); border: 1px solid rgba(6, 182, 212, 0.25); }
+  .tc-tag-up  { background: rgba(16, 185, 129, 0.14); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.25); }
+  .tc-tag-dn  { background: rgba(244, 63, 94, 0.14); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.25); }
+
+  .tc-val-gold    { color: var(--yellow); font-size: 13.5px; font-weight: 800; font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
+  .tc-val-cyan    { color: var(--cyan); font-size: 13.5px; font-weight: 800; font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
+  .tc-val-emerald { color: #10b981; font-size: 13px; font-weight: 800; font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
+  .tc-val-rose    { color: #f43f5e; font-size: 13px; font-weight: 800; font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
+
+  /* Accent top borders for cards */
+  .tc-accent-cyan::before    { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--cyan); opacity: 0.8; }
+  .tc-accent-bidask::before  { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #10b981, #f43f5e); opacity: 0.8; }
+  .tc-accent-purple::before  { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: #a855f7; opacity: 0.8; }
+  .tc-accent-blue::before    { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: #3b82f6; opacity: 0.8; }
+  .tc-accent-rose::before    { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: #f43f5e; opacity: 0.8; }
+  .tc-accent-emerald::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: #10b981; opacity: 0.8; }
+  .tc-accent-yellow::before  { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--yellow); opacity: 0.8; }
+
+  /* Light Theme overrides for Ticker HUD */
+  :root[data-theme="light"] .ticker-card {
+    background: #ffffff !important;
+    border-color: #e2e8f0 !important;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  }
+  :root[data-theme="light"] .ticker-card:hover {
+    border-color: #0284c7 !important;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+  }
+  :root[data-theme="light"] .ticker-card-title {
+    color: #64748b !important;
+  }
+  :root[data-theme="light"] .tc-badge {
+    background: #f1f5f9 !important;
+    border-color: #e2e8f0 !important;
+    color: #475569 !important;
+  }
+  :root[data-theme="light"] .ticker-scroll-btn {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    color: #475569 !important;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+  }
+  :root[data-theme="light"] .ticker-scroll-btn:hover {
+    color: #0284c7 !important;
+    border-color: #0284c7 !important;
+    background: #f8fafc !important;
+  }
+  :root[data-theme="light"] .ticker-scroll-container::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+  }
+
+  /* Legacy ticker element compat */
+  .ticker-label { font-size:9.5px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.6px; font-weight:700; }
+  .ticker-val { font-variant-numeric: tabular-nums; font-family: 'JetBrains Mono', monospace; }
+  .ticker-sub { font-size:9.5px; color:var(--text-muted); margin-top:2px; }
   
   /* Progress Bars */
   .hbar { height:3px; border-radius:99px; background:var(--glass-hover); overflow:hidden; margin-top:10px; }
@@ -2912,194 +3069,221 @@
     </div>
 </div>
 
-<div class="ticker-scroll-container" style="display:flex; gap:12px; padding:10px 24px 12px; overflow-x:auto; flex-wrap:nowrap; align-items:stretch; scroll-behavior:smooth; background: var(--bg);">
-  <div class="ticker-card panel-accent" style="display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px; flex: 0 0 auto; min-width: 170px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
-      <div class="ticker-label">LTP (Last Traded Price)</div>
-      <div id="ltp-drift-badge" style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; color:var(--text-muted); background:rgba(255,255,255,0.03); padding:2px 6px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">Drift: —</div>
-    </div>
-    <div style="display:flex; flex-direction:column; gap:6px;">
-      <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid var(--yellow); padding-left:8px; height: 22px;">
-        <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">CoinDCX</span>
-        <span class="ticker-val" id="t-bltp" style="color:var(--yellow); font-size:18px; font-weight:800; font-family:'JetBrains Mono',monospace; line-height: 1;">—</span>
+<div class="ticker-wrap-outer">
+  <button class="ticker-scroll-btn left" onclick="window.scrollTicker(-1)" title="Scroll Left" aria-label="Scroll Left">&lt;</button>
+  <div class="ticker-scroll-container" id="ticker-scroll">
+    <!-- Card 1: LTP -->
+    <div class="ticker-card tc-accent-cyan" style="min-width: 175px;">
+      <div class="ticker-card-hdr">
+        <span class="ticker-card-title">Last Price (LTP)</span>
+        <span id="ltp-drift-badge" class="tc-badge">Drift: —</span>
       </div>
-      <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid var(--cyan); padding-left:8px; height: 22px;">
-        <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Testnet</span>
-        <span class="ticker-val" id="t-sltp" style="color:var(--cyan); font-size:18px; font-weight:800; font-family:'JetBrains Mono',monospace; line-height: 1;">—</span>
-      </div>
-    </div>
-  </div>
-  <div class="ticker-card" style="border-color:rgba(16,185,129,0.3); box-shadow:0 0 20px rgba(16,185,129,0.05); display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px; flex: 0 0 auto; min-width: 270px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
-      <div class="ticker-label">Best Bid / Ask</div>
-      <div style="display:flex; gap:6px;">
-        <div id="bid-drift-badge" style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; color:var(--text-muted); background:rgba(255,255,255,0.03); padding:2px 6px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">B: —</div>
-        <div id="ask-drift-badge" style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; color:var(--text-muted); background:rgba(255,255,255,0.03); padding:2px 6px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">A: —</div>
-      </div>
-    </div>
-    <div style="display:flex; gap:16px; width:100%;">
-      <!-- Bid Column -->
-      <div style="flex: 1; display:flex; flex-direction:column; gap:6px; border-right:1px solid rgba(255,255,255,0.05); padding-right:12px;">
-        <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid var(--yellow); padding-left:6px; height: 22px;">
-          <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">CoinDCX Bid</span>
-          <span class="ticker-val" id="t-bbid" style="color:var(--yellow); font-size:16px; font-weight:800; font-family:'JetBrains Mono',monospace; line-height: 1;">—</span>
+      <div class="ticker-card-body">
+        <div class="tc-row">
+          <span class="tc-tag tc-tag-dcx">DCX</span>
+          <span class="ticker-val tc-val-gold" id="t-bltp">—</span>
         </div>
-        <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid var(--cyan); padding-left:6px; height: 22px;">
-          <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Testnet Bid</span>
-          <span class="ticker-val" id="t-sbid" style="color:var(--cyan); font-size:16px; font-weight:800; font-family:'JetBrains Mono',monospace; line-height: 1;">—</span>
-        </div>
-      </div>
-      <!-- Ask Column -->
-      <div style="flex: 1; display:flex; flex-direction:column; gap:6px; padding-left:4px;">
-        <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid var(--yellow); padding-left:6px; height: 22px;">
-          <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">CoinDCX Ask</span>
-          <span class="ticker-val" id="t-bask" style="color:var(--yellow); font-size:16px; font-weight:800; font-family:'JetBrains Mono',monospace; line-height: 1;">—</span>
-        </div>
-        <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid var(--cyan); padding-left:6px; height: 22px;">
-          <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Testnet Ask</span>
-          <span class="ticker-val" id="t-sask" style="color:var(--cyan); font-size:16px; font-weight:800; font-family:'JetBrains Mono',monospace; line-height: 1;">—</span>
+        <div class="tc-row">
+          <span class="tc-tag tc-tag-tst">TST</span>
+          <span class="ticker-val tc-val-cyan" id="t-sltp">—</span>
         </div>
       </div>
     </div>
-  </div>
-  <div class="ticker-card" style="border-color:rgba(168,85,247,0.3); box-shadow:0 0 20px rgba(168,85,247,0.05); display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px; flex: 0 0 auto; min-width: 170px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
-      <div class="ticker-label">Mark Price</div>
-      <div id="mp-drift-badge" style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; color:var(--text-muted); background:rgba(255,255,255,0.03); padding:2px 6px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">Drift: —</div>
-    </div>
-    <div style="display:flex; flex-direction:column; gap:6px;">
-      <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid var(--yellow); padding-left:8px; height: 22px;">
-        <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">CoinDCX</span>
-        <span class="ticker-val" id="t-bmp" style="color:var(--yellow); font-size:18px; font-weight:800; font-family:'JetBrains Mono',monospace; line-height: 1;">—</span>
-      </div>
-      <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid var(--cyan); padding-left:8px; height: 22px;">
-        <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Testnet</span>
-        <span class="ticker-val" id="t-smp" style="color:var(--cyan); font-size:18px; font-weight:800; font-family:'JetBrains Mono',monospace; line-height: 1;">—</span>
-      </div>
-    </div>
-  </div>
-  <div class="ticker-card" style="border-color:rgba(59,130,246,0.3); box-shadow:0 0 20px rgba(59,130,246,0.05); display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px; flex: 0 0 auto; min-width: 170px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
-      <div class="ticker-label">Index Price</div>
-      <div id="ip-drift-badge" style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; color:var(--text-muted); background:rgba(255,255,255,0.03); padding:2px 6px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">Drift: —</div>
-    </div>
-    <div style="display:flex; flex-direction:column; gap:6px;">
-      <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid var(--yellow); padding-left:8px; height: 22px;">
-        <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">CoinDCX</span>
-        <span class="ticker-val" id="t-bip" style="color:var(--yellow); font-size:18px; font-weight:800; font-family:'JetBrains Mono',monospace; line-height: 1;">—</span>
-      </div>
-      <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid var(--cyan); padding-left:8px; height: 22px;">
-        <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Testnet</span>
-        <span class="ticker-val" id="t-sip" style="color:var(--cyan); font-size:18px; font-weight:800; font-family:'JetBrains Mono',monospace; line-height: 1;">—</span>
-      </div>
-    </div>
-  </div>
-  <div class="ticker-card" style="border-color:rgba(168,85,247,0.3); box-shadow:0 0 20px rgba(168,85,247,0.05); display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px; flex: 0 0 auto; min-width: 180px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
-      <div class="ticker-label">Mark Price Bands</div>
-      <div id="mark-bands-badge" style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; color:var(--text-muted); background:rgba(255,255,255,0.03); padding:2px 6px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">Range: —</div>
-    </div>
-    <div style="display:flex; flex-direction:column; gap:6px;">
-      <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid var(--green); padding-left:8px; height: 22px;">
-        <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Upper Band</span>
-        <span class="ticker-val" id="t-mark-upper" style="color:var(--green); font-size:15px; font-weight:800; font-family:'JetBrains Mono',monospace; line-height: 1;">—</span>
-      </div>
-      <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid var(--red); padding-left:8px; height: 22px;">
-        <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Lower Band</span>
-        <span class="ticker-val" id="t-mark-lower" style="color:var(--red); font-size:15px; font-weight:800; font-family:'JetBrains Mono',monospace; line-height: 1;">—</span>
-      </div>
-    </div>
-  </div>
-  <div class="ticker-card" style="border-color:rgba(239,68,68,0.3); box-shadow:0 0 20px rgba(239,68,68,0.05); display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px; flex: 0 0 auto; min-width: 180px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
-      <div class="ticker-label">Circuit Breaker (CB)</div>
-      <div id="cb-band-badge" style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; color:var(--red); background:rgba(239,68,68,0.1); padding:2px 6px; border-radius:4px; border:1px solid rgba(239,68,68,0.3); transition:all 0.3s;">Band: —</div>
-    </div>
-    <div style="display:flex; flex-direction:column; gap:6px;">
-      <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid var(--green); padding-left:8px; height: 22px;">
-        <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">CB Upper</span>
-        <span class="ticker-val" id="t-cb-upper" style="color:var(--green); font-size:15px; font-weight:800; font-family:'JetBrains Mono',monospace; line-height: 1;">—</span>
-      </div>
-      <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid var(--red); padding-left:8px; height: 22px;">
-        <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">CB Lower</span>
-        <span class="ticker-val" id="t-cb-lower" style="color:var(--red); font-size:15px; font-weight:800; font-family:'JetBrains Mono',monospace; line-height: 1;">—</span>
-      </div>
-    </div>
-  </div>
-  <div class="ticker-card" style="border-color:rgba(16,185,129,0.35); box-shadow:0 0 20px rgba(16,185,129,0.08); display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px; flex: 0 0 auto; min-width: 280px; background: linear-gradient(135deg, rgba(16,185,129,0.04) 0%, rgba(239,68,68,0.04) 100%);">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
-      <div class="ticker-label" style="display:flex; align-items:center; gap:5px; color:#34d399;">
-        <span style="font-weight:700;">Order Limits</span>
-        <span style="font-size:8.5px; background:rgba(16,185,129,0.18); color:#10b981; padding:1px 4px; border-radius:3px; font-weight:800;">PROTECTION</span>
-      </div>
-      <div id="order-limits-badge" style="font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700; color:var(--text-muted); background:rgba(255,255,255,0.04); padding:2px 5px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">Bound: —</div>
-    </div>
-    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; width:100%;">
-      <!-- Limit Orders Column -->
-      <div style="display:flex; flex-direction:column; gap:4px; border-right:1px solid rgba(255,255,255,0.05); padding-right:8px;">
-        <div style="font-size:9px; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:2px;">Limit Bounds</div>
-        <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid #10b981; padding-left:6px; height: 20px;">
-          <span style="font-size:9px; color:#10b981; font-weight:800;">Max Buy</span>
-          <span class="ticker-val" id="t-max-buy" style="color:#10b981; font-size:13.5px; font-weight:900; font-family:'JetBrains Mono',monospace;">—</span>
-        </div>
-        <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid #ef4444; padding-left:6px; height: 20px;">
-          <span style="font-size:9px; color:#ef4444; font-weight:800;">Min Sell</span>
-          <span class="ticker-val" id="t-min-sell" style="color:#ef4444; font-size:13.5px; font-weight:900; font-family:'JetBrains Mono',monospace;">—</span>
+    <!-- Card 2: Best Bid / Ask -->
+    <div class="ticker-card tc-accent-bidask" style="min-width: 260px;">
+      <div class="ticker-card-hdr">
+        <span class="ticker-card-title">Best Bid / Ask</span>
+        <div style="display:flex; gap:4px;">
+          <span id="bid-drift-badge" class="tc-badge">B: —</span>
+          <span id="ask-drift-badge" class="tc-badge">A: —</span>
         </div>
       </div>
-      <!-- Market Orders Column -->
-      <div style="display:flex; flex-direction:column; gap:4px;">
-        <div style="font-size:9px; color:var(--cyan); font-weight:700; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:2px;">Market Bounds</div>
-        <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid #34d399; padding-left:6px; height: 20px;">
-          <span style="font-size:9px; color:#34d399; font-weight:800;">Mkt Buy</span>
-          <span class="ticker-val" id="t-mkt-buy" style="color:#34d399; font-size:13.5px; font-weight:900; font-family:'JetBrains Mono',monospace;">—</span>
+      <div class="ticker-card-body" style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div style="display:flex; flex-direction:column; gap:2px; border-right:1px solid var(--border); padding-right:8px;">
+          <div class="tc-row">
+            <span class="tc-tag tc-tag-up" title="CoinDCX Bid">BID</span>
+            <span class="ticker-val tc-val-gold" id="t-bbid">—</span>
+          </div>
+          <div class="tc-row">
+            <span class="tc-tag tc-tag-tst" title="Testnet Bid">TST</span>
+            <span class="ticker-val tc-val-cyan" id="t-sbid">—</span>
+          </div>
         </div>
-        <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid #f87171; padding-left:6px; height: 20px;">
-          <span style="font-size:9px; color:#f87171; font-weight:800;">Mkt Sell</span>
-          <span class="ticker-val" id="t-mkt-sell" style="color:#f87171; font-size:13.5px; font-weight:900; font-family:'JetBrains Mono',monospace;">—</span>
+        <div style="display:flex; flex-direction:column; gap:2px;">
+          <div class="tc-row">
+            <span class="tc-tag tc-tag-dn" title="CoinDCX Ask">ASK</span>
+            <span class="ticker-val tc-val-gold" id="t-bask">—</span>
+          </div>
+          <div class="tc-row">
+            <span class="tc-tag tc-tag-tst" title="Testnet Ask">TST</span>
+            <span class="ticker-val tc-val-cyan" id="t-sask">—</span>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-  <div class="ticker-card" id="funding-card" style="display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px; flex: 0 0 auto; min-width: 190px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
-      <span class="ticker-label">Funding Rate</span>
-      <div id="funding-drift-badge" style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; color:var(--text-muted); background:rgba(255,255,255,0.03); padding:2px 6px; border-radius:4px; border:1px solid var(--border); transition:all 0.3s;">Drift: —</div>
-    </div>
-    <div style="display:flex; flex-direction:column; gap:6px;">
-      <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid var(--yellow); padding-left:8px; height: 22px;">
-        <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">CoinDCX</span>
-        <span class="ticker-val" id="t-bin-funding" style="color:var(--yellow); font-size:12.5px; font-weight:800; font-family:'JetBrains Mono',monospace; line-height: 1; white-space:nowrap;">—</span>
+    <!-- Card 3: Mark Price -->
+    <div class="ticker-card tc-accent-purple" style="min-width: 170px;">
+      <div class="ticker-card-hdr">
+        <span class="ticker-card-title">Mark Price</span>
+        <span id="mp-drift-badge" class="tc-badge">Drift: —</span>
       </div>
-      <div style="display:flex; align-items:center; justify-content:space-between; border-left:3px solid var(--cyan); padding-left:8px; height: 22px;">
-        <span style="font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Testnet</span>
-        <span class="ticker-val" id="t-stage-funding" style="color:var(--cyan); font-size:12.5px; font-weight:800; font-family:'JetBrains Mono',monospace; line-height: 1; white-space:nowrap;">—</span>
-      </div>
-    </div>
-  </div>
-  <div class="ticker-card" style="display:flex; flex-direction:column; justify-content:space-between; min-height: 96px; padding: 14px 18px; flex: 0 0 auto; min-width: 250px;">
-    <div class="ticker-label" style="margin-bottom: 8px;">24h Statistics</div>
-    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size:11px; flex:1;">
-      <!-- CoinDCX Column -->
-      <div style="display:flex; flex-direction:column; gap:4px; border-right:1px solid var(--border); padding-right:10px;">
-        <div style="font-size:10px; color:var(--yellow); font-weight:700; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; border-left:3px solid var(--yellow); padding-left:6px; height: 12px; line-height: 1;">CoinDCX</div>
-        <div style="display:flex; justify-content:space-between; height: 16px; align-items:center; padding-left:9px;"><span style="color:var(--text-muted); font-size:10px;">High:</span><span id="t-bin-24h-high" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-main);">—</span></div>
-        <div style="display:flex; justify-content:space-between; height: 16px; align-items:center; padding-left:9px;"><span style="color:var(--text-muted); font-size:10px;">Low:</span><span id="t-bin-24h-low" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-main);">—</span></div>
-        <div style="display:flex; justify-content:space-between; height: 16px; align-items:center; padding-left:9px;"><span style="color:var(--text-muted); font-size:10px;">Vol:</span><span id="t-bin-24h-vol" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-main);">—</span></div>
-      </div>
-      <!-- Testnet Column -->
-      <div style="display:flex; flex-direction:column; gap:4px; padding-left:2px;">
-        <div style="font-size:10px; color:var(--cyan); font-weight:700; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; border-left:3px solid var(--cyan); padding-left:6px; height: 12px; line-height: 1;">Testnet</div>
-        <div style="display:flex; justify-content:space-between; height: 16px; align-items:center; padding-left:9px;"><span style="color:var(--text-muted); font-size:10px;">High:</span><span id="t-stage-24h-high" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-main);">—</span></div>
-        <div style="display:flex; justify-content:space-between; height: 16px; align-items:center; padding-left:9px;"><span style="color:var(--text-muted); font-size:10px;">Low:</span><span id="t-stage-24h-low" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-main);">—</span></div>
-        <div style="display:flex; justify-content:space-between; height: 16px; align-items:center; padding-left:9px;"><span style="color:var(--text-muted); font-size:10px;">Vol:</span><span id="t-stage-24h-vol" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-main);">—</span></div>
+      <div class="ticker-card-body">
+        <div class="tc-row">
+          <span class="tc-tag tc-tag-dcx">DCX</span>
+          <span class="ticker-val tc-val-gold" id="t-bmp">—</span>
+        </div>
+        <div class="tc-row">
+          <span class="tc-tag tc-tag-tst">TST</span>
+          <span class="ticker-val tc-val-cyan" id="t-smp">—</span>
+        </div>
       </div>
     </div>
+    <!-- Card 4: Index Price -->
+    <div class="ticker-card tc-accent-blue" style="min-width: 170px;">
+      <div class="ticker-card-hdr">
+        <span class="ticker-card-title">Index Price</span>
+        <span id="ip-drift-badge" class="tc-badge">Drift: —</span>
+      </div>
+      <div class="ticker-card-body">
+        <div class="tc-row">
+          <span class="tc-tag tc-tag-dcx">DCX</span>
+          <span class="ticker-val tc-val-gold" id="t-bip">—</span>
+        </div>
+        <div class="tc-row">
+          <span class="tc-tag tc-tag-tst">TST</span>
+          <span class="ticker-val tc-val-cyan" id="t-sip">—</span>
+        </div>
+      </div>
+    </div>
+    <!-- Card 5: Mark Price Bands -->
+    <div class="ticker-card tc-accent-purple" style="min-width: 175px;">
+      <div class="ticker-card-hdr">
+        <span class="ticker-card-title">Mark Bands</span>
+        <span id="mark-bands-badge" class="tc-badge">Range: —</span>
+      </div>
+      <div class="ticker-card-body">
+        <div class="tc-row">
+          <span class="tc-tag tc-tag-up">UP</span>
+          <span class="ticker-val tc-val-emerald" id="t-mark-upper">—</span>
+        </div>
+        <div class="tc-row">
+          <span class="tc-tag tc-tag-dn">DN</span>
+          <span class="ticker-val tc-val-rose" id="t-mark-lower">—</span>
+        </div>
+      </div>
+    </div>
+    <!-- Card 6: Circuit Breakers (CB) -->
+    <div class="ticker-card tc-accent-rose" style="min-width: 175px;">
+      <div class="ticker-card-hdr">
+        <span class="ticker-card-title">Circuit Breaker</span>
+        <span id="cb-band-badge" class="tc-badge" style="color:var(--red); border-color:rgba(239,68,68,0.3); background:rgba(239,68,68,0.08);">Band: —</span>
+      </div>
+      <div class="ticker-card-body">
+        <div class="tc-row">
+          <span class="tc-tag tc-tag-up">UP</span>
+          <span class="ticker-val tc-val-emerald" id="t-cb-upper">—</span>
+        </div>
+        <div class="tc-row">
+          <span class="tc-tag tc-tag-dn">DN</span>
+          <span class="ticker-val tc-val-rose" id="t-cb-lower">—</span>
+        </div>
+      </div>
+    </div>
+    <!-- Card 7: Order Limits -->
+    <div class="ticker-card tc-accent-emerald" style="min-width: 255px;">
+      <div class="ticker-card-hdr">
+        <span class="ticker-card-title">Order Limits</span>
+        <span id="order-limits-badge" class="tc-badge">Bound: —</span>
+      </div>
+      <div class="ticker-card-body" style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div style="display:flex; flex-direction:column; gap:2px; border-right:1px solid var(--border); padding-right:8px;">
+          <div class="tc-row">
+            <span class="tc-tag tc-tag-up" style="font-size:7.5px;">BUY</span>
+            <span class="ticker-val tc-val-emerald" id="t-max-buy" style="font-size:12.5px;">—</span>
+          </div>
+          <div class="tc-row">
+            <span class="tc-tag tc-tag-dn" style="font-size:7.5px;">SELL</span>
+            <span class="ticker-val tc-val-rose" id="t-min-sell" style="font-size:12.5px;">—</span>
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:2px;">
+          <div class="tc-row">
+            <span class="tc-tag tc-tag-up" style="font-size:7.5px;">M-B</span>
+            <span class="ticker-val tc-val-emerald" id="t-mkt-buy" style="font-size:12.5px;">—</span>
+          </div>
+          <div class="tc-row">
+            <span class="tc-tag tc-tag-dn" style="font-size:7.5px;">M-S</span>
+            <span class="ticker-val tc-val-rose" id="t-mkt-sell" style="font-size:12.5px;">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Card 8: Funding Rate -->
+    <div class="ticker-card tc-accent-yellow" id="funding-card" style="min-width: 195px;">
+      <div class="ticker-card-hdr">
+        <span class="ticker-card-title">Funding Rate</span>
+        <span id="funding-drift-badge" class="tc-badge">Drift: —</span>
+      </div>
+      <div class="ticker-card-body">
+        <div class="tc-row">
+          <span class="tc-tag tc-tag-dcx">DCX</span>
+          <span class="ticker-val tc-val-gold" id="t-bin-funding" style="font-size:11.5px; font-weight:700;">—</span>
+        </div>
+        <div class="tc-row">
+          <span class="tc-tag tc-tag-tst">TST</span>
+          <span class="ticker-val tc-val-cyan" id="t-stage-funding" style="font-size:11.5px; font-weight:700;">—</span>
+        </div>
+      </div>
+    </div>
+    <!-- Card 9: 24h Statistics -->
+    <div class="ticker-card tc-accent-cyan" style="min-width: 245px;">
+      <div class="ticker-card-hdr">
+        <span class="ticker-card-title">24h Statistics</span>
+        <span class="tc-badge" style="opacity:0.7;">HIGH / LOW / VOL</span>
+      </div>
+      <div class="ticker-card-body" style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div style="display:flex; flex-direction:column; gap:1px; border-right:1px solid var(--border); padding-right:8px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:9.5px;">
+            <span style="color:var(--yellow); font-weight:800; font-family:'JetBrains Mono',monospace;">DCX H</span>
+            <span id="t-bin-24h-high" style="font-family:'JetBrains Mono',monospace; font-weight:800; color:var(--text-main); font-size:10.5px;">—</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:9.5px;">
+            <span style="color:var(--text-muted); font-weight:700;">L</span>
+            <span id="t-bin-24h-low" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-main); font-size:10px;">—</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:9.5px;">
+            <span style="color:var(--text-muted); font-weight:700;">V</span>
+            <span id="t-bin-24h-vol" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-muted); font-size:9.5px;">—</span>
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:1px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:9.5px;">
+            <span style="color:var(--cyan); font-weight:800; font-family:'JetBrains Mono',monospace;">TST H</span>
+            <span id="t-stage-24h-high" style="font-family:'JetBrains Mono',monospace; font-weight:800; color:var(--text-main); font-size:10.5px;">—</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:9.5px;">
+            <span style="color:var(--text-muted); font-weight:700;">L</span>
+            <span id="t-stage-24h-low" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-main); font-size:10px;">—</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:9.5px;">
+            <span style="color:var(--text-muted); font-weight:700;">V</span>
+            <span id="t-stage-24h-vol" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-muted); font-size:9.5px;">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
+  <button class="ticker-scroll-btn right" onclick="window.scrollTicker(1)" title="Scroll Right" aria-label="Scroll Right">&gt;</button>
 </div>
 </div>
 
 <script>
+    window.scrollTicker = function(dir) {
+        const el = document.getElementById('ticker-scroll');
+        if (el) {
+            el.scrollBy({ left: dir * 280, behavior: 'smooth' });
+        }
+    };
     function adjustHeaderOffset() {
         const hw = document.querySelector('.sticky-header-wrapper');
         if (hw) {
