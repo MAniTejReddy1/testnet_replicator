@@ -1307,6 +1307,85 @@
     z-index: 2;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   }
+
+  /* Enhanced Sortable Header Styles */
+  .port-sort-th {
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease, color 0.15s ease;
+    border-radius: 4px;
+    padding: 7px 8px !important;
+  }
+  .port-sort-th:hover {
+    background: var(--glass-hover) !important;
+    color: var(--text-main) !important;
+  }
+  .port-sort-th.active-sort {
+    color: var(--cyan) !important;
+  }
+  .port-sort-th:focus-visible {
+    outline: 2px solid var(--cyan);
+    outline-offset: -2px;
+  }
+  .sort-icon-box {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 10px;
+    height: 12px;
+    margin-left: 5px;
+    vertical-align: middle;
+    flex-shrink: 0;
+  }
+  .sort-arrow-up, .sort-arrow-down {
+    width: 0;
+    height: 0;
+    border-left: 3.5px solid transparent;
+    border-right: 3.5px solid transparent;
+    transition: all 0.15s ease;
+  }
+  .sort-arrow-up {
+    border-bottom: 4px solid currentColor;
+    margin-bottom: 2px;
+    opacity: 0.25;
+  }
+  .sort-arrow-down {
+    border-top: 4px solid currentColor;
+    opacity: 0.25;
+  }
+  .port-sort-th.sort-asc .sort-arrow-up {
+    opacity: 1;
+    border-bottom-color: var(--cyan);
+    transform: scale(1.15);
+  }
+  .port-sort-th.sort-desc .sort-arrow-down {
+    opacity: 1;
+    border-top-color: var(--cyan);
+    transform: scale(1.15);
+  }
+  .port-sort-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: rgba(6, 182, 212, 0.1);
+    border: 1px solid rgba(6, 182, 212, 0.3);
+    color: var(--cyan);
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    cursor: pointer;
+    line-height: 1;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+  .port-sort-pill:hover {
+    background: rgba(6, 182, 212, 0.2);
+    border-color: var(--cyan);
+  }
+
   #u1-scroll table td, #u2-scroll table td {
     padding: 8px 10px;
     font-size: 11px;
@@ -4023,6 +4102,7 @@
       <button id="tab-u1-pos" class="tab on" style="flex:1" onclick="window.setPortTab('u1', 'pos')">Positions <span id="count-u1-pos" class="tab-count-badge"></span></button>
       <button id="tab-u1-open" class="tab" style="flex:1" onclick="window.setPortTab('u1', 'open')">Open Orders <span id="count-u1-open" class="tab-count-badge"></span></button>
       <button id="tab-u1-hist" class="tab" style="flex:1" onclick="window.setPortTab('u1', 'hist')">History <span id="count-u1-hist" class="tab-count-badge"></span></button>
+      <div id="sort-pill-u1" style="display:none;align-items:center;margin-right:6px;"></div>
       <div class="port-search-wrap">
         <input type="text" id="search-u1" class="port-search-input" placeholder="🔍 Symbol..." oninput="window.setPortSearch('u1', this.value)">
         <button id="clear-search-u1" class="port-search-clear" onclick="window.clearPortSearch('u1')" title="Clear search">✕</button>
@@ -4091,6 +4171,7 @@
       <button id="tab-u2-pos" class="tab on" style="flex:1" onclick="window.setPortTab('u2', 'pos')">Positions <span id="count-u2-pos" class="tab-count-badge"></span></button>
       <button id="tab-u2-open" class="tab" style="flex:1" onclick="window.setPortTab('u2', 'open')">Open Orders <span id="count-u2-open" class="tab-count-badge"></span></button>
       <button id="tab-u2-hist" class="tab" style="flex:1" onclick="window.setPortTab('u2', 'hist')">History <span id="count-u2-hist" class="tab-count-badge"></span></button>
+      <div id="sort-pill-u2" style="display:none;align-items:center;margin-right:6px;"></div>
       <div class="port-search-wrap">
         <input type="text" id="search-u2" class="port-search-input" placeholder="🔍 Symbol..." oninput="window.setPortSearch('u2', this.value)">
         <button id="clear-search-u2" class="port-search-clear" onclick="window.clearPortSearch('u2')" title="Clear search">✕</button>
@@ -7866,46 +7947,147 @@ window.addEventListener('DOMContentLoaded', () => {
             // Search filter
             const filterText = (window.portSearch && window.portSearch[panelId]) || '';
 
+            // Natural sort directions
+            const naturalSortDir = {
+                symbol: 'asc',
+                side: 'asc',
+                type: 'asc',
+                status: 'asc',
+                lev: 'desc',
+                margin: 'desc',
+                size: 'desc',
+                pnl: 'desc',
+                entry: 'desc',
+                liq: 'desc',
+                price: 'desc',
+                avgPrice: 'desc',
+                progress: 'desc',
+                qty: 'desc',
+                updateTime: 'desc'
+            };
+
+            const defaultSortState = {
+                pos: { col: 'symbol', dir: 'asc' },
+                open: { col: 'updateTime', dir: 'desc' },
+                hist: { col: 'updateTime', dir: 'desc' }
+            };
+
             // Sorting state initialization
             if (!window.portSort) {
                 window.portSort = {
-                    u1: { pos: { col: 'symbol', dir: 'asc' }, open: { col: 'updateTime', dir: 'desc' }, hist: { col: 'updateTime', dir: 'desc' } },
-                    u2: { pos: { col: 'symbol', dir: 'asc' }, open: { col: 'updateTime', dir: 'desc' }, hist: { col: 'updateTime', dir: 'desc' } }
+                    u1: { pos: { ...defaultSortState.pos }, open: { ...defaultSortState.open }, hist: { ...defaultSortState.hist } },
+                    u2: { pos: { ...defaultSortState.pos }, open: { ...defaultSortState.open }, hist: { ...defaultSortState.hist } }
                 };
             }
             if (!window.portSort[panelId]) {
-                window.portSort[panelId] = { pos: { col: 'symbol', dir: 'asc' }, open: { col: 'updateTime', dir: 'desc' }, hist: { col: 'updateTime', dir: 'desc' } };
+                window.portSort[panelId] = { pos: { ...defaultSortState.pos }, open: { ...defaultSortState.open }, hist: { ...defaultSortState.hist } };
             }
             if (!window.portSort[panelId][tab]) {
-                window.portSort[panelId][tab] = { col: tab === 'pos' ? 'symbol' : 'updateTime', dir: tab === 'pos' ? 'asc' : 'desc' };
+                window.portSort[panelId][tab] = { ...defaultSortState[tab] };
             }
 
             if (!window.togglePortSort) {
                 window.togglePortSort = function(pId, t, colKey) {
                     if (!window.portSort) window.portSort = {};
                     if (!window.portSort[pId]) window.portSort[pId] = {};
-                    const cur = window.portSort[pId][t] || { col: '', dir: 'asc' };
-                    if (cur.col === colKey) {
-                        cur.dir = cur.dir === 'asc' ? 'desc' : 'asc';
-                    } else {
+                    const defs = {
+                        pos: { col: 'symbol', dir: 'asc' },
+                        open: { col: 'updateTime', dir: 'desc' },
+                        hist: { col: 'updateTime', dir: 'desc' }
+                    };
+                    const cur = window.portSort[pId][t] || { ...defs[t] };
+                    const nat = naturalSortDir[colKey] || 'asc';
+                    const rev = nat === 'asc' ? 'desc' : 'asc';
+
+                    if (cur.col !== colKey) {
                         cur.col = colKey;
-                        cur.dir = 'asc';
+                        cur.dir = nat;
+                    } else if (cur.dir === nat) {
+                        cur.dir = rev;
+                    } else {
+                        cur.col = defs[t].col;
+                        cur.dir = defs[t].dir;
                     }
                     window.portSort[pId][t] = cur;
+                    if (window.pagination) window.pagination[pId] = 1;
                     if (typeof window.renderPortfolios === 'function') window.renderPortfolios();
                 };
+            }
+
+            if (!window.resetPortSort) {
+                window.resetPortSort = function(pId, t) {
+                    if (!window.portSort) window.portSort = {};
+                    if (!window.portSort[pId]) window.portSort[pId] = {};
+                    const defs = {
+                        pos: { col: 'symbol', dir: 'asc' },
+                        open: { col: 'updateTime', dir: 'desc' },
+                        hist: { col: 'updateTime', dir: 'desc' }
+                    };
+                    window.portSort[pId][t] = { ...defs[t] };
+                    if (window.pagination) window.pagination[pId] = 1;
+                    if (typeof window.renderPortfolios === 'function') window.renderPortfolios();
+                };
+            }
+
+            // Update Active Sort Pill in tab bar
+            const pillEl = document.getElementById('sort-pill-' + panelId);
+            if (pillEl) {
+                const curSort = window.portSort[panelId][tab];
+                const defSort = defaultSortState[tab];
+                const isNonDefault = curSort && (curSort.col !== defSort.col || curSort.dir !== defSort.dir);
+                if (isNonDefault) {
+                    const colLabels = {
+                        symbol: 'Symbol',
+                        lev: 'Leverage',
+                        margin: 'Margin',
+                        size: 'Size',
+                        pnl: 'PnL',
+                        entry: 'Entry Price',
+                        liq: 'Liq Price',
+                        side: 'Side',
+                        price: 'Price',
+                        avgPrice: 'Avg Price',
+                        progress: 'Progress',
+                        type: 'Type',
+                        status: 'Status',
+                        updateTime: 'Updated Time',
+                        qty: 'Filled / Orig'
+                    };
+                    const label = colLabels[curSort.col] || curSort.col;
+                    const arrow = curSort.dir === 'asc' ? '▲' : '▼';
+                    pillEl.style.display = 'inline-flex';
+                    pillEl.innerHTML = `<span class="port-sort-pill" onclick="window.resetPortSort('${panelId}','${tab}')" title="Custom sort active: ${label} (${curSort.dir.toUpperCase()}). Click to reset to default.">` +
+                        `<span>Sorted: ${label} ${arrow}</span>` +
+                        `<span style="opacity:0.75;margin-left:2px;font-size:9px;" title="Reset sort">✕</span>` +
+                    `</span>`;
+                } else {
+                    pillEl.style.display = 'none';
+                    pillEl.innerHTML = '';
+                }
             }
 
             function makeSortTh(colKey, label, align = 'right', width = '', extraContent = '') {
                 const cur = (window.portSort && window.portSort[panelId] && window.portSort[panelId][tab]) || {};
                 const isSorted = cur.col === colKey;
-                const arrow = isSorted 
-                    ? (cur.dir === 'asc' ? ' <span style="font-size:10px;color:var(--cyan);font-weight:bold;">▲</span>' : ' <span style="font-size:10px;color:var(--cyan);font-weight:bold;">▼</span>') 
-                    : ' <span style="opacity:0.25;font-size:9px;">⇅</span>';
-                const activeColor = isSorted ? 'var(--cyan)' : 'var(--text-muted)';
+                const isAsc = cur.dir === 'asc';
+                const sortClass = isSorted ? (isAsc ? ' active-sort sort-asc' : ' active-sort sort-desc') : '';
+                const ariaSort = isSorted ? (isAsc ? 'ascending' : 'descending') : 'none';
+                const nat = naturalSortDir[colKey] || 'asc';
+                const nextAction = !isSorted 
+                    ? `Click to sort ${nat === 'asc' ? 'A→Z / Low→High' : 'High→Low / Newest'}` 
+                    : (cur.dir === nat 
+                        ? `Click to reverse (${cur.dir === 'asc' ? 'Z→A / High→Low' : 'Low→High / Oldest'})` 
+                        : 'Click to reset to default order');
+                const title = `${label} — ${nextAction}`;
                 const w = width ? `width:${width};` : '';
                 const alignStyle = align === 'left' ? 'text-align:left;' : (align === 'right' ? 'text-align:right;' : 'text-align:center;');
-                return `<th style="${w}${alignStyle}cursor:pointer;user-select:none;color:${activeColor};transition:color 0.15s;" onclick="window.togglePortSort('${panelId}','${tab}','${colKey}')" title="Sort by ${label} (A-Z / Z-A)"><span style="display:inline-flex;align-items:center;gap:3px;${align==='right'?'justify-content:flex-end;':''}">${label}${arrow}</span>${extraContent}</th>`;
+                const justifyStyle = align === 'right' ? 'justify-content:flex-end;' : (align === 'center' ? 'justify-content:center;' : 'justify-content:flex-start;');
+
+                return `<th class="port-sort-th${sortClass}" style="${w}${alignStyle}" tabindex="0" role="columnheader" aria-sort="${ariaSort}" onclick="window.togglePortSort('${panelId}','${tab}','${colKey}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.togglePortSort('${panelId}','${tab}','${colKey}');}" title="${title}">` +
+                    `<div style="display:inline-flex;align-items:center;gap:4px;${justifyStyle};width:100%;">` +
+                    `<span>${label}</span>` +
+                    `<span class="sort-icon-box" aria-hidden="true"><span class="sort-arrow-up"></span><span class="sort-arrow-down"></span></span>` +
+                    `</div>${extraContent}</th>`;
             }
 
             let rawData = [];
@@ -7963,9 +8145,16 @@ window.addEventListener('DOMContentLoaded', () => {
                             case 'lev': return dir * (parseFloat(a.leverage || 0) - parseFloat(b.leverage || 0));
                             case 'margin': return dir * (parseFloat(a.margin || 0) - parseFloat(b.margin || 0));
                             case 'size': return dir * (Math.abs(parseFloat(a.size || a.positionAmt || 0)) - Math.abs(parseFloat(b.size || b.positionAmt || 0)));
-                            case 'pnl': return dir * (parseFloat(a.unrealizedPnL || 0) - parseFloat(b.unrealizedPnL || 0));
+                            case 'pnl': return dir * (parseFloat(a.unrealizedPnL || a.unRealizedProfit || a.pnl || 0) - parseFloat(b.unrealizedPnL || b.unRealizedProfit || b.pnl || 0));
                             case 'entry': return dir * (parseFloat(a.entryPrice || 0) - parseFloat(b.entryPrice || 0));
-                            case 'liq': return dir * (parseFloat(a.liqPrice || 0) - parseFloat(b.liqPrice || 0));
+                            case 'liq': {
+                                const lA = parseFloat(a.liqPrice || 0);
+                                const lB = parseFloat(b.liqPrice || 0);
+                                if (lA === 0 && lB === 0) return 0;
+                                if (lA === 0) return 1;
+                                if (lB === 0) return -1;
+                                return dir * (lA - lB);
+                            }
                             default: return 0;
                         }
                     } else if (tab === 'open') {
@@ -8003,7 +8192,7 @@ window.addEventListener('DOMContentLoaded', () => {
                                 const apB = parseFloat(b.avgPrice || b.avgExecutionPrice || b.ap || 0);
                                 return dir * (apA - apB);
                             }
-                            case 'qty': return dir * (parseFloat(a.executedQty || 0) - parseFloat(b.executedQty || 0));
+                            case 'qty': return dir * (parseFloat(a.executedQty || a.qty || 0) - parseFloat(b.executedQty || b.qty || 0));
                             case 'status': return dir * String(a.status || '').localeCompare(String(b.status || ''));
                             case 'updateTime': {
                                 const tA = Number(a.updateTime || a.time || 0);
