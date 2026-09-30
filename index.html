@@ -388,6 +388,85 @@
     color: #c084fc;
     border: 1px solid rgba(168, 85, 247, 0.45);
   }
+  .trade-row {
+    position: relative;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    transition: background 0.15s ease;
+  }
+  .trade-row:hover {
+    background: rgba(255, 255, 255, 0.06) !important;
+  }
+  .trade-row.expanded {
+    background: rgba(168, 85, 247, 0.08) !important;
+  }
+  .trade-depth-fill-buy {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    background: rgba(16, 185, 129, 0.08);
+    pointer-events: none;
+    transition: width 0.2s ease;
+  }
+  .trade-depth-fill-sell {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    background: rgba(244, 63, 94, 0.08);
+    pointer-events: none;
+    transition: width 0.2s ease;
+  }
+  .trade-whale-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 8.5px;
+    font-weight: 700;
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    padding: 1px 4px;
+    border-radius: 4px;
+    margin-left: 3px;
+  }
+  .trade-jump-pill {
+    position: absolute;
+    bottom: 45px;
+    right: 18px;
+    background: #7c3aed;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 20px;
+    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.5);
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    gap: 6px;
+    z-index: 20;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+  .trade-jump-pill:hover {
+    transform: translateY(-2px);
+    background: #8b5cf6;
+  }
+  .trade-copy-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: var(--text-muted);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .trade-copy-btn:hover {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.16);
+  }
   .ticker-wrap-outer {
     position: relative;
     background: var(--bg);
@@ -5531,9 +5610,9 @@
   </div>
 
   <!-- Aggregated Market Trades Panel (Placed directly next to Portfolios) -->
-  <div class="panel" style="display:flex;flex-direction:column;height:590px;overflow:hidden;border:1px solid var(--border);" id="ltp-panel">
-    <!-- Top Header: Title, Live indicator, env label, pause & reload buttons -->
-    <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);flex-shrink:0;">
+  <div class="panel" style="display:flex;flex-direction:column;height:590px;overflow:hidden;border:1px solid var(--border);position:relative;" id="ltp-panel">
+    <!-- Top Header: Title, Live indicator, env label, Live LTP ticker, pause & reload buttons -->
+    <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);flex-shrink:0;gap:8px;">
       <div style="display:flex;align-items:center;gap:8px;min-width:0;">
         <div id="agg-ws-dot" style="width:8px;height:8px;border-radius:50%;background:#10b981;box-shadow:0 0 8px rgba(16,185,129,0.7);flex-shrink:0;"></div>
         <div style="min-width:0;">
@@ -5544,8 +5623,18 @@
           <div id="agg-stream-env-label" style="font-size:9px;color:var(--cyan);font-weight:600;font-family:'JetBrains Mono',monospace;letter-spacing:0.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">PRODUCTION • BTCUSDT</div>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-        <button id="btn-agg-freeze" onclick="window.toggleAggFreeze()" class="pg-btn" title="Pause or Resume real-time stream" style="padding:3px 8px;font-size:10px;font-weight:600;display:flex;align-items:center;gap:3px;">
+
+      <!-- Prominent Live LTP Display in Header -->
+      <div style="display:flex;align-items:center;gap:4px;background:rgba(0,0,0,0.25);padding:3px 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.06);margin-left:auto;">
+        <span style="font-size:9px;color:var(--text-muted);font-weight:600;letter-spacing:0.5px;">LTP</span>
+        <span id="agg-header-ltp" style="font-size:13px;font-weight:800;font-family:'JetBrains Mono',monospace;color:#34d399;">--</span>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+        <button id="btn-agg-whale" onclick="window.toggleAggWhale()" class="pg-btn" title="Toggle Whale Orders (> $1,000 notional)" style="padding:3px 6px;font-size:10px;font-weight:600;">
+          🐳 <span id="agg-whale-text">Whale</span>
+        </button>
+        <button id="btn-agg-freeze" onclick="window.toggleAggFreeze()" class="pg-btn" title="Pause or Resume real-time stream" style="padding:3px 6px;font-size:10px;font-weight:600;display:flex;align-items:center;gap:2px;">
           <span id="agg-freeze-icon">⏸</span> <span id="agg-freeze-text">Live</span>
         </button>
         <button onclick="window.refreshAggTrades()" class="port-refresh-btn" style="width:24px;height:24px;font-size:11px;" title="Reload from /fapi/v1/aggTrades">↻</button>
@@ -5556,12 +5645,12 @@
     <div id="ltp-chips" style="display:none;"></div>
     <div id="agg-user-filter-badge" style="display:none;"></div>
 
-    <!-- Simple Filter Toolbar: All vs Configured Users + Side Filter -->
+    <!-- Filter Toolbar: All vs Configured Users + Side Filter -->
     <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-bottom:1px solid var(--border);background:rgba(255,255,255,0.015);gap:6px;flex-shrink:0;">
       <!-- User source filter: All vs Configured -->
       <div style="display:flex;align-items:center;gap:2px;background:var(--input-bg);padding:2px;border-radius:6px;border:1px solid var(--border);" id="agg-user-filter-group">
-        <button class="agg-tab on" id="filter-user-all" onclick="window.setAggUserFilter('all')" style="padding:4px 8px;font-size:10.5px;">🌐 All</button>
-        <button class="agg-tab" id="filter-user-configured" onclick="window.setAggUserFilter('configured')" style="padding:4px 8px;font-size:10.5px;">⭐ Configured (<span id="agg-user-trade-count">0</span>)</button>
+        <button class="agg-tab on" id="filter-user-all" onclick="window.setAggUserFilter('all')" style="padding:3px 7px;font-size:10.5px;">🌐 All</button>
+        <button class="agg-tab" id="filter-user-configured" onclick="window.setAggUserFilter('configured')" style="padding:3px 7px;font-size:10.5px;">⭐ Configured (<span id="agg-user-trade-count">0</span>)</button>
         <button class="agg-tab" id="filter-user-u1" onclick="window.setAggUserFilter('u1')" style="display:none;">👤 Maker</button>
         <button class="agg-tab" id="filter-user-u2" onclick="window.setAggUserFilter('u2')" style="display:none;">⚡ Taker</button>
       </div>
@@ -5574,27 +5663,45 @@
       </div>
     </div>
 
-    <!-- Compact Search & Summary Row -->
+    <!-- Sub-Filter Bar (active when Configured filter is selected) -->
+    <div id="agg-user-subfilter-row" style="display:none;padding:4px 10px;border-bottom:1px solid var(--border);background:rgba(168,85,247,0.06);align-items:center;justify-content:space-between;flex-shrink:0;">
+      <span style="font-size:9.5px;color:#c084fc;font-weight:700;letter-spacing:0.3px;">MATCHED ROLES:</span>
+      <div style="display:flex;align-items:center;gap:3px;">
+        <button class="agg-side-btn on" id="subfilter-cfg-all" onclick="window.setAggCfgSubFilter('all')" style="padding:2px 6px;font-size:9.5px;">All Cfg</button>
+        <button class="agg-side-btn" id="subfilter-cfg-cross" onclick="window.setAggCfgSubFilter('cross')" style="padding:2px 6px;font-size:9.5px;color:#c084fc;">🔄 Crosses</button>
+        <button class="agg-side-btn" id="subfilter-cfg-u1" onclick="window.setAggCfgSubFilter('u1')" style="padding:2px 6px;font-size:9.5px;color:var(--cyan);">👤 Maker (U1)</button>
+        <button class="agg-side-btn" id="subfilter-cfg-u2" onclick="window.setAggCfgSubFilter('u2')" style="padding:2px 6px;font-size:9.5px;color:var(--yellow);">⚡ Taker (U2)</button>
+      </div>
+    </div>
+
+    <!-- Compact Search & Live Statistics Ribbon -->
     <div style="padding:5px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.12);flex-shrink:0;">
       <div style="position:relative;flex:1;">
         <input type="text" id="agg-search-input" placeholder="🔍 Search price, qty, ID..." 
                oninput="window.setAggSearch(this.value)"
-               style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:4px;padding:3px 22px 3px 6px;color:var(--text-main);font-size:11px;outline:none;font-family:'JetBrains Mono',monospace;">
+               style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:4px;padding:3px 20px 3px 6px;color:var(--text-main);font-size:11px;outline:none;font-family:'JetBrains Mono',monospace;">
         <button id="agg-search-clear" onclick="window.clearAggSearch()" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:10px;display:none;">✕</button>
       </div>
-      <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;white-space:nowrap;">
+      <div style="display:flex;align-items:center;gap:8px;font-size:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;white-space:nowrap;">
         <span>Tot: <b id="agg-stat-total" style="color:var(--text-main);">0</b></span>
-        <span>Cfg: <b id="agg-stat-user" style="color:#c084fc;">0</b></span>
+        <span>Buys: <b id="agg-stat-buys" style="color:#34d399;">50%</b></span>
+        <span>Vol: <b id="agg-stat-turnover" style="color:var(--cyan);">$0</b></span>
       </div>
     </div>
 
     <!-- Table scroll container -->
-    <div style="flex:1;overflow-y:auto;overflow-x:hidden;min-height:0;" id="trade-stream-scroll">
+    <div style="flex:1;overflow-y:auto;overflow-x:hidden;min-height:0;position:relative;" id="trade-stream-scroll" onscroll="window.handleAggScroll(this)">
       <div id="trade-stream" class="term-empty">Awaiting trades...</div>
+      
+      <!-- Floating Jump-to-Latest Button -->
+      <div id="agg-jump-pill" class="trade-jump-pill" onclick="window.jumpToLatestTrades()">
+        <span>↓ Jump to Latest</span>
+        <span id="agg-jump-count" style="background:rgba(255,255,255,0.25);padding:1px 5px;border-radius:10px;font-size:9.5px;">+0</span>
+      </div>
     </div>
 
     <!-- Pagination Footer -->
-    <div id="trades-pagination" style="display:none;align-items:center;justify-content:space-between;padding:6px 12px;background:var(--input-bg);border-top:1px solid var(--border);flex-shrink:0;">
+    <div id="trades-pagination" style="display:none;align-items:center;justify-content:space-between;padding:5px 12px;background:var(--input-bg);border-top:1px solid var(--border);flex-shrink:0;">
       <div id="trades-total-info" style="font-size:10px;color:var(--text-muted);font-weight:600;">Showing 0 of 0</div>
       <div style="display:flex;align-items:center;gap:8px;">
         <button class="pg-btn" style="padding:2px 8px;font-size:10px;" onclick="window.changePage('trades', -1)">&lt; Prev</button>
@@ -10472,12 +10579,15 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        window.aggUserFilter = 'all'; // 'all' | 'configured' | 'u1' | 'u2'
+        window.aggUserFilter = 'all'; // 'all' | 'configured'
+        window.aggCfgSubFilter = 'all'; // 'all' | 'cross' | 'u1' | 'u2'
         window.aggSideFilter = 'all'; // 'all' | 'buy' | 'sell'
         window.aggSearchQuery = '';
+        window.aggWhaleFilter = false;
         window.aggIsFrozen = false;
         window.aggPendingNewCount = 0;
-        window.PAGE_SIZE_TRADES = 15;
+        window.aggIsAtTop = true;
+        window.PAGE_SIZE_TRADES = 25;
         window.expandedTrades = window.expandedTrades || new Set();
 
         window.setAggUserFilter = function(filter) {
@@ -10489,17 +10599,83 @@ window.addEventListener('DOMContentLoaded', () => {
                     else btn.classList.remove('on');
                 }
             });
-            const badge = document.getElementById('agg-user-filter-badge');
-            if (badge) {
-                if (window.aggUserFilter === 'all') {
-                    badge.style.display = 'none';
+            const subRow = document.getElementById('agg-user-subfilter-row');
+            if (subRow) {
+                subRow.style.display = (window.aggUserFilter === 'configured') ? 'flex' : 'none';
+            }
+            if (window.pagination) window.pagination.trades = 1;
+            if (window.MarketAggTradeManager) window.MarketAggTradeManager.render();
+        };
+
+        window.setAggCfgSubFilter = function(sub) {
+            window.aggCfgSubFilter = sub || 'all';
+            ['all', 'cross', 'u1', 'u2'].forEach(s => {
+                const btn = document.getElementById('subfilter-cfg-' + s);
+                if (btn) {
+                    if (s === window.aggCfgSubFilter) btn.classList.add('on');
+                    else btn.classList.remove('on');
+                }
+            });
+            if (window.pagination) window.pagination.trades = 1;
+            if (window.MarketAggTradeManager) window.MarketAggTradeManager.render();
+        };
+
+        window.toggleAggWhale = function() {
+            window.aggWhaleFilter = !window.aggWhaleFilter;
+            const btn = document.getElementById('btn-agg-whale');
+            const text = document.getElementById('agg-whale-text');
+            if (btn) {
+                if (window.aggWhaleFilter) {
+                    btn.style.background = 'rgba(245, 158, 11, 0.2)';
+                    btn.style.borderColor = 'rgba(245, 158, 11, 0.6)';
+                    btn.style.color = '#fbbf24';
+                    btn.style.boxShadow = '0 0 10px rgba(245, 158, 11, 0.25)';
+                    if (text) text.textContent = 'Whale ON';
                 } else {
-                    badge.style.display = 'inline-block';
-                    badge.textContent = window.aggUserFilter === 'configured' ? '⭐ CONFIGURED USERS ONLY' : (window.aggUserFilter === 'u1' ? '👤 MAKER (USER 1)' : '⚡ TAKER (USER 2)');
+                    btn.style.background = '';
+                    btn.style.borderColor = '';
+                    btn.style.color = '';
+                    btn.style.boxShadow = '';
+                    if (text) text.textContent = 'Whale';
                 }
             }
             if (window.pagination) window.pagination.trades = 1;
             if (window.MarketAggTradeManager) window.MarketAggTradeManager.render();
+        };
+
+        window.handleAggScroll = function(el) {
+            if (!el) return;
+            const isTop = el.scrollTop < 35;
+            window.aggIsAtTop = isTop;
+            const pill = document.getElementById('agg-jump-pill');
+            if (isTop && pill) {
+                pill.style.display = 'none';
+                window.aggPendingNewCount = 0;
+            }
+        };
+
+        window.jumpToLatestTrades = function() {
+            const scrollEl = document.getElementById('trade-stream-scroll');
+            if (scrollEl) scrollEl.scrollTo({ top: 0, behavior: 'smooth' });
+            window.aggIsAtTop = true;
+            window.aggPendingNewCount = 0;
+            const pill = document.getElementById('agg-jump-pill');
+            if (pill) pill.style.display = 'none';
+            if (window.MarketAggTradeManager) window.MarketAggTradeManager.render();
+        };
+
+        window.copyTradeField = function(val, label) {
+            if (!val) return;
+            navigator.clipboard.writeText(String(val));
+            if (typeof window.showToast === 'function') {
+                window.showToast(`${label || 'Value'} copied: ${val}`);
+            }
+        };
+
+        window.filterByTradePrice = function(price) {
+            const searchInput = document.getElementById('agg-search-input');
+            if (searchInput) searchInput.value = price;
+            window.setAggSearch(price);
         };
 
         window.setAggSideFilter = function(side) {
@@ -10661,7 +10837,6 @@ window.addEventListener('DOMContentLoaded', () => {
             const pgEl = document.getElementById('trades-pagination');
             const pgInfo = document.getElementById('trades-page-info');
             const pgTotalInfo = document.getElementById('trades-total-info');
-            const ltpChipsEl = document.getElementById('ltp-chips');
 
             const totalTrades = newTrades || (window.MarketAggTradeManager ? window.MarketAggTradeManager.trades : []);
             const totalCount = totalTrades.length;
@@ -10671,8 +10846,19 @@ window.addEventListener('DOMContentLoaded', () => {
             let totalQty = 0;
             let totalTurnover = 0;
             let userTradeCount = 0;
-            let u1Count = 0;
-            let u2Count = 0;
+            let maxQty = 0.0001;
+
+            // Update Header Live LTP Ticker if available
+            if (totalCount > 0) {
+                const latest = totalTrades[0];
+                const latestPrice = parseFloat(latest.p || latest.price || 0);
+                const ltpEl = document.getElementById('agg-header-ltp');
+                if (ltpEl && latestPrice > 0) {
+                    const isLatestSell = (latest.m === true || latest.m === 'true' || latest.side === 'SELL');
+                    ltpEl.textContent = (isLatestSell ? '▼ ' : '▲ ') + '$' + latestPrice.toFixed(pPrec);
+                    ltpEl.style.color = isLatestSell ? '#fb7185' : '#34d399';
+                }
+            }
 
             for (let i = 0; i < totalCount; i++) {
                 const t = totalTrades[i];
@@ -10684,29 +10870,34 @@ window.addEventListener('DOMContentLoaded', () => {
 
                 const p = parseFloat(t.p || t.price || 0);
                 const q = parseFloat(t.q || t.stageQty || t.quantity || 0);
-                if (Number.isFinite(q)) totalQty += q;
+                if (Number.isFinite(q)) {
+                    totalQty += q;
+                    if (i < 40 && q > maxQty) maxQty = q;
+                }
                 if (Number.isFinite(p) && Number.isFinite(q)) totalTurnover += (p * q);
 
                 if (t.userTag && t.userTag !== 'PUBLIC') {
                     userTradeCount++;
-                    if (t.userTag === 'U1' || t.userTag === 'BOTH') u1Count++;
-                    if (t.userTag === 'U2' || t.userTag === 'BOTH') u2Count++;
                 }
             }
 
-            const buyPct = totalCount > 0 ? ((buyCount / totalCount) * 100).toFixed(1) + '%' : '0%';
+            const buyPct = totalCount > 0 ? ((buyCount / totalCount) * 100).toFixed(0) + '%' : '50%';
             const turnoverStr = totalTurnover >= 1e6 ? '$' + (totalTurnover / 1e6).toFixed(2) + 'M'
                               : totalTurnover >= 1e3 ? '$' + (totalTurnover / 1e3).toFixed(1) + 'K'
-                              : '$' + totalTurnover.toFixed(2);
+                              : '$' + totalTurnover.toFixed(0);
 
+            // Update Counter Badges
             const userCountEl = document.getElementById('agg-user-trade-count');
             if (userCountEl) userCountEl.textContent = userTradeCount;
 
             const statTotalEl = document.getElementById('agg-stat-total');
             if (statTotalEl) statTotalEl.textContent = totalCount;
 
-            const statUserEl = document.getElementById('agg-stat-user');
-            if (statUserEl) statUserEl.textContent = userTradeCount;
+            const statBuysEl = document.getElementById('agg-stat-buys');
+            if (statBuysEl) statBuysEl.textContent = buyPct;
+
+            const statTurnoverEl = document.getElementById('agg-stat-turnover');
+            if (statTurnoverEl) statTurnoverEl.textContent = turnoverStr;
 
             if (!totalCount) {
                 if (el) el.innerHTML = '<div class="term-empty" style="padding:48px 0;text-align:center;color:var(--text-muted);font-size:11px;font-weight:600;">Awaiting aggregated trades stream...</div>';
@@ -10720,14 +10911,28 @@ window.addEventListener('DOMContentLoaded', () => {
             // 1. User Filter
             const uFilter = window.aggUserFilter || 'all';
             if (uFilter === 'configured') {
-                filtered = filtered.filter(t => t.userTag && t.userTag !== 'PUBLIC');
-            } else if (uFilter === 'u1') {
-                filtered = filtered.filter(t => t.userTag === 'U1' || t.userTag === 'BOTH');
-            } else if (uFilter === 'u2') {
-                filtered = filtered.filter(t => t.userTag === 'U2' || t.userTag === 'BOTH');
+                const sub = window.aggCfgSubFilter || 'all';
+                if (sub === 'cross') {
+                    filtered = filtered.filter(t => t.userTag === 'BOTH');
+                } else if (sub === 'u1') {
+                    filtered = filtered.filter(t => t.userTag === 'U1' || t.userTag === 'BOTH');
+                } else if (sub === 'u2') {
+                    filtered = filtered.filter(t => t.userTag === 'U2' || t.userTag === 'BOTH');
+                } else {
+                    filtered = filtered.filter(t => t.userTag && t.userTag !== 'PUBLIC');
+                }
             }
 
-            // 2. Side Filter
+            // 2. Whale Filter (> $1,000 notional)
+            if (window.aggWhaleFilter) {
+                filtered = filtered.filter(t => {
+                    const p = parseFloat(t.p || t.price || 0);
+                    const q = parseFloat(t.q || t.stageQty || t.quantity || 0);
+                    return (p * q) >= 1000;
+                });
+            }
+
+            // 3. Side Filter
             const sFilter = window.aggSideFilter || 'all';
             if (sFilter === 'buy') {
                 filtered = filtered.filter(t => !(t.m === true || t.m === 'true' || t.side === 'SELL'));
@@ -10735,7 +10940,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 filtered = filtered.filter(t => (t.m === true || t.m === 'true' || t.side === 'SELL'));
             }
 
-            // 3. Search Filter
+            // 4. Search Filter
             const q = window.aggSearchQuery;
             if (q) {
                 filtered = filtered.filter(t => {
@@ -10748,8 +10953,20 @@ window.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
+            // Jump to latest button handling
+            const jumpPill = document.getElementById('agg-jump-pill');
+            if (jumpPill) {
+                if (!window.aggIsAtTop && window.aggPendingNewCount > 0) {
+                    jumpPill.style.display = 'flex';
+                    const jumpCountEl = document.getElementById('agg-jump-count');
+                    if (jumpCountEl) jumpCountEl.textContent = `+${window.aggPendingNewCount}`;
+                } else if (window.aggIsAtTop) {
+                    jumpPill.style.display = 'none';
+                }
+            }
+
             const totalFiltered = filtered.length;
-            const pageSize = window.PAGE_SIZE_TRADES || 20;
+            const pageSize = window.PAGE_SIZE_TRADES || 25;
 
             if (pgEl && pgInfo) {
                 if (totalFiltered > pageSize) {
@@ -10785,7 +11002,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     el.innerHTML = `<div class="term-empty" style="padding:40px 10px;text-align:center;">
                         <div style="font-size:20px;margin-bottom:6px;">🔍</div>
                         <div style="color:var(--text-main);font-weight:600;font-size:12px;margin-bottom:2px;">No matching trades</div>
-                        <div style="color:var(--text-muted);font-size:10px;">Switch to "ALL" or clear search filter</div>
+                        <div style="color:var(--text-muted);font-size:10px;">Switch to "ALL" or clear filter criteria</div>
                     </div>`;
                 }
                 return;
@@ -10827,6 +11044,13 @@ window.addEventListener('DOMContentLoaded', () => {
                     timeShort = d.toLocaleTimeString('en-US', { hour12: false });
                 }
 
+                // Relative depth bar width (relative to recent max)
+                const barPct = Math.min(100, Math.max(3, (qtyNum / maxQty) * 100)).toFixed(1);
+
+                // Whale order indicator
+                const isWhale = totalVal >= 1000;
+                const whaleBadge = isWhale ? '<span class="trade-whale-badge" title="Whale order ($' + totalValStr + ')">🐳</span>' : '';
+
                 // Compact user tag badge
                 let userBadge = '<span style="font-size:10px;color:var(--text-dim);font-family:monospace;">—</span>';
                 let rowTintClass = '';
@@ -10845,17 +11069,18 @@ window.addEventListener('DOMContentLoaded', () => {
                 const isExp = window.expandedTrades && window.expandedTrades.has(uniqueKey);
                 const expClass = isExp ? ' expanded' : '';
 
-                html += `<tr class="trade-row${rowTintClass}${expClass}" data-key="${uniqueKey}" style="cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.03);transition:background 0.15s ease;">
-                    <td style="padding:5px 8px;text-align:left;font-weight:700;font-family:'JetBrains Mono',monospace;font-size:11px;color:${isSell ? '#fb7185' : '#34d399'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                html += `<tr class="trade-row${rowTintClass}${expClass}" data-key="${uniqueKey}" title="Notional: $${totalValStr}">
+                    <div class="trade-depth-fill-${isSell ? 'sell' : 'buy'}" style="width:${barPct}%;"></div>
+                    <td style="padding:5px 8px;text-align:left;font-weight:700;font-family:'JetBrains Mono',monospace;font-size:11px;color:${isSell ? '#fb7185' : '#34d399'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:relative;z-index:1;">
                         <span style="font-size:9px;opacity:0.75;margin-right:2px;">${isSell ? '▼' : '▲'}</span>$${priceStr}
                     </td>
-                    <td style="padding:5px 8px;text-align:right;color:var(--cyan);font-weight:600;font-family:'JetBrains Mono',monospace;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                        ${qtyStr}
+                    <td style="padding:5px 8px;text-align:right;color:var(--cyan);font-weight:600;font-family:'JetBrains Mono',monospace;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:relative;z-index:1;">
+                        ${qtyStr}${whaleBadge}
                     </td>
-                    <td style="padding:5px 8px;text-align:right;font-size:10px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;white-space:nowrap;">
+                    <td style="padding:5px 8px;text-align:right;font-size:10px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;white-space:nowrap;position:relative;z-index:1;">
                         ${timeShort}
                     </td>
-                    <td style="padding:5px 8px;text-align:right;white-space:nowrap;">
+                    <td style="padding:5px 8px;text-align:right;white-space:nowrap;position:relative;z-index:1;">
                         ${userBadge}
                     </td>
                 </tr>`;
@@ -10863,19 +11088,47 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (isExp) {
                     const timeIso = t.T ? new Date(t.T).toISOString() : '-';
                     const matchRange = (t.f !== undefined && t.l !== undefined) ? `${t.f} → ${t.l}` : (t.makerOrderId && t.takerOrderId ? `${t.makerOrderId} → ${t.takerOrderId}` : '-');
-                    const buyerMakerStr = t.m !== undefined ? (t.m ? 'Yes (Sell Taker)' : 'No (Buy Taker)') : '-';
                     const makerOrd = t.makerOrderId ? `#${t.makerOrderId}` : '';
                     const takerOrd = t.takerOrderId ? `#${t.takerOrderId}` : '';
+                    const rawJsonEscaped = JSON.stringify(t).replace(/"/g, '&quot;');
 
-                    html += `<tr class="trade-details-wrap"><td colspan="4" style="padding:0;background:rgba(0,0,0,0.28);">
-                        <div style="padding:8px 10px;font-size:10px;font-family:'JetBrains Mono',monospace;display:flex;flex-direction:column;gap:3px;border-bottom:1px solid var(--border);">
-                            <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-muted);">Trade ID:</span><span style="color:var(--text-main);font-weight:700;">${tradeId}</span></div>
-                            <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-muted);">Notional:</span><span style="color:var(--emerald);font-weight:700;">$${totalValStr}</span></div>
-                            <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-muted);">Buyer Maker:</span><span>${buyerMakerStr}</span></div>
-                            <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-muted);">Match Range:</span><span>${matchRange}</span></div>
-                            ${makerOrd ? `<div style="display:flex;justify-content:space-between;"><span style="color:var(--text-muted);">Maker Ord:</span><span style="color:var(--cyan);">${makerOrd}</span></div>` : ''}
-                            ${takerOrd ? `<div style="display:flex;justify-content:space-between;"><span style="color:var(--text-muted);">Taker Ord:</span><span style="color:var(--yellow);">${takerOrd}</span></div>` : ''}
-                            <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-muted);">Time:</span><span style="color:var(--text-dim);font-size:9.5px;">${timeIso}</span></div>
+                    html += `<tr class="trade-details-wrap"><td colspan="4" style="padding:0;background:rgba(0,0,0,0.32);">
+                        <div style="padding:10px 12px;font-size:10px;font-family:'JetBrains Mono',monospace;display:flex;flex-direction:column;gap:5px;border-bottom:1px solid var(--border);">
+                            <div style="display:flex;justify-content:space-between;align-items:center;">
+                                <span style="color:var(--text-muted);">Trade ID:</span>
+                                <span style="display:flex;align-items:center;gap:6px;">
+                                    <b style="color:var(--text-main);">${tradeId}</b>
+                                    <button class="trade-copy-btn" onclick="event.stopPropagation(); window.copyTradeField('${tradeId}', 'Trade ID')">📋 Copy</button>
+                                </span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;align-items:center;">
+                                <span style="color:var(--text-muted);">Notional Value:</span>
+                                <span style="color:var(--emerald);font-weight:700;">$${totalValStr} USDT</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;align-items:center;">
+                                <span style="color:var(--text-muted);">Taker / Maker Role:</span>
+                                <span style="color:${isSell ? '#fb7185' : '#34d399'};font-weight:700;">${isSell ? 'Taker Sold (Maker Bought)' : 'Taker Bought (Maker Sold)'}</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;align-items:center;">
+                                <span style="color:var(--text-muted);">Match Range (f→l):</span>
+                                <span style="color:var(--cyan);">${matchRange}</span>
+                            </div>
+                            ${makerOrd ? `<div style="display:flex;justify-content:space-between;align-items:center;">
+                                <span style="color:var(--text-muted);">Maker Account (U1):</span>
+                                <span style="display:flex;align-items:center;gap:6px;"><b style="color:var(--cyan);">${makerOrd}</b><button class="trade-copy-btn" onclick="event.stopPropagation(); window.copyTradeField('${makerOrd.replace('#','')}', 'Maker Order ID')">📋 Copy</button></span>
+                            </div>` : ''}
+                            ${takerOrd ? `<div style="display:flex;justify-content:space-between;align-items:center;">
+                                <span style="color:var(--text-muted);">Taker Account (U2):</span>
+                                <span style="display:flex;align-items:center;gap:6px;"><b style="color:var(--yellow);">${takerOrd}</b><button class="trade-copy-btn" onclick="event.stopPropagation(); window.copyTradeField('${takerOrd.replace('#','')}', 'Taker Order ID')">📋 Copy</button></span>
+                            </div>` : ''}
+                            <div style="display:flex;justify-content:space-between;align-items:center;">
+                                <span style="color:var(--text-muted);">Timestamp:</span>
+                                <span style="color:var(--text-dim);font-size:9.5px;">${timeIso}</span>
+                            </div>
+                            <div style="display:flex;gap:6px;margin-top:4px;">
+                                <button class="trade-copy-btn" style="flex:1;padding:4px;text-align:center;" onclick="event.stopPropagation(); window.filterByTradePrice('${priceStr}')">🔍 Filter this price</button>
+                                <button class="trade-copy-btn" style="flex:1;padding:4px;text-align:center;" onclick="event.stopPropagation(); window.copyTradeField('${rawJsonEscaped}', 'Raw JSON')">{ } Copy JSON</button>
+                            </div>
                         </div>
                     </td></tr>`;
                 }
@@ -11107,6 +11360,15 @@ window.addEventListener('DOMContentLoaded', () => {
                                 if (!data.a || !this.trades.some(t => t.a === data.a)) {
                                     this.trades.unshift(formatted);
                                     if (this.trades.length > 500) this.trades.pop();
+                                    if (!window.aggIsAtTop) {
+                                        window.aggPendingNewCount++;
+                                        const jumpPill = document.getElementById('agg-jump-pill');
+                                        if (jumpPill) {
+                                            jumpPill.style.display = 'flex';
+                                            const jumpCountEl = document.getElementById('agg-jump-count');
+                                            if (jumpCountEl) jumpCountEl.textContent = `+${window.aggPendingNewCount}`;
+                                        }
+                                    }
                                     if (!window.aggIsFrozen) {
                                         updateTradeStream(this.trades);
                                     } else {
