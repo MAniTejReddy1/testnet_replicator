@@ -131,5 +131,21 @@
     "cancelOnStop": false,
     "newUserFlow": false,
     "enableTradeSync": true
+  },
+  {
+    "sourceSymbol": "XRPUSDT",
+    "targetSymbol": "XRPUSDT",
+    "tier": "PRODUCTION",
+    "minSize": 10,
+    "maxSize": 50000,
+    "takerSize": 10,
+    "makerUseRawQty": false,
+    "takerUseRawQty": false,
+    "depthLevels": 20,
+    "bufferPct": 0,
+    "tradeDelayMs": 0,
+    "cancelOnStop": false,
+    "newUserFlow": false,
+    "enableTradeSync": true
   }
 ]
