@@ -5391,7 +5391,7 @@
 </div>
 
 
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:0 24px 24px;">
+<div style="display:grid;grid-template-columns:minmax(0, 1fr) minmax(0, 1fr) 375px;gap:16px;padding:0 24px 24px;">
   <div class="panel" style="display:flex;flex-direction:column;height:590px;overflow:hidden;" id="u1-panel">
     <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);flex-shrink:0;">
       <div style="display:flex;align-items:center;gap:10px;">
@@ -5529,73 +5529,77 @@
       </div>
     </div>
   </div>
-</div>
 
-<div style="padding:0 24px 24px;">
-  <div class="panel" style="display:flex;flex-direction:column;height:580px;overflow:hidden;border:1px solid rgba(168,85,247,0.35);box-shadow:0 8px 32px rgba(0,0,0,0.36);" id="ltp-panel">
-    <!-- Top Header: Title, Live indicator, and Chips in a clean single row -->
-    <div style="padding:12px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);flex-shrink:0;">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <div id="agg-ws-dot" style="width:12px;height:12px;border-radius:50%;background:#10b981;box-shadow:0 0 12px rgba(16,185,129,0.7);transition:all 0.3s ease;flex-shrink:0;"></div>
-        <div>
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">
-            <span class="sec-label" id="agg-stream-env-label" style="margin:0;font-size:11px;font-weight:700;color:var(--cyan);letter-spacing:1px;">PRODUCTION • BTCUSDT</span>
-            <span id="agg-ws-badge" style="font-size:9px;color:#34d399;font-weight:700;letter-spacing:0.5px;padding:2px 8px;border-radius:12px;background:rgba(52,211,153,0.12);border:1px solid rgba(52,211,153,0.3);">● LIVE WS</span>
-            <span id="agg-user-filter-badge" style="font-size:9px;color:#c084fc;font-weight:700;letter-spacing:0.5px;padding:2px 8px;border-radius:12px;background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.3);display:none;">USER FILTER ACTIVE</span>
+  <!-- Aggregated Market Trades Panel (Placed directly next to Portfolios) -->
+  <div class="panel" style="display:flex;flex-direction:column;height:590px;overflow:hidden;border:1px solid var(--border);" id="ltp-panel">
+    <!-- Top Header: Title, Live indicator, env label, pause & reload buttons -->
+    <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--input-bg);flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+        <div id="agg-ws-dot" style="width:8px;height:8px;border-radius:50%;background:#10b981;box-shadow:0 0 8px rgba(16,185,129,0.7);flex-shrink:0;"></div>
+        <div style="min-width:0;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:13px;font-weight:700;color:var(--text-main);white-space:nowrap;">Market Trades</span>
+            <span id="agg-ws-badge" style="font-size:9px;color:#34d399;font-weight:700;letter-spacing:0.3px;padding:1px 6px;border-radius:10px;background:rgba(52,211,153,0.12);border:1px solid rgba(52,211,153,0.3);">LIVE</span>
           </div>
-          <div class="sec-title" style="display:flex;align-items:center;gap:10px;font-size:16px;">
-            <span>Aggregated Trades Stream</span>
-            <span style="font-size:11px;color:var(--cyan);font-weight:600;background:rgba(6,182,212,0.12);padding:2px 8px;border-radius:4px;border:1px solid rgba(6,182,212,0.25);font-family:'JetBrains Mono',monospace;">/fapi/v1/aggTrades</span>
-          </div>
+          <div id="agg-stream-env-label" style="font-size:9px;color:var(--cyan);font-weight:600;font-family:'JetBrains Mono',monospace;letter-spacing:0.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">PRODUCTION • BTCUSDT</div>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:nowrap;" id="ltp-chips"></div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+        <button id="btn-agg-freeze" onclick="window.toggleAggFreeze()" class="pg-btn" title="Pause or Resume real-time stream" style="padding:3px 8px;font-size:10px;font-weight:600;display:flex;align-items:center;gap:3px;">
+          <span id="agg-freeze-icon">⏸</span> <span id="agg-freeze-text">Live</span>
+        </button>
+        <button onclick="window.refreshAggTrades()" class="port-refresh-btn" style="width:24px;height:24px;font-size:11px;" title="Reload from /fapi/v1/aggTrades">↻</button>
+      </div>
     </div>
 
-    <!-- Filter Control Toolbar -->
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-bottom:1px solid var(--border);background:rgba(255,255,255,0.015);gap:12px;flex-shrink:0;flex-wrap:wrap;">
-      <!-- User / Source Filter -->
-      <div style="display:flex;align-items:center;gap:4px;background:var(--input-bg);padding:3px;border-radius:8px;border:1px solid var(--border);" id="agg-user-filter-group">
-        <button class="agg-tab on" id="filter-user-all" onclick="window.setAggUserFilter('all')">🌐 All Market Trades</button>
-        <button class="agg-tab" id="filter-user-configured" onclick="window.setAggUserFilter('configured')">⭐ Configured Users Only</button>
-        <button class="agg-tab" id="filter-user-u1" onclick="window.setAggUserFilter('u1')">👤 Maker (User 1)</button>
-        <button class="agg-tab" id="filter-user-u2" onclick="window.setAggUserFilter('u2')">⚡ Taker (User 2)</button>
+    <!-- Hidden compatibility chips -->
+    <div id="ltp-chips" style="display:none;"></div>
+    <div id="agg-user-filter-badge" style="display:none;"></div>
+
+    <!-- Simple Filter Toolbar: All vs Configured Users + Side Filter -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-bottom:1px solid var(--border);background:rgba(255,255,255,0.015);gap:6px;flex-shrink:0;">
+      <!-- User source filter: All vs Configured -->
+      <div style="display:flex;align-items:center;gap:2px;background:var(--input-bg);padding:2px;border-radius:6px;border:1px solid var(--border);" id="agg-user-filter-group">
+        <button class="agg-tab on" id="filter-user-all" onclick="window.setAggUserFilter('all')" style="padding:4px 8px;font-size:10.5px;">🌐 All</button>
+        <button class="agg-tab" id="filter-user-configured" onclick="window.setAggUserFilter('configured')" style="padding:4px 8px;font-size:10.5px;">⭐ Configured (<span id="agg-user-trade-count">0</span>)</button>
+        <button class="agg-tab" id="filter-user-u1" onclick="window.setAggUserFilter('u1')" style="display:none;">👤 Maker</button>
+        <button class="agg-tab" id="filter-user-u2" onclick="window.setAggUserFilter('u2')" style="display:none;">⚡ Taker</button>
       </div>
 
       <!-- Side Filter -->
-      <div style="display:flex;align-items:center;gap:4px;background:var(--input-bg);padding:3px;border-radius:8px;border:1px solid var(--border);">
-        <button class="agg-side-btn on" id="filter-side-all" onclick="window.setAggSideFilter('all')">All Sides</button>
-        <button class="agg-side-btn" id="filter-side-buy" onclick="window.setAggSideFilter('buy')" style="color:#34d399;">▲ Buys</button>
-        <button class="agg-side-btn" id="filter-side-sell" onclick="window.setAggSideFilter('sell')" style="color:#fb7185;">▼ Sells</button>
+      <div style="display:flex;align-items:center;gap:2px;background:var(--input-bg);padding:2px;border-radius:6px;border:1px solid var(--border);">
+        <button class="agg-side-btn on" id="filter-side-all" onclick="window.setAggSideFilter('all')" style="padding:3px 6px;font-size:10px;">All</button>
+        <button class="agg-side-btn" id="filter-side-buy" onclick="window.setAggSideFilter('buy')" style="padding:3px 6px;font-size:10px;color:#34d399;">▲ Buy</button>
+        <button class="agg-side-btn" id="filter-side-sell" onclick="window.setAggSideFilter('sell')" style="padding:3px 6px;font-size:10px;color:#fb7185;">▼ Sell</button>
       </div>
+    </div>
 
-      <!-- Search & Stream Controls -->
-      <div style="display:flex;align-items:center;gap:8px;flex:1;max-width:440px;justify-content:flex-end;">
-        <div style="position:relative;flex:1;">
-          <input type="text" id="agg-search-input" placeholder="🔍 Search price, qty, trade ID, order ID..." 
-                 oninput="window.setAggSearch(this.value)"
-                 style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:6px 28px 6px 10px;color:var(--text-main);font-size:12px;outline:none;">
-          <button id="agg-search-clear" onclick="window.clearAggSearch()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;display:none;">✕</button>
-        </div>
-        <button id="btn-agg-freeze" onclick="window.toggleAggFreeze()" class="pg-btn" title="Pause or Resume real-time stream" style="padding:6px 12px;font-size:11px;font-weight:600;display:flex;align-items:center;gap:5px;">
-          <span id="agg-freeze-icon">⏸</span> <span id="agg-freeze-text">Live</span>
-        </button>
-        <button onclick="window.refreshAggTrades()" class="pg-btn" title="Reload from API & sync user trades" style="padding:6px 10px;font-size:12px;">↻</button>
+    <!-- Compact Search & Summary Row -->
+    <div style="padding:5px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.12);flex-shrink:0;">
+      <div style="position:relative;flex:1;">
+        <input type="text" id="agg-search-input" placeholder="🔍 Search price, qty, ID..." 
+               oninput="window.setAggSearch(this.value)"
+               style="width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:4px;padding:3px 22px 3px 6px;color:var(--text-main);font-size:11px;outline:none;font-family:'JetBrains Mono',monospace;">
+        <button id="agg-search-clear" onclick="window.clearAggSearch()" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:10px;display:none;">✕</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;white-space:nowrap;">
+        <span>Tot: <b id="agg-stat-total" style="color:var(--text-main);">0</b></span>
+        <span>Cfg: <b id="agg-stat-user" style="color:#c084fc;">0</b></span>
       </div>
     </div>
 
     <!-- Table scroll container -->
-    <div style="flex:1;overflow-y:auto;overflow-x:auto;min-height:0;" id="trade-stream-scroll">
+    <div style="flex:1;overflow-y:auto;overflow-x:hidden;min-height:0;" id="trade-stream-scroll">
       <div id="trade-stream" class="term-empty">Awaiting trades...</div>
     </div>
 
     <!-- Pagination Footer -->
-    <div id="trades-pagination" style="display:none;align-items:center;justify-content:space-between;padding:10px 20px;background:var(--input-bg);border-top:1px solid var(--border);flex-shrink:0;">
-      <div id="trades-total-info" style="font-size:11px;color:var(--text-muted);font-weight:600;">Showing 0 of 0 trades</div>
-      <div style="display:flex;align-items:center;gap:10px;">
-        <button class="pg-btn" onclick="window.changePage('trades', -1)">&lt; Prev</button>
-        <span id="trades-page-info" style="font-size:11px;font-weight:700;color:var(--text-main);min-width:80px;text-align:center;">Page 1 of 1</span>
-        <button class="pg-btn" onclick="window.changePage('trades', 1)">Next &gt;</button>
+    <div id="trades-pagination" style="display:none;align-items:center;justify-content:space-between;padding:6px 12px;background:var(--input-bg);border-top:1px solid var(--border);flex-shrink:0;">
+      <div id="trades-total-info" style="font-size:10px;color:var(--text-muted);font-weight:600;">Showing 0 of 0</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="pg-btn" style="padding:2px 8px;font-size:10px;" onclick="window.changePage('trades', -1)">&lt; Prev</button>
+        <span id="trades-page-info" style="font-size:10px;font-weight:700;color:var(--text-main);">Page 1</span>
+        <button class="pg-btn" style="padding:2px 8px;font-size:10px;" onclick="window.changePage('trades', 1)">Next &gt;</button>
       </div>
     </div>
   </div>
@@ -10695,19 +10699,17 @@ window.addEventListener('DOMContentLoaded', () => {
                               : totalTurnover >= 1e3 ? '$' + (totalTurnover / 1e3).toFixed(1) + 'K'
                               : '$' + totalTurnover.toFixed(2);
 
-            if (ltpChipsEl) {
-                const userColor = userTradeCount > 0 ? '#c084fc' : '#64748b';
-                ltpChipsEl.innerHTML = 
-                    chipHtml('Total Trades', totalCount, '#e2e8f0') +
-                    chipHtml('Configured Trades', userTradeCount, userColor) +
-                    chipHtml('Buys', buyCount, '#34d399') +
-                    chipHtml('Sells', sellCount, '#fb7185') +
-                    chipHtml('Buy Vol %', buyPct, parseFloat(buyPct) >= 50 ? '#34d399' : '#fb7185') +
-                    chipHtml('Turnover', turnoverStr, '#38bdf8');
-            }
+            const userCountEl = document.getElementById('agg-user-trade-count');
+            if (userCountEl) userCountEl.textContent = userTradeCount;
+
+            const statTotalEl = document.getElementById('agg-stat-total');
+            if (statTotalEl) statTotalEl.textContent = totalCount;
+
+            const statUserEl = document.getElementById('agg-stat-user');
+            if (statUserEl) statUserEl.textContent = userTradeCount;
 
             if (!totalCount) {
-                if (el) el.innerHTML = '<div class="term-empty" style="padding:48px 0;text-align:center;color:var(--text-muted);font-size:12px;font-weight:600;letter-spacing:0.5px;">Awaiting aggregated trades stream for active pair...</div>';
+                if (el) el.innerHTML = '<div class="term-empty" style="padding:48px 0;text-align:center;color:var(--text-muted);font-size:11px;font-weight:600;">Awaiting aggregated trades stream...</div>';
                 if (pgEl) pgEl.style.display = 'none';
                 return;
             }
@@ -10747,7 +10749,7 @@ window.addEventListener('DOMContentLoaded', () => {
             }
 
             const totalFiltered = filtered.length;
-            const pageSize = window.PAGE_SIZE_TRADES || 15;
+            const pageSize = window.PAGE_SIZE_TRADES || 20;
 
             if (pgEl && pgInfo) {
                 if (totalFiltered > pageSize) {
@@ -10760,8 +10762,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     if (pgTotalInfo) {
                         const startNum = (window.pagination.trades - 1) * pageSize + 1;
                         const endNum = Math.min(startNum + pageSize - 1, totalFiltered);
-                        pgTotalInfo.innerHTML = `Showing <b style="color:var(--text-main);">${startNum}–${endNum}</b> of <b style="color:var(--text-main);">${totalFiltered}</b> trades` + 
-                            (totalFiltered !== totalCount ? ` <span style="color:var(--text-muted);font-weight:400;">(filtered from ${totalCount})</span>` : '');
+                        pgTotalInfo.textContent = `${startNum}–${endNum} of ${totalFiltered}`;
                     }
 
                     const prevBtn = pgEl.querySelector("button[onclick*='-1']");
@@ -10781,10 +10782,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
             if (totalFiltered === 0) {
                 if (el) {
-                    el.innerHTML = `<div class="term-empty" style="padding:48px 0;text-align:center;">
-                        <div style="font-size:24px;margin-bottom:8px;">🔍</div>
-                        <div style="color:var(--text-main);font-weight:600;font-size:13px;margin-bottom:4px;">No matching trades found</div>
-                        <div style="color:var(--text-muted);font-size:11px;">Try clearing filters or switching from "${window.aggUserFilter.toUpperCase()}" to "ALL MARKET TRADES"</div>
+                    el.innerHTML = `<div class="term-empty" style="padding:40px 10px;text-align:center;">
+                        <div style="font-size:20px;margin-bottom:6px;">🔍</div>
+                        <div style="color:var(--text-main);font-weight:600;font-size:12px;margin-bottom:2px;">No matching trades</div>
+                        <div style="color:var(--text-muted);font-size:10px;">Switch to "ALL" or clear search filter</div>
                     </div>`;
                 }
                 return;
@@ -10794,28 +10795,19 @@ window.addEventListener('DOMContentLoaded', () => {
             const endIdx = startIdx + pageSize;
             const pageData = filtered.slice(startIdx, endIdx);
 
-            let html = `<table style="width:100%;border-collapse:collapse;">
+            let html = `<table style="width:100%;border-collapse:collapse;table-layout:fixed;">
                 <thead>
-                    <tr style="border-bottom:1px solid var(--border);background:var(--input-bg);">
-                        <th style="padding:10px 14px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);font-weight:700;">Time</th>
-                        <th style="padding:10px 14px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);font-weight:700;">Trade ID</th>
-                        <th style="padding:10px 14px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);font-weight:700;">Side</th>
-                        <th style="padding:10px 14px;text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);font-weight:700;">Price</th>
-                        <th style="padding:10px 14px;text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);font-weight:700;">Qty</th>
-                        <th style="padding:10px 14px;text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);font-weight:700;">Total ($)</th>
-                        <th style="padding:10px 14px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);font-weight:700;">Buyer Maker</th>
-                        <th style="padding:10px 14px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);font-weight:700;">User Attribution</th>
-                        <th style="padding:10px 14px;text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);font-weight:700;">Match Range (f→l)</th>
+                    <tr style="border-bottom:1px solid var(--border);background:var(--input-bg);position:sticky;top:0;z-index:2;">
+                        <th style="padding:6px 8px;text-align:left;font-size:9.5px;text-transform:uppercase;color:var(--text-muted);font-weight:700;width:34%;">Price ($)</th>
+                        <th style="padding:6px 8px;text-align:right;font-size:9.5px;text-transform:uppercase;color:var(--text-muted);font-weight:700;width:24%;">Qty</th>
+                        <th style="padding:6px 8px;text-align:right;font-size:9.5px;text-transform:uppercase;color:var(--text-muted);font-weight:700;width:22%;">Time</th>
+                        <th style="padding:6px 8px;text-align:right;font-size:9.5px;text-transform:uppercase;color:var(--text-muted);font-weight:700;width:20%;">User</th>
                     </tr>
                 </thead>
                 <tbody>`;
 
             pageData.forEach((t) => {
                 const isSell = (t.m === true || t.m === 'true' || t.side === 'SELL');
-                const sideClass = isSell ? 'sell' : 'buy';
-                const sideLabel = isSell ? 'SELL' : 'BUY';
-                const sideBadge = `<span class="trade-side ${sideClass}">${sideLabel}</span>`;
-
                 const priceNum = parseFloat(t.p || t.price || 0);
                 const qtyNum = parseFloat(t.q || t.stageQty || t.quantity || 0);
                 const totalVal = (priceNum * qtyNum);
@@ -10825,61 +10817,67 @@ window.addEventListener('DOMContentLoaded', () => {
                 const totalValStr = totalVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
                 const tradeId = t.a || t.tradeId || t.makerOrderId || '-';
-                const tradeTime = t.time || (t.T ? (new Date(t.T).toLocaleTimeString('en-US', { hour12: false }) + '.' + String(t.T % 1000).padStart(3, '0')) : '-');
-
-                // User attribution badge & highlight row class
-                let userBadge = '<span style="font-size:10px;color:var(--text-dim);letter-spacing:0.5px;font-family:\'JetBrains Mono\',monospace;">🌐 Public Market</span>';
-                let rowTintClass = '';
-                if (t.userTag === 'BOTH') {
-                    userBadge = '<span class="trade-user-badge trade-user-badge-both" title="Trade crossed between Maker (User 1) and Taker (User 2)">🔄 U1 ↔ U2 CROSS</span>';
-                    rowTintClass = ' trade-row-matched-both';
-                } else if (t.userTag === 'U1') {
-                    userBadge = '<span class="trade-user-badge trade-user-badge-u1" title="Maker (User 1) Trade">👤 MAKER (U1)</span>';
-                    rowTintClass = ' trade-row-matched-u1';
-                } else if (t.userTag === 'U2') {
-                    userBadge = '<span class="trade-user-badge trade-user-badge-u2" title="Taker (User 2) Trade">⚡ TAKER (U2)</span>';
-                    rowTintClass = ' trade-row-matched-u2';
+                
+                // Format compact time: HH:mm:ss
+                let timeShort = '-';
+                if (t.time && typeof t.time === 'string' && t.time.includes(':')) {
+                    timeShort = t.time.split('.')[0].split(' ')[0] || t.time;
+                } else if (t.T) {
+                    const d = new Date(t.T);
+                    timeShort = d.toLocaleTimeString('en-US', { hour12: false });
                 }
 
-                const buyerMakerBadge = t.m !== undefined ? 
-                    (t.m ? '<span style="font-size:10px;color:#fb7185;background:rgba(251,113,133,0.12);padding:2px 6px;border-radius:4px;font-weight:600;">Yes (Taker Sell)</span>' 
-                          : '<span style="font-size:10px;color:#34d399;background:rgba(52,211,153,0.12);padding:2px 6px;border-radius:4px;font-weight:600;">No (Taker Buy)</span>') 
-                    : '<span style="color:var(--text-dim);font-size:11px;">-</span>';
-
-                const matchRange = (t.f !== undefined && t.l !== undefined) ? `${t.f} → ${t.l}` : (t.makerOrderId && t.takerOrderId ? `${t.makerOrderId} → ${t.takerOrderId}` : '-');
+                // Compact user tag badge
+                let userBadge = '<span style="font-size:10px;color:var(--text-dim);font-family:monospace;">—</span>';
+                let rowTintClass = '';
+                if (t.userTag === 'BOTH') {
+                    userBadge = '<span class="trade-user-badge trade-user-badge-both" style="font-size:9px;padding:1px 5px;" title="Crossed between Maker (U1) and Taker (U2)">🔄 Cross</span>';
+                    rowTintClass = ' trade-row-matched-both';
+                } else if (t.userTag === 'U1') {
+                    userBadge = '<span class="trade-user-badge trade-user-badge-u1" style="font-size:9px;padding:1px 5px;" title="Maker (User 1) Trade">👤 Maker</span>';
+                    rowTintClass = ' trade-row-matched-u1';
+                } else if (t.userTag === 'U2') {
+                    userBadge = '<span class="trade-user-badge trade-user-badge-u2" style="font-size:9px;padding:1px 5px;" title="Taker (User 2) Trade">⚡ Taker</span>';
+                    rowTintClass = ' trade-row-matched-u2';
+                }
 
                 const uniqueKey = 'trade_' + tradeId + '_' + (t.T || '') + '_' + priceStr;
                 const isExp = window.expandedTrades && window.expandedTrades.has(uniqueKey);
                 const expClass = isExp ? ' expanded' : '';
 
-                html += `<tr class="trade-row${rowTintClass}${expClass}" data-key="${uniqueKey}" style="cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.04);transition:background 0.2s ease;">
-                    <td style="padding:9px 14px;font-size:11px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;">${tradeTime}</td>
-                    <td style="padding:9px 14px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-main);">${tradeId}</td>
-                    <td style="padding:9px 14px;text-align:center;">${sideBadge}</td>
-                    <td style="padding:9px 14px;text-align:right;font-weight:700;font-family:'JetBrains Mono',monospace;color:${isSell ? '#fb7185' : '#34d399'};">$${priceStr}</td>
-                    <td style="padding:9px 14px;text-align:right;color:var(--cyan);font-weight:700;font-family:'JetBrains Mono',monospace;">${qtyStr}</td>
-                    <td style="padding:9px 14px;text-align:right;color:var(--text-muted);font-family:'JetBrains Mono',monospace;font-weight:600;">$${totalValStr}</td>
-                    <td style="padding:9px 14px;text-align:center;">${buyerMakerBadge}</td>
-                    <td style="padding:9px 14px;text-align:center;">${userBadge}</td>
-                    <td style="padding:9px 14px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);">${matchRange}</td>
+                html += `<tr class="trade-row${rowTintClass}${expClass}" data-key="${uniqueKey}" style="cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.03);transition:background 0.15s ease;">
+                    <td style="padding:5px 8px;text-align:left;font-weight:700;font-family:'JetBrains Mono',monospace;font-size:11px;color:${isSell ? '#fb7185' : '#34d399'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                        <span style="font-size:9px;opacity:0.75;margin-right:2px;">${isSell ? '▼' : '▲'}</span>$${priceStr}
+                    </td>
+                    <td style="padding:5px 8px;text-align:right;color:var(--cyan);font-weight:600;font-family:'JetBrains Mono',monospace;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                        ${qtyStr}
+                    </td>
+                    <td style="padding:5px 8px;text-align:right;font-size:10px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;white-space:nowrap;">
+                        ${timeShort}
+                    </td>
+                    <td style="padding:5px 8px;text-align:right;white-space:nowrap;">
+                        ${userBadge}
+                    </td>
                 </tr>`;
 
                 if (isExp) {
                     const timeIso = t.T ? new Date(t.T).toISOString() : '-';
-                    const sym = t.s || activeTabSymbol || '-';
-                    const makerOrd = t.makerOrderId ? `#${t.makerOrderId}` : 'N/A';
-                    const takerOrd = t.takerOrderId ? `#${t.takerOrderId}` : 'N/A';
+                    const matchRange = (t.f !== undefined && t.l !== undefined) ? `${t.f} → ${t.l}` : (t.makerOrderId && t.takerOrderId ? `${t.makerOrderId} → ${t.takerOrderId}` : '-');
+                    const buyerMakerStr = t.m !== undefined ? (t.m ? 'Yes (Sell Taker)' : 'No (Buy Taker)') : '-';
+                    const makerOrd = t.makerOrderId ? `#${t.makerOrderId}` : '';
+                    const takerOrd = t.takerOrderId ? `#${t.takerOrderId}` : '';
 
-                    html += `<tr class="trade-details-wrap"><td colspan="9" style="padding:0;background:rgba(0,0,0,0.2);"><div class="trade-details-inner" style="padding:14px 20px;display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:12px;border-bottom:1px solid var(--border);">
-                        <div class="trade-detail-item"><span class="trade-detail-label">Symbol</span><span class="trade-detail-value" style="font-weight:700;color:var(--cyan);">${sym}</span></div>
-                        <div class="trade-detail-item"><span class="trade-detail-label">Agg Trade ID (a)</span><span class="trade-detail-value mono">${tradeId}</span></div>
-                        <div class="trade-detail-item"><span class="trade-detail-label">Match ID (f→l)</span><span class="trade-detail-value mono">${matchRange}</span></div>
-                        <div class="trade-detail-item"><span class="trade-detail-label">Buyer Was Maker (m)</span><span class="trade-detail-value">${t.m !== undefined ? (t.m ? 'Yes (Sell Taker)' : 'No (Buy Taker)') : '-'}</span></div>
-                        <div class="trade-detail-item"><span class="trade-detail-label">Timestamp (T)</span><span class="trade-detail-value mono">${timeIso}</span></div>
-                        <div class="trade-detail-item"><span class="trade-detail-label">Notional Value</span><span class="trade-detail-value mono" style="color:var(--emerald);font-weight:700;">$${totalValStr}</span></div>
-                        <div class="trade-detail-item"><span class="trade-detail-label">Maker Order ID (U1)</span><span class="trade-detail-value mono" style="color:var(--cyan);">${makerOrd}</span></div>
-                        <div class="trade-detail-item"><span class="trade-detail-label">Taker Order ID (U2)</span><span class="trade-detail-value mono" style="color:var(--yellow);">${takerOrd}</span></div>
-                    </div></td></tr>`;
+                    html += `<tr class="trade-details-wrap"><td colspan="4" style="padding:0;background:rgba(0,0,0,0.28);">
+                        <div style="padding:8px 10px;font-size:10px;font-family:'JetBrains Mono',monospace;display:flex;flex-direction:column;gap:3px;border-bottom:1px solid var(--border);">
+                            <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-muted);">Trade ID:</span><span style="color:var(--text-main);font-weight:700;">${tradeId}</span></div>
+                            <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-muted);">Notional:</span><span style="color:var(--emerald);font-weight:700;">$${totalValStr}</span></div>
+                            <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-muted);">Buyer Maker:</span><span>${buyerMakerStr}</span></div>
+                            <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-muted);">Match Range:</span><span>${matchRange}</span></div>
+                            ${makerOrd ? `<div style="display:flex;justify-content:space-between;"><span style="color:var(--text-muted);">Maker Ord:</span><span style="color:var(--cyan);">${makerOrd}</span></div>` : ''}
+                            ${takerOrd ? `<div style="display:flex;justify-content:space-between;"><span style="color:var(--text-muted);">Taker Ord:</span><span style="color:var(--yellow);">${takerOrd}</span></div>` : ''}
+                            <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-muted);">Time:</span><span style="color:var(--text-dim);font-size:9.5px;">${timeIso}</span></div>
+                        </div>
+                    </td></tr>`;
                 }
             });
 
