@@ -2323,6 +2323,36 @@
     color: #1e293b !important;
   }
 
+  /* Pre-flight Financial Alert Animations */
+  .term-pf-val.val-alert-danger {
+    color: #ef4444 !important;
+    font-weight: 800 !important;
+    text-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+    animation: iconVibrate 1.8s infinite ease-in-out;
+  }
+  .term-pf-val.val-alert-warn {
+    color: #f59e0b !important;
+    font-weight: 700 !important;
+  }
+  .term-quick-chip-btn {
+    font-size: 8.5px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: rgba(6, 182, 212, 0.15);
+    border: 1px solid rgba(6, 182, 212, 0.35);
+    color: var(--cyan);
+    cursor: pointer;
+    font-weight: 700;
+    margin-left: 4px;
+    vertical-align: middle;
+    transition: all 0.15s ease;
+  }
+  .term-quick-chip-btn:hover {
+    background: rgba(6, 182, 212, 0.3);
+    border-color: var(--cyan);
+    color: #fff;
+  }
+
   .term-main-action-btn {
     width: 100%;
     padding: 11px 16px;
@@ -4616,7 +4646,7 @@
       <!-- Order Quantity & Percentage Slider/Pills -->
       <div id="trade-qty-wrap">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-          <label class="term-input-label">Quantity (<span id="term-base-asset">BASE</span>)</label>
+          <label class="term-input-label">Quantity (<span id="term-base-asset">BASE</span>) <span class="term-quick-chip-btn" id="term-chip-min-qty" onclick="window.setTermMinQty()" title="Set minimum order quantity (5 USDT notional)" style="display:none;">Min Qty</span></label>
           <div class="term-quick-chips">
             <span class="term-chip" onclick="window.setTermQtyPct(25)">25%</span>
             <span class="term-chip" onclick="window.setTermQtyPct(50)">50%</span>
@@ -4654,7 +4684,7 @@
                 <div style="font-size:11px;color:var(--text-main);font-weight:700;">Reduce Only</div>
                 <div style="font-size:9.5px;color:var(--text-muted);">Only close/reduce open position</div>
               </div>
-              <input type="checkbox" id="trade-reduce-only" style="cursor:pointer;width:16px;height:16px;accent-color:var(--cyan);">
+              <input type="checkbox" id="trade-reduce-only" onchange="window.calcTermEstimates()" style="cursor:pointer;width:16px;height:16px;accent-color:var(--cyan);">
             </div>
           </div>
         </div>
@@ -7950,12 +7980,37 @@ window.addEventListener('DOMContentLoaded', () => {
             window.calcTermEstimates();
         };
 
+        window.setTermMinQty = function() {
+            const inst = cachedInstances[activeTabSymbol];
+            if (!inst) return;
+            const diag = inst.diagnostics || {};
+            let price = parseFloat(document.getElementById('trade-price')?.value);
+            if (!price || isNaN(price) || price <= 0) {
+                const stopVal = parseFloat(document.getElementById('trade-stop-price')?.value);
+                if (stopVal && !isNaN(stopVal) && stopVal > 0) price = stopVal;
+            }
+            if (!price || isNaN(price) || price <= 0) {
+                price = parseFloat(diag.testnetLtp) || parseFloat(diag.binanceLtp) || parseFloat(diag.testnetMarkPrice) || parseFloat(diag.binanceMarkPrice) || 0;
+            }
+            if (!price || price <= 0) return showToast('Awaiting market price feed', true);
+
+            const precision = (typeof qPrec !== 'undefined' && qPrec !== null) ? qPrec : (diag.qtyPrecision !== undefined ? diag.qtyPrecision : 2);
+            const minQty = Math.max(Math.pow(10, -precision), parseFloat((5.05 / price).toFixed(precision)));
+            const qtyInput = document.getElementById('trade-qty');
+            if (qtyInput) {
+                qtyInput.value = minQty;
+                window.calcTermEstimates();
+                showToast(`Quantity set to ${minQty} (~$5.05 notional)`);
+            }
+        };
+
         window.calcTermEstimates = function() {
             const inst = cachedInstances[activeTabSymbol];
             const activeTier = activeEnvFilter || (window.payload && window.payload.tier) || 'PRODUCTION';
             const tierPorts = (window.payload && window.payload.portfolios && window.payload.portfolios[activeTier]) || {};
             const uId = window.tradeUser || document.getElementById('sel-trade-user')?.value || 'user1';
             const port = tierPorts[uId] || {};
+            const availBal = parseFloat(port.availableBalance || 0);
             const pos = (port.positions || []).find(p => p.symbol === activeTabSymbol) || {};
             const leverage = parseFloat(pos.leverage) || 5;
 
@@ -7978,28 +8033,80 @@ window.addEventListener('DOMContentLoaded', () => {
             const estValEl = document.getElementById('term-est-val');
             const estCostEl = document.getElementById('term-est-cost');
             const estLiqEl = document.getElementById('term-est-liq');
+            const minQtyChip = document.getElementById('term-chip-min-qty');
 
             if (price > 0 && qty > 0) {
                 const totalVal = price * qty;
                 const marginReq = leverage > 0 ? (totalVal / leverage) : totalVal;
                 
-                if (estValEl) estValEl.textContent = `≈ ${totalVal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} USDT`;
-                if (estCostEl) estCostEl.textContent = `≈ ${marginReq.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} USDT`;
+                // Value & Min Notional Warning (< 5.00 USDT)
+                if (estValEl) {
+                    if (totalVal < 5.00) {
+                        estValEl.className = 'term-pf-val val-alert-warn';
+                        estValEl.textContent = `≈ ${totalVal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} USDT (< 5.00 Min)`;
+                        if (minQtyChip) minQtyChip.style.display = 'inline-block';
+                    } else {
+                        estValEl.className = 'term-pf-val';
+                        estValEl.textContent = `≈ ${totalVal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} USDT`;
+                        if (minQtyChip) minQtyChip.style.display = 'none';
+                    }
+                }
 
+                // Margin & Available Balance Warning
+                if (estCostEl) {
+                    if (marginReq > availBal && availBal >= 0) {
+                        estCostEl.className = 'term-pf-val val-alert-danger';
+                        estCostEl.textContent = `≈ ${marginReq.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} USDT (Short: $${(marginReq - availBal).toFixed(2)})`;
+                    } else {
+                        estCostEl.className = 'term-pf-val';
+                        estCostEl.style.color = 'var(--cyan)';
+                        estCostEl.textContent = `≈ ${marginReq.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} USDT`;
+                    }
+                }
+
+                // Liquidation Price & Danger Distance (< 1.5%)
                 if (leverage > 1) {
                     const isLong = (window.termActiveSide || 'BUY') === 'BUY';
                     const liqPrice = isLong 
                         ? price * (1 - (1 / leverage) + 0.005)
                         : price * (1 + (1 / leverage) - 0.005);
                     const precision = (typeof pPrec !== 'undefined' && pPrec !== null) ? pPrec : 4;
-                    if (estLiqEl) estLiqEl.textContent = Math.max(0, liqPrice).toFixed(precision) + ' USDT';
+                    const finalLiq = Math.max(0, liqPrice);
+                    const distPct = Math.abs(finalLiq - price) / price * 100;
+
+                    if (estLiqEl) {
+                        if (distPct < 1.5) {
+                            estLiqEl.className = 'term-pf-val val-alert-danger';
+                            estLiqEl.textContent = `⚡ ${finalLiq.toFixed(precision)} USDT (±${distPct.toFixed(2)}%)`;
+                        } else {
+                            estLiqEl.className = 'term-pf-val';
+                            estLiqEl.style.color = 'var(--yellow)';
+                            estLiqEl.textContent = finalLiq.toFixed(precision) + ' USDT';
+                        }
+                    }
                 } else {
-                    if (estLiqEl) estLiqEl.textContent = 'None (1x)';
+                    if (estLiqEl) {
+                        estLiqEl.className = 'term-pf-val';
+                        estLiqEl.style.color = 'var(--yellow)';
+                        estLiqEl.textContent = 'None (1x)';
+                    }
                 }
             } else {
-                if (estValEl) estValEl.textContent = '≈ 0.00 USDT';
-                if (estCostEl) estCostEl.textContent = '≈ 0.00 USDT';
-                if (estLiqEl) estLiqEl.textContent = '—';
+                if (estValEl) {
+                    estValEl.className = 'term-pf-val';
+                    estValEl.textContent = '≈ 0.00 USDT';
+                }
+                if (estCostEl) {
+                    estCostEl.className = 'term-pf-val';
+                    estCostEl.style.color = 'var(--cyan)';
+                    estCostEl.textContent = '≈ 0.00 USDT';
+                }
+                if (estLiqEl) {
+                    estLiqEl.className = 'term-pf-val';
+                    estLiqEl.style.color = 'var(--yellow)';
+                    estLiqEl.textContent = '—';
+                }
+                if (minQtyChip) minQtyChip.style.display = 'none';
             }
 
             // Real-time evaluation of Order Price Limits, Mark Bands, Circuit Breakers & Book Depth
@@ -8053,6 +8160,16 @@ window.addEventListener('DOMContentLoaded', () => {
             const price = parseFloat(document.getElementById('trade-price')?.value) || 0;
             const stopPrice = parseFloat(document.getElementById('trade-stop-price')?.value) || 0;
             const qty = parseFloat(document.getElementById('trade-qty')?.value) || 0;
+            const tif = document.getElementById('trade-tif')?.value || 'GTC';
+            const reduceOnly = document.getElementById('trade-reduce-only')?.checked || false;
+
+            const activeTier = activeEnvFilter || (window.payload && window.payload.tier) || 'PRODUCTION';
+            const tierPorts = (window.payload && window.payload.portfolios && window.payload.portfolios[activeTier]) || {};
+            const uId = window.tradeUser || document.getElementById('sel-trade-user')?.value || 'user1';
+            const port = tierPorts[uId] || {};
+            const activePos = (port.positions || []).find(p => p.symbol === activeTabSymbol) || null;
+            const openPosSize = activePos ? parseFloat(activePos.size || 0) : 0;
+            const openPosSide = activePos ? (activePos.side || (openPosSize > 0 ? 'LONG' : (openPosSize < 0 ? 'SHORT' : 'NONE'))) : 'NONE';
 
             // Price boundaries & reference data
             const rawMark = parseFloat(diag.testnetMarkPrice) || parseFloat(diag.binanceMarkPrice) || parseFloat(diag.testnetLtp) || 0;
@@ -8084,10 +8201,33 @@ window.addEventListener('DOMContentLoaded', () => {
 
             const isBuy = side === 'BUY';
 
+            // Global Reduce-Only Validation
+            if (reduceOnly) {
+                if (!activePos || Math.abs(openPosSize) === 0) {
+                    bannerState = 'state-warning';
+                    bannerIcon = '⚠️';
+                    bannerBadge = 'REDUCE-ONLY: NO POS';
+                    bannerStat = 'Pos: 0';
+                    bannerMsg = `Reduce-Only is active but you have <strong>no open position</strong> in ${activeTabSymbol}. Order will be rejected.`;
+                } else if ((openPosSide === 'LONG' && isBuy) || (openPosSide === 'SHORT' && !isBuy)) {
+                    bannerState = 'state-warning';
+                    bannerIcon = '⚠️';
+                    bannerBadge = 'WRONG SIDE';
+                    bannerStat = `Pos: ${openPosSide}`;
+                    bannerMsg = `Reduce-Only on <strong>${openPosSide}</strong> requires a <strong>${openPosSide === 'LONG' ? 'SELL' : 'BUY'}</strong> order. Placing ${side} will fail.`;
+                } else if (qty > Math.abs(openPosSize)) {
+                    bannerState = 'state-warning';
+                    bannerIcon = '⚠️';
+                    bannerBadge = 'QTY > POSITION';
+                    bannerStat = `Max: ${Math.abs(openPosSize)}`;
+                    bannerMsg = `Quantity (<strong>${qty}</strong>) exceeds open ${openPosSide} (<strong>${Math.abs(openPosSize)}</strong>). Reduce-only orders cannot increase position.`;
+                }
+            }
+
             // -------------------------------------------------------------
             // 1. LIMIT ORDERS
             // -------------------------------------------------------------
-            if (type === 'LIMIT') {
+            if (bannerMsg === '' && type === 'LIMIT') {
                 bannerTitle = `Limit ${side}`;
                 if (price <= 0) {
                     bannerState = 'state-info';
@@ -8099,12 +8239,20 @@ window.addEventListener('DOMContentLoaded', () => {
                         : `Orders must be ≥ <strong>$${fmtPrice(minSell)}</strong> (Min Sell). Mark Lower: <strong>$${fmtPrice(markLower)}</strong>.`;
                 } else if (isBuy) {
                     bannerStat = maxBuy ? `Max: $${fmtPrice(maxBuy)}` : `Price: $${fmtPrice(price)}`;
+                    const bestAsk = asks.length > 0 ? parseFloat(asks[0][0]) : null;
+                    const isTaker = (bestAsk !== null && price >= bestAsk);
+
                     if (maxBuy !== null && price > maxBuy) {
                         bannerState = 'state-warning';
                         bannerIcon = '⚠️';
                         bannerBadge = 'EXCEEDS MAX BUY';
                         const extra = (cbUpper && price > cbUpper) ? ` & CB Upper ($${fmtPrice(cbUpper)})` : '';
                         bannerMsg = `Price <strong>$${fmtPrice(price)}</strong> exceeds Max Buy limit <strong>$${fmtPrice(maxBuy)}</strong>${extra}. Exchange will reject order.`;
+                    } else if (tif === 'GTX' && isTaker) {
+                        bannerState = 'state-warning';
+                        bannerIcon = '🛑';
+                        bannerBadge = 'GTX TAKER COLLISION';
+                        bannerMsg = `Post-Only (GTX) order crosses Best Ask <strong>$${fmtPrice(bestAsk)}</strong>. Will be immediately cancelled by exchange as it cannot rest as Maker.`;
                     } else if (markUpper !== null && price > markUpper) {
                         bannerState = 'state-warning';
                         bannerIcon = '⚠️';
@@ -8113,8 +8261,6 @@ window.addEventListener('DOMContentLoaded', () => {
                     } else {
                         bannerState = 'state-success';
                         bannerIcon = '✓';
-                        const bestAsk = asks.length > 0 ? parseFloat(asks[0][0]) : null;
-                        const isTaker = (bestAsk !== null && price >= bestAsk);
                         bannerBadge = isTaker ? 'TAKER MATCH' : 'MAKER READY';
                         bannerMsg = isTaker
                             ? `Price <strong>$${fmtPrice(price)}</strong> crosses Best Ask <strong>$${fmtPrice(bestAsk)}</strong> • Instant execution.`
@@ -8123,12 +8269,20 @@ window.addEventListener('DOMContentLoaded', () => {
                 } else {
                     // SELL side
                     bannerStat = minSell ? `Min: $${fmtPrice(minSell)}` : `Price: $${fmtPrice(price)}`;
+                    const bestBid = bids.length > 0 ? parseFloat(bids[0][0]) : null;
+                    const isTaker = (bestBid !== null && price <= bestBid);
+
                     if (minSell !== null && price < minSell) {
                         bannerState = 'state-warning';
                         bannerIcon = '⚠️';
                         bannerBadge = 'BELOW MIN SELL';
                         const extra = (cbLower && price < cbLower) ? ` & CB Lower ($${fmtPrice(cbLower)})` : '';
                         bannerMsg = `Price <strong>$${fmtPrice(price)}</strong> is below Min Sell floor <strong>$${fmtPrice(minSell)}</strong>${extra}. Exchange will reject order.`;
+                    } else if (tif === 'GTX' && isTaker) {
+                        bannerState = 'state-warning';
+                        bannerIcon = '🛑';
+                        bannerBadge = 'GTX TAKER COLLISION';
+                        bannerMsg = `Post-Only (GTX) order crosses Best Bid <strong>$${fmtPrice(bestBid)}</strong>. Will be immediately cancelled by exchange as it cannot rest as Maker.`;
                     } else if (markLower !== null && price < markLower) {
                         bannerState = 'state-warning';
                         bannerIcon = '⚠️';
@@ -8137,8 +8291,6 @@ window.addEventListener('DOMContentLoaded', () => {
                     } else {
                         bannerState = 'state-success';
                         bannerIcon = '✓';
-                        const bestBid = bids.length > 0 ? parseFloat(bids[0][0]) : null;
-                        const isTaker = (bestBid !== null && price <= bestBid);
                         bannerBadge = isTaker ? 'TAKER MATCH' : 'MAKER READY';
                         bannerMsg = isTaker
                             ? `Price <strong>$${fmtPrice(price)}</strong> crosses Best Bid <strong>$${fmtPrice(bestBid)}</strong> • Instant execution.`
@@ -8198,6 +8350,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
                             showBar = true;
                             barFillPct = fillRatio;
+                            const slippagePct = bestAsk > 0 ? (((avgFill - bestAsk) / bestAsk) * 100).toFixed(2) : '0.00';
 
                             if (qty > totalAvail) {
                                 bannerState = 'state-warning';
@@ -8206,12 +8359,17 @@ window.addEventListener('DOMContentLoaded', () => {
                                 bannerStat = `Avg: ~$${fmtPrice(avgFill)}`;
                                 const unfilled = qty - filled;
                                 bannerMsg = `Only <strong>${fmtQty(filled)} ${base}</strong> fillable @ avg <strong>~$${fmtPrice(avgFill)}</strong>. Remainder <strong>${fmtQty(unfilled)} ${base}</strong> expires (exceeds band depth).`;
+                            } else if (parseFloat(slippagePct) >= 2.5) {
+                                bannerState = 'state-warning';
+                                bannerIcon = '⚠️';
+                                bannerBadge = `HIGH SLIPPAGE (+${slippagePct}%)`;
+                                bannerStat = `Avg: ~$${fmtPrice(avgFill)}`;
+                                bannerMsg = `High slippage: Avg fill <strong>~$${fmtPrice(avgFill)}</strong> is <strong>+${slippagePct}%</strong> above Ask 1 ($${fmtPrice(bestAsk)}). Confirmation required.`;
                             } else {
                                 bannerState = 'state-success';
                                 bannerIcon = '✓';
                                 bannerBadge = '100% FILLABLE';
                                 bannerStat = `Avg: ~$${fmtPrice(avgFill)}`;
-                                const slippagePct = bestAsk > 0 ? (((avgFill - bestAsk) / bestAsk) * 100).toFixed(2) : '0.00';
                                 bannerMsg = `Fills <strong>100%</strong> @ avg <strong>~$${fmtPrice(avgFill)}</strong> (Range: $${fmtPrice(bestAsk)} → $${fmtPrice(lastPrice)} • Slippage: +${slippagePct}%).`;
                             }
                         }
@@ -8260,6 +8418,7 @@ window.addEventListener('DOMContentLoaded', () => {
                             }
                             const avgFill = filled > 0 ? (cumCost / filled) : bestBid;
                             const fillRatio = Math.min(100, Math.max(0, (filled / qty) * 100));
+                            const slippagePct = bestBid > 0 ? (((bestBid - avgFill) / bestBid) * 100).toFixed(2) : '0.00';
 
                             showBar = true;
                             barFillPct = fillRatio;
@@ -8271,12 +8430,17 @@ window.addEventListener('DOMContentLoaded', () => {
                                 bannerStat = `Avg: ~$${fmtPrice(avgFill)}`;
                                 const unfilled = qty - filled;
                                 bannerMsg = `Only <strong>${fmtQty(filled)} ${base}</strong> fillable @ avg <strong>~$${fmtPrice(avgFill)}</strong>. Remainder <strong>${fmtQty(unfilled)} ${base}</strong> expires (exceeds band depth).`;
+                            } else if (parseFloat(slippagePct) >= 2.5) {
+                                bannerState = 'state-warning';
+                                bannerIcon = '⚠️';
+                                bannerBadge = `HIGH SLIPPAGE (-${slippagePct}%)`;
+                                bannerStat = `Avg: ~$${fmtPrice(avgFill)}`;
+                                bannerMsg = `High slippage: Avg fill <strong>~$${fmtPrice(avgFill)}</strong> is <strong>-${slippagePct}%</strong> below Bid 1 ($${fmtPrice(bestBid)}). Confirmation required.`;
                             } else {
                                 bannerState = 'state-success';
                                 bannerIcon = '✓';
                                 bannerBadge = '100% FILLABLE';
                                 bannerStat = `Avg: ~$${fmtPrice(avgFill)}`;
-                                const slippagePct = bestBid > 0 ? (((bestBid - avgFill) / bestBid) * 100).toFixed(2) : '0.00';
                                 bannerMsg = `Fills <strong>100%</strong> @ avg <strong>~$${fmtPrice(avgFill)}</strong> (Range: $${fmtPrice(bestBid)} → $${fmtPrice(lastPrice)} • Slippage: -${slippagePct}%).`;
                             }
                         }
@@ -8633,9 +8797,106 @@ window.addEventListener('DOMContentLoaded', () => {
                 payload.callbackRate = cbRate;
             }
 
-            // Non-blocking safeguard warning toast if placing outside exchange limits
+            // Pre-flight Financial Validation 1: Min Notional (< 5.00 USDT)
             const inst = cachedInstances[activeTabSymbol];
             const diag = inst?.diagnostics || {};
+            let estPrice = price;
+            if (!estPrice || estPrice <= 0) {
+                estPrice = parseFloat(diag.testnetLtp) || parseFloat(diag.binanceLtp) || parseFloat(diag.testnetMarkPrice) || parseFloat(diag.binanceMarkPrice) || 0;
+            }
+            if (estPrice > 0 && (estPrice * qty) < 5.00) {
+                highlightInputError('trade-qty');
+                return showToast(`✗ Min order value is 5.00 USDT (Entered: $${(estPrice * qty).toFixed(2)})`, true);
+            }
+
+            // Pre-flight Financial Validation 2: Available Margin Check
+            const tierPorts = (window.payload && window.payload.portfolios && window.payload.portfolios[activeTier]) || {};
+            const port = tierPorts[userToTrade] || {};
+            const availBal = parseFloat(port.availableBalance || 0);
+            const activePos = (port.positions || []).find(p => p.symbol === activeTabSymbol) || null;
+            const leverage = parseFloat(activePos?.leverage || 5);
+            const marginReq = (estPrice * qty) / (leverage > 0 ? leverage : 1);
+
+            if (!reduceOnly && availBal >= 0 && marginReq > availBal) {
+                highlightInputError('trade-qty');
+                return showToast(`✗ Insufficient Margin: Requires $${marginReq.toFixed(2)} USDT, but balance is $${availBal.toFixed(2)} USDT`, true);
+            }
+
+            // Pre-flight Validation 3: Reduce-Only consistency
+            if (reduceOnly) {
+                const openPosSize = activePos ? parseFloat(activePos.size || 0) : 0;
+                const openPosSide = activePos ? (activePos.side || (openPosSize > 0 ? 'LONG' : (openPosSize < 0 ? 'SHORT' : 'NONE'))) : 'NONE';
+                if (!activePos || Math.abs(openPosSize) === 0) {
+                    highlightInputError('trade-qty');
+                    return showToast(`✗ Reduce-Only rejected: No open position in ${activeTabSymbol}`, true);
+                }
+                if ((openPosSide === 'LONG' && side === 'BUY') || (openPosSide === 'SHORT' && side === 'SELL')) {
+                    highlightInputError('term-main-btn');
+                    return showToast(`✗ Reduce-Only rejected: Cannot ${side} to reduce a ${openPosSide} position`, true);
+                }
+                if (qty > Math.abs(openPosSize)) {
+                    highlightInputError('trade-qty');
+                    return showToast(`✗ Reduce-Only rejected: Qty (${qty}) exceeds position (${Math.abs(openPosSize)})`, true);
+                }
+            }
+
+            // Pre-flight Validation 4: High Slippage Interactive Confirmation for Market Orders
+            if (type === 'MARKET') {
+                const testnetDepth = inst.testnetDepth || { bids: [], asks: [] };
+                const binDepth = inst.binanceDepth || { bids: [], asks: [] };
+                const asks = (testnetDepth.asks && testnetDepth.asks.length > 0) ? testnetDepth.asks : (binDepth.asks || []);
+                const bids = (testnetDepth.bids && testnetDepth.bids.length > 0) ? testnetDepth.bids : (binDepth.bids || []);
+                const isBuySide = side === 'BUY';
+                const bookSide = isBuySide ? asks : bids;
+
+                if (bookSide.length > 0) {
+                    const topPrice = parseFloat(bookSide[0][0]);
+                    let rem = qty;
+                    let cumCost = 0;
+                    let filled = 0;
+                    for (let i = 0; i < bookSide.length; i++) {
+                        const p = parseFloat(bookSide[i][0]);
+                        const q = parseFloat(bookSide[i][1]);
+                        const take = Math.min(rem, q);
+                        cumCost += take * p;
+                        filled += take;
+                        rem -= take;
+                        if (rem <= 0) break;
+                    }
+                    const avgExecution = filled > 0 ? (cumCost / filled) : topPrice;
+                    const slipPct = topPrice > 0 ? (Math.abs(avgExecution - topPrice) / topPrice * 100) : 0;
+
+                    if (slipPct >= 2.5 && !window._bypassSlippageModal) {
+                        const bodyHtml = `
+                            <div style="font-size:12px;color:var(--text-main);line-height:1.5;">
+                                <div style="display:flex;align-items:center;gap:8px;padding:10px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:6px;margin-bottom:12px;color:#fde68a;">
+                                    <span style="font-size:18px;">⚠️</span>
+                                    <div><strong>High Execution Slippage Warning: ${slipPct.toFixed(2)}%</strong><br>Market depth is thin; order will fill across multiple levels.</div>
+                                </div>
+                                <div style="background:var(--input-bg);padding:10px 14px;border-radius:6px;border:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;">
+                                    <div><span style="color:var(--text-muted);">Side:</span> <strong>${side}</strong></div>
+                                    <div><span style="color:var(--text-muted);">Quantity:</span> <strong>${qty}</strong></div>
+                                    <div><span style="color:var(--text-muted);">Best ${isBuySide ? 'Ask' : 'Bid'}:</span> <strong>$${topPrice.toFixed(4)}</strong></div>
+                                    <div><span style="color:var(--text-muted);">Est. Avg Fill:</span> <strong style="color:var(--yellow);">$${avgExecution.toFixed(4)}</strong></div>
+                                    <div style="grid-column:1/-1;"><span style="color:var(--text-muted);">Est. Slippage Cost:</span> <strong style="color:#f87171;">~$${Math.abs(cumCost - (topPrice * filled)).toFixed(2)} USDT</strong></div>
+                                </div>
+                            </div>
+                        `;
+                        window.openL2Modal('High Slippage Warning', activeTabSymbol, `${side} ${qty}`, bodyHtml, 'Confirm & Execute Order', async () => {
+                            window.closeL2Modal();
+                            window._bypassSlippageModal = true;
+                            try {
+                                await window.submitManualTrade(side);
+                            } finally {
+                                window._bypassSlippageModal = false;
+                            }
+                        });
+                        return;
+                    }
+                }
+            }
+
+            // Non-blocking safeguard warning toast if placing outside exchange limits
             const maxBuy = (diag.maxBuyPrice !== null && diag.maxBuyPrice !== undefined) ? parseFloat(diag.maxBuyPrice) : null;
             const minSell = (diag.minSellPrice !== null && diag.minSellPrice !== undefined) ? parseFloat(diag.minSellPrice) : null;
 
