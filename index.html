@@ -6975,20 +6975,26 @@ window.addEventListener('DOMContentLoaded', () => {
                     };
                 }
                 
+                let savedConfig = {};
+                try {
+                    const raw = localStorage.getItem('replicator_cfg_' + tier + '_' + sym);
+                    if (raw) savedConfig = JSON.parse(raw);
+                } catch(e) {}
+
                 const reqBody = {
                     tier: tier,
                     symbol: sym,
                     targetSymbol: sym,
-                    minSize: 10,
-                    maxSize: 50000,
-                    takerSize: 10,
-                    makerUseRawQty: false,
-                    depthLevels: 20,
-                    bufferPct: 0,
-                    tradeDelayMs: 0,
-                    cancelOnStop: false,
-                    newUserFlow: false,
-                    enableTradeSync: true,
+                    minSize: savedConfig.minSize !== undefined ? savedConfig.minSize : 10,
+                    maxSize: savedConfig.maxSize !== undefined ? savedConfig.maxSize : 50000,
+                    takerSize: savedConfig.takerSize !== undefined ? savedConfig.takerSize : 10,
+                    makerUseRawQty: savedConfig.makerUseRawQty === true,
+                    depthLevels: savedConfig.depthLevels !== undefined ? savedConfig.depthLevels : 20,
+                    bufferPct: savedConfig.bufferPct !== undefined ? savedConfig.bufferPct : 0,
+                    tradeDelayMs: savedConfig.tradeDelayMs !== undefined ? savedConfig.tradeDelayMs : 0,
+                    cancelOnStop: savedConfig.cancelOnStop !== undefined ? savedConfig.cancelOnStop : false,
+                    newUserFlow: savedConfig.newUserFlow === true,
+                    enableTradeSync: savedConfig.enableTradeSync !== false,
                     mountOnly: true
                 };
                 
@@ -7095,34 +7101,46 @@ window.addEventListener('DOMContentLoaded', () => {
             document.getElementById('overlay').classList.add('open');
             
             // Pre-fill fields with current active symbol configuration if available
-            if (activeTabSymbol && cachedInstances[activeTabSymbol]) {
-                const inst = cachedInstances[activeTabSymbol];
+            if (activeTabSymbol) {
+                const inst = cachedInstances[activeTabSymbol] || {};
                 const diag = inst.diagnostics || {};
-                
-                document.getElementById('cfg-symbol').value = diag.sourceSymbol || activeTabSymbol;
+                const tier = inst.tier || globalActiveTier || 'PRODUCTION';
+                let savedConfig = {};
+                try {
+                    const raw = localStorage.getItem('replicator_cfg_' + tier + '_' + activeTabSymbol);
+                    if (raw) savedConfig = JSON.parse(raw);
+                } catch(e) {}
+
+                const getVal = (diagVal, savedVal, defVal = '') => {
+                    if (diagVal !== undefined && diagVal !== null && diagVal !== '') return diagVal;
+                    if (savedVal !== undefined && savedVal !== null && savedVal !== '') return savedVal;
+                    return defVal;
+                };
+
+                document.getElementById('cfg-symbol').value = diag.sourceSymbol || savedConfig.sourceSymbol || activeTabSymbol;
                 document.getElementById('cfg-target').value = activeTabSymbol;
-                document.getElementById('cfg-tier').value = inst.tier || globalActiveTier;
+                document.getElementById('cfg-tier').value = tier;
                 
-                document.getElementById('cfg-min').value = diag.minSize !== undefined ? diag.minSize : '';
-                document.getElementById('cfg-max').value = diag.maxSize !== undefined ? diag.maxSize : '';
-                document.getElementById('cfg-taker-size').value = diag.takerSize !== undefined ? diag.takerSize : '';
-                document.getElementById('cfg-depth').value = diag.depthLevels !== undefined ? diag.depthLevels : '';
-                document.getElementById('cfg-buffer').value = diag.bufferPct !== undefined ? diag.bufferPct : '';
-                document.getElementById('cfg-delay').value = diag.tradeDelayMs !== undefined ? diag.tradeDelayMs : '';
+                document.getElementById('cfg-min').value = getVal(diag.minSize, savedConfig.minSize);
+                document.getElementById('cfg-max').value = getVal(diag.maxSize, savedConfig.maxSize);
+                document.getElementById('cfg-taker-size').value = getVal(diag.takerSize, savedConfig.takerSize);
+                document.getElementById('cfg-depth').value = getVal(diag.depthLevels, savedConfig.depthLevels, '20');
+                document.getElementById('cfg-buffer').value = getVal(diag.bufferPct, savedConfig.bufferPct, '0');
+                document.getElementById('cfg-delay').value = getVal(diag.tradeDelayMs, savedConfig.tradeDelayMs, '0');
                 
-                cancelOnStopState = diag.cancelOnStop !== false;
+                cancelOnStopState = getVal(diag.cancelOnStop, savedConfig.cancelOnStop, true) !== false;
                 const csTog = document.getElementById('tog-cancel-stop');
                 if (cancelOnStopState) csTog.classList.add('on'); else csTog.classList.remove('on');
                 
-                newUserState = diag.newUserFlow === true;
+                newUserState = getVal(diag.newUserFlow, savedConfig.newUserFlow, false) === true;
                 const nuTog = document.getElementById('tog-new-user');
                 if (newUserState) nuTog.classList.add('on'); else nuTog.classList.remove('on');
                 
-                makerUseRawQtyState = diag.makerUseRawQty === true;
+                makerUseRawQtyState = getVal(diag.makerUseRawQty, savedConfig.makerUseRawQty, false) === true;
                 const mrTog = document.getElementById('tog-maker-raw');
                 if (makerUseRawQtyState) mrTog.classList.add('on'); else mrTog.classList.remove('on');
 
-                takerUseRawQtyState = diag.takerUseRawQty === true;
+                takerUseRawQtyState = getVal(diag.takerUseRawQty, savedConfig.takerUseRawQty, false) === true;
                 const trTog = document.getElementById('tog-taker-raw');
                 if (takerUseRawQtyState) trTog.classList.add('on'); else trTog.classList.remove('on');
             }
@@ -8303,8 +8321,18 @@ window.addEventListener('DOMContentLoaded', () => {
             try {
                 const r = await fetch(window.getApiUrl('/api/config'), { method:'POST', body: JSON.stringify(body), headers:{'Content-Type':'application/json'} });
                 const d = await r.json();
-                if (d.success) { msg.style.color='#34d399'; msg.textContent='✓ Market Successfully Mounted!'; window.selectTab(tgt); }
-                else { msg.style.color='#fb7185'; msg.textContent='✗ ' + d.error; }
+                if (d.success) {
+                    try {
+                        localStorage.setItem('replicator_cfg_' + tier + '_' + tgt, JSON.stringify(body));
+                        if (!window.localMountedSymbols.includes(tgt)) {
+                            window.localMountedSymbols.push(tgt);
+                            window.setLocalMountedSymbols(tier, window.localMountedSymbols);
+                        }
+                    } catch(e) {}
+                    msg.style.color='#34d399'; msg.textContent='✓ Market Successfully Configured & Mounted!'; window.selectTab(tgt);
+                } else {
+                    msg.style.color='#fb7185'; msg.textContent='✗ ' + d.error;
+                }
             } catch(e) { msg.style.color='#fb7185'; msg.textContent='✗ Network error'; }
         };
 
@@ -14209,20 +14237,26 @@ window.selectMarketFromList = async function(symbol) {
     
     showToast(`⚡ Mounting market ${symbol} (data-only mode)...`);
     try {
+        let savedConfig = {};
+        try {
+            const raw = localStorage.getItem('replicator_cfg_' + tier + '_' + symbol);
+            if (raw) savedConfig = JSON.parse(raw);
+        } catch(e) {}
+
         const reqBody = {
             tier: tier,
             symbol: symbol,
             targetSymbol: symbol,
-            minSize: 10,
-            maxSize: 50000,
-            takerSize: 10,
-            makerUseRawQty: false,
-            depthLevels: 20,
-            bufferPct: 0,
-            tradeDelayMs: 0,
-            cancelOnStop: false,
-            newUserFlow: false,
-            enableTradeSync: true,
+            minSize: savedConfig.minSize !== undefined ? savedConfig.minSize : 10,
+            maxSize: savedConfig.maxSize !== undefined ? savedConfig.maxSize : 50000,
+            takerSize: savedConfig.takerSize !== undefined ? savedConfig.takerSize : 10,
+            makerUseRawQty: savedConfig.makerUseRawQty === true,
+            depthLevels: savedConfig.depthLevels !== undefined ? savedConfig.depthLevels : 20,
+            bufferPct: savedConfig.bufferPct !== undefined ? savedConfig.bufferPct : 0,
+            tradeDelayMs: savedConfig.tradeDelayMs !== undefined ? savedConfig.tradeDelayMs : 0,
+            cancelOnStop: savedConfig.cancelOnStop !== undefined ? savedConfig.cancelOnStop : false,
+            newUserFlow: savedConfig.newUserFlow === true,
+            enableTradeSync: savedConfig.enableTradeSync !== false,
             mountOnly: true
         };
         

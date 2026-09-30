@@ -174,6 +174,53 @@ try {
     process.exit(1);
 }
 
+function saveMarketConfigToDisk(inst) {
+    try {
+        const configPath = path.resolve(__dirname, 'multi-config.json');
+        let configs = [];
+        if (fs.existsSync(configPath)) {
+            try {
+                configs = JSON.parse(fs.readFileSync(configPath, 'utf8') || '[]');
+            } catch(e) { configs = []; }
+        }
+        const targetTier = (inst.tier || globalActiveTier || 'PRODUCTION').toUpperCase();
+        const targetSym = (inst.targetSymbol || inst.symbol || '').toUpperCase();
+        const sourceSym = (inst.sourceSymbol || targetSym).toUpperCase();
+
+        const idx = configs.findIndex(c => 
+            ((c.targetSymbol || c.symbol || '').toUpperCase() === targetSym) &&
+            ((c.tier || 'PRODUCTION').toUpperCase() === targetTier)
+        );
+
+        const confObj = {
+            sourceSymbol: sourceSym,
+            targetSymbol: targetSym,
+            tier: targetTier,
+            minSize: inst.minSize !== undefined ? inst.minSize : 10,
+            maxSize: inst.maxSize !== undefined ? inst.maxSize : 50000,
+            takerSize: inst.takerSize !== undefined ? inst.takerSize : 10,
+            makerUseRawQty: Boolean(inst.makerUseRawQty),
+            takerUseRawQty: Boolean(inst.takerUseRawQty),
+            depthLevels: inst.depthLevels !== undefined ? inst.depthLevels : 20,
+            bufferPct: inst.bufferPct !== undefined ? inst.bufferPct : 0,
+            tradeDelayMs: inst.tradeDelayMs !== undefined ? inst.tradeDelayMs : 0,
+            cancelOnStop: Boolean(inst.cancelOnStop),
+            newUserFlow: Boolean(inst.newUserFlow),
+            enableTradeSync: inst.enableTradeSync !== false
+        };
+
+        if (idx >= 0) {
+            configs[idx] = Object.assign(configs[idx], confObj);
+        } else {
+            configs.push(confObj);
+        }
+        fs.writeFileSync(configPath, JSON.stringify(configs, null, 2), 'utf8');
+        log.info(targetSym, `Config persisted to multi-config.json [${targetTier}]`);
+    } catch (e) {
+        log.warn('CONFIG', `Failed to persist market config to multi-config.json: ${e.message}`);
+    }
+}
+
 
 // Global Verbose Debug Flag
 const DEBUG = false;
@@ -3974,6 +4021,7 @@ function buildPayload(isSnapshot = true, sinceTs = 0) {
                 takerSize:       inst.takerSize,
                 makerUseRawQty:  inst.makerUseRawQty,
                 takerUseRawQty:  inst.takerUseRawQty,
+                depthLevels:     inst.depthLevels !== undefined ? inst.depthLevels : 20,
                 cancelOnStop:    inst.cancelOnStop,
                 newUserFlow:     inst.newUserFlow,
                 tradeDelayMs:    inst.tradeDelayMs,
@@ -4913,14 +4961,14 @@ const server = http.createServer(async (req, res) => {
                             sourceSymbol: sym,
                             targetSymbol: targetSym,
                             tier: tier,
-                            minSize: parseFloat(parsed.minSize || 10),
-                            maxSize: parseFloat(parsed.maxSize || 50000),
-                            takerSize: parseFloat(parsed.takerSize || 10),
+                            minSize: parseFloat(parsed.minSize !== undefined ? parsed.minSize : 10),
+                            maxSize: parseFloat(parsed.maxSize !== undefined ? parsed.maxSize : 50000),
+                            takerSize: parseFloat(parsed.takerSize !== undefined ? parsed.takerSize : 10),
                             makerUseRawQty: Boolean(parsed.makerUseRawQty),
                             takerUseRawQty: Boolean(parsed.takerUseRawQty),
-                            depthLevels: parseInt(parsed.depthLevels || 20),
-                            bufferPct: parseFloat(parsed.bufferPct || 0),
-                            tradeDelayMs: parseInt(parsed.tradeDelayMs || 0),
+                            depthLevels: parseInt(parsed.depthLevels !== undefined ? parsed.depthLevels : 20),
+                            bufferPct: parseFloat(parsed.bufferPct !== undefined ? parsed.bufferPct : 0),
+                            tradeDelayMs: parseInt(parsed.tradeDelayMs !== undefined ? parsed.tradeDelayMs : 0),
                             cancelOnStop: Boolean(parsed.cancelOnStop),
                             newUserFlow: Boolean(parsed.newUserFlow),
                             enableTradeSync: parsed.enableTradeSync !== false
@@ -4933,7 +4981,16 @@ const server = http.createServer(async (req, res) => {
                             await inst.start().catch(e => log.error(targetSym, `Start failed: ${e.message}`, null, tier));
                             log.info(targetSym, `New market mounted from UI.`, null, tier);
                         }
+                        saveMarketConfigToDisk(inst);
                     } else {
+                        // If the market is ALREADY mounted and active, a passive "mountOnly" call from page reload
+                        // must NEVER overwrite its custom active configuration with default parameters!
+                        if (parsed.mountOnly) {
+                            log.info(targetSym, `Market ${targetSym} already active on ${tier}. Preserving configured parameters.`);
+                            res.writeHead(200, { 'Content-Type': 'application/json' });
+                            return res.end(JSON.stringify({ success: true, message: 'Market already mounted, configuration preserved' }));
+                        }
+
                         if (parsed.minSize     !== undefined) inst.minSize     = parseFloat(parsed.minSize);
                         if (parsed.maxSize     !== undefined) inst.maxSize     = parseFloat(parsed.maxSize);
                         if (parsed.takerSize   !== undefined) inst.takerSize   = parseFloat(parsed.takerSize);
@@ -4947,6 +5004,7 @@ const server = http.createServer(async (req, res) => {
                         // Use !== false comparison so string 'false' is treated correctly
                         if (parsed.enableTradeSync !== undefined) inst.enableTradeSync = parsed.enableTradeSync !== false && parsed.enableTradeSync !== 'false';
                         log.info(targetSym, `Config updated for existing instance.`, null, tier);
+                        saveMarketConfigToDisk(inst);
                     }
 
                     if (globalActiveTier !== tier) {
