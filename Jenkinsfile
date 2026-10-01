@@ -4,8 +4,8 @@ pipeline {
     parameters {
         choice(
             name: 'ACTIVE_TIER',
-            choices: ['PRODUCTION', 'QA_STAGING', 'DEV_STAGING', 'PERF'],
-            description: 'Environment tier to run the replicator on (default: PRODUCTION)'
+            choices: ['PERF', 'PRODUCTION', 'QA_STAGING', 'DEV_STAGING'],
+            description: 'Environment tier to run the replicator on (default: PERF)'
         )
         string(
             name: 'BRANCH_NAME',
@@ -14,12 +14,12 @@ pipeline {
         )
         string(
             name: 'SOURCE_SYMBOL',
-            defaultValue: 'XRPUSDT',
-            description: 'Binance symbol to mirror  (e.g. XRPUSDT, BTCUSDT, ETHUSDT)'
+            defaultValue: 'DOGEUSDT',
+            description: 'Binance symbol to mirror  (e.g. DOGEUSDT, BTCUSDT, ETHUSDT)'
         )
         string(
             name: 'TARGET_SYMBOL',
-            defaultValue: 'XRPQAUSDT',
+            defaultValue: '',
             description: 'Testnet symbol to write to  (leave blank to use SOURCE_SYMBOL)'
         )
         string(
@@ -34,12 +34,12 @@ pipeline {
         )
         booleanParam(
             name: 'CREATE_NEW_USERS',
-            defaultValue: true,
+            defaultValue: false,
             description: 'Generate fresh API keys for Maker and Taker users on this run?'
         )
         string(
             name: 'TAKER_SIZE',
-            defaultValue: '10',
+            defaultValue: '50',
             description: 'Taker order size in USDT (used when taker size differs from maker grid)'
         )
         choice(

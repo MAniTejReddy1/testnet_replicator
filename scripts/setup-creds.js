@@ -155,6 +155,14 @@ async function createUserAndKey(labelPrefix) {
 
 (async () => {
   try {
+    if (activeTier === 'PERF' || activeTier === 'PERF_STAGING' || activeTier === 'PERF-STAGING') {
+      console.log("=== PERF tier detected: Using pre-configured PERF credentials ===");
+      const perfVars = `USER1_KEY=${process.env.PERF_USER1_KEY || 'b37615c81c165ae8b42e5f705ae20e14e8aba97f771ba040'}\nUSER1_SECRET=${process.env.PERF_USER1_SECRET || 'f31f231d79ca67fb26cd869805ae988ab8854be29cc152a9c85464b4105f2add'}\nUSER2_KEY=${process.env.PERF_USER2_KEY || 'dba685a4c7ccb0aba040105800f20271af575ca738c82da6'}\nUSER2_SECRET=${process.env.PERF_USER2_SECRET || '7b3e093b8ae8bc0237c06126a6079d32018be1e833d9202d2fea3555aaa37a1b'}\n`;
+      fs.writeFileSync("creds.env", perfVars);
+      console.log("✅ PERF credentials successfully written to creds.env!");
+      return;
+    }
+
     console.log("=== Creating User 1 (Maker) ===");
     const maker = await createUserAndKey("USER1_MAKER");
     console.log("=== Creating User 2 (Taker) ===");
