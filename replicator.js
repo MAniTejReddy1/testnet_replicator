@@ -1829,11 +1829,18 @@ class ReplicatorInstance {
 
         const { sourceSymbol, targetSymbol } = deriveSymbols(marketConfig.sourceSymbol, marketConfig.targetSymbol);
         this.sourceSymbol = sourceSymbol;
-        this.targetSymbol = (this.tier === 'PERF' || this.tier === 'PRODUCTION') ? targetSymbol.replace(/^B-/, '').replace(/_/g, '') : targetSymbol;
+        let normTgt = targetSymbol;
+        if (this.tier === 'PERF' || this.tier === 'PRODUCTION') {
+            normTgt = normTgt.replace(/^B-/, '').replace(/_/g, '');
+            if (normTgt.endsWith('QAUSDT')) {
+                normTgt = normTgt.replace('QAUSDT', 'USDT');
+            }
+        }
+        this.targetSymbol = normTgt;
         
         this.symbol = this.targetSymbol; 
         const rawStatus = (marketConfig.status || '').toUpperCase();
-        this.savedStatus = (rawStatus === 'RUNNING' || rawStatus === 'PAUSED') ? rawStatus : 'STOPPED';
+        this.savedStatus = rawStatus ? ((rawStatus === 'RUNNING' || rawStatus === 'PAUSED') ? rawStatus : 'STOPPED') : 'RUNNING';
         this.status = this.savedStatus;
 
         this.minSize            = marketConfig.minSize !== undefined ? marketConfig.minSize : 10;

@@ -186,6 +186,7 @@ pipeline {
   "sourceSymbol": "${src}",
   "targetSymbol": "${tgt}",
   "tier": "${params.ACTIVE_TIER}",
+  "status": "RUNNING",
   "minSize": ${params.MIN_SIZE},
   "maxSize": ${params.MAX_SIZE},
   "takerSize": ${params.TAKER_SIZE},
