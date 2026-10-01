@@ -21,38 +21,6 @@
     "enableTradeSync": true
   },
   {
-    "sourceSymbol": "XRPUSDT",
-    "targetSymbol": "XRPUSDT",
-    "tier": "QA_STAGING",
-    "minSize": 50,
-    "maxSize": 100,
-    "takerSize": 50,
-    "makerUseRawQty": false,
-    "takerUseRawQty": false,
-    "depthLevels": 20,
-    "bufferPct": 0,
-    "tradeDelayMs": 0,
-    "cancelOnStop": false,
-    "newUserFlow": false,
-    "enableTradeSync": true
-  },
-  {
-    "sourceSymbol": "BTCUSDT",
-    "targetSymbol": "BTCQAUSDT",
-    "tier": "QA_STAGING",
-    "minSize": 200,
-    "maxSize": 500,
-    "takerSize": 200,
-    "makerUseRawQty": false,
-    "takerUseRawQty": false,
-    "depthLevels": 20,
-    "bufferPct": 0,
-    "tradeDelayMs": 0,
-    "cancelOnStop": false,
-    "newUserFlow": false,
-    "enableTradeSync": true
-  },
-  {
     "sourceSymbol": "BTCUSDT",
     "targetSymbol": "BTCUSDT",
     "tier": "QA_STAGING",
@@ -67,13 +35,13 @@
     "cancelOnStop": false,
     "newUserFlow": false,
     "enableTradeSync": true,
-    "status": "STOPPED",
-    "mountOnly": true
+    "status": "PAUSED",
+    "mountOnly": false
   },
   {
-    "sourceSymbol": "ETHUSDT",
-    "targetSymbol": "ETHUSDT",
-    "tier": "QA_STAGING",
+    "sourceSymbol": "XRPUSDT",
+    "targetSymbol": "XRPUSDT",
+    "tier": "PRODUCTION",
     "minSize": 10,
     "maxSize": 50000,
     "takerSize": 10,
@@ -89,7 +57,9 @@
   {
     "sourceSymbol": "XRPUSDT",
     "targetSymbol": "XRPUSDT",
-    "tier": "PRODUCTION",
+    "tier": "QA_STAGING",
+    "status": "PAUSED",
+    "mountOnly": false,
     "minSize": 10,
     "maxSize": 50000,
     "takerSize": 10,
