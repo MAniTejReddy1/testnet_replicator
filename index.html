@@ -4129,25 +4129,7 @@
       </div>
     </div>
 
-    <!-- Card 4: Mark Price Bands (Adjacent to Mark Price) -->
-    <div class="ticker-card tc-accent-purple" style="min-width: 185px;">
-      <div class="ticker-card-hdr">
-        <span class="ticker-card-title"><span style="color:#c084fc; font-size:10px;">⊞</span> Mark Bands</span>
-        <span id="mark-bands-badge" class="tc-badge" title="Mark Price Allowable Band Range">Range: —</span>
-      </div>
-      <div class="ticker-card-body">
-        <div class="tc-row">
-          <span class="tc-tag tc-tag-up" title="Upper Mark Band: Mark * (1 + Band%)">▲ UP</span>
-          <span class="ticker-val tc-val-emerald" id="t-mark-upper">—</span>
-        </div>
-        <div class="tc-row">
-          <span class="tc-tag tc-tag-dn" title="Lower Mark Band: Mark * (1 - Band%)">▼ DN</span>
-          <span class="ticker-val tc-val-rose" id="t-mark-lower">—</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Card 5: Index Price -->
+    <!-- Card 4: Index Price (Adjacent to Mark Price) -->
     <div class="ticker-card tc-accent-blue" style="min-width: 180px;">
       <div class="ticker-card-hdr">
         <span class="ticker-card-title"><span style="color:#60a5fa; font-size:10px;">◎</span> Index Price</span>
@@ -4165,10 +4147,28 @@
       </div>
     </div>
 
-    <!-- Card 6: Circuit Breakers (CB) (Adjacent to Index Price) -->
+    <!-- Card 5: Mark Price Bands (Bands & Safeguards Group) -->
+    <div class="ticker-card tc-accent-purple" style="min-width: 185px;">
+      <div class="ticker-card-hdr">
+        <span class="ticker-card-title" title="Allowable band range derived from Mark Price (Mark ± Band%)"><span style="color:#c084fc; font-size:10px;">⊞</span> Mark Bands</span>
+        <span id="mark-bands-badge" class="tc-badge" title="Mark Price Allowable Band Range">Range: —</span>
+      </div>
+      <div class="ticker-card-body">
+        <div class="tc-row">
+          <span class="tc-tag tc-tag-up" title="Upper Mark Band: Mark * (1 + Band%)">▲ UP</span>
+          <span class="ticker-val tc-val-emerald" id="t-mark-upper">—</span>
+        </div>
+        <div class="tc-row">
+          <span class="tc-tag tc-tag-dn" title="Lower Mark Band: Mark * (1 - Band%)">▼ DN</span>
+          <span class="ticker-val tc-val-rose" id="t-mark-lower">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 6: Circuit Breakers (CB) -->
     <div class="ticker-card tc-accent-rose" style="min-width: 185px;">
       <div class="ticker-card-hdr">
-        <span class="ticker-card-title"><span style="color:#fb7185; font-size:10px;">⚡</span> Circuit Breaker</span>
+        <span class="ticker-card-title" title="Circuit Breaker: Hard trading halt limits derived from Index/Mark Price"><span style="color:#fb7185; font-size:10px;">⚡</span> Circuit Breaker</span>
         <span id="cb-band-badge" class="tc-badge" style="color:var(--red); border-color:rgba(239,68,68,0.3); background:rgba(239,68,68,0.08);" title="Circuit Breaker Limit Percentage">Band: —</span>
       </div>
       <div class="ticker-card-body">
