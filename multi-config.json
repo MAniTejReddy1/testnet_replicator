@@ -18,7 +18,9 @@
     "tradeDelayMs": 0,
     "cancelOnStop": false,
     "newUserFlow": false,
-    "enableTradeSync": true
+    "enableTradeSync": true,
+    "status": "STOPPED",
+    "mountOnly": true
   },
   {
     "sourceSymbol": "BTCUSDT",

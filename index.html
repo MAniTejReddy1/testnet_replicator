@@ -9622,16 +9622,28 @@ window.addEventListener('DOMContentLoaded', () => {
                     bannerMsg = `Enter Trigger & Limit Price. Must respect ${isBuy ? `Max Buy ($${fmtPrice(maxBuy)})` : `Min Sell ($${fmtPrice(minSell)})`} upon trigger.`;
                 } else {
                     bannerStat = `Trigger: $${fmtPrice(stopPrice)}`;
-                    if (isBuy && maxBuy !== null && price > maxBuy) {
+                    
+                    // For Stop Limit orders, expected Mark Price at trigger time is stopPrice.
+                    // Calculate expected Max Buy / Min Sell relative to Trigger Price:
+                    const upMult = (diag.markUpperPct !== undefined && diag.markUpperPct !== null) ? (parseFloat(diag.markUpperPct) / 100) : 0.0525;
+                    const downMult = (diag.markLowerPct !== undefined && diag.markLowerPct !== null) ? (parseFloat(diag.markLowerPct) / 100) : 0.0475;
+                    
+                    const triggerMarkUpper = stopPrice * (1 + upMult);
+                    const triggerMarkLower = stopPrice * (1 - downMult);
+                    
+                    const triggerMaxBuy = (cbUpper !== null && cbUpper > stopPrice) ? Math.min(triggerMarkUpper, cbUpper) : triggerMarkUpper;
+                    const triggerMinSell = (cbLower !== null && cbLower < stopPrice) ? Math.max(triggerMarkLower, cbLower) : triggerMarkLower;
+
+                    if (isBuy && triggerMaxBuy !== null && price > triggerMaxBuy) {
                         bannerState = 'state-warning';
                         bannerIcon = '⚠️';
                         bannerBadge = 'TRIGGER RISK';
-                        bannerMsg = `Limit <strong>$${fmtPrice(price)}</strong> exceeds Max Buy <strong>$${fmtPrice(maxBuy)}</strong>. Order will reject once triggered at $${fmtPrice(stopPrice)}.`;
-                    } else if (!isBuy && minSell !== null && price < minSell) {
+                        bannerMsg = `Limit <strong>$${fmtPrice(price)}</strong> exceeds Max Buy at trigger <strong>$${fmtPrice(triggerMaxBuy)}</strong>. Order will reject once triggered at $${fmtPrice(stopPrice)}.`;
+                    } else if (!isBuy && triggerMinSell !== null && price < triggerMinSell) {
                         bannerState = 'state-warning';
                         bannerIcon = '⚠️';
                         bannerBadge = 'TRIGGER RISK';
-                        bannerMsg = `Limit <strong>$${fmtPrice(price)}</strong> is below Min Sell <strong>$${fmtPrice(minSell)}</strong>. Order will reject once triggered at $${fmtPrice(stopPrice)}.`;
+                        bannerMsg = `Limit <strong>$${fmtPrice(price)}</strong> is below Min Sell at trigger <strong>$${fmtPrice(triggerMinSell)}</strong>. Order will reject once triggered at $${fmtPrice(stopPrice)}.`;
                     } else {
                         bannerState = 'state-success';
                         bannerIcon = '✓';
@@ -10136,14 +10148,30 @@ window.addEventListener('DOMContentLoaded', () => {
             }
 
             // Non-blocking safeguard warning toast if placing outside exchange limits
-            const maxBuy = (diag.maxBuyPrice !== null && diag.maxBuyPrice !== undefined) ? parseFloat(diag.maxBuyPrice) : null;
-            const minSell = (diag.minSellPrice !== null && diag.minSellPrice !== undefined) ? parseFloat(diag.minSellPrice) : null;
+            const rawMaxBuy = (diag.maxBuyPrice !== null && diag.maxBuyPrice !== undefined) ? parseFloat(diag.maxBuyPrice) : null;
+            const rawMinSell = (diag.minSellPrice !== null && diag.minSellPrice !== undefined) ? parseFloat(diag.minSellPrice) : null;
+
+            let checkMaxBuy = rawMaxBuy;
+            let checkMinSell = rawMinSell;
+
+            if ((type === 'STOP' || type === 'TAKE_PROFIT') && stopPrice > 0) {
+                const upMult = (diag.markUpperPct !== undefined && diag.markUpperPct !== null) ? (parseFloat(diag.markUpperPct) / 100) : 0.0525;
+                const downMult = (diag.markLowerPct !== undefined && diag.markLowerPct !== null) ? (parseFloat(diag.markLowerPct) / 100) : 0.0475;
+                const cbUpper = (diag.cbUpperBand !== null && diag.cbUpperBand !== undefined) ? parseFloat(diag.cbUpperBand) : null;
+                const cbLower = (diag.cbLowerBand !== null && diag.cbLowerBand !== undefined) ? parseFloat(diag.cbLowerBand) : null;
+
+                const triggerMarkUpper = stopPrice * (1 + upMult);
+                const triggerMarkLower = stopPrice * (1 - downMult);
+
+                checkMaxBuy = (cbUpper !== null && cbUpper > stopPrice) ? Math.min(triggerMarkUpper, cbUpper) : triggerMarkUpper;
+                checkMinSell = (cbLower !== null && cbLower < stopPrice) ? Math.max(triggerMarkLower, cbLower) : triggerMarkLower;
+            }
 
             if (type === 'LIMIT' || type === 'STOP' || type === 'TAKE_PROFIT') {
-                if (side === 'BUY' && maxBuy !== null && price > maxBuy) {
-                    showToast(`⚠️ Warning: Limit Buy ($${price}) exceeds Max Buy ($${maxBuy}). Placing order per request...`, false);
-                } else if (side === 'SELL' && minSell !== null && price < minSell) {
-                    showToast(`⚠️ Warning: Limit Sell ($${price}) is below Min Sell ($${minSell}). Placing order per request...`, false);
+                if (side === 'BUY' && checkMaxBuy !== null && price > checkMaxBuy) {
+                    showToast(`⚠️ Warning: Limit Buy ($${price}) exceeds Max Buy ($${checkMaxBuy.toFixed(1)}). Placing order per request...`, false);
+                } else if (side === 'SELL' && checkMinSell !== null && price < checkMinSell) {
+                    showToast(`⚠️ Warning: Limit Sell ($${price}) is below Min Sell ($${checkMinSell.toFixed(1)}). Placing order per request...`, false);
                 }
             }
 
